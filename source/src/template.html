@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LANE NOTE（レーンノート）試作版</title>
+<link rel="icon" type="image/svg+xml" href="__FAVICON__">
+<link rel="apple-touch-icon" sizes="180x180" href="__APPLE_ICON__">
+<style>
+:root{--main:#1f6feb;--bg:#f5f7fb;--line:#d8dee9;--ink:#1d2433;--muted:#6b7280;--ok:#137333;--ng:#c5221f}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Hiragino Sans","Yu Gothic UI","Meiryo","Noto Sans CJK JP",sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.6}
+header{background:linear-gradient(120deg,#1f6feb,#14a3a3);color:#fff;padding:18px 20px}
+header h1{margin:0;font-size:22px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.badge{background:#ffd23f;color:#5a4300;font-size:12px;padding:2px 10px;border-radius:999px;font-weight:bold}
+header p{margin:4px 0 0;opacity:.95;font-size:14px}
+main{max-width:1180px;margin:0 auto;padding:16px}
+section.box{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:16px}
+h2{font-size:17px;margin:0 0 10px;display:flex;gap:8px;align-items:center}
+h2 .no{background:var(--main);color:#fff;border-radius:50%;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;font-size:13px}
+.howto ol{margin:6px 0 8px;padding-left:22px}
+.notice{background:#fff8e1;border:1px solid #f3d27a;border-radius:8px;padding:8px 12px;font-size:13.5px}
+.privacy{background:#e9f5ee;border:1px solid #a8d5b8;border-radius:8px;padding:8px 12px;font-size:13.5px;margin-top:8px}
+.drops{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+th[data-sort]{cursor:pointer;user-select:none;white-space:nowrap}th[data-sort]:hover{background:#dfe7f3}
+th[data-sort] .ar{color:#1a56c4;font-size:10px;margin-left:2px}
+.fee td,.fee th{text-align:right}.fee td:first-child,.fee th:first-child{text-align:left}
+.fee input{width:6em;text-align:right}
+.feetot{font-size:18px;font-weight:bold}
+.opt{font-size:11px;background:#eef2f7;color:#555;border-radius:999px;padding:1px 8px;margin-left:4px;font-weight:normal}
+.rules{background:#f4f8ff;border:1px solid #c8d8f3;border-radius:8px;padding:8px 12px;margin-top:10px;font-size:13.5px}
+.rules q{display:block;color:#444;font-size:12.5px;margin:2px 0 6px 1em;quotes:"「" "」"}
+.rs{display:inline-block;min-width:1.6em;text-align:center;font-weight:bold;border-radius:5px;margin-right:4px;cursor:pointer;font-size:12px;padding:0 3px}
+.rs.ok{background:#e6f4ea;color:#137333}.rs.ng{background:#fce8e6;color:#b3261e}.rs.man{background:#fff4d6;color:#8a5a00}.rs.na{background:#eee;color:#777}
+.rsum .rs{cursor:default}
+/* 記録用紙 */
+#recSheet{display:none}
+.rec{width:100%;border-collapse:collapse;font-size:10pt}
+.rec th,.rec td{border:1px solid #444;padding:0 1.5mm;height:11mm;vertical-align:middle}
+.rec thead th{background:#eef1f5;height:7mm;font-size:9pt;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.rec .rh td{border:0;height:auto;padding:0 0 2mm;text-align:left}
+.rec .rh h1{font-size:14pt;margin:0}.rec .rh p{margin:0;font-size:9pt;color:#333}
+.rec td.w{width:22mm}.rec td.wd{width:13mm}.rec td.rk{width:11mm}
+.rec td.nowind{background:repeating-linear-gradient(45deg,#9a9a9a 0 1.2px,#ececec 1.2px 5px);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+tr.gsep td{border-top:2px solid #5a6b85}
+tr.gcont td.t,tr.gcont td:nth-child(2),tr.gcont td:nth-child(3){border-top-color:transparent}
+.rec tr.gsep td{border-top:2px solid #000}
+.rec td.c{text-align:center}.rec small{font-size:7.5pt;color:#444}
+.rec tr{page-break-inside:avoid;break-inside:avoid}
+.recmeta{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:8px 0;font-size:14px}
+.recmeta input{font-size:14px;padding:3px 6px;border:1px solid #c9d2e0;border-radius:6px}
+.lockbadge{font-size:12px;font-weight:normal;background:#e9f5ee;color:#137333;border-radius:999px;padding:2px 10px;margin-left:8px;text-decoration:none;vertical-align:middle}
+details.privacy summary{cursor:pointer}details.privacy ul{margin:6px 0 2px;padding-left:1.4em}
+.mkgrid{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.mk{display:inline-flex;align-items:center;gap:5px;border:1px solid #d6d2cc;border-radius:10px;padding:3px 8px;background:#fff;font-size:13px}
+.mk.chg{border-color:#e8a33d;background:#fff7ec}
+.mk-n{font-weight:800;min-width:2.2em;text-align:right;font-variant-numeric:tabular-nums}
+.mk-need{font-size:11px;color:var(--muted)}
+.mk input{width:3.6em;padding:2px 4px;font-size:14px;text-align:right}
+.mktot{font-size:14px}.mktot small{color:var(--muted);margin-left:4px}.mktot .mkdiff{color:#b45309}
+.mkreset{font-size:12px!important;padding:4px 10px!important;margin-left:8px;vertical-align:middle}
+.mkline{align-items:start}
+.brand{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.wordmark{margin:0;display:flex;align-items:center;gap:10px;font-family:"Segoe UI","Helvetica Neue",Arial,"Meiryo",sans-serif;font-weight:900;font-size:34px;line-height:1;letter-spacing:.08em;font-style:italic}
+.wm-lane{color:#fff}
+.wm-note{color:#fff;opacity:.95}
+.wm-bar{display:inline-block;width:6px;height:28px;background:#fff;transform:skewX(-14deg);border-radius:1px;box-shadow:9px 0 0 rgba(255,255,255,.55)}
+.wm-note{margin-left:8px}
+.wm-side{display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+.wm-kana{font-size:12px;letter-spacing:.2em;opacity:.9;font-weight:700}
+.tagline{font-size:14px;margin:6px 0 0;opacity:.95}
+footer .f-brand{letter-spacing:.06em}
+.logo{margin:0;line-height:0}
+.logo svg{display:block;height:64px;width:auto;max-width:100%}
+.vh{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.brand .badge{align-self:flex-start;margin-top:6px}
+.credit{font-size:12px;opacity:.85;margin-top:2px;font-style:italic;letter-spacing:.06em}
+.disclaimer{background:#f6f7f9;border-left:4px solid #9aa3b5;border-radius:8px;padding:7px 12px;font-size:12.5px;color:#444;line-height:1.6;margin-top:8px}
+.disclaimer.sm{margin:0 0 10px;font-size:12px}
+footer .f-disc{max-width:820px;margin:0 auto 8px;font-size:11.5px;line-height:1.6;color:#666}
+footer .f-credit{font-style:italic}
+.pi-disc{font-size:6.8pt;color:#333;margin-top:.6mm;border-top:.4pt dotted #777;padding-top:.6mm}
+.fmt{display:inline-block;background:#e9f5ee;color:#137333;border-radius:6px;padding:0 6px;font-size:12px;margin-left:4px}
+.drop{border:2px dashed #9db4d9;border-radius:12px;padding:18px;text-align:center;cursor:pointer;background:#f8fbff;transition:.15s}
+.drop:hover,.drop.drag{background:#e7f0ff;border-color:var(--main)}
+.drop .big{font-size:16px;font-weight:bold}
+.drop input{display:none}
+.status{font-size:13px;margin-top:6px;min-height:1.4em}
+.status.ok{color:var(--ok)} .status.ng{color:var(--ng)} .status.busy{color:var(--main)}
+.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+input[type=text]{font-size:17px;padding:8px 12px;border:1px solid #b9c3d3;border-radius:8px;width:280px;max-width:100%}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid #b9c3d3;border-radius:999px;padding:4px 12px;margin:4px 6px 0 0;background:#fff;cursor:pointer}
+.chip small{color:var(--muted)}
+.muted{color:var(--muted)} .warn{color:#b45309} .small{font-size:12.5px}
+details.settings{margin-top:12px;font-size:14px}
+details.settings summary{cursor:pointer;color:var(--main)}
+.sgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px 18px;margin-top:8px}
+.sgrid input[type=number]{width:64px;padding:3px 6px;font-size:15px;border:1px solid #b9c3d3;border-radius:6px}
+.cards{display:flex;gap:10px;flex-wrap:wrap}
+.card{border-radius:10px;padding:10px 14px;min-width:240px;flex:1}
+.card .ct{font-weight:bold;font-size:17px}
+.tm0{background:#fff6d6} .tm1{background:#e5f1ff} .tm2{background:#e9f8ec} .tm3{background:#fbe9f3}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.btn{background:var(--main);color:#fff;border:0;border-radius:8px;padding:8px 14px;font-size:14.5px;cursor:pointer;white-space:nowrap}
+.btn:hover{filter:brightness(1.1)} .btn:disabled{background:#aab4c3;cursor:default}
+.btn.sub{background:#fff;color:var(--main);border:1px solid var(--main)}
+.tabs{display:flex;gap:4px;border-bottom:2px solid var(--line);margin-top:6px;flex-wrap:wrap}
+.tabs button{border:0;background:none;padding:8px 14px;font-size:15px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;color:var(--muted)}
+.tabs button.on{border-color:var(--main);color:var(--ink);font-weight:bold}
+.tw{overflow-x:auto;margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:14px;background:#fff}
+th,td{border:1px solid var(--line);padding:5px 7px;vertical-align:middle}
+th{background:#eef3fb;font-size:13px;white-space:nowrap;position:sticky;top:0}
+td.c{text-align:center} td.nw,.nw{white-space:nowrap} td.t{font-weight:bold;font-size:16px;white-space:nowrap}
+td.note{font-size:12px;color:#555;min-width:120px}
+tr.sep td{border-top:2.5px solid #7c8aa5}
+.pl{font-size:11px;color:var(--muted)}
+.cardbox{border-radius:12px;padding:12px 16px;margin-top:12px}
+.cardbox h3{margin:0 0 6px;font-size:17px}
+.cline{display:grid;grid-template-columns:200px 1fr auto;gap:10px;align-items:center;padding:8px 0;border-top:1px dashed #c9d2e0}
+.cline .lab{font-weight:bold}
+.nums{font-size:13.5px;color:#333;word-break:break-all}
+.num{display:inline-block;background:#fff;border:1px solid #c9d2e0;border-radius:6px;padding:0 6px;font-weight:bold}
+#dlMsg{color:var(--ok);font-size:14px;margin-top:8px}
+#printHead{display:none}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:16px}
+@media (max-width:720px){
+  .drops{grid-template-columns:1fr}
+  .cline{grid-template-columns:1fr}
+  header h1{font-size:19px}
+  main{padding:10px}
+  table{font-size:13px}
+}
+
+/* ================= テーマ（画面表示のみ。印刷には影響しない） ================= */
+@media screen{
+:root{--track:#c8553d;--track-d:#a8402b;--track-l:#f6e3dc;--navy:#14213d;--navy-2:#22335c;--lane:#ffffff;--bg:#f3f1ee;--line:#e2ddd7;--ink:#1b2236;--muted:#6c6f7a;--main:#14213d;--ok:#1e7d4f;--ng:#c0392b;--rad:16px;--shadow:0 1px 2px rgba(20,33,61,.06),0 6px 20px rgba(20,33,61,.06)}
+body{-webkit-text-size-adjust:100%;text-size-adjust:100%;font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Meiryo","Yu Gothic","Noto Sans JP","Noto Sans CJK JP",sans-serif;background:var(--bg);font-feature-settings:normal;letter-spacing:.02em}
+header{position:relative;overflow:hidden;background:var(--track);padding:22px 24px 30px;color:#fff;
+  background-image:repeating-linear-gradient(180deg,transparent 0 22px,rgba(255,255,255,.55) 22px 24px),linear-gradient(120deg,var(--track) 0%,var(--track-d) 100%);
+  background-size:100% 100%,100% 100%}
+header::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(20,33,61,.92) 0%,rgba(20,33,61,.82) 46%,rgba(20,33,61,0) 78%)}
+header::after{content:"";position:absolute;right:6%;top:0;bottom:0;width:6px;background:#fff;opacity:.85;transform:skewX(-12deg);box-shadow:-26px 0 0 rgba(255,255,255,.85)}
+header>*{position:relative;z-index:1;max-width:1180px;margin-left:auto;margin-right:auto}
+header h1{font-size:24px;font-weight:800;letter-spacing:.04em}
+header p{opacity:.9}
+.badge{background:#fff;color:var(--track-d);border-radius:6px;font-weight:700;letter-spacing:.05em}
+main{max-width:1180px;padding:20px 16px}
+section.box{border:0;border-radius:var(--rad);box-shadow:var(--shadow);padding:20px 22px;margin-bottom:18px;position:relative}
+section.box>h2:first-child,#inputs h2,#results>h2{font-size:18px;font-weight:800;color:var(--navy)}
+h2 .no{background:var(--track);width:30px;height:30px;font-size:15px;font-weight:800;box-shadow:0 0 0 3px var(--track-l)}
+.howto{border-left:6px solid var(--navy)!important}
+.notice{background:#fff7ed;border:0;border-left:4px solid #e8a33d;border-radius:10px}
+.privacy{background:#eef6f1;border:0;border-left:4px solid var(--ok);border-radius:10px}
+.lockbadge{background:#eef6f1;color:var(--ok);border:1px solid #cfe6d8;font-weight:600}
+/* ドロップ枠 */
+.drops{gap:14px}
+.drop{position:relative;border:2px dashed #d6c9c1;background:#fffdfb;border-radius:14px;padding:20px 14px 16px;transition:transform .12s,box-shadow .12s,border-color .12s,background .12s}
+.drop:hover,.drop.drag{border-color:var(--track);background:#fff6f2;transform:translateY(-1px);box-shadow:var(--shadow)}
+.drop:focus-visible{outline:3px solid var(--track-l);border-color:var(--track)}
+.drop .big{font-size:16px;font-weight:800;color:var(--navy)}
+.drop.loaded{border-style:solid;border-color:var(--ok);background:#f3faf6}
+.drop.loaded::after{content:"✓";position:absolute;top:-10px;right:-10px;width:28px;height:28px;border-radius:50%;background:var(--ok);color:#fff;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(30,125,79,.4)}
+.drop.failed{border-color:var(--ng);background:#fdf3f2}
+.status{font-size:12.5px}
+.opt{background:var(--track-l);color:var(--track-d);font-weight:700}
+.brand{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.wordmark{margin:0;display:flex;align-items:center;gap:10px;font-family:"Segoe UI","Helvetica Neue",Arial,"Meiryo",sans-serif;font-weight:900;font-size:34px;line-height:1;letter-spacing:.08em;font-style:italic}
+.wm-lane{color:#fff}
+.wm-note{color:#fff;opacity:.95}
+.wm-bar{display:inline-block;width:6px;height:28px;background:#fff;transform:skewX(-14deg);border-radius:1px;box-shadow:9px 0 0 rgba(255,255,255,.55)}
+.wm-note{margin-left:8px}
+.wm-side{display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+.wm-kana{font-size:12px;letter-spacing:.2em;opacity:.9;font-weight:700}
+.tagline{font-size:14px;margin:6px 0 0;opacity:.95}
+footer .f-brand{letter-spacing:.06em}
+.logo{margin:0;line-height:0}
+.logo svg{display:block;height:64px;width:auto;max-width:100%}
+.vh{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.brand .badge{align-self:flex-start;margin-top:6px}
+.credit{font-size:12px;opacity:.85;margin-top:2px;font-style:italic;letter-spacing:.06em}
+.disclaimer{background:#f6f7f9;border-left:4px solid #9aa3b5;border-radius:8px;padding:7px 12px;font-size:12.5px;color:#444;line-height:1.6;margin-top:8px}
+.disclaimer.sm{margin:0 0 10px;font-size:12px}
+footer .f-disc{max-width:820px;margin:0 auto 8px;font-size:11.5px;line-height:1.6;color:#666}
+footer .f-credit{font-style:italic}
+.pi-disc{font-size:6.8pt;color:#333;margin-top:.6mm;border-top:.4pt dotted #777;padding-top:.6mm}
+.fmt{background:#e8edf7;color:var(--navy);font-weight:600}
+/* 入力 */
+input[type=text],input[type=number],select{font-family:inherit;border:1.5px solid #d6d2cc;border-radius:10px;background:#fff;transition:border-color .12s,box-shadow .12s}
+input[type=text]:focus,input[type=number]:focus,select:focus{outline:0;border-color:var(--track);box-shadow:0 0 0 3px var(--track-l)}
+#school{font-size:18px;padding:10px 14px;width:320px;font-weight:600}
+.chip{border:1.5px solid #d6d2cc;padding:6px 14px;font-weight:600;transition:.12s}
+.chip:has(input:checked){border-color:var(--navy);background:var(--navy);color:#fff}
+.chip:has(input:checked) small{color:#c9d3ea}
+details.settings summary{color:var(--navy);font-weight:700}
+.sgrid label{background:#faf8f6;border-radius:10px;padding:8px 10px}
+/* 〇×バッジ */
+.rs{min-width:1.9em;height:1.6em;line-height:1.6em;border-radius:999px;font-size:12px;padding:0 6px;vertical-align:middle}
+.rs.ok{background:var(--ok);color:#fff}.rs.ng{background:#fde8e5;color:var(--ng);box-shadow:inset 0 0 0 1.5px #f2b8b0}
+.rs.man{background:#fff1d6;color:#8a5a00;box-shadow:inset 0 0 0 1.5px #f0d39a}.rs.na{background:#eceae6;color:#8a8a8a}
+.rules{background:#f7f8fb;border:0;border-left:4px solid var(--navy);border-radius:10px}
+.rules details.rd{padding:2px 0}.rules details.rd summary{cursor:pointer}
+/* 結果 */
+.cards{gap:12px}
+.card{border-radius:14px;box-shadow:inset 0 0 0 1px rgba(20,33,61,.06)}
+.card .ct{color:var(--navy);font-weight:800}
+.tm0{background:#fff4e8}.tm1{background:#eaf0fb}.tm2{background:#eaf6ef}.tm3{background:#f8ecf2}
+.toolbar{gap:10px}
+.btn{background:var(--track);border-radius:10px;font-weight:700;padding:9px 16px;box-shadow:0 2px 0 var(--track-d);transition:transform .08s,filter .12s}
+.btn:hover{filter:brightness(1.06)}.btn:active{transform:translateY(1px);box-shadow:none}
+.btn.sub{background:#fff;color:var(--navy);border:1.5px solid #cfd5e2;box-shadow:none}
+.btn.sub:hover{border-color:var(--navy);background:#f5f7fb}
+.btn:disabled{background:#c9c5bf;box-shadow:none}
+.recmeta{background:#faf8f6;border-radius:10px;padding:8px 12px}
+.tabbar{position:sticky;top:0;z-index:20;background:#fff;margin:8px -22px 0;padding:6px 22px 0;border-bottom:1px solid var(--line)}
+.tabs{border:0;margin:0;gap:2px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.tabs button{font-weight:700;color:var(--muted);border-bottom:4px solid transparent;padding:10px 14px;white-space:nowrap;font-family:inherit}
+.tabs button:hover{color:var(--navy)}
+.tabs button.on{color:var(--track-d);border-color:var(--track)}
+.tw{border-radius:12px;box-shadow:inset 0 0 0 1px var(--line)}
+table{font-size:14px}
+th,td{border:0;border-bottom:1px solid #ece8e3}
+th{background:var(--navy);color:#fff;font-weight:700;top:var(--tabh,46px);z-index:2}
+/* 表はどの画面幅でも横スクロール */
+.tw{overflow-x:auto}
+th[data-sort]:hover{background:var(--navy-2)}
+th[data-sort] .ar{color:#ffb39f}
+tbody tr:nth-child(even) td{background-image:linear-gradient(rgba(20,33,61,.035),rgba(20,33,61,.035))}
+tbody tr:hover td{background-image:linear-gradient(rgba(200,85,61,.07),rgba(200,85,61,.07))}
+tr.sep td,tr.gsep td{border-top:2px solid var(--navy)}
+td.t{color:var(--navy);font-size:17px;font-variant-numeric:tabular-nums}
+.pl{color:var(--track-d);font-weight:600}
+.cardbox{box-shadow:inset 0 0 0 1px rgba(20,33,61,.06)}
+.num{border-color:#d6d2cc}
+.fee th{background:var(--navy)}
+.feetot{color:var(--track-d)}
+footer{padding:22px 16px 30px}
+footer a{color:var(--navy)}
+@media (max-width:720px){
+  header{padding:16px 16px 22px}header h1{font-size:19px}header::after{display:none}
+  .logo svg{height:46px}
+  main{padding:12px 10px}
+  section.box{padding:16px 14px;border-radius:14px}
+  .tabbar{margin:8px -14px 0;padding:4px 14px 0}
+  #school{width:100%}
+  .toolbar .btn{flex:1 1 46%}
+  th{top:0}
+  .tw table{min-width:720px}.tw td{white-space:nowrap}.tw td.note{min-width:160px;white-space:normal}.tw td small{white-space:normal;display:inline-block;min-width:200px}
+  #paneTime .tw table{min-width:0}
+  #timeBody td:nth-child(2){white-space:normal;width:4.2em;font-size:12px;line-height:1.3}
+  #timeBody td:nth-child(3){white-space:normal;min-width:6.5em;max-width:8em;font-size:12.5px;line-height:1.35}
+  #timeBody td:nth-child(1){font-size:14px;padding:4px 5px}
+  #paneTime th,#timeBody td{padding:4px 5px}
+  #timeBody td:nth-child(5) .pl{display:block;font-size:9.5px;line-height:1.1}
+  .tw{-webkit-overflow-scrolling:touch}
+  h2{flex-wrap:wrap}.lockbadge{margin-left:0}
+  .drop{padding:14px 12px 12px}
+  .drops{gap:10px}
+  td.t{font-size:15px}
+}
+}
+#printTime,#recSheet{display:none}
+@media print{
+  @page{size:A4 portrait;margin:9mm 9mm 13mm 9mm;
+    @bottom-left{content:"LANE NOTE ／ Presented by Sakata";font-family:"Meiryo","Yu Gothic","Hiragino Sans","Noto Sans JP",sans-serif;font-size:6.5pt;color:#555}
+    @bottom-right{content:counter(page) " / " counter(pages);font-family:"Meiryo","Yu Gothic","Hiragino Sans","Noto Sans JP",sans-serif;font-size:8.5pt;font-weight:bold;color:#000}}
+  html,body{background:#fff!important;color:#000}
+  body{font-family:"Meiryo","Yu Gothic","YuGothic","Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Noto Sans CJK JP",sans-serif;font-size:9pt;line-height:1.35;letter-spacing:0;font-feature-settings:normal}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  header,footer,main>*{display:none!important}
+  main{padding:0!important;max-width:none!important}
+  main>#printTime{display:block!important}
+  body.print-rec main>#printTime{display:none!important}
+  body.print-rec main>#recSheet{display:block!important}
+  /* 共通テーブル */
+  .ptab{width:100%;border-collapse:collapse;table-layout:fixed}
+  .ptab th,.ptab td{border:0;padding:0;vertical-align:middle;overflow:hidden;word-break:normal;overflow-wrap:anywhere;position:static!important;color:#000}
+  /* 見出し帯 */
+  .pband th{padding:0 0 2.2mm;text-align:left;font-weight:normal}
+  .pb-in{display:flex;justify-content:space-between;align-items:flex-end;gap:4mm;border-top:2.6pt solid #000;padding-top:1.6mm}
+  .pb-l{display:flex;align-items:center;gap:2.6mm;min-width:0}
+  .pb-icon{width:9mm;height:9mm;flex:none;display:block}
+  .ptab .pb-kind{display:inline-block;background:#000;color:#fff;font-weight:bold;font-size:9pt;padding:.6mm 2.4mm;white-space:nowrap;border:.6pt solid #000}
+  .pb-meet{font-size:14pt;font-weight:bold;line-height:1.25}
+  .pb-r{text-align:right;white-space:nowrap;line-height:1.3}
+  .pb-date{display:block;font-size:9pt;font-weight:bold}
+  .pb-school{display:block;font-size:11pt;font-weight:bold}
+  .pb-lanes{margin-top:1.4mm;height:2.4mm;position:relative}
+  .pb-lanes i{position:absolute;left:0;right:0;border-top:.45pt solid #000}
+  .pb-lanes i:nth-child(1){top:0}.pb-lanes i:nth-child(2){top:1.1mm;border-top-style:solid;border-top-color:#777}.pb-lanes i:nth-child(3){top:2.2mm;border-top-color:#aaa}
+  /* 列見出し */
+  .pcols th{font-size:7.5pt;font-weight:bold;text-align:center;padding:1mm .8mm;border-top:1pt solid #000;border-bottom:1pt solid #000;background:#fff;white-space:nowrap}
+  /* 情報欄（1ページ目のみ） */
+  .pinfo td{padding:0 0 2mm}
+  .pi-box{border:.6pt solid #000;padding:1.2mm 2mm;font-size:7.5pt;line-height:1.45}
+  .pi-box>div{display:grid;grid-template-columns:12mm 1fr;column-gap:1.8mm}
+  .pi-box em{font-style:normal;font-weight:bold;border-right:.6pt solid #000;padding-right:1mm}
+  .pi-legend>span{display:inline}
+  .pi-made{color:#444}
+  .pi-legend{display:flex!important;flex-wrap:wrap;gap:1mm 6mm;border-style:dashed}
+  .pi-legend .pi-disc{flex-basis:100%}
+  .pi-box>div.pi-disc{display:block}
+  .pi-legend i{display:inline-block;width:7mm;height:3mm;vertical-align:-.6mm;margin-right:1.5mm;border:.5pt solid #000}
+  .pi-legend i.lg-h{background:repeating-linear-gradient(45deg,#000 0 .5pt,#fff .5pt 1.6mm)}
+  .pi-legend i.lg-w{border:0;border-bottom:.6pt dotted #000}
+  /* 組のまとまり */
+  tbody.pg{break-inside:avoid;page-break-inside:avoid}
+  tbody.pg.big{break-inside:auto;page-break-inside:auto}
+  tr{break-inside:avoid;page-break-inside:avoid}
+  .pgh{break-after:avoid;page-break-after:avoid}
+  .pgh td{padding:1.1mm 2mm;border-top:1.8pt solid #000;border-bottom:.6pt solid #000;background:#e8e8e8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pgh span{display:inline-block;vertical-align:baseline;margin-right:3.2mm}
+  .g-time{font-size:12.5pt;font-weight:bold;font-variant-numeric:tabular-nums;min-width:12mm}
+  .g-call{font-size:8pt}.g-call em{font-style:normal;font-size:6.8pt;border:.6pt solid #000;padding:0 .8mm;margin-right:1mm;background:#fff}
+  .g-ev{font-size:10pt;font-weight:bold}
+  .g-rd{font-size:7.5pt;border:.6pt solid #000;padding:0 1.2mm;background:#fff}
+  .g-n,.g-wind{font-size:7pt;color:#333}
+  .g-wind{border:.6pt dashed #000;padding:0 1mm;color:#000}
+  .ptab tbody.pg td{border-bottom:.5pt solid #9a9a9a}
+  .ptab tbody.pg tr:last-child td{border-bottom:.8pt solid #000}
+  .ptab tbody.pg tr:not(.pgh) td{padding:.9mm .8mm;font-size:9pt}
+  .ptab td.c{text-align:center}
+  .p-pos{white-space:nowrap}.p-pl{font-size:6.5pt;margin-right:.8mm;color:#333}.p-pos b{font-size:10pt}
+  .p-bib{font-weight:bold;font-variant-numeric:tabular-nums}
+  .p-name b{font-size:9.5pt}
+  .p-mem{display:block;font-size:6.8pt;line-height:1.3;color:#222}
+  .p-team{font-size:6.5pt;margin-left:1.5mm;color:#333}
+  .p-tm{font-size:8pt!important}
+  .p-note{font-size:6.8pt!important;line-height:1.3;color:#222}
+  /* 記録用紙 */
+  .prec tr.rr td{height:11.5mm}
+  .prec td.wc{border-left:.6pt solid #000;padding:0 1.5mm!important;position:relative}
+  .prec td.wc .wl{height:7.2mm;border-bottom:.6pt dotted #555;margin-bottom:.6mm}
+  .prec td.nowind{background:repeating-linear-gradient(45deg,#666 0 .4pt,#fff .4pt 1.8mm)}
+  .prec tr.rr td:last-child{border-right:.6pt solid #000}
+}
+@media screen{
+  .rs.chk,.rs.cand{background:#fff1d6;color:#8a5a00;box-shadow:inset 0 0 0 1.5px #e0b050;min-width:2.4em}
+  input.bad,select.bad{outline:2px solid var(--ng,#b3261e);background:#fdecea}
+  .feetot.unsure{color:var(--ng,#b3261e);font-size:15px}
+  .status.warnst .warn{display:inline-block;margin-top:2px}
+  .scrollhint{margin:8px 0 -4px}
+  #btnReset{float:right;font-size:12.5px;padding:5px 10px}
+  .selcount{margin-top:6px}
+  #dateAlt{margin-left:4px}
+  .about{max-width:820px;margin:6px auto 10px;text-align:left;font-size:12px;line-height:1.7}
+  .about summary{cursor:pointer;text-align:center}
+  .about .draft{background:#fff1d6;border:1px dashed #e0b050;padding:2px 6px;border-radius:6px}
+}
+@media print{
+  .pgh td{white-space:normal!important;text-overflow:clip!important;overflow:visible!important}
+  .pb-meet,.pb-r,.pb-school{white-space:normal!important;overflow-wrap:anywhere}
+  .g-cont{font-size:7.5pt;font-weight:bold}
+}
+@media screen{
+  header>.hdr-ver{position:absolute;top:8px;right:calc(6% + 46px);margin:0;z-index:2;font-size:11px;line-height:1.4;letter-spacing:.02em;color:rgba(255,255,255,.62);font-variant-numeric:tabular-nums;white-space:nowrap;pointer-events:none;text-shadow:0 1px 2px rgba(0,0,0,.25)}
+}
+@media screen and (max-width:720px){
+  header>.hdr-ver{top:5px;right:10px;font-size:9.5px}
+  header{padding-top:20px}
+}
+@media screen{
+  .aff{margin:14px 0 4px;max-width:520px}
+  .aff-card{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border:1px solid var(--line,#ddd);border-radius:12px;background:#fff;color:var(--navy,#14213d);font-weight:700;font-size:14px;text-decoration:none;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+  .aff-card:hover,.aff-card:focus-visible{border-color:var(--track,#c8553d);box-shadow:0 2px 8px rgba(0,0,0,.08)}
+  .aff-go{color:var(--muted,#888);font-weight:400}
+  .aff-disc{margin:4px 2px 0;font-size:11px;line-height:1.5;color:var(--muted,#777)}
+}
+@media print{.aff{display:none!important}}
+@media screen{
+  .mcards{display:none}
+  .mc-g{background:#fff;border:1px solid var(--line);border-radius:14px;margin:10px 0;overflow:hidden;box-shadow:0 1px 2px rgba(20,33,61,.05)}
+  .mc-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;padding:9px 12px;background:var(--navy);color:#fff}
+  .mc-t{font-size:20px;font-variant-numeric:tabular-nums}
+  .mc-call{font-size:12px;opacity:.85}
+  .mc-ev{font-weight:700;font-size:15px}
+  .mc-rd{font-size:11px;border:1px solid currentColor;border-radius:999px;padding:0 7px;opacity:.9}
+  .mc-r{display:grid;grid-template-columns:2.6em 4.2em 3.2em 1fr;gap:4px 8px;align-items:baseline;padding:8px 12px;border-top:1px solid var(--line)}
+  .mc-a .mc-r{grid-template-columns:3.6em 1fr}
+  .mc-heat{color:var(--muted);font-size:13px}.mc-pos{font-weight:700}.mc-pos small{font-weight:400;color:var(--muted);font-size:10.5px;margin-right:2px}
+  .mc-bib{font-weight:700;font-variant-numeric:tabular-nums;color:var(--track-d)}
+  .mc-bibh{font-size:17px}
+  .mc-t2{font-weight:700;font-variant-numeric:tabular-nums}
+  .mc-name b{display:block;font-size:15px}.mc-name small{display:block;color:var(--muted);font-size:11.5px;line-height:1.45}
+  .mc-mem,.mc-mem2{color:var(--ink)!important}.mc-mem2{padding:6px 12px 0;font-size:12px}
+  .mc-note{font-size:11px!important}
+  .mc-s{padding:8px 12px;border-top:1px solid var(--line);font-size:14px}.mc-s small{color:var(--muted)}
+  #viewer .mcards{display:block}#viewer .mcards[hidden]{display:none}
+  body.viewer-mode .howto,body.viewer-mode #inputs,body.viewer-mode #results,body.viewer-mode #savedHome{display:none!important}
+  #viewer{max-width:720px;margin-left:auto;margin-right:auto}
+  .v-top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+  .v-badge{font-size:12px;font-weight:700;background:var(--track-l);color:var(--track-d);border-radius:999px;padding:3px 10px}
+  #vTitle{margin:10px 0 2px;font-size:20px}
+  .v-actions{margin:8px 0}
+  .vtabs{display:flex;gap:4px;border-bottom:2px solid var(--line);margin-top:8px;position:sticky;top:0;background:#fff;z-index:3}
+  .vtabs button{flex:1;border:0;background:none;padding:10px 6px;font-weight:700;color:var(--muted);border-bottom:4px solid transparent;font-family:inherit;font-size:14px;cursor:pointer}
+  .vtabs button.on{color:var(--track-d);border-bottom-color:var(--track)}
+  .v-saved{margin-top:14px}
+  ul.saved{list-style:none;padding:0;margin:6px 0}ul.saved li{display:flex;gap:6px;margin:6px 0}
+  ul.saved .sv-open{flex:1;text-align:left;white-space:normal}ul.saved .sv-open small{display:block;font-weight:400;opacity:.8}
+  .dlg{position:fixed;inset:0;background:rgba(20,33,61,.55);z-index:50;display:flex;align-items:center;justify-content:center;padding:14px}
+  .dlg[hidden]{display:none}
+  .dlg-in{background:#fff;border-radius:16px;max-width:460px;width:100%;max-height:92vh;overflow:auto;padding:16px 18px;box-shadow:0 10px 40px rgba(0,0,0,.25)}
+  .dlg-in h3{margin:0 0 6px}
+  .qr{display:flex;justify-content:center;margin:10px 0}.qr svg{width:min(260px,70vw);height:auto;display:block;background:#fff}
+  #shareUrl{width:100%;font-size:12px;padding:6px;border:1px solid var(--line);border-radius:8px;font-family:monospace}
+  .dlg-btns{display:flex;gap:8px;margin:10px 0 4px;flex-wrap:wrap}
+}
+@media screen and (max-width:720px){
+  #paneTime .tw,#paneAth .tw,#paneTime .scrollhint,#paneAth .scrollhint{display:none}
+  #timeCards,#athCards{display:block}
+}
+@media print{.mcards,#viewer,#savedHome,.dlg{display:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hdr-ver" aria-label="バージョン">v <span class="appver"></span></div>
+  <div class="brand">
+    <h1 class="logo">__LOGO_DARK__<span class="vh">LANE NOTE（レーンノート）</span></h1>
+    <span class="badge">試作版</span>
+  </div>
+  <div class="credit">Presented by Sakata</div>
+  <p class="tagline">スタートリストから、自校の出場一覧・記録用紙・ナンバーカードまで</p>
+</header>
+<main>
+<section class="box" id="viewer" hidden>
+  <div class="v-top"><span class="v-badge">閲覧モード（読み取り専用）</span><button class="btn sub" id="vClose" type="button">通常の画面へ</button></div>
+  <h2 id="vTitle"></h2>
+  <p class="small muted" id="vMeta"></p>
+  <p class="small" id="vRule"></p>
+  <div class="v-actions"><button class="btn" id="vSave" type="button">📥 この端末に保存</button></div>
+  <p class="small muted">この画面は共有リンクの中身だけを表示しています（内容を変えることはできません）。最終的には大会公式資料で確認してください。</p>
+  <div class="vtabs" role="tablist"><button class="on" data-v="vTime">時間順</button><button data-v="vAth">選手別</button><button data-v="vCards">ナンバーカード</button></div>
+  <div id="vBody"><div id="vTime" class="mcards vshow"></div><div id="vAth" class="mcards vshow" hidden></div><div id="vCards" class="mcards vshow" hidden></div></div>
+  <details class="v-saved"><summary>この端末に保存した大会</summary><div class="savedList"></div></details>
+</section>
+<section class="box" id="savedHome" hidden>
+  <h2>📱 この端末に保存した大会</h2><div class="savedList"></div>
+</section>
+<div id="shareDlg" class="dlg" hidden role="dialog" aria-modal="true" aria-labelledby="shareTtl">
+  <div class="dlg-in">
+    <h3 id="shareTtl">📱 スマホで見る／共有</h3>
+    <p class="warn"><b>⚠ このリンクには選手名が含まれます。共有先に注意してください。</b></p>
+    <div id="shareInfo" class="small"></div>
+    <div id="shareQr" class="qr"></div>
+    <input id="shareUrl" readonly aria-label="共有リンク">
+    <div class="dlg-btns"><button class="btn" id="shareCopy" type="button">🔗 リンクをコピー</button><button class="btn sub" id="shareClose" type="button">閉じる</button></div>
+    <p class="small muted">結果はリンクの「#」より後ろに圧縮して入っています。この部分はサーバーへ送られません（開いた端末の中だけで表示します）。PDFそのものは入りません。</p>
+  </div>
+</div>
+<section class="box howto">
+  <h2>使い方</h2>
+  <ol>
+    <li>大会の<b>スタートリスト（またはプログラム）</b>と<b>タイムテーブル（競技時間）</b>のPDFを、下の枠にドラッグするか、枠をクリックして選びます。<b>競技注意事項</b>も入れると招集時刻のルールを自動で設定します（任意）。</li>
+    <li><b>学校名</b>を入れます（一部でOK。例：「本郷」→ 本郷高・本郷中が出るので、必要な方にチェック）。</li>
+    <li>「時間順」「選手別」「ナンバーカード」に結果が出ます。Excel保存・印刷・ナンバーカード（Word）作成ができます。</li>
+  </ol>
+  <div class="notice">⚠ <b>試作版です。</b>本ツールはPDFの文字を読み取って自動で整理しているだけです。内容は必ず元のスタートリスト・タイムテーブル等と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div>
+  <details class="privacy" id="dataPolicy"><summary>🔒 <b>データの取り扱いについて</b>（押すと開きます）</summary>
+    <ul>
+      <li>本ツールはPDF本文・選手情報をサーバーへ送信・保存する処理を行いません。</li>
+      <li>部品取得のため外部CDN（jsDelivr・SheetJS）へ通信します（部品は決まった版をハッシュで確認してから使います）。</li>
+      <li>保存したファイル・印刷物は残ります。保存先のクラウド同期は各学校の設定によります。</li>
+      <li>画面を閉じると、読み込んだ内容は消えます（「この端末に保存」を押したものだけ、その端末のブラウザに残ります。削除ボタンで消せます）。</li>
+      <li>「スマホで見る／共有」のリンクには、選んだ学校の結果（大会名・日付・時刻・選手名など）がリンクの「#」より後ろに入ります。この部分はサーバーへ送られませんが、リンクを渡した相手は中身を見られます。</li>
+      <li>「ナンバーカード」タブのAmazonへのリンクは、押したときだけAmazonのページを開きます。自動で何かを送ったり、Amazonから画像などを読み込んだりはしません。</li>
+    </ul></details>
+</section>
+
+<section class="box" id="inputs">
+  <h2><span class="no">1</span>PDFを入れる <a href="#dataPolicy" class="lockbadge" onclick="document.getElementById('dataPolicy').open=true">🔒 PDF本文・選手情報はサーバーへ送りません</a> <button class="btn sub" id="btnReset" type="button">新しい大会を始める（全消去）</button></h2>
+  <div class="drops">
+    <div class="drop" id="slDrop" tabindex="0"><div class="big">📄 スタートリスト</div><div class="muted small">ここにドラッグ／クリックして選ぶ</div><input type="file" id="slFile" accept="application/pdf,.pdf"><div class="status" id="slStatus"></div></div>
+    <div class="drop" id="ttDrop" tabindex="0"><div class="big">🕘 タイムテーブル（競技時間）</div><div class="muted small">ここにドラッグ／クリックして選ぶ<br>（プログラムに時刻が載っている大会は不要）</div><input type="file" id="ttFile" accept="application/pdf,.pdf"><div class="status" id="ttStatus"></div></div>
+    <div class="drop" id="yokoDrop" tabindex="0"><div class="big">📑 大会要項<span class="opt">任意</span></div><div class="muted small">大会の日付・参加料を読み取ります</div><input type="file" id="yokoFile" accept="application/pdf,.pdf"><div class="status" id="yokoStatus"></div></div>
+    <div class="drop" id="noteDrop" tabindex="0"><div class="big">📋 競技注意事項<span class="opt">任意</span></div><div class="muted small">招集時刻のルールを自動で読み取ります<br>（要項をここに入れてもOK）</div><input type="file" id="noteFile" accept="application/pdf,.pdf"><div class="status" id="noteStatus"></div></div>
+  </div>
+  <div id="rulesBox" class="rules"></div>
+  <h2 style="margin-top:16px"><span class="no">2</span>学校名を入れる</h2>
+  <div class="row"><input type="text" id="school" placeholder="例：本郷" autocomplete="off"></div>
+  <div id="teamList" style="margin-top:6px"></div>
+  <details class="settings">
+    <summary>⚙ 設定（招集時刻・ナンバーカードの枚数など）</summary>
+    <div class="sgrid">
+      <label><span class="rs" data-rule="track"></span>トラック招集：開始 <input type="number" class="setting" id="cT0" value="30" min="0">分前〜完了 <input type="number" class="setting" id="cT1" value="20" min="0">分前</label>
+      <label><span class="rs" data-rule="field"></span>フィールド招集：開始 <input type="number" class="setting" id="cF0" value="40" min="0">分前〜完了 <input type="number" class="setting" id="cF1" value="30" min="0">分前</label>
+      <label><span class="rs" data-rule="relay"></span>リレー招集：開始 <input type="number" class="setting" id="cR0" value="" min="0" placeholder="－">分前〜完了 <input type="number" class="setting" id="cR1" value="" min="0" placeholder="－">分前<br><small class="muted">空欄ならトラックと同じ</small></label>
+      <label><span class="rs" data-rule="dist"></span>長距離（ORD種目）招集：開始 <input type="number" class="setting" id="cD0" value="" min="0" placeholder="－">分前〜完了 <input type="number" class="setting" id="cD1" value="" min="0" placeholder="－">分前<br><small class="muted">空欄ならトラックと同じ</small></label>
+      <label><span class="rs" data-rule="place"></span>招集場所：<input type="text" class="setting" id="cPlace" value="" placeholder="（未設定）" style="width:12em"></label>
+      <label>オーダー番号ビブスにする距離：<input type="number" class="setting" id="ordTh" value="3000" step="100" min="0">m以上<br><small class="muted">それより短いORD種目（1500mなど）は腰番に数えます</small></label>
+      <label>ゼッケン枚数（1人あたり）<input type="number" class="setting" id="bibCopies" value="2" min="1" max="4"> 枚（胸・背中）</label>
+      <label>オーダー番号ビブス枚数 <input type="number" class="setting" id="ordCopies" value="2" min="1" max="4"> 枚</label>
+      <label><input type="checkbox" class="setting" id="relayKoshi" checked> リレーは1チーム1枚の腰番を数える</label>
+      <label>時刻の優先（プログラムとタイムテーブルの両方に時刻があり、違うとき）：<select class="setting" id="timeSrc"><option value="program">プログラムの時刻</option><option value="timetable">タイムテーブルの時刻</option></select><br><small class="muted">新しく出た方の資料を選んでください</small></label>
+      <label><span class="rs" data-rule="relayOrder"></span>リレーのオーダー用紙提出：<select class="setting" id="roBase"><option>招集完了</option><option>招集開始</option><option>競技開始</option></select>の <input type="number" class="setting" id="roMin" value="" min="0" placeholder="－"> 分前<br><small class="muted">空欄なら表示しません</small></label>
+    </div>
+    <p class="small muted">〇＝自動抽出（未照合）：競技注意事項から読み取った値（〇にマウスを乗せる／押すと原文が出ます）、×＝見つからなかったので仮の初期値（自由に変更できます）。数字を自分で変えると「手入力」になります。</p>
+    <div id="ruleSrc" class="rules" hidden></div>
+  </details>
+</section>
+
+<section class="box" id="results" hidden>
+  <h2><span class="no">3</span>結果</h2>
+  <p class="disclaimer sm">ⓘ 本ツールはPDFの文字を読み取って自動で整理しているだけです。内容は必ず元のスタートリスト・タイムテーブル等と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</p>
+  <div id="summary" class="cards"></div>
+  <div class="toolbar">
+    <button class="btn" id="btnXlsx">📊 Excelで保存</button>
+    <button class="btn sub" id="btnPrint">🖨 時間順を印刷（A4）</button>
+    <button class="btn sub" id="btnRec">📝 記録用紙を印刷</button>
+    <button class="btn sub" id="btnRecXlsx">記録用紙をExcelで保存</button>
+    <button class="btn sub" id="btnShare">📱 スマホで見る／共有</button>
+  </div>
+  <div class="recmeta noprint">大会名 <input id="meetName" size="28" placeholder="例：第74回北区民体育大会"> <span class="rs na" id="dateMark" title="">－</span>日付 <input id="meetDate" size="18" placeholder="例：2026年10月11日（日）"> <small class="muted" id="dateSrc"></small> <select id="dateAlt" hidden title="日付の候補から選ぶ"></select><div class="warn small" id="multiDayWarn" hidden></div></div>
+  <p class="small muted noprint">用紙：出場一覧・記録用紙＝A4縦／ナンバーカード＝B5。印刷の設定は「実際のサイズ（100%）」にしてください。</p>
+  <div class="tabbar"><div class="tabs">
+    <button class="on" data-tab="paneTime">時間順</button>
+    <button data-tab="paneAth">選手別</button>
+    <button data-tab="paneCards">ナンバーカード</button>
+    <button data-tab="paneFee">参加料</button>
+    <button data-tab="paneCheck">読み取りの確認</button>
+  </div></div>
+  <div class="tabpane" id="paneTime">
+    <div id="printHead"><h1 id="printTitle"></h1><p id="printSub"></p><p id="printRule" class="rsum"></p><p id="printFee" class="rsum"></p></div>
+    <p class="scrollhint small muted">表が画面に入りきらないときは、横にスクロールできます →</p><div class="tw"><table>
+      <thead><tr><th>競技開始</th><th>招集</th><th>種目</th><th>組</th><th>レーン/順番</th><th>ナンバー</th><th>氏名</th><th>学年</th><th>所属</th><th>備考</th></tr></thead>
+      <tbody id="timeBody"></tbody></table></div>
+    <div id="timeCards" class="mcards"></div>
+    <p class="small muted noprint">時刻は「組のまとまり」の開始時刻です。後ろの組はその分遅くなります。</p>
+  </div>
+  <div class="tabpane" id="paneAth" hidden>
+    <p class="scrollhint small muted">表が画面に入りきらないときは、横にスクロールできます →</p><div class="tw"><table>
+      <thead id="athHead"><tr><th>所属</th><th data-sort="bib">ナンバー</th><th data-sort="name">氏名</th><th data-sort="grade">学年</th><th data-sort="event">種目</th><th>ラウンド</th><th data-sort="heat">組</th><th data-sort="pos">レーン/順番</th><th>招集</th><th data-sort="time">競技開始</th><th>備考</th></tr></thead>
+      <tbody id="athBody"></tbody></table></div>
+    <div id="athCards" class="mcards"></div>
+    <p class="small muted">見出し（ナンバー・氏名・学年・種目・組・レーン・競技開始）を押すと並べ替え（もう一度で逆順、3回目で元の「所属→ナンバー」順）。リレーは「競技開始」で並べたとき以外は下にまとめます。<span id="kanaNote"></span></p>
+  </div>
+  <div class="tabpane" id="paneCards" hidden>
+    <p class="small muted">ボタンを押すと、同梱B5テンプレートの数字だけを差し替えたWordファイルができます（B5用紙・実際のサイズで印刷）。印刷はWordから行ってください。ゼッケンは1ページ1枚、腰番は1ページに上下2枚（半分に切る）です。</p>
+    <div id="cardsArea"></div>
+    <div id="dlMsg"></div>
+    <aside class="aff noprint" aria-label="おすすめ用品">
+      <a class="aff-card" href="https://link.amazon/B0bVVvOTW" target="_blank" rel="noopener sponsored">🏷 おすすめゼッケン布（Amazon）<span class="aff-go" aria-hidden="true">↗</span></a>
+      <p class="aff-disc">※Amazonアソシエイトのリンクです（作成者に紹介料が入る場合があります）</p>
+    </aside>
+  </div>
+  <div class="tabpane" id="paneFee" hidden>
+    <div id="feeStatus" class="rules"></div>
+    <table class="fee" style="width:auto;margin-top:8px"><thead><tr><th>区分</th><th>個人（1種目）</th><th>リレー（1チーム）</th></tr></thead><tbody id="feePrices"></tbody></table>
+    <div id="feeArea"></div>
+    <label class="small"><input type="checkbox" id="feeInPrint" class="setting"> 「時間順を印刷」の見出しに参加料の合計を入れる</label>
+  </div>
+  <div class="tabpane" id="paneCheck" hidden>
+    <p class="small muted">読み取りの問題（⚠）を先に、そのあと各種目が何時に当たったか（p.＝元のスタートリスト／プログラムのページ）を並べています。おかしいところがあれば元のPDFを確認してください。</p>
+    <ul id="checkList"></ul>
+  </div>
+</section>
+<div id="printTime" class="psheet"></div>
+<div id="recSheet" class="psheet"></div>
+</main>
+<footer><details class="about" id="about"><summary><b>このツールについて</b>（版・利用条件・ライセンス・既知の制限）</summary>
+  <ul>
+    <li><b>LANE NOTE（レーンノート）試作版</b>　版：<span class="appver"></span>（__BUILD_DATE__ 作成）／ Presented by Sakata</li>
+    <li>利用条件：<span class="draft">【案・作者確認中】校内での利用は自由。再配布・改変版の配布は作者に相談してください。</span></li>
+    <li>「ナンバーカード」タブの「おすすめゼッケン布（Amazon）」：※Amazonアソシエイトのリンクです（作成者に紹介料が入る場合があります）。リンクは押したときだけ開き、広告用のスクリプトや画像は読み込みません。</li>
+    <li>大会公式資料（スタートリスト・タイムテーブル・競技注意事項・要項）を優先してください。本ツールの表示と違うときは公式資料が正しいものとします。</li>
+    <li>使っている部品（外部CDNから読み込み）：pdf.js 4.10.38（Apache-2.0, Mozilla）／ JSZip 3.10.1（MIT）／ SheetJS Community Edition 0.20.3（Apache-2.0）。同梱：QR Code Generator（Kazuhiko Arase, MIT。QRコードは株式会社デンソーウェーブの登録商標）</li>
+    <li>Wordのナンバーカードは「HGP創英角ｺﾞｼｯｸUB」「ＭＳ ゴシック」を使います。フォントは同梱していません（各パソコンに入っているものを使います。無い場合は別のフォントで表示されます）。</li>
+    <li>既知の制限：対応を確認した形式は北区型スタートリスト＋タイムテーブル／江東区型プログラムのみ。スキャン（画像）PDFは読めません。複数日の大会は1日分ずつ確認が必要です。タイムテーブルの時刻は「組のまとまり」の開始時刻で、後ろの組は遅くなります。参加料は「1種目あたり」の単価だけ自動計算します。</li>
+  </ul></details>
+<div class="f-disc">ⓘ 本ツールはPDFの文字を読み取って自動で整理しているだけです。内容は必ず元のスタートリスト・タイムテーブル等と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div><div><b class="f-brand">LANE NOTE</b>（レーンノート）試作版 ／ <span class="f-credit">Presented by Sakata</span></div>🔒 本ツールはPDF本文・選手情報をサーバーへ送信・保存する処理を行いません（部品取得のため外部CDNへ通信します）。 <a href="#dataPolicy" onclick="document.getElementById('dataPolicy').open=true">データの取り扱いについて</a></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG" crossorigin="anonymous"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
+<script>
+__PARSER__
+</script>
+<script>
+__LOGIC__
+</script>
+<script>
+__ZEKKEN__
+</script>
+<script>
+/* QR Code Generator for JavaScript (c) 2009 Kazuhiko Arase, MIT license — 同梱（外部から読み込まない） */
+__QRCODE__
+</script>
+<script>
+var SHARE_BASE = "__SHARE_BASE__";
+var ZEKKEN_TEMPLATES = { koshi: "__KOSHI_B64__", mune: "__MUNE_B64__" };
+var PRINT_ICON = "__PRINT_ICON__";
+var APP_VERSION = "__VERSION__";   // 版はここ1か所（build.py の VERSION）
+document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
+</script>
+<script>
+__APP__
+</script>
+</body>
+</html>
