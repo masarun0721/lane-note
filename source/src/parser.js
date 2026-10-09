@@ -70,18 +70,50 @@ var MeetParser = (function () {
   var ROUND_WORD = /^(予選|準決勝|準々決勝|決勝|タイムレース決勝|タイムレース|TR決勝)/;
   function roundNorm(s) { s = nk(s).replace(/\s+/g, ''); var m = s.match(ROUND_WORD); return m ? m[1].replace(/^TR決勝$/, 'タイムレース') : ''; }
   var BIB_HDR = /^(ナンバー|No\.?|NO\.?|番号|ゼッケン|ナンバ)$/;
+  // 見出しらしい1行（「男子 高校 200m」「中学男子100m 決勝」など）。文字の大きさに関係なく判定する
+  function titleLike(txt) {
+    var t = nk(txt).replace(/\s+/g, ' ').trim();
+    if (!t || t.length > 40 || !/男子|女子|混合/.test(t) || /^\d+\s/.test(t)) return false;
+    for (var i = 0; i < 3; i++) t = t.replace(/\s*(?:[(（]\s*続き\s*[)）]|続き|予選|準々決勝|準決勝|タイムレース決勝|タイムレース|決勝|TR|全?\d+組)\s*$/, '');
+    return DISC_TAIL.test(t);
+  }
+  // 「10月11日」「10 月 12 日」→「10/11」。申込締切・作成日などの行は除く
+  var DATE_NG = /申込|締切|締め切|期限|作成|発行|更新|印刷|現在|振込|受付/;
+  function datesIn(txt) {
+    var t = nk(txt), out = [], re = /(\d{1,2})\s*月\s*(\d{1,2})\s*日((?:\s*[(（][^)）]{1,3}[)）])?\s*[・、～〜~\-－]\s*(\d{1,2})\s*日)?/g, m;
+    if (DATE_NG.test(t)) return out;
+    while ((m = re.exec(t))) {
+      var mo = +m[1], d = +m[2]; if (!(mo >= 1 && mo <= 12 && d >= 1 && d <= 31)) continue;
+      out.push(mo + '/' + d); if (m[4] && +m[4] >= 1 && +m[4] <= 31) out.push(mo + '/' + (+m[4]));
+    }
+    return out;
+  }
+  function uniq(a) { return a.filter(function (v, i) { return a.indexOf(v) === i; }); }
+  // ページの行ごとに日付を拾う → そのページの日付（1つに決まるときだけ）と、見つかった全部の日付
+  function pageDates(items) {
+    var lines = [];
+    items.forEach(function (i) { var L = lines.find(function (l) { return Math.abs(l.y - i.y) < 2.5; }); if (L) L.t.push(i); else lines.push({ y: i.y, t: [i] }); });
+    var all = [];
+    lines.forEach(function (L) { all = all.concat(datesIn(L.t.sort(function (a, b) { return a.x - b.x; }).map(function (i) { return i.str; }).join(' '))); });
+    all = uniq(all);
+    return { one: all.length === 1 ? all[0] : '', all: all };
+  }
   function isBib(s) { return /^[0-9][0-9A-Za-z\-]*$/.test(s); }
 
   /* ---------- スタートリスト ---------- */
   function parseStartList(pages) {
     var diag = [];
-    var entries = [], relays = [], events = [], lastTitle = null, lastRound = '', lastSched = [], fragPages = 0, schedCount = 0;
+    var entries = [], relays = [], events = [], lastTitle = null, lastRound = '', lastSched = [], lastTitlePage = -9, fragPages = 0, schedCount = 0;
+    var curDate = '', seenDates = [];
     pages.forEach(function (pg, pi) {
       var W = pg.width, H = pg.height;
       var items = pg.items.filter(function (i) { return i.str && i.str.trim(); });
       if (!items.length) return;
       var frag = isFragmented(items);
       if (frag) { items = rebuildBig(items); fragPages++; }
+      var pd = pageDates(items); seenDates = uniq(seenDates.concat(pd.all));
+      if (pd.one) curDate = pd.one; else if (pd.all.length > 1) curDate = '';   // 1ページに複数の日付 → ページの日付は決めない
+      var pageDate = curDate;
       // 種目タイトル（大きい文字）でページを区切る（1ページに複数種目あり得る）
       var hs = items.map(function (i) { return i.h; }).sort(function (a, b) { return a - b; });
       var medH = hs[Math.floor(hs.length / 2)];
@@ -101,8 +133,29 @@ var MeetParser = (function () {
         });
         g.items.sort(function (a, b) { return a.x - b.x; });
       });
+      // 本文と同じくらいの大きさで書かれた見出し（「男子 高校 200m」など）も見出しとして扱う。
+      // こうしないと、前ページの種目の続きとして読んでしまう（別の種目なのに「問題なし」になる）
+      var sLinesT = [];
+      items.forEach(function (i) {
+        if (i.x >= W * 0.55 || i.h >= medH * 1.5) return;
+        var L = sLinesT.find(function (l) { return Math.abs(l.y - i.y) < 1.5; }); if (L) L.t.push(i); else sLinesT.push({ y: i.y, t: [i] });
+      });
+      sLinesT.forEach(function (L) {
+        if (tGroups.some(function (g) { return Math.abs(g.y - L.y) < 4; })) return;
+        L.t.sort(function (a, b) { return a.x - b.x; });
+        if (L.t[0].x >= W * 0.3) return;
+        var txt = L.t.map(function (i) { return i.str; }).join(' ');
+        if (!titleLike(txt)) return;
+        var keep = L.t.filter(function (i) { return !/^(予選|準決勝|決勝|タイムレース|TR|準々決勝|\d+組|全\d+組)/.test(nk(i.str).trim()); });
+        tGroups.push({ y: L.y, items: keep.length ? keep : L.t, small: true });
+      });
+      tGroups.sort(function (a, b) { return a.y - b.y; });
       var sections = [];
-      if (!tGroups.length || items.some(function (i) { return i.y < tGroups[0].y - 2; })) sections.push({ title: lastTitle, round: lastRound, y0: -1, cont: true, sched: lastSched });
+      if (!tGroups.length || items.some(function (i) { return i.y < tGroups[0].y - 2; })) {
+        // 前のページの最後の種目の続き：直前のページで見出しを読めているときだけ引き継ぐ
+        var canCont = lastTitle && lastTitlePage === pi - 1;
+        sections.push({ title: canCont ? lastTitle : null, round: canCont ? lastRound : '', y0: -1, cont: true, sched: canCont ? lastSched : [], noInherit: !canCont && !!lastTitle });
+      }
       tGroups.forEach(function (g) {
         var title = nk(g.items.map(function (i) { return i.str; }).join(' ')).replace(/\s+/g, ' ').trim();
         var rItem = items.filter(function (i) { return i.y > g.y + 2 && i.y < g.y + 40 && /^(予選|準決勝|決勝|タイムレース|TR|準々決勝|1次予選|2次予選|オープン)/.test(nk(i.str).trim()); })[0];
@@ -118,28 +171,34 @@ var MeetParser = (function () {
           if (m) { var rn = roundNorm(m[2]); sched.push({ time: m[1], round: rn || m[2].replace(/\s+/g, ''), date: dm ? (+dm[1]) + '/' + (+dm[2]) : '' }); }
         });
         if (sched.length) schedCount++;
-        sections.push({ title: title, round: rItem ? nk(rItem.str).trim().split(/\s+/)[0] : (sched.length === 1 ? sched[0].round : ''), y0: g.y - 1, sched: sched });
+        sections.push({ title: title, round: rItem ? nk(rItem.str).trim().split(/\s+/)[0] : (sched.length === 1 ? sched[0].round : ''), y0: g.y - 1, sched: sched, small: !!g.small });
       });
       sections.forEach(function (sec, si) { sec.y1 = si + 1 < sections.length ? sections[si + 1].y0 : 1e9; });
       var allWords = toWords(items);
       sections.forEach(function (sec) {
-        if (!sec.title) return;
+        if (!sec.title) {
+          // 見出しの無い部分（前のページから引き継げなかった）に番号の行がある → 読めていない部分として警告
+          var nw = allWords.filter(function (w) { return w.y > sec.y0 && w.y < sec.y1 && isInt(w.n); }).length;
+          if (nw > 10 || (sec.noInherit && nw > 2)) diag.push({ page: pi + 1, title: '', count: 0, cont: false, warn: ['種目の見出しを読み取れず、この部分は読み取っていません（前のページの種目として扱わない）'] });
+          return;
+        }
         if (sec.title === lastTitle && !sec.round) sec.round = lastRound;
         if (sec.title === lastTitle && (!sec.sched || !sec.sched.length)) sec.sched = lastSched;
         lastSched = sec.sched || [];
         if (!sec.cont && events.indexOf(sec.title) < 0) events.push(sec.title);
-        lastTitle = sec.title; lastRound = sec.round;
+        var smallNew = sec.small && sec.title !== lastTitle;
+        lastTitle = sec.title; lastRound = sec.round; lastTitlePage = pi;
         var e0 = entries.length, r0 = relays.length, secW = allWords.filter(function (w) { return w.y > sec.y0 && w.y < sec.y1; });
         parseSection(secW, W, pi, sec.title, sec.round, sec.sched || [], frag);
+        for (var q = e0; q < entries.length; q++) if (!entries[q].date && pageDate) entries[q].date = pageDate;
+        for (var q2 = r0; q2 < relays.length; q2++) if (!relays[q2].date && pageDate) relays[q2].date = pageDate;
         var blankForm = secW.some(function (w) { return BIB_HDR.test(w.n) || /^(\d+レーン|レーン|チーム名)$/.test(w.n); }) && !secW.some(function (w) { return isBib(w.n) && w.n.length >= 2 && w.x < W * 0.5; });
         var n = entries.length - e0 + relays.length - r0, pt = parseTitle(sec.title), warn = [];
         if (!DISC_TAIL.test(nk(sec.title).replace(/\s+$/, ''))) warn.push('種目名が不完全');
         if (!n && !sec.cont && !blankForm) warn.push('出場者を読み取れず');
+        if (smallNew) warn.push('見出しの文字が本文と同じ大きさで、想定と違う形式です（種目名・人数を元のPDFで確認）');
         diag.push({ page: pi + 1, title: sec.title, round: sec.round, count: n, cont: !!sec.cont, warn: warn, info: !n && blankForm ? '空欄の表（決勝など未定）' : '' });
       });
-      // 番号らしい行があるのに、どのセクションにも入らなかった（見出しが無い）ページ
-      if (!sections.some(function (s) { return s.title; }) && allWords.filter(function (w) { return isInt(w.n); }).length > 10)
-        diag.push({ page: pi + 1, title: '', count: 0, warn: ['種目見出しが見つからず読み取れていない部分あり'] });
     });
     var format = schedCount > 0 ? 'program' : 'kitaku';
     var all = entries.concat(relays);
@@ -149,8 +208,10 @@ var MeetParser = (function () {
       if (!d.count && nx && nx.cont && nx.title === d.title && nx.count) d.warn = d.warn.filter(function (w) { return w !== '出場者を読み取れず'; });
     });
     var dates = []; all.forEach(function (e) { if (e.date && dates.indexOf(e.date) < 0) dates.push(e.date); });
-    // 見出し横の日程に日付が無くても、1ページ目などに「10月11日・12日」とあれば複数日
-    return { dates: dates, multiDay: dates.length > 1, diag: diag.filter(function (d) { return !d.cont || d.count; }), warnings: diag.filter(function (d) { return d.warn.length; }), entries: entries, relays: relays, events: events, format: format, fragmentedPages: fragPages,
+    // 出場者に付いた日付のほか、ページに書かれた日付（「10月11日」「10月12日」が別ページ、「11日・12日」など）も見る
+    var allDates = uniq(dates.concat(seenDates)).sort(function (a, b) { var x = a.split('/'), y = b.split('/'); return (x[0] - y[0]) || (x[1] - y[1]); });
+    var undated = dates.length && all.some(function (e) { return !e.date; });
+    return { dates: allDates, entryDates: dates, undated: !!undated, multiDay: allDates.length > 1, diag: diag.filter(function (d) { return !d.cont || d.count; }), warnings: diag.filter(function (d) { return d.warn.length; }), entries: entries, relays: relays, events: events, format: format, fragmentedPages: fragPages,
       hasTimes: all.some(function (e) { return e.time; }) };
 
     function parseSection(words, W, pi, title, round, sched, frag) {
@@ -170,25 +231,27 @@ var MeetParser = (function () {
         var c = roundLabels.filter(function (r) { return r.y < y; }).sort(function (a, b) { return b.y - a.y; })[0];
         return c ? c.round : round;
       }
-      function timeFor(r) {
+      // ラウンドが一致する日程だけを使う。ラウンドが両方わかっていて違う（決勝なのに「09:00 予選」しかない）ときは時刻を入れない
+      function schedFor(r) {
         if (!sched || !sched.length) return null;
-        var rn = roundNorm(r) || r;
+        var rn = roundNorm(r) || r, kR = roundKind(rn);
         var hit = sched.find(function (s) { return s.round === rn; }) ||
-          sched.find(function (s) { return /決勝/.test(rn) && /タイムレース|決勝/.test(s.round) || /タイムレース/.test(rn) && /決勝|タイムレース/.test(s.round); });
-        if (!hit && sched.length === 1) hit = sched[0];
-        return hit ? hit.time : null;
+          (kR ? sched.find(function (s) { return roundKind(s.round) === kR; }) : null);
+        if (!hit && sched.length === 1 && (!kR || !roundKind(sched[0].round))) hit = sched[0];
+        return hit || null;
       }
-      function dateFor(r) {
-        if (!sched || !sched.length) return '';
-        var rn = roundNorm(r) || r, hit = sched.find(function (s) { return s.round === rn; }) || (sched.length === 1 ? sched[0] : null);
-        return hit ? hit.date || '' : '';
+      function timeFor(r) { var h = schedFor(r); return h ? h.time : null; }
+      function dateFor(r) { var h = schedFor(r); return h ? h.date || '' : ''; }
+      function missNote(r) {
+        if (!sched || !sched.length || schedFor(r)) return '';
+        return '時刻未確定（プログラムの日程に「' + (r || 'ラウンド不明') + '」の時刻が無い。記載：' + sched.map(function (s) { return s.time + ' ' + s.round; }).join('／') + '）';
       }
       var isRelay = /×|リレー|ﾘﾚｰ/.test(title || '') || /\d\s*[Xx]\s*\d/.test(nk(title || ''));
       if (isRelay) {
         var n0 = relays.length;
         parseRelayPage(words, heatLabels, W, pi, title, round, relays);
 
-        relays.slice(n0).forEach(function (r) { r.round = roundAt(r._y) || r.round; var t = timeFor(r.round); if (t) r.time = t; var d = dateFor(r.round); if (d) r.date = d; delete r._y; });
+        relays.slice(n0).forEach(function (r) { r.round = roundAt(r._y) || r.round; var t = timeFor(r.round); if (t) r.time = t; else { var mn = missNote(r.round); if (mn) r.timeNote = mn; } var d = dateFor(r.round); if (d) r.date = d; delete r._y; });
         return;
       }
       // ヘッダー（ﾅﾝﾊﾞｰ）
@@ -246,7 +309,7 @@ var MeetParser = (function () {
         var nameH = nameW.length ? Math.max.apply(null, nameW.map(function (o) { return o.h || 0; })) : 0;
         var kanaW = words.filter(function (o) { return o.y >= aY - 13 && o.y < aY - 7 && nameH && o.h && o.h < nameH * 0.92 && rest.indexOf(o) < 0 && o.x > bibW.x + 1 && o.x < h.affX - 3 && /^[\uFF66-\uFF9F\u30A0-\u30FF\s\u3000]+$/.test(o.t); });
         if (kanaW.length) ent.kana = kanaW.sort(function (a, b) { return a.x - b.x; }).map(function (o) { return o.t; }).join(' ').normalize('NFKC').replace(/\s+/g, ' ').trim();
-        if (tm) ent.time = tm;
+        if (tm) ent.time = tm; else { var mn = missNote(rd); if (mn) ent.timeNote = mn; }
         var dt = dateFor(rd); if (dt) ent.date = dt;
         entries.push(ent);
       });
@@ -299,9 +362,13 @@ var MeetParser = (function () {
   var CAT_RE = /^(小|中|高|一般|共通|大学|U\d|ジュニア|シニア|マスターズ|成年|少年)/;
   var ROUND_RE = /(予選|準決勝|決勝|タイムレース|^TR)/;
   function parseTimetable(pages) {
-    var segs = [];
+    var segs = [], curDate = '';
     pages.forEach(function (pg, pi) {
-      var words = toWords(pg.items.filter(function (i) { return i.str && i.str.trim(); }));
+      var its = pg.items.filter(function (i) { return i.str && i.str.trim(); });
+      var pd = pageDates(its), s0 = segs.length;
+      if (pd.one) curDate = pd.one; else if (pd.all.length > 1) curDate = '';
+      var pageDate = curDate;
+      var words = toWords(its);
       words.sort(function (a, b) { return a.y - b.y || a.x - b.x; });
       var lines = [];
       words.forEach(function (w) {
@@ -369,6 +436,8 @@ var MeetParser = (function () {
           segs.push(seg);
         });
       });
+      // 日付：行に書かれた日付 → なければページの日付（「10月12日」のページ以降は12日）
+      for (var q = s0; q < segs.length; q++) { var ld = datesIn(lines.find(function (L) { return L.y === segs[q].y; }).w.map(function (w) { return w.n; }).join(' ')); segs[q].date = ld.length === 1 ? ld[0] : pageDate; }
     });
     return segs;
   }
@@ -410,10 +479,12 @@ var MeetParser = (function () {
     if (/決勝|タイムレース|^TR/.test(r)) return 'f';
     return '';
   }
-  function matchSegs(title, round, segs) {
+  function matchSegs(title, round, segs, date) {
     var p = parseTitle(title), ci = catInfo(p.cat), best = [], bestScore = 0;
     segs.forEach(function (s) {
       if (normDisc(s.event) !== p.disc) return;
+      if (date && s.date && date !== s.date) return;   // 日付が両方わかっていて違う → 別の日の時刻
+
       if (s.gender && p.gender && s.gender[0] !== p.gender[0]) return;
       var sc = catInfo(s.cat), score = 1;
       if (ci.lv.length && sc.lv.length) {
@@ -426,7 +497,7 @@ var MeetParser = (function () {
       var rS = nk(round || ''), rT = nk(s.round || '');
       var kS = roundKind(rS), kT = roundKind(rT);
       if (kS && kT && kS !== kT) return;   // ラウンドが両方わかっていて違う → 別の時刻なので候補にしない
-      if (kS && /予選/.test(rS) === /予選/.test(rT) && /準決勝/.test(rS) === /準決勝/.test(rT)) score += 1;   // ラウンド不明なら加点しない（勝手に決勝を選ばない）
+      if (kS && kT === kS) score += 1;   // ラウンドが一致したものを優先。ラウンド不明なら加点しない（勝手に決勝を選ばない）
       if (score > bestScore) { bestScore = score; best = [s]; } else if (score === bestScore) best.push(s);
     });
     return best;
@@ -439,17 +510,19 @@ var MeetParser = (function () {
     if (Object.keys(kinds).length > 1 && Object.keys(times).length > 1)
       return { time: null, note: '時刻未確定（候補：' + Object.keys(times).join('／') + '。ラウンドを確認）', ambiguous: true };
     var blk = segsForEvent.filter(function (s) { return s.heats && s.heats.from != null; }).map(function (s) { return { s: s, from: s.heats.from, to: s.heats.to }; });
-    // 「09:00 1組」「09:10 2組」のように、組ごとに1行ずつ書かれている
+    // 「09:10 2組」「09:20 3組」のように組ごとに1行ずつ書かれている（1組から始まらない・欠番があってもよい）。
+    // 「n組」が1行だけのときは「全n組」の意味のことが多いので組番号として扱わない。「全n組」は組番号にしない
     var bare = segsForEvent.filter(function (s) { return s.heats && s.heats.bare; });
-    if (bare.length > 1 && bare.length === segsForEvent.length) {
-      var ns = bare.map(function (s) { return s.heats.count; }).sort(function (a, b) { return a - b; });
-      if (ns.every(function (v, i) { return v === i + 1; })) blk = bare.map(function (s) { return { s: s, from: s.heats.count, to: s.heats.count }; });
-    }
+    var bareNs = uniq(bare.map(function (s) { return s.heats.count; }));
+    if ((bare.length > 1 && bareNs.length === bare.length) || (bare.length && blk.length))
+      blk = blk.concat(bare.map(function (s) { return { s: s, from: s.heats.count, to: s.heats.count }; }));
     if (blk.length) {
-      if (heat == null) { var b0 = blk.slice().sort(function (a, b) { return a.from - b.from; })[0]; return { time: b0.s.time, note: '最初の組の開始時刻', seg: b0.s }; }
+      blk.sort(function (a, b) { return a.from - b.from; });
+      if (heat == null) { var b0 = blk[0]; return { time: b0.from === 1 ? b0.s.time : null, note: b0.from === 1 ? '最初の組の開始時刻' : '組がわからないため時刻未確定（タイムテーブルは' + b0.from + '組から）', seg: b0.s }; }
       var b = blk.find(function (o) { return heat >= o.from && heat <= o.to; });
       if (b) return { time: b.s.time, note: (b.from === b.to ? b.from + '組の開始時刻' : b.from + '〜' + b.to + '組の開始時刻'), seg: b.s };
-      return { time: null, note: heat + '組の時刻がタイムテーブルに見つからない（要確認）' };
+      var near = blk.map(function (o) { return (o.from === o.to ? o.from : o.from + '〜' + o.to) + '組 ' + o.s.time; }).join('／');
+      return { time: null, note: '時刻未確定（' + heat + '組の時刻がタイムテーブルに無い。記載：' + near + '）' };
     }
     var s0 = segsForEvent[0];
     var n = s0.heats && s0.heats.count;

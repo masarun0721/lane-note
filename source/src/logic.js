@@ -42,15 +42,21 @@ var MeetLogic = (function () {
     var cT = settings.callTrack || [30, 20], cF = settings.callField || [40, 30];
     var T = allTeams(sl), sel = new Set(teams);
     var rows = [];
-    function ttInfo(title, round, heat, typ) {
+    function ttInfo(title, round, heat, typ, date) {
       if (!ttSegs || !ttSegs.length) return { start: '', note: 'タイムテーブル未読込', none: true };
-      var segs = P.matchSegs(title, round, ttSegs);
-      if (!segs.length) return { start: '', note: 'タイムテーブルに該当なし（要確認）', none: true };
+      var segs = P.matchSegs(title, round, ttSegs, date);
+      if (!segs.length) {
+        // 種目はあるがラウンドが違う（決勝なのに予選の時刻しか無い）→ 流用せず「時刻未確定」
+        var other = round ? P.matchSegs(title, '', ttSegs, date).filter(function (s) { return s.round && P.roundKind(s.round) !== P.roundKind(round); }) : [];
+        if (other.length) return { start: '', note: '時刻未確定（タイムテーブルに「' + round + '」の時刻が無い。記載：' + other.map(function (s) { return s.time + ' ' + s.round; }).join('／') + '）', none: true };
+        return { start: '', note: 'タイムテーブルに該当なし（要確認）', none: true };
+      }
       var t = P.timeFor(segs, typeof heat === 'number' ? heat : null);
       return { start: t.time || '', note: (typ === 'field' && !t.ambiguous && t.time) ? '' : t.note, ambiguous: t.ambiguous };
     }
-    function timeInfo(title, round, heat, typ, own) {
-      var tt = ttInfo(title, round, heat, typ);
+    function timeInfo(title, round, heat, typ, own, date, ownNote) {
+      var tt = ttInfo(title, round, heat, typ, date);
+      if (!own && ownNote) return tt.start ? tt : { start: '', note: ownNote + (ttSegs && ttSegs.length && !/未読込/.test(tt.note) ? '／' + tt.note : '') };
       if (own) {
         var pg = { start: own, note: (round ? round + '・' : '') + 'プログラム記載の時刻' + (typ !== 'field' && heat > 1 ? '（' + heat + '組目は前の組の後）' : '') };
         if (!tt.none && tt.start && tt.start !== own) {
@@ -75,14 +81,14 @@ var MeetLogic = (function () {
       var team = nk(e.team).trim(); if (!sel.has(team)) return;
       var typ = evType(e.event, e.posKind, settings);
       var heat = typ === 'field' ? (e.heat != null ? e.heat : '-') : (e.heat == null ? 1 : e.heat);
-      var ti = timeInfo(e.event, e.round, heat, typ, e.time);
+      var ti = timeInfo(e.event, e.round, heat, typ, e.time, e.date, e.timeNote);
       var r = { team: team, event: e.event, round: e.round, heat: heat, pos: e.pos, posLabel: POS_LABEL[typ], typ: typ,
         bib: e.bib, name: e.name, kana: e.kana || '', grade: e.grade, start: ti.start, note: ti.note, page: e.page, conflict: !!ti.conflict, date: e.date || '' };
       addCall(r); rows.push(r);
     });
     sl.relays.forEach(function (rl) {
       var base = relayBase(rl.team, T.indiv); if (!sel.has(base)) return;
-      var ti = timeInfo(rl.event, rl.round, rl.heat, 'relay', rl.time);
+      var ti = timeInfo(rl.event, rl.round, rl.heat, 'relay', rl.time, rl.date, rl.timeNote);
       var r = { team: base, event: rl.event, round: rl.round, heat: rl.heat, pos: rl.pos, posLabel: 'レーン', typ: 'relay',
         bib: rl.members.map(function (m) { return m.bib; }).join('/'), name: nk(rl.team).trim(), relayTeam: nk(rl.team).trim(),
         members: rl.members, grade: '', start: ti.start, note: ti.note, page: rl.page, conflict: !!ti.conflict, date: rl.date || '' };

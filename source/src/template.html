@@ -212,6 +212,9 @@ details.settings summary{color:var(--navy);font-weight:700}
 .btn.sub:hover{border-color:var(--navy);background:#f5f7fb}
 .btn:disabled{background:#c9c5bf;box-shadow:none}
 .recmeta{background:#faf8f6;border-radius:10px;padding:8px 12px}
+.daypick{background:#fff7ed;border:1px solid #f5c58a;border-radius:10px;padding:8px 12px;margin:0 0 10px;font-size:14px;color:#7c3d06}
+.daypick select{font-size:14px;padding:3px 6px;border:1px solid #c9d2e0;border-radius:6px;margin-left:4px}
+#results.needday .toolbar,#results.needday .recmeta,#results.needday .tabbar,#results.needday .tabpane,#results.needday .noprint.small{display:none!important}
 .tabbar{position:sticky;top:0;z-index:20;background:#fff;margin:8px -22px 0;padding:6px 22px 0;border-bottom:1px solid var(--line)}
 .tabs{border:0;margin:0;gap:2px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
 .tabs button{font-weight:700;color:var(--muted);border-bottom:4px solid transparent;padding:10px 14px;white-space:nowrap;font-family:inherit}
@@ -460,7 +463,7 @@ footer a{color:var(--navy)}
   <details class="privacy" id="dataPolicy"><summary>🔒 <b>データの取り扱いについて</b>（押すと開きます）</summary>
     <ul>
       <li>本ツールはPDF本文・選手情報をサーバーへ送信・保存する処理を行いません。</li>
-      <li>部品取得のため外部CDN（jsDelivr・SheetJS）へ通信します（部品は決まった版をハッシュで確認してから使います）。</li>
+      <li>部品取得のため外部CDN（jsDelivr・SheetJS）へ通信します。プログラム部品（pdf.js・JSZip・SheetJS）は決まった版をハッシュ（SRI）で確認してから使い、確認できないブラウザでは読み込みません。pdf.jsが必要に応じて取りに行く文字の対応表（CMap）・標準フォントのデータはハッシュ確認の対象外です（プログラムではなくデータです）。</li>
       <li>保存したファイル・印刷物は残ります。保存先のクラウド同期は各学校の設定によります。</li>
       <li>画面を閉じると、読み込んだ内容は消えます（「この端末に保存」を押したものだけ、その端末のブラウザに残ります。削除ボタンで消せます）。</li>
       <li>「スマホで見る／共有」のリンクには、選んだ学校の結果（大会名・日付・時刻・選手名など）がリンクの「#」より後ろに入ります。この部分はサーバーへ送られませんが、リンクを渡した相手は中身を見られます。</li>
@@ -503,6 +506,7 @@ footer a{color:var(--navy)}
 <section class="box" id="results" hidden>
   <h2><span class="no">3</span>結果</h2>
   <p class="disclaimer sm">ⓘ 本ツールはPDFの文字を読み取って自動で整理しているだけです。内容は必ず元のスタートリスト・タイムテーブル等と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</p>
+  <div id="dayPick" class="daypick noprint" hidden><span id="dayPickMsg"></span><label> 対象日：<select id="daySel"></select></label></div>
   <div id="summary" class="cards"></div>
   <div class="toolbar">
     <button class="btn" id="btnXlsx">📊 Excelで保存</button>
@@ -541,7 +545,7 @@ footer a{color:var(--navy)}
     <div id="dlMsg"></div>
     <aside class="aff noprint" aria-label="おすすめ用品">
       <a class="aff-card" href="https://link.amazon/B0bVVvOTW" target="_blank" rel="noopener sponsored">🏷 おすすめゼッケン布（Amazon）<span class="aff-go" aria-hidden="true">↗</span></a>
-      <p class="aff-disc">※Amazonアソシエイトのリンクです（作成者に紹介料が入る場合があります）</p>
+      <p class="aff-disc">Amazonのアソシエイトとして、LANE NOTEは適格販売により収入を得ています。</p>
     </aside>
   </div>
   <div class="tabpane" id="paneFee" hidden>
@@ -562,11 +566,11 @@ footer a{color:var(--navy)}
   <ul>
     <li><b>LANE NOTE（レーンノート）試作版</b>　版：<span class="appver"></span>（__BUILD_DATE__ 作成）／ Presented by Sakata</li>
     <li>利用条件：<span class="draft">【案・作者確認中】校内での利用は自由。再配布・改変版の配布は作者に相談してください。</span></li>
-    <li>「ナンバーカード」タブの「おすすめゼッケン布（Amazon）」：※Amazonアソシエイトのリンクです（作成者に紹介料が入る場合があります）。リンクは押したときだけ開き、広告用のスクリプトや画像は読み込みません。</li>
+    <li>「ナンバーカード」タブの「おすすめゼッケン布（Amazon）」：Amazonのアソシエイトとして、LANE NOTEは適格販売により収入を得ています。リンクは押したときだけ開き、広告用のスクリプトや画像は読み込みません。</li>
     <li>大会公式資料（スタートリスト・タイムテーブル・競技注意事項・要項）を優先してください。本ツールの表示と違うときは公式資料が正しいものとします。</li>
-    <li>使っている部品（外部CDNから読み込み）：pdf.js 4.10.38（Apache-2.0, Mozilla）／ JSZip 3.10.1（MIT）／ SheetJS Community Edition 0.20.3（Apache-2.0）。同梱：QR Code Generator（Kazuhiko Arase, MIT。QRコードは株式会社デンソーウェーブの登録商標）</li>
+    <li>使っている部品（外部CDNから読み込み。プログラム部品はハッシュで確認し、確認できないときは読み込まない。pdf.jsの文字対応表・標準フォントのデータは確認の対象外）：pdf.js 4.10.38（Apache-2.0, Mozilla）／ JSZip 3.10.1（MIT）／ SheetJS Community Edition 0.20.3（Apache-2.0）。同梱：QR Code Generator（Kazuhiko Arase, MIT。QRコードは株式会社デンソーウェーブの登録商標）</li>
     <li>Wordのナンバーカードは「HGP創英角ｺﾞｼｯｸUB」「ＭＳ ゴシック」を使います。フォントは同梱していません（各パソコンに入っているものを使います。無い場合は別のフォントで表示されます）。</li>
-    <li>既知の制限：対応を確認した形式は北区型スタートリスト＋タイムテーブル／江東区型プログラムのみ。スキャン（画像）PDFは読めません。複数日の大会は1日分ずつ確認が必要です。タイムテーブルの時刻は「組のまとまり」の開始時刻で、後ろの組は遅くなります。参加料は「1種目あたり」の単価だけ自動計算します。</li>
+    <li>既知の制限：対応を確認した形式は北区型スタートリスト＋タイムテーブル／江東区型プログラムのみ。スキャン（画像）PDFは読めません。複数日の大会は対象日を選んで1日分ずつ出します（日付が書かれていない資料は日付を区別できません）。タイムテーブルの時刻は「組のまとまり」の開始時刻で、後ろの組は遅くなります。参加料は「1種目あたり」の単価だけ自動計算します。</li>
   </ul></details>
 <div class="f-disc">ⓘ 本ツールはPDFの文字を読み取って自動で整理しているだけです。内容は必ず元のスタートリスト・タイムテーブル等と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div><div><b class="f-brand">LANE NOTE</b>（レーンノート）試作版 ／ <span class="f-credit">Presented by Sakata</span></div>🔒 本ツールはPDF本文・選手情報をサーバーへ送信・保存する処理を行いません（部品取得のため外部CDNへ通信します）。 <a href="#dataPolicy" onclick="document.getElementById('dataPolicy').open=true">データの取り扱いについて</a></footer>
 

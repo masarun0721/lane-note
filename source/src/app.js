@@ -3,7 +3,7 @@
   'use strict';
   var PDFJS_VER = '4.10.38';
   var PDFJS_BASE = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@' + PDFJS_VER + '/';
-  var state = { make: {}, dateCands: {}, feeParsed: null, feeFrom: '', prices: {}, priceSrc: {}, athSort: null, sl: null, tt: null, notes: null, slName: '', ttName: '', noteName: '', rows: [], teams: [], allTeams: [] };
+  var state = { make: {}, dateCands: {}, feeParsed: null, feeFrom: '', prices: {}, priceSrc: {}, athSort: null, sl: null, tt: null, notes: null, slName: '', ttName: '', noteName: '', rows: [], teams: [], allTeams: [], day: '' };
   var $ = function (id) { return document.getElementById(id); };
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
   var pdfjsPromise = null;
@@ -12,7 +12,8 @@
     'build/pdf.worker.min.mjs': 'sha384-ToeVvShCxKc6CEvhHeMt0Q8A06pSPDbAlngO9nokrDmh914gk/pYd0N7D0a4Lz2o' };
   async function verifiedUrl(path) {
     var url = PDFJS_BASE + path;
-    if (!(window.crypto && crypto.subtle)) return url;   // 検証できない環境ではそのまま（古いブラウザ）
+    // ハッシュを確かめられない環境（古いブラウザなど）では、確かめずに使うことはせず読み込みを中止する
+    if (!(window.crypto && crypto.subtle && typeof crypto.subtle.digest === 'function')) throw new Error('このブラウザでは部品の改ざんチェック（ハッシュの確認）ができないため、読み込みを中止しました。新しいChrome／Edge／Safariで開いてください');
     var res = await fetch(url, { mode: 'cors', credentials: 'omit', integrity: PDFJS_SRI[path] });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     var buf = await res.arrayBuffer(), d = new Uint8Array(await crypto.subtle.digest('SHA-384', buf)), bin = '';
@@ -24,7 +25,7 @@
     if (!pdfjsPromise) {
       pdfjsPromise = Promise.all([verifiedUrl('build/pdf.min.mjs'), verifiedUrl('build/pdf.worker.min.mjs')]).then(function (u) {
         return import(u[0]).then(function (lib) { lib.GlobalWorkerOptions.workerSrc = u[1]; return lib; });
-      }).catch(function (e) { pdfjsPromise = null; throw new Error('PDF読み取り部品を読み込めませんでした。インターネット接続を確認してください。(' + e.message + ')'); });
+      }).catch(function (e) { pdfjsPromise = null; throw new Error('PDF読み取り部品を読み込めませんでした。' + (/改ざん/.test(e.message) ? '' : 'インターネット接続を確認してください。') + '(' + e.message + ')'); });
     }
     return pdfjsPromise;
   }
@@ -66,6 +67,15 @@
     delete state.dateCands[kind]; updateDate();
   }
   function clearFees() { state.feeParsed = null; state.feeFrom = ''; state.prices = {}; state.priceSrc = {}; renderFeePrices(); }
+  // 前の資料から自動で入れた単価だけを消す（手入力した単価は残す）
+  function clearAutoFees() {
+    state.feeParsed = null; state.feeFrom = '';
+    MeetLogic.CATS.forEach(function (c) { ['ind', 'relay'].forEach(function (k) {
+      if ((state.priceSrc[c] || {})[k] === 'man') return;
+      state.prices[c] = state.prices[c] || {}; state.prices[c][k] = null; state.priceSrc[c] = state.priceSrc[c] || {}; state.priceSrc[c][k] = 'na';
+    }); });
+    renderFeePrices();
+  }
   async function handleFile(kind, file) {
     if (!file) return;
     var sid = SID[kind], tok = ++loadSeq[kind];
@@ -83,6 +93,7 @@
         var fp = MeetParser.parseFees(pages);
         if (Object.keys(fp.cats).length) { state.feeParsed = fp; state.feeFrom = kind; applyFees(fp); feeMsg = '・参加料'; }
         else if (kind === 'yoko') { state.feeParsed = fp; state.feeFrom = kind; applyFees(fp); }
+        else if (state.feeFrom === 'note') { clearAutoFees(); feeMsg = '（この注意事項には参加料の記載が無いため、前の注意事項から入れた単価は消しました）'; }
       }
       if (kind === 'yoko') {
         var dd = MeetParser.pickDate(state.dateCands.yoko || [], new Date().getFullYear());
@@ -93,7 +104,7 @@
         var sl = MeetParser.parseStartList(pages);
         if (!sl.entries.length && !sl.relays.length) throw new Error('出場者を見つけられませんでした（対応していない形式の可能性があります）');
         if (state.sl) { state.make = {}; state.teamCat = {}; state.athSort = null; $('teamList').dataset.q = ''; }   // 前の大会の枚数・並べ替え・区分は引き継がない
-        state.sl = sl; state.slName = file.name;
+        state.sl = sl; state.slName = file.name; state.day = '';
         state.allTeams = MeetLogic.allTeams(sl).all;
         var fmtLabel = sl.format === 'program' ? 'プログラム形式（種目ごとに時刻あり）' : 'スタートリスト形式（北区型）';
         var all = sl.entries.concat(sl.relays), nT = all.filter(function (e) { return e.time; }).length;
@@ -102,19 +113,24 @@
         var nSec = sl.diag.length, W = sl.warnings;
         setStatus(sid, '✔ 「' + esc(file.name) + '」 ' + pages.length + 'ページ／' + sl.events.length + '種目・' + sl.entries.length + '人・リレー' + sl.relays.length + 'チーム<br><span class="fmt">' + fmtLabel + '</span>' + timeMsg +
           (W.length ? '<br><span class="warn">⚠ ' + nSec + 'か所中 ' + W.length + 'か所に読み取りの問題があります（「読み取りの確認」タブに一覧）</span>' : '<br><span class="small muted">' + nSec + 'か所の種目表を読み取り、問題は見つかりませんでした</span>') +
-          (sl.multiDay ? '<br><span class="warn">⚠ 複数日（' + esc(sl.dates.join('・')) + '）の大会です。本ツールは1日分の資料のみ対応です。日付ごとに確認してください。</span>' : ''), W.length || sl.multiDay ? 'ok warnst' : 'ok');
+          (sl.multiDay ? '<br><span class="warn">⚠ 複数日（' + esc(sl.dates.join('・')) + '）の大会です。結果の上で「対象日」を選ぶまで、出場一覧は出しません。</span>' : ''), W.length || sl.multiDay ? 'ok warnst' : 'ok');
       } else if (kind === 'note') {
         var nt = MeetParser.parseNotes(pages);
         state.notes = nt; state.noteName = file.name;
         applyNotes(nt); render();
-        setStatus(sid, (nt.track || nt.field || nt.relayOrder) ? '✔ 「' + esc(file.name) + '」 招集ルール' + feeMsg + 'を読み取りました' + (nt.specific.length ? '<br><span class="warn">種目別のルール ' + nt.specific.length + '件は自動では当てはめていません（個別確認）</span>' : '') : '△ 「' + esc(file.name) + '」 招集ルールが見つかりませんでした（仮の初期値に戻しました）', (nt.track || nt.field || nt.relayOrder) ? 'ok' : 'busy');
+        var cf = RULES.filter(function (r) { return conflictOf(r.k); });
+        var cfMsg = cf.length ? '<br><span class="warn">⚠ 手入力した招集ルールと注意事項の記載が違います（手入力の値を使っています）：' + cf.map(function (r) { return esc(r.label + ' 手入力 ' + ruleVal(r.k) + '／注意事項 ' + conflictOf(r.k)); }).join('、') + '</span>' : '';
+        var feeOk = /^・/.test(feeMsg), feeNote = feeMsg && !feeOk ? '<br><span class="small">' + esc(feeMsg) + '</span>' : '';
+        setStatus(sid, (nt.track || nt.field || nt.relayOrder) ? '✔ 「' + esc(file.name) + '」 招集ルール' + (feeOk ? feeMsg : '') + 'を読み取りました' + (nt.specific.length ? '<br><span class="warn">種目別のルール ' + nt.specific.length + '件は自動では当てはめていません（個別確認）</span>' : '') + cfMsg + feeNote : '△ 「' + esc(file.name) + '」 招集ルールが見つかりませんでした（手入力していない項目は仮の初期値に戻しました）' + cfMsg + feeNote, (nt.track || nt.field || nt.relayOrder) ? (cf.length ? 'ok warnst' : 'ok') : 'busy');
       } else {
         var tt = MeetParser.parseTimetable(pages);
         if (!tt.length) throw new Error('種目と時刻を見つけられませんでした');
         var tOk = tt.filter(function (g) { return g.time; }).length;
         if (!tOk) throw new Error('種目は見つかりましたが、時刻を1つも読み取れませんでした');
         state.tt = tt; state.ttName = file.name;
-        setStatus(sid, '✔ 「' + esc(file.name) + '」 ' + tt.length + '件の種目：時刻あり ' + tOk + '／未確定 ' + (tt.length - tOk), tOk === tt.length ? 'ok' : 'ok warnst');
+        var tds = ttDates();
+        setStatus(sid, '✔ 「' + esc(file.name) + '」 ' + tt.length + '件の種目：時刻あり ' + tOk + '／未確定 ' + (tt.length - tOk) +
+          (tds.length > 1 ? '<br><span class="warn">⚠ 複数日（' + esc(tds.join('・')) + '）のタイムテーブルです。結果の上で「対象日」を選ぶまで、出場一覧は出しません。</span>' : ''), tOk === tt.length && tds.length < 2 ? 'ok' : 'ok warnst');
       }
     } catch (e) {
       if (tok !== loadSeq[kind]) return;
@@ -148,7 +164,7 @@
     var nt = state.notes, s = ruleState[k] || 'na';
     if (s === 'ok') return '競技注意事項の原文：' + nt.src[k];
     if (s === 'ng') return '競技注意事項に見つかりませんでした。仮の初期値（' + RULES.filter(function (r) { return r.k === k; })[0].def + '）を使っています。';
-    if (s === 'man') return '手入力で変更しました' + (state.notes && !state.notes[k] ? '（今の競技注意事項には記載なし。手入力の値を使っています）' : '');
+    if (s === 'man') return '手入力で変更しました' + (conflictOf(k) ? '（⚠ 競技注意事項の記載は「' + conflictOf(k) + '」で、手入力と違います。手入力の値を使っています）' : state.notes && !state.notes[k] ? '（今の競技注意事項には記載なし。手入力の値を使っています）' : '');
     return '競技注意事項は未読込です（仮の初期値）';
   }
   function renderRuleMarks() {
@@ -162,9 +178,11 @@
     var items = RULES.map(function (r) {
       var s = ruleState[r.k] || 'na', src = s === 'ok' ? state.notes.src[r.k] : '';
       return '<details class="rd"><summary><span class="rs ' + s + '">' + markOf(r.k) + '</span>' + r.label + '：<b>' + esc(ruleVal(r.k)) + '</b>' +
-        (s === 'ng' ? ' <small class="muted">（見つからず仮の初期値）</small>' : s === 'man' ? ' <small class="muted">（手入力）</small>' : '') + '</summary>' +
+        (s === 'ng' ? ' <small class="muted">（見つからず仮の初期値）</small>' : s === 'man' ? ' <small class="muted">（手入力）</small>' + (conflictOf(r.k) ? ' <small class="warn">⚠ 注意事項では「' + esc(conflictOf(r.k)) + '」</small>' : '') : '') + '</summary>' +
         (src ? '<q>' + esc(src) + '</q>' : '<small class="muted">' + esc(ruleTitle(r.k)) + '</small>') + '</details>';
     }).join('');
+    var cfl = RULES.filter(function (r) { return conflictOf(r.k); });
+    if (cfl.length) line += '<div class="warn">⚠ 手入力した値と競技注意事項の記載が違う項目があります（手入力の値を使っています）：' + cfl.map(function (r) { return esc(r.label + '：手入力 ' + ruleVal(r.k) + '／注意事項 ' + conflictOf(r.k)); }).join('、') + '</div>';
     var spec = loaded && state.notes.specific && state.notes.specific.length ? '<div class="warn"><b>個別確認</b>（特定の種目だけのルール。全体には当てはめていません）：' + state.notes.specific.map(function (o) { return '<q>' + esc(o) + '</q>'; }).join('') + '</div>' : '';
     var others = loaded && state.notes.others.length ? '<div>その他「分前」の記載（自動では反映していません）：' + state.notes.others.map(function (o) { return '<q>' + esc(o) + '</q>'; }).join('') + '</div>' : '';
     box.innerHTML = line + (loaded ? '<div class="small muted">各項目を押すと原文が出ます。値は「⚙ 設定」で変更できます。</div>' + items + spec + others : '');
@@ -173,22 +191,33 @@
   }
   function ruleSummaryText() {
     return '招集ルール：' + RULES.filter(function (r) { return r.k !== 'relayOrder' || $('roMin').value; }).map(function (r) { return markOf(r.k) + r.label + ' ' + ruleVal(r.k); }).join('　') +
+      RULES.filter(function (r) { return conflictOf(r.k); }).map(function (r) { return '　⚠' + r.label + '：注意事項では' + conflictOf(r.k) + '（手入力を使用）'; }).join('') +
       '（〇＝自動抽出（未照合）、×＝見つからず仮の初期値、手＝手入力、－＝注意事項未読込）' + (state.notes && state.notes.specific && state.notes.specific.length ? '　※種目別ルールあり：個別確認' : '');
   }
+  // 競技注意事項の記載を、設定欄と同じ書き方の文字にする
+  function noteValStr(k, nt) {
+    var v = nt && nt[k]; if (!v) return '';
+    if (k === 'place') return String(v);
+    if (k === 'relayOrder') return v.base + 'の' + v.minutes + '分前まで';
+    return v[0] + '〜' + v[1] + '分前';
+  }
+  // 手入力した項目が、今の競技注意事項の記載と違うとき → 注意事項の値（違わなければ空）
+  function conflictOf(k) {
+    if (ruleState[k] !== 'man' || !state.notes || !state.notes[k]) return '';
+    var nv = noteValStr(k, state.notes); return nv && nv !== ruleVal(k) ? nv : '';
+  }
   function applyNotes(nt) {
-    // 注意事項を入れ替えたとき：前の注意事項から自動で入れた値は消して初期値に戻す。手入力した値だけは残す（「手」のまま）
+    // 注意事項を入れ替えたとき：前の注意事項から自動で入れた値は、新しい注意事項の値（無ければ初期値）にする。
+    // 手入力した値は、新しい注意事項に記載があっても上書きしない（「手」のまま。違うときは ⚠ で両方を表示）
     RULES.forEach(function (r) {
-      if (nt[r.k]) return;
       if (ruleState[r.k] === 'man') return;
-      r.ids.forEach(function (id) { $(id).value = RULE_DEF[id]; });
+      if (!nt[r.k]) { r.ids.forEach(function (id) { $(id).value = RULE_DEF[id]; }); ruleState[r.k] = 'ng'; return; }
+      var v = nt[r.k];
+      if (r.k === 'place') $('cPlace').value = v;
+      else if (r.k === 'relayOrder') { $('roMin').value = v.minutes; $('roBase').value = v.base; }
+      else { $(r.ids[0]).value = v[0]; $(r.ids[1]).value = v[1]; }
+      ruleState[r.k] = 'ok';
     });
-    if (nt.track) { $('cT0').value = nt.track[0]; $('cT1').value = nt.track[1]; }
-    if (nt.field) { $('cF0').value = nt.field[0]; $('cF1').value = nt.field[1]; }
-    if (nt.relay) { $('cR0').value = nt.relay[0]; $('cR1').value = nt.relay[1]; }
-    if (nt.dist) { $('cD0').value = nt.dist[0]; $('cD1').value = nt.dist[1]; }
-    if (nt.place) $('cPlace').value = nt.place;
-    if (nt.relayOrder) { $('roMin').value = nt.relayOrder.minutes; $('roBase').value = nt.relayOrder.base; }
-    RULES.forEach(function (r) { ruleState[r.k] = nt[r.k] ? 'ok' : ruleState[r.k] === 'man' ? 'man' : 'ng'; });
     renderRuleMarks();
   }
   function fillMeta(pages, fname) {
@@ -304,6 +333,7 @@
     return ws;
   }
   function exportRecXlsx() {
+    if (!state.rows.length) { alert('学校を選んで結果を出してから保存してください。'); return; }
     if (typeof XLSX === 'undefined') { alert('Excel作成部品を読み込めませんでした。'); return; }
     var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, recWs(), '記録用紙');
     XLSX.writeFile(wb, state.teams.join('_') + '_記録用紙.xlsx');
@@ -316,7 +346,7 @@
     var d = MeetParser.pickDate(all, new Date().getFullYear());
     state.date = d;
     if ($('meetDate').dataset.manual) { renderDateMark(); return; }
-    $('meetDate').value = d ? d.label : '';
+    $('meetDate').value = state.day ? dayLabel(state.day) : d ? d.label : '';
     renderDateMark();
   }
   function renderDateMark() {
@@ -327,13 +357,25 @@
       : st === 'ng' ? '読み込んだPDF・ファイル名から日付が見つかりませんでした。手で入力してください。' : st === 'man' ? '手入力' : 'PDF未読込';
     if (st === 'cand') t += '\n「候補」＝推測を含むので確認してください' + (d.alts && d.alts.length ? '（ほかの候補：' + d.alts.map(function (a) { return a.label; }).join('、') + '）' : '');
     m.title = t; $('dateSrc').textContent = (st === 'ok' || st === 'cand') ? (d.fromName ? '（ファイル名から）' : '（' + d.src.split('：')[0] + 'から）') : st === 'ng' ? '（見つからず）' : '';
+    if (state.day && !man) { m.className = 'rs ok'; m.textContent = '〇'; m.title = '複数日の大会：「対象日」で選んだ日付です'; $('dateSrc').textContent = '（対象日）'; }
     var alt = $('dateAlt');
     if (alt) {
-      var opts = d && !man && d.alts && d.alts.length ? [d.label].concat(d.alts.map(function (a) { return a.label; })) : [];
+      var opts = d && !man && !state.day && d.alts && d.alts.length ? [d.label].concat(d.alts.map(function (a) { return a.label; })) : [];
       alt.hidden = !opts.length; alt.innerHTML = opts.map(function (o) { return '<option>' + esc(o) + '</option>'; }).join('');
     }
     var mw = $('multiDayWarn');
-    if (mw) { var multi = (d && d.multiDay) || (state.sl && state.sl.multiDay); mw.hidden = !multi; mw.textContent = multi ? '⚠ 複数日の大会のようです。本ツールは1日分の資料のみ対応です（時刻・日付は日ごとに確認してください）。' : ''; }
+    if (mw) { var multi = (d && d.multiDay) || multiDates().length > 1; mw.hidden = !multi; mw.textContent = multi ? (multiDates().length > 1 ? '⚠ 複数日の大会です。対象日を選んで1日分ずつ出しています。日付を確認してください。' : '⚠ 複数日の大会のようです。本ツールは1日分の資料のみ対応です（時刻・日付は日ごとに確認してください）。') : ''; }
+  }
+  // 複数日：スタートリスト（プログラム）とタイムテーブルに書かれた日付
+  function ttDates() { var a = []; (state.tt || []).forEach(function (s) { if (s.date && a.indexOf(s.date) < 0) a.push(s.date); }); return a; }
+  function multiDates() {
+    var a = ((state.sl && state.sl.dates) || []).slice();
+    ttDates().forEach(function (d) { if (a.indexOf(d) < 0) a.push(d); });
+    return a.sort(function (x, y) { var p = x.split('/'), q = y.split('/'); return (p[0] - q[0]) || (p[1] - q[1]); });
+  }
+  function dayLabel(md) {
+    var p = md.split('/'), y = state.date && state.date.iso ? +state.date.iso.slice(0, 4) : new Date().getFullYear();
+    return y + '年' + (+p[0]) + '月' + (+p[1]) + '日（' + '日月火水木金土'[new Date(y, p[0] - 1, p[1]).getDay()] + '）';
   }
   /* ---------- 参加料 ---------- */
   function applyFees(fp) {
@@ -485,8 +527,25 @@
     if (!state.sl || !state.teams.length) { res.hidden = true; state.rows = []; refreshPrint(); return; }
     requestAnimationFrame(function () { var tb = document.querySelector('.tabbar'); if (tb) document.documentElement.style.setProperty('--tabh', tb.offsetHeight + 'px'); });
     var S = settings();
-    state.rows = MeetLogic.build(state.sl, state.tt, state.teams, S);
+    // 複数日の大会：対象日を選ぶまでは出場一覧・印刷・Excel・共有を出さない
+    var MD = multiDates(), dp = $('dayPick'), ds = $('daySel');
+    if (MD.indexOf(state.day) < 0) state.day = '';
+    dp.hidden = MD.length < 2;
+    if (MD.length > 1) {
+      var opts = '<option value="">（対象日を選んでください）</option>' + MD.map(function (d) { return '<option value="' + esc(d) + '"' + (d === state.day ? ' selected' : '') + '>' + esc(dayLabel(d)) + '</option>'; }).join('');
+      if (ds.dataset.opts !== opts) { ds.innerHTML = opts; ds.dataset.opts = opts; }
+      ds.value = state.day;
+      $('dayPickMsg').textContent = '⚠ 複数日（' + MD.map(function (d) { return d.replace('/', '月') + '日'; }).join('・') + '）の資料です。日付ごとに照合するので、対象日を選んでください。' + (state.day ? '' : '選ぶまで出場一覧は出しません。');
+    }
     res.hidden = false;
+    res.classList.toggle('needday', MD.length > 1 && !state.day);
+    if (MD.length > 1 && !state.day) { state.rows = []; $('summary').innerHTML = ''; refreshPrint(); return; }
+    var ttUse = state.tt && state.day ? state.tt.filter(function (s) { return !s.date || s.date === state.day; }) : state.tt;
+    state.rows = MeetLogic.build(state.sl, ttUse, state.teams, S);
+    if (state.day) state.rows = state.rows.filter(function (r) { return !r.date || r.date === state.day; }).map(function (r) {
+      if (!r.date && state.sl.dates.length > 1) r.note = (r.note ? r.note + '／' : '') + '⚠ 日付不明（' + dayLabel(state.day) + 'の出場か要確認）';
+      return r;
+    });
     var rows = state.rows;
     var nInd = rows.filter(function (r) { return r.typ !== 'relay'; }).length, nRel = rows.length - nInd;
     var noTime = rows.filter(function (r) { return !r.start; }).length;
@@ -500,7 +559,8 @@
     }).join('') + (state.tt || state.sl.hasTimes ? '' : '<p class="warn">タイムテーブルが未読込なので、時刻・招集は空欄です。</p>') +
       ((state.tt || state.sl.hasTimes) && noTime ? '<p class="warn">' + noTime + '件は時刻が未確定です（タイムテーブルに無い・候補が複数など。備考を確認）。招集時刻も空欄にしています。</p>' : '') +
       (rows.some(function (r) { return r.conflict; }) ? '<p class="warn">⚠ ' + rows.filter(function (r) { return r.conflict; }).length + '件で、プログラムとタイムテーブルの時刻が違います（備考に両方の時刻）。どちらを使うかは「⚙ 設定」の「時刻の優先」で選べます。新しい方の資料を確認してください。</p>' : '') +
-      (state.sl.multiDay ? '<p class="warn">⚠ 複数日（' + esc(state.sl.dates.join('・')) + '）の大会です。本ツールは1日分の資料のみ対応です。時刻の並びは日付をまたいで混ざるので、日ごとに確認してください。</p>' : '') +
+      (state.day ? '<p class="warn">⚠ 複数日の大会です。' + esc(dayLabel(state.day)) + 'の分だけを表示しています（ほかの日は「対象日」を変えてください）。</p>' : '') +
+      (RULES.some(function (r) { return conflictOf(r.k); }) ? '<p class="warn">⚠ 手入力した招集ルールが競技注意事項の記載と違います（手入力の値で招集時刻を出しています）：' + RULES.filter(function (r) { return conflictOf(r.k); }).map(function (r) { return esc(r.label + ' 手入力 ' + ruleVal(r.k) + '／注意事項 ' + conflictOf(r.k)); }).join('、') + '</p>' : '') +
       (state.sl.warnings.length ? '<p class="warn">⚠ スタートリストの読み取りで問題が ' + state.sl.warnings.length + 'か所あります（「読み取りの確認」タブ）。</p>' : '');
 
     // 時間順
@@ -657,6 +717,7 @@
   function safeCell(v) { return typeof v === 'string' && /^[=+\-@\t\r]/.test(v) && !/^-?\d+(\.\d+)?$/.test(v) ? "'" + v : v; }
   function safeAoa(a) { return a.map(function (r) { return r.map(safeCell); }); }
   function exportXlsx() {
+    if (!state.rows.length) { alert('学校を選んで結果を出してから保存してください。'); return; }
     if (typeof XLSX === 'undefined') { alert('Excel作成部品を読み込めませんでした。インターネット接続を確認して、ページを開き直してください。'); return; }
     var wb = XLSX.utils.book_new();
     [['選手別', 'ath', [10, 9, 24, 6, 22, 10, 5, 8, 10, 13, 8, 30]], ['時間順', 'time', [8, 13, 22, 10, 5, 8, 10, 9, 24, 6, 10, 30]], ['ナンバーカード', 'cards', [12, 30, 9, 9, 80]]].forEach(function (s) {
@@ -696,7 +757,8 @@
     RULES.forEach(function (r) { r.ids.forEach(function (id) { $(id).addEventListener('input', function () { ruleState[r.k] = 'man'; renderRuleMarks(); }); $(id).addEventListener('change', function () { ruleState[r.k] = 'man'; renderRuleMarks(); }); }); });
     document.addEventListener('click', function (e) { var el = e.target.closest && e.target.closest('label .rs[data-rule]'); if (el) { e.preventDefault(); var k = el.dataset.rule, src = $('ruleSrc'); src.hidden = false; src.innerHTML = '<b>' + markOf(k) + '</b> ' + esc(ruleTitle(k)); } });
     renderRuleMarks();
-    $('btnPrint').addEventListener('click', function () { refreshPrint(); window.print(); });
+    $('btnPrint').addEventListener('click', function () { refreshPrint(); if (!state.rows.length) { alert('学校を選んで結果を出してから印刷してください。'); return; } window.print(); });
+    $('daySel').addEventListener('change', function () { state.day = $('daySel').value; if (!$('meetDate').dataset.manual) $('meetDate').value = state.day ? dayLabel(state.day) : (state.date ? state.date.label : ''); renderDateMark(); render(); });
     window.addEventListener('beforeprint', function () { refreshPrint(); if (document.body.classList.contains('print-rec')) { try { buildRecSheet(); } catch (e) { } } });
     $('meetDate').addEventListener('input', refreshPrint);
     $('meetName').addEventListener('input', refreshPrint);
@@ -871,7 +933,7 @@
   function resetAll() {
     if (!confirm('読み込んだPDF・学校名・設定・枚数をすべて消して、新しい大会を始めます。よろしいですか？')) return;
     Object.keys(loadSeq).forEach(function (k) { loadSeq[k]++; });   // 読み込み途中のものも捨てる
-    Object.assign(state, { make: {}, dateCands: {}, feeParsed: null, feeFrom: '', prices: {}, priceSrc: {}, athSort: null, sl: null, tt: null, notes: null, slName: '', ttName: '', noteName: '', yokoName: '', rows: [], teams: [], allTeams: [], teamCat: {}, date: null });
+    Object.assign(state, { make: {}, dateCands: {}, feeParsed: null, feeFrom: '', prices: {}, priceSrc: {}, athSort: null, sl: null, tt: null, notes: null, slName: '', ttName: '', noteName: '', yokoName: '', rows: [], teams: [], allTeams: [], teamCat: {}, date: null, day: '' });
     document.querySelectorAll('input, select').forEach(function (el) {
       if (el.type === 'file') el.value = ''; else if (el.type === 'checkbox') el.checked = el.defaultChecked;
       else if (el.tagName === 'SELECT') { Array.from(el.options).forEach(function (o) { o.selected = o.defaultSelected; }); } else el.value = el.defaultValue;

@@ -27,14 +27,19 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
         with:
-          # The site token cannot create the Pages site (403). This step
-          # enables build_type=workflow when the repository does not have it yet.
           enablement: true
 
+      # source/ から組み立てる（Python 3 の標準ライブラリだけで動く）
+      - name: Build from source
+        run: python3 source/build.py --out _site
+
+      # リポジトリ直下の index.html・sw.js が、ソースからのビルド結果と1バイトも違わないか確かめる。
+      # 違えば公開しない（ソースを直したのに build.py を実行し忘れた、などを防ぐ）
+      - name: Check committed files match the build
+        run: python3 source/build.py --check .
+
       - name: Assemble site
-        run: |
-          mkdir -p _site
-          cp index.html sw.js .nojekyll _site/
+        run: cp .nojekyll _site/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
