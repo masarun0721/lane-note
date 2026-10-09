@@ -356,11 +356,18 @@ footer a{color:var(--navy)}
   .g-cont{font-size:7.5pt;font-weight:bold}
 }
 @media screen{
-  header>.hdr-ver{position:absolute;top:8px;right:calc(6% + 46px);margin:0;z-index:2;font-size:11px;line-height:1.4;letter-spacing:.02em;color:rgba(255,255,255,.62);font-variant-numeric:tabular-nums;white-space:nowrap;pointer-events:none;text-shadow:0 1px 2px rgba(0,0,0,.25)}
+  /* 右上：版・クレジット・ひとこと（右寄せで小さく。背景の白線の間＝1レーンに1行ずつ収める） */
+  header>.hdr-meta{position:absolute;top:0;right:calc(6% + 46px);margin:0;z-index:2;text-align:right;color:rgba(255,255,255,.62);white-space:nowrap;pointer-events:none;text-shadow:0 1px 2px rgba(0,0,0,.25)}
+  .hdr-meta>div{height:24px;line-height:22px;overflow:hidden}
+  .hdr-meta .hdr-ver{font-size:11px;letter-spacing:.02em;font-variant-numeric:tabular-nums}
+  .hdr-meta .credit{font-size:11px;margin:0;opacity:1;color:rgba(255,255,255,.8)}
+  .hdr-meta .hdr-msg{font-size:11px;letter-spacing:.04em;color:rgba(255,255,255,.75)}
 }
 @media screen and (max-width:720px){
-  header>.hdr-ver{top:5px;right:10px;font-size:9.5px}
-  header{padding-top:20px}
+  header>.hdr-meta{position:static;max-width:none;margin:0 -6px 0 0}
+  .hdr-meta .hdr-ver,.hdr-meta .credit{font-size:9.5px}
+  .hdr-meta .hdr-msg{font-size:10px}
+  header{padding-top:0}
 }
 @media screen{
   .aff{margin:14px 0 4px;max-width:520px}
@@ -418,12 +425,15 @@ footer a{color:var(--navy)}
 </head>
 <body>
 <header>
-  <div class="hdr-ver" aria-label="バージョン">v <span class="appver"></span></div>
+  <div class="hdr-meta">
+    <div class="hdr-ver" aria-label="バージョン">v <span class="appver"></span></div>
+    <div class="credit">Presented by Sakata</div>
+    <div class="hdr-msg">すべての陸上競技部顧問の楽になればいいな。</div>
+  </div>
   <div class="brand">
     <h1 class="logo">__LOGO_DARK__<span class="vh">LANE NOTE（レーンノート）</span></h1>
     <span class="badge">試作版</span>
   </div>
-  <div class="credit">Presented by Sakata</div>
   <p class="tagline">スタートリストから、自校の出場一覧・記録用紙・ナンバーカードまで</p>
 </header>
 <main>

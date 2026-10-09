@@ -13,7 +13,7 @@ import base64, pathlib, re, sys
 ROOT = pathlib.Path(__file__).resolve().parent
 S = ROOT / 'src'
 SHARE_BASE = 'https://masarun0721.github.io/lane-note/'   # 共有リンク・QRの公開アドレス（file:// で開いたとき用）
-VERSION = 'proto-2026.10.09b'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
+VERSION = 'proto-2026.10.09c'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
 # 作成日は版から決める（ビルドした日で変わると、公開時の一致検査ができないため）
 _m = re.search(r'(\d{4})\.(\d{2})\.(\d{2})', VERSION)
 BUILD_DATE = '%s年%s月%s日' % _m.groups()
