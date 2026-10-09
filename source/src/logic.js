@@ -52,25 +52,38 @@ var MeetLogic = (function () {
         return { start: '', note: 'タイムテーブルに該当なし（要確認）', none: true };
       }
       var t = P.timeFor(segs, typeof heat === 'number' ? heat : null);
-      return { start: t.time || '', note: (typ === 'field' && !t.ambiguous && t.time) ? '' : t.note, ambiguous: t.ambiguous };
+      return { start: t.time || '', note: (typ === 'field' && !t.ambiguous && t.time) ? '' : t.note, ambiguous: t.ambiguous, seg: t.time ? t.seg : null, block: t.block, firstTime: t.firstTime, firstSeg: t.block ? t.firstSeg : (t.time ? t.seg : null) };
     }
     function timeInfo(title, round, heat, typ, own, date, ownNote) {
       var tt = ttInfo(title, round, heat, typ, date);
       if (!own && ownNote) return tt.start ? tt : { start: '', note: ownNote + (ttSegs && ttSegs.length && !/未読込/.test(tt.note) ? '／' + tt.note : '') };
       if (own) {
-        var pg = { start: own, note: (round ? round + '・' : '') + 'プログラム記載の時刻' + (typ !== 'field' && heat > 1 ? '（' + heat + '組目は前の組の後）' : '') };
+        // 組ごとの「n組目は〜」は書かない（同じ種目の行がすべて同じ備考になり、表と確認タブが短くなる）
+        var pg = { start: own, note: (round ? round + '・' : '') + 'プログラム記載の時刻' + (typ !== 'field' && heat > 1 ? '（2組目以降は前の組の後）' : '') };
+        if (!tt.none && tt.start === own) { pg.seg = tt.seg; pg.firstSeg = tt.firstSeg; return pg; }
+        // プログラムの時刻＝種目の開始時刻（1組目を含むまとまりの時刻）で、タイムテーブルにはこの組のまとまりの時刻がある
+        // → 食い違いではなく、タイムテーブルの方が詳しい（例：プログラム 11:15、タイムテーブル 7〜12組 11:30）
+        if (!tt.none && tt.start && tt.block && tt.firstTime === own) return { start: tt.start, note: (round ? round + '・' : '') + tt.note + '（タイムテーブル）', seg: tt.seg, firstSeg: tt.firstSeg };
         if (!tt.none && tt.start && tt.start !== own) {
           var useTT = settings.timeSource === 'timetable';
-          var r = useTT ? { start: tt.start, note: tt.note } : pg;
-          r.note = (r.note ? r.note + '／' : '') + '⚠ プログラム ' + own + ' とタイムテーブル ' + tt.start + ' が違う（' + (useTT ? 'タイムテーブル' : 'プログラム') + 'を採用）';
+          var r = useTT ? { start: tt.start, note: tt.note, seg: tt.seg } : pg;
+          r.note = (r.note ? r.note + '／' : '') + '⚠ プログラム ' + own + '／タイムテーブル ' + tt.start + '（' + (useTT ? 'タイムテーブル' : 'プログラム') + 'を採用）';
           r.conflict = true; return r;
         }
         return pg;
       }
       return tt;
     }
-    function addCall(r) {
+    // タイムテーブルにこの種目（ラウンド）があるか（日付の書かれていないスタートリストで、何日目の種目かを決めるのに使う）
+    function hit(title, round, date) { return !!(ttSegs && ttSegs.length && P.matchSegs(title, round, ttSegs, date).length); }
+    function addCall(r, seg) {
       var s = toMin(r.start);
+      // タイムテーブルに招集開始・完了の列があり、その行の時刻を競技開始に使っている → 列の時刻をそのまま使う（「〇分前」のルールより優先）
+      if (seg && seg.callStart && seg.callEnd && seg.time === r.start && settings.ttCall !== false) {
+        r.callRule = [s - toMin(seg.callStart), s - toMin(seg.callEnd)]; r.callSrc = 'tt';
+        r.callStart = seg.callStart; r.callEnd = seg.callEnd; r.call = r.callStart + '〜' + r.callEnd; r.startMin = s; return;
+      }
+      r.callSrc = s == null ? '' : 'rule';
       var c = r.typ === 'field' ? cF : (r.typ === 'relay' && settings.callRelay) ? settings.callRelay : ((r.typ === 'long' || r.typ === 'dist') && settings.callDist) ? settings.callDist : cT;
       r.callRule = c;
       r.callStart = s == null ? '' : fmt(s - c[0]); r.callEnd = s == null ? '' : fmt(s - c[1]);
@@ -82,19 +95,25 @@ var MeetLogic = (function () {
       var typ = evType(e.event, e.posKind, settings);
       var heat = typ === 'field' ? (e.heat != null ? e.heat : '-') : (e.heat == null ? 1 : e.heat);
       var ti = timeInfo(e.event, e.round, heat, typ, e.time, e.date, e.timeNote);
-      var r = { team: team, event: e.event, round: e.round, heat: heat, pos: e.pos, posLabel: POS_LABEL[typ], typ: typ,
+      var r = { team: team, event: e.event, round: e.round, heat: heat, pos: e.pos, posLabel: POS_LABEL[typ], typ: typ, ttHit: hit(e.event, e.round, e.date),
         bib: e.bib, name: e.name, kana: e.kana || '', grade: e.grade, start: ti.start, note: ti.note, page: e.page, conflict: !!ti.conflict, date: e.date || '' };
-      addCall(r); rows.push(r);
+      addCall(r, ti.seg); rows.push(r);
     });
     sl.relays.forEach(function (rl) {
       var base = relayBase(rl.team, T.indiv); if (!sel.has(base)) return;
       var ti = timeInfo(rl.event, rl.round, rl.heat, 'relay', rl.time, rl.date, rl.timeNote);
-      var r = { team: base, event: rl.event, round: rl.round, heat: rl.heat, pos: rl.pos, posLabel: 'レーン', typ: 'relay',
+      var r = { team: base, event: rl.event, round: rl.round, heat: rl.heat, pos: rl.pos, posLabel: 'レーン', typ: 'relay', ttHit: hit(rl.event, rl.round, rl.date),
         bib: rl.members.map(function (m) { return m.bib; }).join('/'), name: nk(rl.team).trim(), relayTeam: nk(rl.team).trim(),
         members: rl.members, grade: '', start: ti.start, note: ti.note, page: rl.page, conflict: !!ti.conflict, date: rl.date || '' };
-      addCall(r);
+      addCall(r, ti.seg);
       if (settings.relayOrderMin && r.startMin != null) {
-        var base = settings.relayOrderBase === '招集開始' ? r.startMin - r.callRule[0] : settings.relayOrderBase === '競技開始' ? r.startMin : r.startMin - r.callRule[1];
+        var bm = r.startMin, bc = r.callRule, fs = ti.firstSeg;
+        // 「最初の組の招集完了時刻の60分前」：組のまとまりごとに時刻が違うときは、1組目のまとまりの時刻で計算する
+        if (settings.relayOrderFirst && fs && fs !== ti.seg && fs.time) {
+          bm = toMin(fs.time);
+          bc = fs.callStart && fs.callEnd && settings.ttCall !== false ? [bm - toMin(fs.callStart), bm - toMin(fs.callEnd)] : r.callRule;
+        }
+        var base = settings.relayOrderBase === '招集開始' ? bm - bc[0] : settings.relayOrderBase === '競技開始' ? bm : bm - bc[1];
         r.orderDeadline = fmt(base - settings.relayOrderMin);
         r.note = (r.note ? r.note + '／' : '') + 'オーダー用紙提出 ' + r.orderDeadline + 'まで';
       }

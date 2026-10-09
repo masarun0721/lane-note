@@ -192,14 +192,24 @@ var MeetParser = (function () {
         parseSection(secW, W, pi, sec.title, sec.round, sec.sched || [], frag);
         for (var q = e0; q < entries.length; q++) if (!entries[q].date && pageDate) entries[q].date = pageDate;
         for (var q2 = r0; q2 < relays.length; q2++) if (!relays[q2].date && pageDate) relays[q2].date = pageDate;
-        var blankForm = secW.some(function (w) { return BIB_HDR.test(w.n) || /^(\d+レーン|レーン|チーム名)$/.test(w.n); }) && !secW.some(function (w) { return isBib(w.n) && w.n.length >= 2 && w.x < W * 0.5; });
+        // 見出しの行（「男子2支部1年 100m」の「100m」など）はナンバーとして数えない
+        // 「日本高校記録 10.01 桐生 祥秀 (洛南・京都) 2013」のような記録の行の年も数えない
+        var recY = secW.filter(function (w) { return w.n.length > 2 && /記録$/.test(w.n) && w.x < W * 0.2; }).map(function (w) { return w.y; });
+        var bodyW = (sec.y0 >= 0 ? secW.filter(function (w) { return w.y > sec.y0 + 4; }) : secW).filter(function (w) { return !recY.some(function (y) { return Math.abs(y - w.y) < 1.5; }); });
+        var blankForm = secW.some(function (w) { return BIB_HDR.test(w.n) || /^(\d+レーン|レーン|チーム名)$/.test(w.n); }) && !bodyW.some(function (w) { return isBib(w.n) && w.n.length >= 2 && w.x < W * 0.5; });
         var n = entries.length - e0 + relays.length - r0, pt = parseTitle(sec.title), warn = [];
         if (!DISC_TAIL.test(nk(sec.title).replace(/\s+$/, ''))) warn.push('種目名が不完全');
-        if (!n && !sec.cont && !blankForm) warn.push('出場者を読み取れず');
+        // 前のページの組の「順位・記録」欄だけがはみ出したページ（順位の数字と欄の見出ししか無い）→ 出場者なしで正しい
+        var resultOnly = !n && !blankForm && secW.length > 0 && secW.every(function (w) { return nk(w.n).replace(/\s+/g, '') === nk(sec.title).replace(/\s+/g, '') || nk(w.n).trim().split(/\s+/).every(function (x) { return RESULT_ONLY.test(x); }); });
+        if (!n && !sec.cont && !blankForm && !resultOnly) warn.push('出場者を読み取れず');
         if (smallNew) warn.push('見出しの文字が本文と同じ大きさで、想定と違う形式です（種目名・人数を元のPDFで確認）');
-        diag.push({ page: pi + 1, title: sec.title, round: sec.round, count: n, cont: !!sec.cont, warn: warn, info: !n && blankForm ? '空欄の表（決勝など未定）' : '' });
+        diag.push({ page: pi + 1, title: sec.title, round: sec.round, count: n, cont: !!sec.cont, warn: warn, info: !n && blankForm ? '空欄の表（決勝など未定）' : !n && resultOnly ? '結果記入欄だけのページ（出場者なし）' : '' });
       });
     });
+    // 所属の欄の後ろに支部などの番号が付いている（「本郷 ・3」「都南葛飾 ・2」）→ 学校名だけにする（リレーは「本郷」だけなので、同じ学校が2つに分かれない）
+    var cleanTeam = function (t) { return String(t || '').replace(/[\s\u3000]*[・･][\s\u3000]*\d{1,2}$/, ''); };
+    entries.forEach(function (e) { e.team = cleanTeam(e.team); });
+    relays.forEach(function (r) { r.team = cleanTeam(r.team); });
     var format = schedCount > 0 ? 'program' : 'kitaku';
     var all = entries.concat(relays);
     all.forEach(function (e) { e.format = format; });
@@ -237,7 +247,9 @@ var MeetParser = (function () {
         var rn = roundNorm(r) || r, kR = roundKind(rn);
         var hit = sched.find(function (s) { return s.round === rn; }) ||
           (kR ? sched.find(function (s) { return roundKind(s.round) === kR; }) : null);
-        if (!hit && sched.length === 1 && (!kR || !roundKind(sched[0].round))) hit = sched[0];
+        // 同じ日程が2回書かれている（見出しの右上と表の上など）ものは1つとして数える
+        var us = sched.filter(function (s, i) { return sched.findIndex(function (o) { return o.time === s.time && o.round === s.round && (o.date || '') === (s.date || ''); }) === i; });
+        if (!hit && us.length === 1 && (!kR || !roundKind(us[0].round))) hit = us[0];
         return hit || null;
       }
       function timeFor(r) { var h = schedFor(r); return h ? h.time : null; }
@@ -354,8 +366,9 @@ var MeetParser = (function () {
     });
   }
 
+  var RESULT_ONLY = /^(\d{1,2}|順位|ﾁｰﾑ名|チーム名|記録|ﾅﾝﾊﾞｰ|ナンバー|氏名|所属|ﾀｲﾑﾚｰｽ|タイムレース|TR|決勝|予選|上位\d+位|.*上位\d+位|\d{1,2}月\d{1,2}日|\d{1,2}:\d{2}|風.*|[()+\-/]+)$/;
   /* ---------- タイムテーブル ---------- */
-  var EVT_RE = /(^\d+(\.\d+)?(m|km|M)(H|SC|W|R|mH)?$)|×|走高跳|走幅跳|棒高跳|三段跳|砲丸投|円盤投|ハンマー投|やり投|ジャベリック|競歩|リレー$|混成|十種|七種|四種|ハードル|障害/;
+  var EVT_RE = /(^\d+(\.\d+)?(m|km|M)(H|SC|W|R|mH|JH|YH)?(\([^)]*\))?$)|(^\d+\s*[Xx]\s*\d+\s*m?R?(\([^)]*\))?$)|×|走高跳|走幅跳|棒高跳|三段跳|砲丸投|円盤投|ハンマー投|やり投|ジャベリック|競歩|リレー$|混成|十種|七種|四種|ハードル|障害/;
   var EVT_NG = /締切|提出|用紙|終了|開始|招集/;
   var TIME_RE = /^\d{1,2}:\d{2}$/;
   var GENDER_RE = /^(男|女|男子|女子|混合|男女)$/;
@@ -375,6 +388,8 @@ var MeetParser = (function () {
         var L = lines.find(function (l) { return Math.abs(l.y - w.y) < 3; });
         if (L) L.w.push(w); else lines.push({ y: w.y, w: [w] });
       });
+      // 支部（②・③）ごとに時刻が分かれ、1種目が複数行にまたがる表（東京都高体連の支部大会型）は別の読み方
+      if (branchHeader(lines)) { parseBranchPage(lines, pi, pageDate, segs); return; }
       var colState = []; // {x, time, cat, gender}
       lines.forEach(function (L) {
         var ws = L.w.sort(function (a, b) { return a.x - b.x; });
@@ -438,8 +453,121 @@ var MeetParser = (function () {
       });
       // 日付：行に書かれた日付 → なければページの日付（「10月12日」のページ以降は12日）
       for (var q = s0; q < segs.length; q++) { var ld = datesIn(lines.find(function (L) { return L.y === segs[q].y; }).w.map(function (w) { return w.n; }).join(' ')); segs[q].date = ld.length === 1 ? ld[0] : pageDate; }
+      // 招集開始・招集完了の列がある表（「9:30 中学共通女子 100mH 29 4 9:05 9:15」）→ 種目ごとの招集時刻
+      var hasCallCols = words.some(function (w) { return /招集開始/.test(w.n); }) && words.some(function (w) { return /招集完了/.test(w.n); });
+      for (var q3 = s0; q3 < segs.length; q3++) {
+        var sg = segs[q3], Lq = lines.find(function (L) { return L.y === sg.y; });
+        // 「100m(1~6)」「1500m(5)」：かっこの中が組の範囲（重さ・高さのかっこは数字だけではないので対象外）
+        var pm = nk(sg.event).match(/\((\d+)\s*[～~〜\-ー－]\s*(\d+)\)$/), p1 = nk(sg.event).match(/\((\d+)\)$/);
+        if (!sg.heats && pm && +pm[1] <= +pm[2]) sg.heats = { from: +pm[1], to: +pm[2] };
+        else if (!sg.heats && p1) sg.heats = { from: +p1[1], to: +p1[1] };
+        // 区分の欄に「中学共通女子」のように性別まで続けて書かれている
+        if (!sg.gender && sg.cat) { var gm2 = nk(sg.cat).match(/男子|女子|混合|男女/); if (gm2) sg.gender = gm2[0]; }
+        if (!hasCallCols || !sg.time) continue;
+        var nextX = Math.min.apply(null, Lq.w.filter(function (w) { return w.x > sg.x + 1 && EVT_RE.test(w.n) && !EVT_NG.test(w.n); }).map(function (w) { return w.x; }).concat([1e9]));
+        var tws = Lq.w.filter(function (w) { return TIME_RE.test(w.n) && w.x > sg.x && w.x < nextX; }).map(function (w) { return w.n; });
+        if (sg.timeRight) tws = tws.slice(1);
+        if (tws.length !== 2) continue;
+        var tm = function (t) { var m = t.split(':'); return (+m[0]) * 60 + (+m[1]); }, a0 = tm(tws[0]), a1 = tm(tws[1]), st = tm(sg.time);
+        if (a0 <= a1 && a1 <= st && st - a0 <= 180) { sg.callStart = tws[0]; sg.callEnd = tws[1]; }
+      }
     });
     return segs;
+  }
+
+  /* ---------- 支部ごとの時刻がある競技日程（1種目が複数行） ----------
+     競技開始時刻 | 性別 | 学年 | 種目 | 種別 | 支部 | 出場数 | 組・着・+ | 招集 開始 | 完了
+     種目名の行は結合したセルの上下の真ん中にあるので、種目名の行を中心に上下同じ幅をその種目のまとまりとする */
+  var CIRCLED = /^[①-⑨]+(?:合同)?$/;
+  function branchHeader(lines) {
+    return lines.some(function (L) { var t = L.w.map(function (w) { return w.n; }).join(''); return /性別/.test(t) && /支部/.test(t) && /種別/.test(t); });
+  }
+  function parseBranchPage(lines, pi, pageDate, segs) {
+    var hdr = null, startX = null, endX = null, date = pageDate, blocks = [];
+    var circled = function (w) { var m = w.t.replace(/合同$/, ''); return CIRCLED.test(w.t) ? Array.from(m).map(function (c) { return String(c.charCodeAt(0) - 0x245F); }) : null; };
+    var isEv = function (w) { return EVT_RE.test(w.n) && !EVT_NG.test(w.n) && (!hdr || w.x > hdr.gx); };
+    lines.sort(function (a, b) { return a.y - b.y; });
+    var sec = [], secs = [sec];
+    lines.forEach(function (L) {
+      var ws = L.w.sort(function (a, b) { return a.x - b.x; }), txt = ws.map(function (w) { return w.n; }).join('');
+      var ld = datesIn(ws.map(function (w) { return w.n; }).join(' '));
+      if (ld.length === 1) date = ld[0];
+      if (/性別/.test(txt) && /種別/.test(txt)) {   // 見出しの行：列の位置を覚える
+        var f = function (re) { var w = ws.find(function (w) { return re.test(w.n); }); return w ? w.x : null; };
+        hdr = { tx: f(/競技開始/), gx: f(/^性別/), kx: f(/^学年/), ex: f(/^種/), rx: f(/^種別/), bx: f(/^支部/) };
+        secs.push(sec = []); return;
+      }
+      if (!hdr) return;
+      if (ws.every(function (w) { return /^(開始|完了|招集時刻)$/.test(w.n); })) { ws.forEach(function (w) { if (w.n === '開始') startX = w.x; if (w.n === '完了') endX = w.x; }); return; }
+      if (/^[〔\[]/.test(txt) || /終了予定|第\d日/.test(txt) || ld.length) { secs.push(sec = []); return; }
+      L.date = date; L.ev = ws.find(isEv) || null; sec.push(L);
+    });
+    // まとまりの境目：となりの種目名の行とのあいだで、行の間隔がいちばん広いところ。
+    // 同じ広さが何か所もあるときは、種目名の行が上下の真ん中に来るところ
+    secs.forEach(function (S) {
+      var E = S.map(function (L, i) { return L.ev ? i : -1; }).filter(function (i) { return i >= 0; });
+      if (!E.length) return;
+      var cuts = [0];
+      for (var k = 0; k + 1 < E.length; k++) {
+        var a = E[k], b = E[k + 1], best = b, bestGap = -1, bestBal = 1e9, up = S[a].y - S[cuts[k]].y;
+        var gaps = []; for (var j = a + 1; j <= b; j++) gaps.push({ j: j, g: S[j].y - S[j - 1].y });
+        var mx = Math.max.apply(null, gaps.map(function (o) { return o.g; }));
+        gaps.forEach(function (o) {
+          if (o.g < mx - 1.5) return;
+          var bal = Math.abs((S[o.j - 1].y - S[a].y) - up);
+          if (bal < bestBal) { bestBal = bal; best = o.j; }
+        });
+        cuts.push(best);
+      }
+      cuts.push(S.length);
+      E.forEach(function (e, k) { blocks.push({ ev: S[e].ev, evLine: S[e], y: S[e].y, lines: S.slice(cuts[k], cuts[k + 1]), date: S[e].date }); });
+    });
+    // 時刻だけの行が2つの種目にまたがる（結合したセル）：時刻の無い種目は、境目にある「時刻だけの行」を共有する
+    var bareTime = function (L) { return L && L.w.every(function (w) { return TIME_RE.test(w.n); }) && L.w.some(function (w) { return hdr && w.x < hdr.gx - 4; }); };
+    blocks.forEach(function (B, k) {
+      if (B.lines.some(function (L) { return L.w.some(function (w) { return TIME_RE.test(w.n) && w.x < hdr.gx - 4; }); })) return;
+      var N = blocks[k + 1], P = blocks[k - 1];
+      if (N && bareTime(N.lines[0]) && N.lines[0].y - B.y < 20) B.lines.push(N.lines[0]);
+      else if (P && bareTime(P.lines[P.lines.length - 1]) && B.y - P.lines[P.lines.length - 1].y < 20) B.lines.push(P.lines[P.lines.length - 1]);
+    });
+    blocks.forEach(function (B) {
+      var near = function (x, cx) { return cx != null && Math.abs(x - cx) < 20; };
+      var gender = '', grade = '', roundAll = '';
+      B.lines.forEach(function (L) { L.w.forEach(function (w) {
+        if (w.x >= hdr.gx - 8 && (hdr.kx == null || w.x < hdr.kx - 4) && GENDER_RE.test(w.n)) gender = w.n;
+        else if (hdr.kx != null && w.x >= hdr.kx - 10 && w.x < B.ev.x - 2 && /^([1-6]([・･][1-6])*共?|共通)$/.test(w.n)) grade = w.n;
+        else if (L === B.evLine && ROUND_RE.test(w.n) && w.x > B.ev.x) roundAll = w.n;
+      }); });
+      // 支部のしるし（②③）がある行。しるしの無い行は、いちばん近いしるしの行と同じ支部（結合したセル）
+      var marked = B.lines.map(function (L) { var c = null; L.w.forEach(function (w) { var b = circled(w); if (b) c = b; }); return { L: L, br: c }; });
+      var brOf = function (L) {
+        var me = marked.find(function (m) { return m.L === L; }); if (me.br) return me.br;
+        var ms = marked.filter(function (m) { return m.br; }).sort(function (a, b) { return Math.abs(a.L.y - L.y) - Math.abs(b.L.y - L.y); });
+        return ms.length ? ms[0].br : null;
+      };
+      var timeAt = function (L, pred) { var w = L.w.find(function (w) { return TIME_RE.test(w.n) && pred(w.x); }); return w ? w.n : null; };
+      var isStart = function (x) { return x < hdr.gx - 4; };
+      var rows = B.lines.filter(function (L) { return timeAt(L, isStart); });
+      var allBr = []; marked.forEach(function (m) { (m.br || []).forEach(function (b) { if (allBr.indexOf(b) < 0) allBr.push(b); }); });
+      var commonStart = null; B.lines.forEach(function (L) { var cs = timeAt(L, function (x) { return near(x, startX); }), ce = timeAt(L, function (x) { return near(x, endX); }); if (cs && !ce) commonStart = cs; });
+      rows.forEach(function (L) {
+        var post = L.w.filter(function (w) { return w.x > (hdr.bx != null ? hdr.bx + 40 : B.ev.x); }).map(function (w) { return w.n; }).join(' ');
+        var rw = L.w.find(function (w) { return ROUND_RE.test(w.n) && w.x > B.ev.x - 2 && (hdr.bx == null || w.x < hdr.bx - 8); });
+        var seg = { page: pi + 1, x: B.ev.x, y: L.y, event: B.ev.n, time: timeAt(L, isStart), cat: grade || null, gender: gender || null,
+          round: rw ? rw.n : roundAll, heats: null, raw: '', date: B.date, branch: rows.length > 1 ? brOf(L) : (allBr.length ? allBr : null) };
+        if (!rw && !roundAll) { var rr = B.lines.map(function (M) { return M.w.find(function (w) { return ROUND_RE.test(w.n) && w.x > B.ev.x - 2 && (hdr.bx == null || w.x < hdr.bx - 8); }); }).filter(Boolean); if (rr.length === 1) seg.round = rr[0].n; }
+        var hm = post.match(/(\d+)\s*[～~〜\-ー－]\s*(\d+)\s*組/);
+        if (hm && rows.length > 1) seg.heats = { from: +hm[1], to: +hm[2] };
+        var cs = timeAt(L, function (x) { return near(x, startX); }) || (rows.length === 1 ? null : commonStart), ce = timeAt(L, function (x) { return near(x, endX); });
+        if (!cs && rows.length === 1) B.lines.forEach(function (M) { cs = cs || timeAt(M, function (x) { return near(x, startX); }); });
+        if (!ce && rows.length === 1) B.lines.forEach(function (M) { ce = ce || timeAt(M, function (x) { return near(x, endX); }); });
+        if (cs && ce) { var tm = function (t) { var m = t.split(':'); return (+m[0]) * 60 + (+m[1]); }; if (tm(cs) <= tm(ce) && tm(ce) <= tm(seg.time) && tm(seg.time) - tm(cs) <= 180) { seg.callStart = cs; seg.callEnd = ce; } }
+        seg.raw = [seg.time, gender, grade, B.ev.n, seg.round, seg.branch ? '支部' + seg.branch.join('・') : '', post].filter(Boolean).join(' ');
+        segs.push(seg);
+      });
+      // 時刻の書かれた行が1つも無い（読み取れない）→ 時刻なしの行として残す（前の種目の時刻を流用しない）
+      if (!rows.length) segs.push({ page: pi + 1, x: B.ev.x, y: B.y, event: B.ev.n, time: null, cat: grade || null, gender: gender || null, round: roundAll, heats: null, raw: [gender, grade, B.ev.n, roundAll].join(' '), date: B.date, branch: allBr.length ? allBr : null });
+    });
   }
 
   /* ---------- 種目の照合 ---------- */
@@ -452,6 +580,8 @@ var MeetParser = (function () {
   }
   function catInfo(c) {
     c = nk(c || '').replace(/\s/g, '');
+    var br = (c.match(/(\d+)支部/) || [])[1] || null;
+    c = c.replace(/\d+支部/g, '');   // 「男子3支部1年」の3は支部の番号で学年ではない
     var lv = [], g = null;
     if (/小/.test(c)) lv.push('小');
     if (/中/.test(c)) lv.push('中');
@@ -459,9 +589,12 @@ var MeetParser = (function () {
     if (/一般|成年|シニア/.test(c)) lv.push('一般');
     if (/大学/.test(c)) lv.push('大');
     var m = c.match(/([1-6])年?/); if (m && !/共通/.test(c)) g = m[1];
-    return { lv: lv, g: g, raw: c };
+    // 学年の集合：「2・3年」「2･3共」→ 2と3。「共通」は学年を限らない
+    var gs = [], gm = !/共通/.test(c) && c.match(/^(?:[^\d]*?)([1-6](?:[・･~〜～\-][1-6])*)年?(?:共)?(?:男子|女子|$)/);
+    if (gm) { var parts = gm[1].split(/[・･]/); parts.forEach(function (p) { var r = p.split(/[~〜～\-]/); for (var x = +r[0]; x <= +(r[1] || r[0]); x++) gs.push(String(x)); }); }
+    return { lv: lv, g: g, gs: gs, br: br, raw: c };
   }
-  var DISC_TAIL = /(\d+(?:\.\d+)?\s*[Xx×]\s*\d+m?R?|\d+(?:\.\d+)?(?:m|km)(?:H|SC|W|JH|R)?|走高跳|走幅跳|棒高跳|三段跳|砲丸投|円盤投|ハンマー投|やり投|ジャベリックスロー|ボール投|競歩|混成|十種競技|七種競技|四種競技)(\s*\([^)]*\))?\s*$/;
+  var DISC_TAIL = /(\d+(?:\.\d+)?\s*[Xx×]\s*\d+m?R?|\d+(?:\.\d+)?(?:m|km)(?:H|SC|W|JH|YH|R)?|走高跳|走幅跳|棒高跳|三段跳|砲丸投|円盤投|ハンマー投|やり投|ジャベリックスロー|ボール投|競歩|混成|十種競技|七種競技|四種競技)(\s*\([^)]*\))?\s*$/;
   function parseTitle(title) {
     var t = nk(title || '').trim();
     var m = t.match(/^(男子|女子|混合)\s*(\S*)\s+(.+)$/);
@@ -485,8 +618,17 @@ var MeetParser = (function () {
       if (normDisc(s.event) !== p.disc) return;
       if (date && s.date && date !== s.date) return;   // 日付が両方わかっていて違う → 別の日の時刻
 
-      if (s.gender && p.gender && s.gender[0] !== p.gender[0]) return;
+      var sg = s.gender || ((nk(s.cat || '').match(/男子|女子|混合/) || [])[0]);
+      if (sg && p.gender && sg[0] !== p.gender[0]) return;
       var sc = catInfo(s.cat), score = 1;
+      // 支部の大会：見出しの「3支部」とタイムテーブルの支部（②③）が両方わかっていて違う → 別の時刻
+      if (ci.br && s.branch && s.branch.length && s.branch.indexOf(ci.br) < 0) return;
+      if (ci.br && s.branch && s.branch.indexOf(ci.br) >= 0) score += 1;
+      // 区分（小中高）が書かれていない表どうしでも、学年が両方わかっていて重ならなければ別の種目
+      if (!(ci.lv.length && sc.lv.length) && ci.gs.length && sc.gs.length) {
+        if (!ci.gs.some(function (g) { return sc.gs.indexOf(g) >= 0; })) return;
+        score += 3;
+      }
       if (ci.lv.length && sc.lv.length) {
         if (!ci.lv.some(function (l) { return sc.lv.indexOf(l) >= 0; })) return;
         score += 2;
@@ -520,11 +662,14 @@ var MeetParser = (function () {
       blk.sort(function (a, b) { return a.from - b.from; });
       if (heat == null) { var b0 = blk[0]; return { time: b0.from === 1 ? b0.s.time : null, note: b0.from === 1 ? '最初の組の開始時刻' : '組がわからないため時刻未確定（タイムテーブルは' + b0.from + '組から）', seg: b0.s }; }
       var b = blk.find(function (o) { return heat >= o.from && heat <= o.to; });
-      if (b) return { time: b.s.time, note: (b.from === b.to ? b.from + '組の開始時刻' : b.from + '〜' + b.to + '組の開始時刻'), seg: b.s };
+      // firstTime：1組目を含むまとまりの時刻（＝種目の開始時刻）。プログラムに種目の開始時刻だけ書かれている場合の照合に使う
+      if (b) return { time: b.s.time, note: (b.from === b.to ? b.from + '組の開始時刻' : b.from + '〜' + b.to + '組の開始時刻'), seg: b.s, block: true, firstTime: blk[0].from === 1 ? blk[0].s.time : null, firstSeg: blk[0].from === 1 ? blk[0].s : null };
       var near = blk.map(function (o) { return (o.from === o.to ? o.from : o.from + '〜' + o.to) + '組 ' + o.s.time; }).join('／');
       return { time: null, note: '時刻未確定（' + heat + '組の時刻がタイムテーブルに無い。記載：' + near + '）' };
     }
     var s0 = segsForEvent[0];
+    // 同じラウンドの候補が複数あり時刻が違う（どれか決められない）→ 先頭を勝手に使わず未確定
+    if (Object.keys(times).length > 1) return { time: null, note: '時刻未確定（候補：' + Object.keys(times).join('／') + '。タイムテーブルで確認）', ambiguous: true };
     var n = s0.heats && s0.heats.count;
     var note = n ? (n > 1 ? '全' + n + '組の開始時刻' + (heat > 1 ? '（' + heat + '組目は前の組の後）' : '') : '1組のみ') : '';
     return { time: s0.time, note: note, seg: s0 };
@@ -546,7 +691,8 @@ var MeetParser = (function () {
   function guessMeta(pages) {
     var lines = pagesToLines(pages.slice(0, 2)), flat = lines.join(' ');
     var name = '', date = '';
-    var m = flat.match(/第\s*\d+\s*回[^\s　]*?(?:\s*兼\s*[^\s　]+)?(?:大会|選手権|記録会|競技会)/) ;
+    var NM = /第\s*\d+\s*回\s*[^\s　]*?(?:\s*兼\s*[^\s　]+)?(?:大会|選手権|記録会|競技会)/;
+    var m = flat.match(NM) || lines.slice(0, 4).map(compact).join(' ').match(NM);   // 1文字ずつ分かれた表題は、先頭の数行だけ（本文中の別大会名を拾わない）   // 「第 4 9 回 江東区 秋季…」のように1文字ずつ分かれたPDF
     if (m) name = m[0].replace(/第\s*(\d+)\s*回\s*/, '第$1回').replace(/\s+/g, ' ');
     var d = flat.match(/(?:20\d\d|令和\s*\d+)\s*年\s*\d+\s*月\s*\d+\s*日(?:\s*[（(][^)）]{1,3}[)）])?/);
     if (d) date = d[0].replace(/\s+/g, '');
@@ -562,6 +708,9 @@ var MeetParser = (function () {
     var TWO = /(\d+)\s*分\s*前\D{0,12}?(\d+)\s*分\s*前/;
     var hasCall = /招集/.test(flat);
     if (!hasCall) return res;
+    // 「各競技の招集開始時刻・招集完了時刻は、タイムテーブルに記載のとおりとする」→ 種目ごとの時刻はタイムテーブルの招集の列
+    var ct = flat.match(/[^。]*招集(?:開始|完了)?時刻[^。]{0,30}?(?:タイムテーブル|競技日程|競技時間表|日程表)[^。]{0,12}?(?:記載|とおり|通り|による|参照)[^。]*。?/);
+    if (ct) { res.callInTT = true; res.src.callTT = ct[0].replace(/^[(（]?\d+[)）]/, '').trim(); }
     lines.forEach(function (l, i) {
       var m = l.match(TWO); if (!m) return;
       var a = +m[1], b = +m[2]; if (a <= b) return;
@@ -582,9 +731,10 @@ var MeetParser = (function () {
     var sp = flat.match(/(?:\d{3,5}m(?!以上)(?:H|SC|W)?|棒高跳|走高跳|ハンマー投|競歩)(?:競技)?(?:は|の招集は)[^。]{0,30}?\d+分前[^。]*。?/g) || [];
     sp.forEach(function (x) { var xs = x.replace(/。$/, ''); if (!/長距離|以上/.test(x) && !res.specific.some(function (y) { var ys = y.replace(/\s+/g, ''); return ys.indexOf(xs) >= 0 || xs.indexOf(ys.replace(/。$/, '')) >= 0; })) res.specific.push(x); });
     var r = flat.match(/[^。※]*リレー[^。]*?(招集完了時刻|招集開始時刻|競技開始時刻|競技開始)の?(\d+)(時間|分)前まで[^。]*?オーダー[^。]*。?/) ||
-            flat.match(/[^。※]*オーダー用紙[^。]*?(招集完了時刻|招集開始時刻|競技開始時刻|競技開始)の?(\d+)(時間|分)前まで[^。]*。?/);
-    if (r) { res.relayOrder = { base: r[1].replace(/時刻$/, ''), minutes: (+r[2]) * (r[3] === '時間' ? 60 : 1) }; res.src.relayOrder = r[0]; }
-    var p = flat.match(/(?:競技者)?招集所は([^。、]{2,30}?)(?:とする|です|に設ける|。)/) || flat.match(/招集場所[:：は]?([^。、]{2,30}?)(?:とする|です|。)/);
+            flat.match(/[^。※]*オーダー用紙[^。]*?(招集完了時刻|招集開始時刻|競技開始時刻|競技開始)の?(\d+)(時間|分)前まで[^。]*。?/) ||
+            flat.match(/[^。※]*オーダー用紙の提出(?:締切|締め切り)?(?:時刻)?は[^。]{0,12}?(招集完了時刻|招集開始時刻|競技開始時刻|競技開始)の?(\d+)(時間|分)前とする。?/);
+    if (r) { res.relayOrder = { base: r[1].replace(/時刻$/, ''), minutes: (+r[2]) * (r[3] === '時間' ? 60 : 1), first: /最初の組|第?1組/.test(r[0]) }; res.src.relayOrder = r[0]; }
+    var p = flat.match(/(?:競技者)?招集所は([^。、]{2,30}?)(?:とする|です|に設ける|。)/) || flat.match(/(?:競技者)?招集所を([^。、]{2,30}?)に(?:設置|設け)/) || flat.match(/招集場所[:：は]?([^。、]{2,30}?)(?:とする|です|。)/);
     if (p) { res.place = p[1]; res.src.place = p[0]; }
     return res;
   }
@@ -657,7 +807,12 @@ var MeetParser = (function () {
         var v = +m[2].replace(/,/g, ''), between = l.slice(lastIdx, m.index);
         var unit = /1\s*人|一人|1\s*名|1\s*チーム/.test(between) ? (/チーム/.test(between) ? 'team' : 'person') : /種目/.test(between) ? 'event' : '';
         var ks = pend.length ? pend : []; pend = [];
-        if (!ks.length) { if (unit === 'person') { res.perPerson = v; hit = true; } continue; }
+        if (!ks.length) {
+          if (unit === 'person') { res.perPerson = v; hit = true; }
+          // 「個人1種目－700円」：区分の書き分けが無い（全員同じ金額）
+          else if (unit === 'event' && /個人/.test(between) && res.common == null) { res.common = v; hit = true; }
+          lastIdx = m.index + m[0].length; continue;
+        }
         hit = true;
         var cats = ks.filter(function (k) { return !/^(リレー|プログラム|登録料|記録証)$/.test(k); });
         if (ks.indexOf('リレー') >= 0) { if (lastCats.length && nCat === lastCats.length && !cats.length) lastCats.forEach(function (c) { (res.cats[c] = res.cats[c] || {}).relay = v; }); else res.relay = v; }
@@ -669,6 +824,8 @@ var MeetParser = (function () {
       if (hit) res.src.push(l);
     }
     if (res.cats['高校以上']) { ['高校', '一般'].forEach(function (c) { res.cats[c] = res.cats[c] || Object.assign({}, res.cats['高校以上']); }); delete res.cats['高校以上']; }
+    // 区分ごとの金額が1つも無く、区分なしの「個人1種目○円」だけがある → すべての区分に同じ金額（allCats）
+    if (!Object.keys(res.cats).length && res.common != null) { ['小学', '中学', '高校', '一般'].forEach(function (c) { res.cats[c] = { ind: res.common, unit: 'event' }; }); res.allCats = true; }
     if (res.relay != null) Object.keys(res.cats).forEach(function (c) { if (res.cats[c].relay == null) res.cats[c].relay = res.relay; });
     return res;
   }

@@ -121,7 +121,9 @@
         var cf = RULES.filter(function (r) { return conflictOf(r.k); });
         var cfMsg = cf.length ? '<br><span class="warn">⚠ 手入力した招集ルールと注意事項の記載が違います（手入力の値を使っています）：' + cf.map(function (r) { return esc(r.label + ' 手入力 ' + ruleVal(r.k) + '／注意事項 ' + conflictOf(r.k)); }).join('、') + '</span>' : '';
         var feeOk = /^・/.test(feeMsg), feeNote = feeMsg && !feeOk ? '<br><span class="small">' + esc(feeMsg) + '</span>' : '';
-        setStatus(sid, (nt.track || nt.field || nt.relayOrder) ? '✔ 「' + esc(file.name) + '」 招集ルール' + (feeOk ? feeMsg : '') + 'を読み取りました' + (nt.specific.length ? '<br><span class="warn">種目別のルール ' + nt.specific.length + '件は自動では当てはめていません（個別確認）</span>' : '') + cfMsg + feeNote : '△ 「' + esc(file.name) + '」 招集ルールが見つかりませんでした（手入力していない項目は仮の初期値に戻しました）' + cfMsg + feeNote, (nt.track || nt.field || nt.relayOrder) ? (cf.length ? 'ok warnst' : 'ok') : 'busy');
+        var ttMsg = nt.callInTT ? '<br><span class="small">招集時刻は「タイムテーブルに記載」の大会です。' + (ttCallCount() ? 'タイムテーブルの招集開始・完了の列（' + ttCallCount() + '種目分）を使います。' : '<span class="warn">タイムテーブルを入れると、その招集の列を使います（今は仮の「〇分前」で計算）。</span>') + '</span>' : '';
+        var got = nt.track || nt.field || nt.relayOrder || nt.callInTT;
+        setStatus(sid, got ? '✔ 「' + esc(file.name) + '」 招集ルール' + (feeOk ? feeMsg : '') + 'を読み取りました' + ttMsg + (nt.specific.length ? '<br><span class="warn">種目別のルール ' + nt.specific.length + '件は自動では当てはめていません（個別確認）</span>' : '') + cfMsg + feeNote : '△ 「' + esc(file.name) + '」 招集ルールが見つかりませんでした（手入力していない項目は仮の初期値に戻しました）' + cfMsg + feeNote, got ? (cf.length || (nt.callInTT && !ttCallCount()) ? 'ok warnst' : 'ok') : 'busy');
       } else {
         var tt = MeetParser.parseTimetable(pages);
         if (!tt.length) throw new Error('種目と時刻を見つけられませんでした');
@@ -178,19 +180,33 @@
     var items = RULES.map(function (r) {
       var s = ruleState[r.k] || 'na', src = s === 'ok' ? state.notes.src[r.k] : '';
       return '<details class="rd"><summary><span class="rs ' + s + '">' + markOf(r.k) + '</span>' + r.label + '：<b>' + esc(ruleVal(r.k)) + '</b>' +
-        (s === 'ng' ? ' <small class="muted">（見つからず仮の初期値）</small>' : s === 'man' ? ' <small class="muted">（手入力）</small>' + (conflictOf(r.k) ? ' <small class="warn">⚠ 注意事項では「' + esc(conflictOf(r.k)) + '」</small>' : '') : '') + '</summary>' +
+        (s === 'ng' ? ' <small class="muted">（見つからず仮の初期値' + (ttCallRows() && /^(track|field|relay|dist)$/.test(r.k) ? '。タイムテーブルに招集時刻が無い種目だけに使います' : '') + '）</small>' : s === 'man' ? ' <small class="muted">（手入力）</small>' + (conflictOf(r.k) ? ' <small class="warn">⚠ 注意事項では「' + esc(conflictOf(r.k)) + '」</small>' : '') : '') + '</summary>' +
         (src ? '<q>' + esc(src) + '</q>' : '<small class="muted">' + esc(ruleTitle(r.k)) + '</small>') + '</details>';
     }).join('');
     var cfl = RULES.filter(function (r) { return conflictOf(r.k); });
     if (cfl.length) line += '<div class="warn">⚠ 手入力した値と競技注意事項の記載が違う項目があります（手入力の値を使っています）：' + cfl.map(function (r) { return esc(r.label + '：手入力 ' + ruleVal(r.k) + '／注意事項 ' + conflictOf(r.k)); }).join('、') + '</div>';
     var spec = loaded && state.notes.specific && state.notes.specific.length ? '<div class="warn"><b>個別確認</b>（特定の種目だけのルール。全体には当てはめていません）：' + state.notes.specific.map(function (o) { return '<q>' + esc(o) + '</q>'; }).join('') + '</div>' : '';
     var others = loaded && state.notes.others.length ? '<div>その他「分前」の記載（自動では反映していません）：' + state.notes.others.map(function (o) { return '<q>' + esc(o) + '</q>'; }).join('') + '</div>' : '';
-    box.innerHTML = line + (loaded ? '<div class="small muted">各項目を押すと原文が出ます。値は「⚙ 設定」で変更できます。</div>' + items + spec + others : '');
+    box.innerHTML = line + ttCallHtml() + (loaded ? '<div class="small muted">各項目を押すと原文が出ます。値は「⚙ 設定」で変更できます。</div>' + items + spec + others : '');
     box.hidden = false;
     if ($('printRule')) $('printRule').textContent = ruleSummaryText();
   }
+  // タイムテーブルの招集開始・完了の列を読み取れた種目の数
+  function ttCallCount() { return state.tt ? state.tt.filter(function (s) { return s.callStart && s.callEnd; }).length : 0; }
+  function ttCallRows() { return (state.rows || []).filter(function (r) { return r.callSrc === 'tt'; }).length; }
+  // 招集時刻をタイムテーブルの列から取ったか（〇）、「〇分前」のルールで計算したか（×）
+  function ttCallHtml() {
+    var n = ttCallCount(), nt = state.notes, inTT = !!(nt && nt.callInTT), rows = state.rows || [];
+    if (!n && !inTT) return '';
+    var used = ttCallRows(), rule = rows.filter(function (r) { return r.callSrc === 'rule'; }).length;
+    var ex = n ? state.tt.filter(function (s) { return s.callStart; })[0] : null;
+    return '<details class="rd"><summary><span class="rs ' + (n ? 'ok' : 'ng') + '">' + (n ? '〇' : '×') + '</span>種目ごとの招集時刻：<b>' + (n ? 'タイムテーブルの招集の列' : '見つからず') + '</b>' +
+      (n ? ' <small class="muted">（' + used + '件はタイムテーブルの時刻' + (rule ? '／' + rule + '件は時刻が合わないため「〇分前」のルールで計算' : '') + '）</small>' : ' <small class="warn">（注意事項では「タイムテーブルに記載」。' + (state.tt ? 'タイムテーブルに招集の列を読み取れなかったため、' : 'タイムテーブル未読込のため、') + '下の「〇分前」で計算しています）</small>') + '</summary>' +
+      (inTT ? '<q>' + esc(nt.src.callTT) + '</q>' : '') + (ex ? '<small class="muted">タイムテーブルの例：' + esc(ex.raw) + '（招集 ' + esc(ex.callStart + '〜' + ex.callEnd) + '）</small>' : '') + '</details>';
+  }
   function ruleSummaryText() {
-    return '招集ルール：' + RULES.filter(function (r) { return r.k !== 'relayOrder' || $('roMin').value; }).map(function (r) { return markOf(r.k) + r.label + ' ' + ruleVal(r.k); }).join('　') +
+    var ttc = ttCallRows();
+    return (ttc ? '招集時刻：〇タイムテーブルの招集の列（' + ttc + '件）。そのほかは次のルールで計算　' : '') + '招集ルール：' + RULES.filter(function (r) { return r.k !== 'relayOrder' || $('roMin').value; }).map(function (r) { return markOf(r.k) + r.label + ' ' + ruleVal(r.k); }).join('　') +
       RULES.filter(function (r) { return conflictOf(r.k); }).map(function (r) { return '　⚠' + r.label + '：注意事項では' + conflictOf(r.k) + '（手入力を使用）'; }).join('') +
       '（〇＝自動抽出（未照合）、×＝見つからず仮の初期値、手＝手入力、－＝注意事項未読込）' + (state.notes && state.notes.specific && state.notes.specific.length ? '　※種目別ルールあり：個別確認' : '');
   }
@@ -386,6 +402,8 @@
       if (iv != null && p.unit === 'person') iv = null;
       state.prices[c] = { ind: iv, relay: p.relay != null ? p.relay : null }; state.priceSrc[c] = { ind: is, relay: p.relay != null ? 'ok' : 'ng' };
     });
+    // 要項に区分の書き分けが無い（全員同じ金額）ときは、学年から区分がわからない選手にも同じ金額を使う
+    if (fp.allCats) state.prices[MeetLogic.UNKNOWN] = { ind: fp.common, relay: fp.relay != null ? fp.relay : null };
     renderFeePrices();
   }
   function priceTitle(c, k) {
@@ -415,7 +433,8 @@
   }
   function feeData() {
     if (!state.sl) return [];
-    var F = MeetLogic.fees(state.rows, state.teams, state.prices, { teamCat: state.teamCat || {} });
+    // 複数日の大会でも参加料は大会全体の分（表示中の日だけで数えない）
+    var F = MeetLogic.fees(state.allRows && state.allRows.length ? state.allRows : state.rows, state.teams, state.prices, { teamCat: state.teamCat || {} });
     var chk = MeetLogic.CATS.some(function (c) { return (state.priceSrc[c] || {}).ind === 'chk'; });
     F.forEach(function (f) { f.unsure = chk && f.lines.some(function (l) { return (state.priceSrc[l.cat] || {}).ind === 'chk' && l.ind; }); });
     return F;
@@ -431,7 +450,9 @@
         f.lines.map(function (l) { var pr = function (n, p, u) { return n ? n + u + ' × ' + (p == null ? '<span class="warn">単価未設定</span>' : yen(p)) : '－'; };
           return '<tr><td>' + l.cat + '</td><td>' + pr(l.ind, l.indPrice, '種目') + '</td><td>' + pr(l.relay, l.relayPrice, 'チーム') + '</td><td>' + yen(l.sub) + '</td></tr>'; }).join('') +
         '</tbody></table><div class="feetot' + (f.missing.length || f.unsure ? ' unsure' : '') + '">' + esc(totalText(f)) + '</div>' +
-        (f.lines.some(function (l) { return l.cat === MeetLogic.UNKNOWN; }) ? '<div class="warn small">「' + MeetLogic.UNKNOWN + '」は学年・種目名から中学／高校などを決められなかった分です。上の「区分」で学校の区分を選んでください。</div>' : '') + '</div>';
+        (multiDates().length > 1 ? '<div class="small muted">複数日の大会なので、全日程の出場分で計算しています。</div>' : '') +
+        (f.lines.some(function (l) { return l.cat === MeetLogic.UNKNOWN; }) && state.feeParsed && state.feeParsed.allCats && state.prices[MeetLogic.UNKNOWN] ? '<div class="small muted">要項の参加料に区分（中学・高校など）の書き分けが無いため、全員同じ単価で計算しています。</div>' :
+        f.lines.some(function (l) { return l.cat === MeetLogic.UNKNOWN; }) ? '<div class="warn small">「' + MeetLogic.UNKNOWN + '」は学年・種目名から中学／高校などを決められなかった分です。上の「区分」で学校の区分を選んでください。</div>' : '') + '</div>';
     }).join('');
     $('feeArea').querySelectorAll('select.teamcat').forEach(function (sel) { sel.addEventListener('change', function () { state.teamCat = state.teamCat || {}; state.teamCat[sel.dataset.team] = sel.value; renderFees(); refreshPrint(); }); });
     var pf = $('printFee'); if (pf) pf.textContent = $('feeInPrint').checked ? '参加料：' + F.map(function (f) { return f.team + ' ' + feeText(f); }).join('　') : '';
@@ -487,7 +508,8 @@
       bibCopies: Math.min(10, Math.max(1, n('bibCopies', 2))), ordCopies: Math.min(10, Math.max(1, n('ordCopies', 2))),
       relayOrderMin: n('roMin', 0), relayOrderBase: $('roBase').value,
       callRelay: $('cR0').value !== '' ? [n('cR0', 30), n('cR1', 20)] : null,
-      callDist: $('cD0').value !== '' ? [n('cD0', 30), n('cD1', 20)] : null, callPlace: $('cPlace').value
+      callDist: $('cD0').value !== '' ? [n('cD0', 30), n('cD1', 20)] : null, callPlace: $('cPlace').value,
+      relayOrderFirst: ruleState.relayOrder === 'ok' && !!(state.notes && state.notes.relayOrder && state.notes.relayOrder.first)
     };
   }
   function updateTeams() {
@@ -524,7 +546,7 @@
   function teamClass(t) { var i = state.teams.indexOf(t); return 'tm' + (i % 4); }
   function render() {
     var res = $('results');
-    if (!state.sl || !state.teams.length) { res.hidden = true; state.rows = []; refreshPrint(); return; }
+    if (!state.sl || !state.teams.length) { res.hidden = true; state.rows = []; state.allRows = []; refreshPrint(); return; }
     requestAnimationFrame(function () { var tb = document.querySelector('.tabbar'); if (tb) document.documentElement.style.setProperty('--tabh', tb.offsetHeight + 'px'); });
     var S = settings();
     // 複数日の大会：対象日を選ぶまでは出場一覧・印刷・Excel・共有を出さない
@@ -539,11 +561,22 @@
     }
     res.hidden = false;
     res.classList.toggle('needday', MD.length > 1 && !state.day);
-    if (MD.length > 1 && !state.day) { state.rows = []; $('summary').innerHTML = ''; refreshPrint(); return; }
+    if (MD.length > 1 && !state.day) { state.rows = []; state.allRows = []; $('summary').innerHTML = ''; refreshPrint(); return; }
     var ttUse = state.tt && state.day ? state.tt.filter(function (s) { return !s.date || s.date === state.day; }) : state.tt;
     state.rows = MeetLogic.build(state.sl, ttUse, state.teams, S);
+    // スタートリストに日付が無く、タイムテーブルだけが複数日：日ごとのタイムテーブルに種目がある日をその種目の日にする
+    var slNoDate = state.day && state.tt && !state.sl.entries.concat(state.sl.relays).some(function (e) { return e.date; });
+    if (slNoDate) {
+      var hits = MD.map(function (d) { return MeetLogic.build(state.sl, state.tt.filter(function (s) { return !s.date || s.date === d; }), state.teams, S).map(function (r) { return r.ttHit; }); });
+      state.rows.forEach(function (r, i) {
+        var ds = MD.filter(function (d, k) { return hits[k][i]; });
+        if (ds.length === 1) r.date = ds[0];
+        else if (ds.length > 1) r.note = (r.note ? r.note + '／' : '') + '⚠ タイムテーブルの' + ds.join('・') + 'のどちらにもある種目（日付を要確認）';
+      });
+    }
+    state.allRows = state.rows.slice();
     if (state.day) state.rows = state.rows.filter(function (r) { return !r.date || r.date === state.day; }).map(function (r) {
-      if (!r.date && state.sl.dates.length > 1) r.note = (r.note ? r.note + '／' : '') + '⚠ 日付不明（' + dayLabel(state.day) + 'の出場か要確認）';
+      if (!r.date && MD.length > 1 && !/日付を要確認/.test(r.note)) r.note = (r.note ? r.note + '／' : '') + '⚠ 日付不明（' + dayLabel(state.day) + 'の出場か要確認）';
       return r;
     });
     var rows = state.rows;
@@ -564,13 +597,13 @@
       (state.sl.warnings.length ? '<p class="warn">⚠ スタートリストの読み取りで問題が ' + state.sl.warnings.length + 'か所あります（「読み取りの確認」タブ）。</p>' : '');
 
     // 時間順
-    var bt = MeetLogic.byTime(rows), prev = null, html = [];
+    var bt = MeetLogic.byTime(rows), prev = null, prevNote = null, html = [];
     bt.forEach(function (r, i) {
       var g = grpKey(r), first = prev !== g;
       html.push('<tr class="' + teamClass(r.team) + (first && i ? ' gsep' : first ? '' : ' gcont') + '"><td class="t">' + (first ? esc(r.start || '時刻不明') : '') + '</td><td class="nw">' + (first ? esc(r.call) : '') +
         '</td><td class="nw">' + (first ? esc(r.event) + (r.round ? ' <small class="pl">' + esc(r.round) + '</small>' : '') : '') + '</td><td class="c">' + esc(r.heat) + '</td><td class="c nw">' + posCell(r) +
-        '</td><td class="c">' + esc(r.typ === 'relay' ? '' : r.bib) + '</td><td>' + nameCell(r) + '</td><td class="c">' + esc(r.grade) + '</td><td class="nw">' + esc(r.team) + '</td><td class="note">' + esc(r.note) + '</td></tr>');
-      prev = g;
+        '</td><td class="c">' + esc(r.typ === 'relay' ? '' : r.bib) + '</td><td class="nm">' + nameCell(r) + '</td><td class="c">' + esc(r.grade) + '</td><td class="nw">' + esc(r.team) + '</td><td class="note">' + (first || r.note !== prevNote ? esc(r.note) : '<span class="muted">〃</span>') + '</td></tr>');
+      prev = g; prevNote = r.note;
     });
     $('timeBody').innerHTML = html.join('');
     var sr = bt.map(function (r) { return rowObj(shareRow(r)); });
@@ -581,7 +614,7 @@
     // 選手別
     var ba = athSorted(rows); renderAthHead();
     $('athBody').innerHTML = ba.map(function (r) {
-      return '<tr class="' + teamClass(r.team) + '"><td class="nw">' + esc(r.team) + '</td><td class="c">' + esc(r.typ === 'relay' ? '' : r.bib) + '</td><td>' + nameCell(r) + '</td><td class="c">' + esc(r.grade) +
+      return '<tr class="' + teamClass(r.team) + '"><td class="nw">' + esc(r.team) + '</td><td class="c">' + esc(r.typ === 'relay' ? '' : r.bib) + '</td><td class="nm">' + nameCell(r) + '</td><td class="c">' + esc(r.grade) +
         '</td><td class="nw">' + esc(r.event) + '</td><td class="nw">' + esc(r.round) + '</td><td class="c">' + esc(r.heat) + '</td><td class="c nw">' + posCell(r) + '</td><td class="nw">' + esc(r.call) + '</td><td class="c">' + esc(r.start) + '</td><td class="note">' + esc(r.note) + '</td></tr>';
     }).join('');
 
@@ -621,6 +654,7 @@
 
     // 照合の確認
     var evs = {}, pgs = {};
+    // 同じ種目の同じ内容（時刻＋備考）は1回だけ。組の数だけ同じ警告を繰り返さない
     rows.forEach(function (r) { var k = r.event + (r.round ? '（' + r.round + '）' : ''); (evs[k] = evs[k] || new Set()).add((r.start || '?') + (r.note ? ' ' + r.note : '')); (pgs[k] = pgs[k] || new Set()).add(r.page); });
     var W = state.sl.warnings || [];
     // 警告を先に、そのあと種目ごとの照合（元PDFのページ番号つき）
