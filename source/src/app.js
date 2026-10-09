@@ -3,7 +3,7 @@
   'use strict';
   var PDFJS_VER = '4.10.38';
   var PDFJS_BASE = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@' + PDFJS_VER + '/';
-  var state = { make: {}, dateCands: {}, feeParsed: null, feeFrom: '', prices: {}, priceSrc: {}, athSort: null, sl: null, tt: null, notes: null, slName: '', ttName: '', noteName: '', rows: [], teams: [], allTeams: [], day: '' };
+  var state = { make: {}, dateCands: {}, feeParsed: null, feeFrom: '', prices: {}, priceSrc: {}, athSort: null, sl: null, tt: null, notes: null, slName: '', ttName: '', noteName: '', rows: [], teams: [], allTeams: [], day: '', progCopies: {} };
   var $ = function (id) { return document.getElementById(id); };
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
   var pdfjsPromise = null;
@@ -69,7 +69,7 @@
   function clearFees() { state.feeParsed = null; state.feeFrom = ''; state.prices = {}; state.priceSrc = {}; renderFeePrices(); }
   // 前の資料から自動で入れた単価だけを消す（手入力した単価は残す）
   function clearAutoFees() {
-    state.feeParsed = null; state.feeFrom = '';
+    state.feeParsed = null; state.feeFrom = ''; state.progCopies = {};
     MeetLogic.CATS.forEach(function (c) { ['ind', 'relay'].forEach(function (k) {
       if ((state.priceSrc[c] || {})[k] === 'man') return;
       state.prices[c] = state.prices[c] || {}; state.prices[c][k] = null; state.priceSrc[c] = state.priceSrc[c] || {}; state.priceSrc[c][k] = 'na';
@@ -238,7 +238,7 @@
   }
   function fillMeta(pages, fname) {
     var m = MeetParser.guessMeta(pages);
-    if (!m.name) { var f = (fname || '').match(/第\s*\d+\s*回[^_.\s]+/); if (f) m.name = f[0]; }
+    if (!m.name) { var f = (fname || '').match(/(?:令和\s*\d+\s*年度)?第\s*\d+\s*(?:回|支部)[^_.\s]+/) || (fname || '').match(/令和\s*\d+\s*年度[^_.\s]+大会/); if (f) m.name = f[0].replace(/\s+/g, ''); }
 
     if (m.name && (!$('meetName').value || $('meetName').dataset.auto)) { $('meetName').value = m.name; $('meetName').dataset.auto = '1'; }
 
@@ -301,9 +301,11 @@
       ($('feeInPrint').checked ? '<div><em>参加料</em><span>' + esc(feeData().map(function (f) { return f.team + ' ' + feeText(f); }).join('　')) + '</span></div>' : '') +
       '<div class="pi-disc">ⓘ 本ツールはPDFの文字を読み取って自動で整理しているだけです。内容は必ず元のスタートリスト・タイムテーブル等と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div></div></td></tr></tbody>';
     var body = G.map(function (g) {
-      return '<tbody class="pg' + (g.cont ? ' cont' : '') + '">' + grpBar(g, N) + g.rows.map(function (r) {
+      return '<tbody class="pg' + (g.cont ? ' cont' : '') + '">' + grpBar(g, N) + g.rows.map(function (r, ri) {
+        var prevN = ri ? g.rows[ri - 1].note : '';
+        var noteCell = (ri && prevN && r.note === prevN) ? '<span class="muted">〃</span>' : esc(r.note);
         return '<tr><td class="c">' + esc(r.heat) + '</td><td class="c p-pos">' + posHtml(r) + '</td><td class="c p-bib">' + esc(r.typ === 'relay' ? '' : r.bib) + '</td><td class="p-name">' + nameHtml(r, false) +
-          '</td><td class="c">' + esc(r.grade) + '</td><td class="p-tm">' + esc(r.team) + '</td><td class="p-note">' + esc(r.note) + '</td></tr>';
+          '</td><td class="c">' + esc(r.grade) + '</td><td class="p-tm">' + esc(r.team) + '</td><td class="p-note">' + noteCell + '</td></tr>';
       }).join('') + '</tbody>';
     }).join('');
     $('printTime').innerHTML = '<table class="ptab ptime"><colgroup><col style="width:8mm"><col style="width:20mm"><col style="width:15mm"><col><col style="width:11mm"><col style="width:22mm"><col style="width:46mm"></colgroup><thead>' + band('出場一覧（時間順）', N) +
@@ -395,7 +397,7 @@
   }
   /* ---------- 参加料 ---------- */
   function applyFees(fp) {
-    state.prices = {}; state.priceSrc = {};
+    state.prices = {}; state.priceSrc = {}; state.progCopies = {};
     // 自動計算は「1種目あたり」と書かれているときだけ。「1人○円」は自動で入れない、単位が書かれていないものは「要確認」
     MeetLogic.CATS.forEach(function (c) {
       var p = fp.cats[c] || {}, iv = p.ind != null ? p.ind : null, is = iv != null ? (p.unit === 'event' ? 'ok' : 'chk') : 'ng';
@@ -428,36 +430,66 @@
       (fp && fp.src.length ? '<details class="rd"><summary>原文を見る</summary>' + fp.src.map(function (l) { return '<q>' + esc(l) + '</q>'; }).join('') + '</details>' : '') +
       (fp && fp.perPerson ? '<div class="warn small">※ 要項に「1人 ' + fp.perPerson + '円」とあります。1人あたりの料金は自動計算していません（要確認）。</div>' : '') +
       (MeetLogic.CATS.some(function (c) { return (state.priceSrc[c] || {}).ind === 'chk'; }) ? '<div class="warn small">※「要」＝単位（1種目あたり／1人あたり）がはっきりしないので要確認。</div>' : '') +
-      (fp && fp.program ? '<div class="small muted">※ プログラム代 ' + fp.program + '円は合計に含めていません。</div>' : '') +
+      (fp && fp.program ? '<div class="small muted">※ プログラム代 ' + fp.program + '円／部を学校ごとの合計に入れています（部数は下で変えられます）。</div>' : '') +
       (fp && fp.other.length ? '<div class="small muted">※ その他：' + esc(fp.other.join('、')) + '（合計に含めていません）</div>' : '');
+  }
+  function progDefaultQty() {
+    var fp = state.feeParsed; return (fp && fp.program != null && fp.programQty > 0) ? fp.programQty : 1;
+  }
+  function progQty(team) {
+    if (!state.feeParsed || state.feeParsed.program == null) return 0;
+    var q = state.progCopies[team];
+    return q != null ? q : progDefaultQty();
   }
   function feeData() {
     if (!state.sl) return [];
     // 複数日の大会でも参加料は大会全体の分（表示中の日だけで数えない）
     var F = MeetLogic.fees(state.allRows && state.allRows.length ? state.allRows : state.rows, state.teams, state.prices, { teamCat: state.teamCat || {} });
     var chk = MeetLogic.CATS.some(function (c) { return (state.priceSrc[c] || {}).ind === 'chk'; });
-    F.forEach(function (f) { f.unsure = chk && f.lines.some(function (l) { return (state.priceSrc[l.cat] || {}).ind === 'chk' && l.ind; }); });
+    var fp = state.feeParsed, unit = fp && fp.program != null ? fp.program : null;
+    F.forEach(function (f) {
+      f.unsure = chk && f.lines.some(function (l) { return (state.priceSrc[l.cat] || {}).ind === 'chk' && l.ind; });
+      if (unit != null) {
+        var q = progQty(f.team);
+        f.program = { qty: q, unit: unit, sub: q * unit };
+        f.total += f.program.sub;
+      } else f.program = null;
+    });
     return F;
   }
   // 単価が未設定・要確認のときは「合計」と言い切らない
-  function totalText(f) { return f.missing.length ? '合計未確定（設定済み分の小計 ' + yen(f.total) + '・未設定：' + f.missing.join('・') + '）' : f.unsure ? '合計 ' + yen(f.total) + '（単価の単位 要確認）' : '合計 ' + yen(f.total); }
+  function totalText(f) {
+    var prog = f.program && f.program.qty ? '（プログラム' + f.program.qty + '部を含む）' : '';
+    return f.missing.length ? '合計未確定（設定済み分の小計 ' + yen(f.total) + '・未設定：' + f.missing.join('・') + '）' : f.unsure ? '合計 ' + yen(f.total) + prog + '（単価の単位 要確認）' : '合計' + prog + ' ' + yen(f.total);
+  }
   function yen(n) { return n.toLocaleString('ja-JP') + '円'; }
   function renderFees() {
     var F = feeData();
     $('feeArea').innerHTML = F.map(function (f) {
       var tc = (state.teamCat || {})[f.team] || '';
+      var progRow = f.program ? '<tr class="feep"><td>プログラム代</td><td colspan="2"><label class="small">' +
+        '<input type="number" class="progqty" min="0" max="99" step="1" data-team="' + esc(f.team) + '" value="' + f.program.qty + '" aria-label="プログラム部数"> 部 × ' + yen(f.program.unit) + '</label></td><td>' + yen(f.program.sub) + '</td></tr>' : '';
       return '<div class="cardbox ' + teamClass(f.team) + '"><h3>' + esc(f.team) + ' <label class="small">区分：<select class="teamcat" data-team="' + esc(f.team) + '">' + ['', '小学', '中学', '高校', '一般'].map(function (c) { return '<option value="' + c + '"' + (c === tc ? ' selected' : '') + '>' + (c || '自動（学年・種目名から）') + '</option>'; }).join('') + '</select></label></h3><table class="fee"><thead><tr><th>区分</th><th>個人</th><th>リレー</th><th>小計</th></tr></thead><tbody>' +
         f.lines.map(function (l) { var pr = function (n, p, u) { return n ? n + u + ' × ' + (p == null ? '<span class="warn">単価未設定</span>' : yen(p)) : '－'; };
           return '<tr><td>' + l.cat + '</td><td>' + pr(l.ind, l.indPrice, '種目') + '</td><td>' + pr(l.relay, l.relayPrice, 'チーム') + '</td><td>' + yen(l.sub) + '</td></tr>'; }).join('') +
+        progRow +
         '</tbody></table><div class="feetot' + (f.missing.length || f.unsure ? ' unsure' : '') + '">' + esc(totalText(f)) + '</div>' +
         (multiDates().length > 1 ? '<div class="small muted">複数日の大会なので、全日程の出場分で計算しています。</div>' : '') +
         (f.lines.some(function (l) { return l.cat === MeetLogic.UNKNOWN; }) && state.feeParsed && state.feeParsed.allCats && state.prices[MeetLogic.UNKNOWN] ? '<div class="small muted">要項の参加料に区分（中学・高校など）の書き分けが無いため、全員同じ単価で計算しています。</div>' :
         f.lines.some(function (l) { return l.cat === MeetLogic.UNKNOWN; }) ? '<div class="warn small">「' + MeetLogic.UNKNOWN + '」は学年・種目名から中学／高校などを決められなかった分です。上の「区分」で学校の区分を選んでください。</div>' : '') + '</div>';
     }).join('');
     $('feeArea').querySelectorAll('select.teamcat').forEach(function (sel) { sel.addEventListener('change', function () { state.teamCat = state.teamCat || {}; state.teamCat[sel.dataset.team] = sel.value; renderFees(); refreshPrint(); }); });
+    $('feeArea').querySelectorAll('input.progqty').forEach(function (inp) { inp.addEventListener('input', function () {
+      var v = parseInt(inp.value, 10); if (isNaN(v) || v < 0) v = 0; if (v > 99) v = 99;
+      state.progCopies = state.progCopies || {}; state.progCopies[inp.dataset.team] = v; renderFees(); refreshPrint();
+    }); });
     var pf = $('printFee'); if (pf) pf.textContent = $('feeInPrint').checked ? '参加料：' + F.map(function (f) { return f.team + ' ' + feeText(f); }).join('　') : '';
   }
-  function feeText(f) { return f.lines.map(function (l) { return l.cat + (l.ind ? ' 個人' + l.ind + '種目×' + (l.indPrice == null ? '?' : l.indPrice) : '') + (l.relay ? ' リレー' + l.relay + 'チーム×' + (l.relayPrice == null ? '?' : l.relayPrice) : ''); }).join('、') + ' ＝ ' + totalText(f); }
+  function feeText(f) {
+    var body = f.lines.map(function (l) { return l.cat + (l.ind ? ' 個人' + l.ind + '種目×' + (l.indPrice == null ? '?' : l.indPrice) : '') + (l.relay ? ' リレー' + l.relay + 'チーム×' + (l.relayPrice == null ? '?' : l.relayPrice) : ''); }).join('、');
+    if (f.program) body += (body ? '、' : '') + 'プログラム' + f.program.qty + '部×' + f.program.unit;
+    return body + ' ＝ ' + totalText(f);
+  }
   /* ---------- 選手別の並べ替え ---------- */
   function athSorted(rows) {
     var s = state.athSort; if (!s) return MeetLogic.byAthlete(rows);
@@ -562,19 +594,29 @@
     res.hidden = false;
     res.classList.toggle('needday', MD.length > 1 && !state.day);
     if (MD.length > 1 && !state.day) { state.rows = []; state.allRows = []; $('summary').innerHTML = ''; refreshPrint(); return; }
-    var ttUse = state.tt && state.day ? state.tt.filter(function (s) { return !s.date || s.date === state.day; }) : state.tt;
-    state.rows = MeetLogic.build(state.sl, ttUse, state.teams, S);
-    // スタートリストに日付が無く、タイムテーブルだけが複数日：日ごとのタイムテーブルに種目がある日をその種目の日にする
-    var slNoDate = state.day && state.tt && !state.sl.entries.concat(state.sl.relays).some(function (e) { return e.date; });
+    // 全日程分（参加料・ナンバーカード用）。対象日で絞る前に全TTで作る
+    state.allRows = MeetLogic.build(state.sl, state.tt, state.teams, S);
+    var slNoDate = MD.length > 1 && state.tt && !state.sl.entries.concat(state.sl.relays).some(function (e) { return e.date; });
     if (slNoDate) {
       var hits = MD.map(function (d) { return MeetLogic.build(state.sl, state.tt.filter(function (s) { return !s.date || s.date === d; }), state.teams, S).map(function (r) { return r.ttHit; }); });
-      state.rows.forEach(function (r, i) {
+      state.allRows.forEach(function (r, i) {
         var ds = MD.filter(function (d, k) { return hits[k][i]; });
         if (ds.length === 1) r.date = ds[0];
         else if (ds.length > 1) r.note = (r.note ? r.note + '／' : '') + '⚠ タイムテーブルの' + ds.join('・') + 'のどちらにもある種目（日付を要確認）';
       });
     }
-    state.allRows = state.rows.slice();
+    // 表示用：対象日のTTだけでもう一度照合（その日の時刻を正確に）
+    var ttUse = state.tt && state.day ? state.tt.filter(function (s) { return !s.date || s.date === state.day; }) : state.tt;
+    state.rows = (state.day ? MeetLogic.build(state.sl, ttUse, state.teams, S) : state.allRows.slice());
+    if (state.day && slNoDate) {
+      // allRows で付けた日付を表示用 rows にも引き継ぐ
+      var byKey = {};
+      state.allRows.forEach(function (r) { byKey[(r.typ === 'relay' ? 'R|' + r.relayTeam : 'I|' + r.bib) + '|' + r.event + '|' + (r.round || '')] = r.date; });
+      state.rows.forEach(function (r) {
+        var k = (r.typ === 'relay' ? 'R|' + r.relayTeam : 'I|' + r.bib) + '|' + r.event + '|' + (r.round || '');
+        if (!r.date && byKey[k]) r.date = byKey[k];
+      });
+    }
     if (state.day) state.rows = state.rows.filter(function (r) { return !r.date || r.date === state.day; }).map(function (r) {
       if (!r.date && MD.length > 1 && !/日付を要確認/.test(r.note)) r.note = (r.note ? r.note + '／' : '') + '⚠ 日付不明（' + dayLabel(state.day) + 'の出場か要確認）';
       return r;
@@ -602,7 +644,7 @@
       var g = grpKey(r), first = prev !== g;
       html.push('<tr class="' + teamClass(r.team) + (first && i ? ' gsep' : first ? '' : ' gcont') + '"><td class="t">' + (first ? esc(r.start || '時刻不明') : '') + '</td><td class="nw">' + (first ? esc(r.call) : '') +
         '</td><td class="nw">' + (first ? esc(r.event) + (r.round ? ' <small class="pl">' + esc(r.round) + '</small>' : '') : '') + '</td><td class="c">' + esc(r.heat) + '</td><td class="c nw">' + posCell(r) +
-        '</td><td class="c">' + esc(r.typ === 'relay' ? '' : r.bib) + '</td><td class="nm">' + nameCell(r) + '</td><td class="c">' + esc(r.grade) + '</td><td class="nw">' + esc(r.team) + '</td><td class="note">' + (first || r.note !== prevNote ? esc(r.note) : '<span class="muted">〃</span>') + '</td></tr>');
+        '</td><td class="c">' + esc(r.typ === 'relay' ? '' : r.bib) + '</td><td class="nm">' + nameCell(r) + '</td><td class="c">' + esc(r.grade) + '</td><td class="nw">' + esc(r.team) + '</td><td class="note">' + (!first && prevNote && r.note === prevNote ? '<span class="muted">〃</span>' : esc(r.note)) + '</td></tr>');
       prev = g; prevNote = r.note;
     });
     $('timeBody').innerHTML = html.join('');
@@ -619,9 +661,10 @@
     }).join('');
 
     // ナンバーカード
-    $('cardsArea').innerHTML = state.teams.map(function (t, i) {
-      var c = MeetLogic.cards(rows, t, S), P = cardPlan(t, c, S);
-      var hasField = rows.some(function (r) { return r.team === t && r.typ === 'field'; });
+    var cardNote = (multiDates().length > 1 ? '<p class="small muted">複数日の大会は、全日程の出場者で数えています。</p>' : '');
+    $('cardsArea').innerHTML = cardNote + state.teams.map(function (t, i) {
+      var cRows = cardRows(), c = MeetLogic.cards(cRows, t, S), P = cardPlan(t, c, S);
+      var hasField = cRows.some(function (r) { return r.team === t && r.typ === 'field'; });
       var grid = function (kind, list) {
         return '<div class="mkgrid">' + list.map(function (o) {
           return '<label class="mk' + (o.make !== o.need ? ' chg' : '') + '"><span class="mk-n">' + esc(o.num) + '</span><span class="mk-need">必要 ' + o.need + '</span>' +
@@ -682,6 +725,8 @@
     document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
   }
   var MK_PER_PAGE = { koshi: 2, mune: 1, ord: 1 };
+  // ナンバーカードは大会を通して同じものを使う → 対象日に関係なく全日程の出場者で数える
+  function cardRows() { return (state.allRows && state.allRows.length) ? state.allRows : state.rows; }
   function cardPlan(team, c, S) {
     var mk = function (kind, num, need) { var k = team + '|' + kind + '|' + num; return { num: String(num), need: need, make: state.make[k] != null ? state.make[k] : need }; };
     return {
@@ -691,7 +736,7 @@
     };
   }
   function updateMkTotals(i) {
-    var t = state.teams[i], S = settings(), P = cardPlan(t, MeetLogic.cards(state.rows, t, S), S);
+    var t = state.teams[i], S = settings(), P = cardPlan(t, MeetLogic.cards(cardRows(), t, S), S);
     ['koshi', 'mune', 'ord'].forEach(function (k) {
       var el = $('mktot_' + i + '_' + k); if (!el) return;
       var need = P[k].reduce(function (s, o) { return s + o.need; }, 0), make = P[k].reduce(function (s, o) { return s + o.make; }, 0);
@@ -702,7 +747,7 @@
   }
   async function downloadCards(kind, team, btn) {
     if (typeof JSZip === 'undefined') { alert('docx作成部品(JSZip)を読み込めませんでした。インターネット接続を確認してください。'); return; }
-    var S = settings(), c = MeetLogic.cards(state.rows, team, S), r;
+    var S = settings(), c = MeetLogic.cards(cardRows(), team, S), r;
     var old = btn.textContent; btn.textContent = '作成中…'; btn.disabled = true;
     try {
       var plan = cardPlan(team, c, S)[kind], changed = plan.some(function (o) { return o.make !== o.need; });
@@ -737,7 +782,7 @@
     }
     var S = settings(), out = [['所属', '項目', '必要枚数', '作成枚数', '番号（作成枚数）']];
     state.teams.forEach(function (t) {
-      var c = MeetLogic.cards(rows, t, S), P = cardPlan(t, c, S);
+      var c = MeetLogic.cards(cardRows(), t, S), P = cardPlan(t, c, S);
       var sum = function (l, k) { return l.reduce(function (s, o) { return s + o[k]; }, 0); };
       var lst = function (l) { return l.map(function (o) { return o.num + '番×' + o.make + (o.make !== o.need ? '（必要' + o.need + '）' : ''); }).join('  '); };
       out.push([t, 'ゼッケン（胸・背中）', sum(P.mune, 'need'), sum(P.mune, 'make'), lst(P.mune)]);
@@ -761,7 +806,12 @@
     });
     XLSX.utils.book_append_sheet(wb, recWs(), '記録用紙');
     var fa = [['所属', '区分', '個人 種目数', '個人 単価', 'リレー チーム数', 'リレー 単価', '小計']];
-    feeData().forEach(function (f) { f.lines.forEach(function (l) { fa.push([f.team, l.cat, l.ind, l.indPrice, l.relay, l.relayPrice, l.sub]); }); fa.push([f.team, f.missing.length ? '合計未確定（設定済み分の小計）' : f.unsure ? '合計（単価の単位 要確認）' : '合計', '', '', '', '', f.total]); if (f.missing.length) fa.push([f.team, '未設定：' + f.missing.join('・')]); fa.push([]); });
+    feeData().forEach(function (f) {
+      f.lines.forEach(function (l) { fa.push([f.team, l.cat, l.ind, l.indPrice, l.relay, l.relayPrice, l.sub]); });
+      if (f.program) fa.push([f.team, 'プログラム代', f.program.qty, f.program.unit, '', '', f.program.sub]);
+      fa.push([f.team, f.missing.length ? '合計未確定（設定済み分の小計）' : f.unsure ? '合計（単価の単位 要確認）' : (f.program ? '合計（プログラム' + f.program.qty + '部を含む）' : '合計'), '', '', '', '', f.total]);
+      if (f.missing.length) fa.push([f.team, '未設定：' + f.missing.join('・')]); fa.push([]);
+    });
     fa.push(['単価の出どころ：' + (state.feeParsed && state.feeParsed.src.length ? state.feeParsed.src.join(' ／ ') : '要項から読み取れず（手入力）')]);
     var fws = XLSX.utils.aoa_to_sheet(safeAoa(fa)); fws['!cols'] = [12, 8, 12, 10, 14, 10, 12].map(function (w) { return { wch: w }; }); XLSX.utils.book_append_sheet(wb, fws, '参加料');
     XLSX.writeFile(wb, fileBase() + '.xlsx');
@@ -821,7 +871,7 @@
       rule: ruleSummaryText().replace(/（〇＝.*$/, ''),
       r: MeetLogic.byTime(state.rows).map(shareRow),
       c: state.teams.map(function (t) {
-        var P = cardPlan(t, MeetLogic.cards(state.rows, t, S), S), f = function (l) { return l.map(function (o) { return [o.num, o.make]; }); };
+        var P = cardPlan(t, MeetLogic.cards(cardRows(), t, S), S), f = function (l) { return l.map(function (o) { return [o.num, o.make]; }); };
         return [t, f(P.koshi), f(P.mune), f(P.ord)];
       }) };
   }
@@ -967,7 +1017,7 @@
   function resetAll() {
     if (!confirm('読み込んだPDF・学校名・設定・枚数をすべて消して、新しい大会を始めます。よろしいですか？')) return;
     Object.keys(loadSeq).forEach(function (k) { loadSeq[k]++; });   // 読み込み途中のものも捨てる
-    Object.assign(state, { make: {}, dateCands: {}, feeParsed: null, feeFrom: '', prices: {}, priceSrc: {}, athSort: null, sl: null, tt: null, notes: null, slName: '', ttName: '', noteName: '', yokoName: '', rows: [], teams: [], allTeams: [], teamCat: {}, date: null, day: '' });
+    Object.assign(state, { make: {}, dateCands: {}, feeParsed: null, feeFrom: '', prices: {}, priceSrc: {}, athSort: null, sl: null, tt: null, notes: null, slName: '', ttName: '', noteName: '', yokoName: '', rows: [], teams: [], allTeams: [], teamCat: {}, date: null, day: '', progCopies: {} });
     document.querySelectorAll('input, select').forEach(function (el) {
       if (el.type === 'file') el.value = ''; else if (el.type === 'checkbox') el.checked = el.defaultChecked;
       else if (el.tagName === 'SELECT') { Array.from(el.options).forEach(function (o) { o.selected = o.defaultSelected; }); } else el.value = el.defaultValue;

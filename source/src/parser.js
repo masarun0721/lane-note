@@ -691,9 +691,21 @@ var MeetParser = (function () {
   function guessMeta(pages) {
     var lines = pagesToLines(pages.slice(0, 2)), flat = lines.join(' ');
     var name = '', date = '';
+    // 第N回…大会（従来）／令和N年度…大会／第N支部…大会。1文字ずつ分かれた表題は compact して先頭付近から
     var NM = /第\s*\d+\s*回\s*[^\s　]*?(?:\s*兼\s*[^\s　]+)?(?:大会|選手権|記録会|競技会)/;
-    var m = flat.match(NM) || lines.slice(0, 4).map(compact).join(' ').match(NM);   // 1文字ずつ分かれた表題は、先頭の数行だけ（本文中の別大会名を拾わない）   // 「第 4 9 回 江東区 秋季…」のように1文字ずつ分かれたPDF
-    if (m) name = m[0].replace(/第\s*(\d+)\s*回\s*/, '第$1回').replace(/\s+/g, ' ');
+    var NM2 = /令和\s*\d+\s*年度\s*[^\n]{0,40}?(?:大会|選手権|記録会|競技会)/;
+    var NM3 = /第\s*\d+\s*支部[^\s　\n]{0,30}?(?:大会|選手権|記録会|競技会)/;
+    function pick(s) {
+      return s.match(NM) || s.match(NM2) || s.match(NM3);
+    }
+    var head = lines.slice(0, 12).map(compact).join(' ');
+    var m = pick(flat) || pick(head);
+    if (m) {
+      name = m[0].replace(/第\s*(\d+)\s*回\s*/, '第$1回').replace(/第\s*(\d+)\s*支部/, '第$1支部').replace(/令和\s*(\d+)\s*年度/, '令和$1年度').replace(/\s+/g, ' ').trim();
+      // 要項の末尾「…大会・…予選会要項」などは大会名として長いので、最初の「大会／選手権／記録会／競技会」まで（兼ねる大会名は中黒まで残す）
+      var cut = name.match(/^(.+?(?:大会|選手権|記録会|競技会))/);
+      if (cut) name = cut[1];
+    }
     var d = flat.match(/(?:20\d\d|令和\s*\d+)\s*年\s*\d+\s*月\s*\d+\s*日(?:\s*[（(][^)）]{1,3}[)）])?/);
     if (d) date = d[0].replace(/\s+/g, '');
     return { name: name, date: date };
@@ -816,7 +828,12 @@ var MeetParser = (function () {
         hit = true;
         var cats = ks.filter(function (k) { return !/^(リレー|プログラム|登録料|記録証)$/.test(k); });
         if (ks.indexOf('リレー') >= 0) { if (lastCats.length && nCat === lastCats.length && !cats.length) lastCats.forEach(function (c) { (res.cats[c] = res.cats[c] || {}).relay = v; }); else res.relay = v; }
-        else if (ks.indexOf('プログラム') >= 0) res.program = v;
+        else if (ks.indexOf('プログラム') >= 0) {
+          res.program = v;
+          // 部数：「プログラム1部－700円」「1校1部」「1部購入」など。無ければ後で1部
+          var qm = between.match(/(\d+)\s*部/) || l.slice(m.index).match(/(?:1\s*校\s*)?(\d+)\s*部/) || l.match(/(\d+)\s*部\s*(?:以上)?(?:必ず)?購入/);
+          if (qm) res.programQty = +qm[1];
+        }
         else if (ks.some(function (k) { return /登録料|記録証/.test(k); })) res.other.push(ks.join('・') + ' ' + v + '円');
         if (cats.length) { lastCats = cats.map(catOf); lastCats.forEach(function (c) { var o = res.cats[c] = res.cats[c] || {}; o.ind = v; o.unit = unit; }); }
         lastIdx = m.index + m[0].length;
@@ -827,6 +844,7 @@ var MeetParser = (function () {
     // 区分ごとの金額が1つも無く、区分なしの「個人1種目○円」だけがある → すべての区分に同じ金額（allCats）
     if (!Object.keys(res.cats).length && res.common != null) { ['小学', '中学', '高校', '一般'].forEach(function (c) { res.cats[c] = { ind: res.common, unit: 'event' }; }); res.allCats = true; }
     if (res.relay != null) Object.keys(res.cats).forEach(function (c) { if (res.cats[c].relay == null) res.cats[c].relay = res.relay; });
+    if (res.program != null && !(res.programQty > 0)) res.programQty = 1;
     return res;
   }
   return { roundKind: roundKind, catOf: catOf, findDates: findDates, pickDate: pickDate, parseFees: parseFees, guessMeta: guessMeta, parseNotes: parseNotes, pagesToLines: pagesToLines, roundNorm: roundNorm, toWords: toWords, parseStartList: parseStartList, parseTimetable: parseTimetable, parseTitle: parseTitle,

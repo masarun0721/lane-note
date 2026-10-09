@@ -2,7 +2,7 @@
    ・同じサイトのページ（HTML）の取得だけを扱う。PDF・選手データ・外部CDNは扱わない（キャッシュしない）。
    ・初めて開いたとき（インストール時）にページを保存し終えてから動き始める → 初回からオフラインで開ける。
    ・ネット優先：つながるときは常に最新のページを使い、つながらないときだけ保存しておいたページを使う。 */
-var CACHE = 'lanenote-page-v2';
+var CACHE = 'lanenote-page-v0.9';
 var PAGE = new URL('./', self.location).href;   // 例：https://masarun0721.github.io/lane-note/
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) {
