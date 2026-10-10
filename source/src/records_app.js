@@ -234,7 +234,7 @@
       try {
         status('rbStatus', '読み取り中…（' + esc(f.name) + '）', 'busy');
         var res0 = await readPdf(f, function (p, n) { status('rbStatus', '読み取り中…（' + esc(f.name) + ' ' + p + '/' + n + 'ページ）', 'busy'); });
-        var all = R.parsePdf(res0.pages, {}), meta = guessMetaFromPages(res0.pages);
+        var all = R.parsePdf(res0.pages, {}), meta = applyGuess(guessMetaFromPages(res0.pages), f.name);
         addBatch({ src: f.name, kind: 'PDF', all: all, meta: meta });
       } catch (e) { addBatch({ src: f.name, kind: 'PDF', error: e.message }); }
     }
@@ -245,7 +245,7 @@
       if (names.length) {
         // 種目ページごとに大会名・日付が書かれているので、まとめて1つの大会として扱う
         var res = R.parseCells(stream, {});
-        addBatch({ src: names.length > 3 ? names.slice(0, 3).join('、') + ' ほか' + (names.length - 3) + '件' : names.join('、'), kind: 'HTML', all: res, meta: { name: res.meet.name, date: res.meet.date } });
+        addBatch({ src: names.length > 3 ? names.slice(0, 3).join('、') + ' ほか' + (names.length - 3) + '件' : names.join('、'), kind: 'HTML', all: res, meta: applyGuess({ name: res.meet.name, date: res.meet.date }, names[0]) });
       }
     }
     status('rbStatus', '読み取りました。下の内容を確かめて「記録帳に保存」を押してください。', 'ok');
@@ -262,6 +262,15 @@
     var res = R.parsePlain(t, {});
     addBatch({ src: '貼り付け', kind: '貼り付け', all: res, meta: { name: res.meet.name, date: res.meet.date } });
   });
+  // ファイル名・資料の見出しから大会名と日付を推測して入れておく（入れた人が打った値は上書きしない）
+  function applyGuess(meta, fileName) {
+    var g = R.guessMeet(fileName, meta.name || '');
+    if (!meta.typedName && g.name && g.name !== meta.name) { meta.name = g.name; meta.guessed = g.from; }
+    else if (meta.name) meta.guessed = meta.guessed || 'doc';
+    if (!meta.typedDate && !meta.date && g.date) meta.date = g.date;
+    if (!meta.md && g.md) meta.md = g.md;
+    return meta;
+  }
   function addBatch(b) { b.id = ++seq; batches.unshift(b); renderBatches(); }
   function batchRecs(b) {
     if (!b.all) return [];
@@ -272,6 +281,7 @@
     var q = school(), ws = b.all.warns.filter(function (w) { return !/：/.test(w); });
     batchRecs(b).forEach(function (r) { if (r.warn) ws.push((r.page ? r.page + 'ページ ' : '') + (r.event || '種目不明') + ' ' + (r.name || r.kana || 'No.' + r.bib) + '：' + r.warn + 'を読み取れませんでした'); });
     if (!b.meta.name) ws.unshift('大会名が資料から読み取れませんでした。手で入れてください。');
+    else if (b.meta.guessed && !b.meta.typedName) ws.unshift('大会名は' + (b.meta.guessed === 'file' ? 'ファイル名' : '資料の見出し') + 'から推測しました。正しいか確かめて、違えば直してください。');
     if (!b.meta.date) ws.unshift('日付が資料から読み取れませんでした' + (b.meta.md ? '（「' + b.meta.md + '」はありますが年がわかりません）' : '') + '。手で入れてください。');
     if (q && b.all.recs.length && !batchRecs(b).length) ws.unshift('「' + q + '」の選手が見つかりませんでした。学校名の書き方（例：本郷高・本郷中）を確かめてください。');
     if (!q) ws.unshift('学校名が空なので、全校の記録を表示しています。');
@@ -295,7 +305,7 @@
   }
   $('rbBatches').addEventListener('input', function (e) {
     var box = e.target.closest('[data-b]'), f = e.target.getAttribute('data-f'); if (!box || !f) return;
-    var b = batches.filter(function (x) { return x.id === +box.getAttribute('data-b'); })[0]; if (b) b.meta[f] = e.target.value.trim();
+    var b = batches.filter(function (x) { return x.id === +box.getAttribute('data-b'); })[0]; if (b) { b.meta[f] = e.target.value.trim(); if (f === 'name') { b.meta.typedName = true; b.meta.guessed = ''; } if (f === 'date') b.meta.typedDate = true; }
   });
   $('rbBatches').addEventListener('click', async function (e) {
     var del = e.target.getAttribute('data-del'), sv = e.target.getAttribute('data-save'), un = e.target.getAttribute('data-undo');

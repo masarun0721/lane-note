@@ -335,8 +335,53 @@ var ResultParser = (function () {
     });
     return { bests: bests, flags: flags };
   }
+
+  /* ---------- 大会名の推測（ファイル名・資料の見出しから） ---------- */
+  var GENERIC = /^(result|results|kekka|document|doc|scan|file|print|download|untitled|list|timeorder|preview|program|pdf|html?|無題|名称未設定|新しいファイル|プレビュー|一覧|資料|結果)$/i;
+  var MEET_KW = /(大会|選手権|記録会|競技会|リレー|カーニバル|フェスティバル|陸上|学年別|新人戦|支部|区民|都民|総体|インターハイ|駅伝|予選)/;
+  function pad2(n) { return ('0' + n).slice(-2); }
+  function okDate(y, m, d) { y = +y; m = +m; d = +d; return y >= 2000 && y <= 2099 && m >= 1 && m <= 12 && d >= 1 && d <= 31 ? y + '-' + pad2(m) + '-' + pad2(d) : ''; }
+  function dateFromText(s) {
+    s = nk(s || ''); var m;
+    if ((m = s.match(/(20\d\d)\s*[年\/.\-_]\s*(\d{1,2})\s*[月\/.\-_]\s*(\d{1,2})/)) && okDate(m[1], m[2], m[3])) return okDate(m[1], m[2], m[3]);
+    if ((m = s.match(/(?:^|[^\d])(20\d\d)(\d\d)(\d\d)(?!\d)/)) && okDate(m[1], m[2], m[3])) return okDate(m[1], m[2], m[3]);
+    if ((m = s.match(/(?:令和|R)\s*(\d{1,2}|元)\s*[年.\/\-_]\s*(\d{1,2})\s*[月.\/\-_]\s*(\d{1,2})/i))) return okDate(2018 + (m[1] === '元' ? 1 : +m[1]), m[2], m[3]);
+    return '';
+  }
+  function cleanMeetName(s) {
+    s = nk(String(s || '')).replace(/\.(pdf|html?|txt|xlsx?|docx?|csv)$/ig, '');
+    s = s.replace(/^(microsoft\s+(word|excel)\s*-\s*)/i, '').replace(/\.(xlsx?|docx?)$/i, '');
+    s = s.replace(/[【\[][^】\]]*[】\]]/g, ' ');
+    s = s.replace(/[_＿\-－‐―~〜+]+/g, ' ');
+    s = s.replace(/[(（][^)）]*(修正|改訂|差替|差し替え|版)[^)）]*[)）]/g, ' ').replace(/^(?:R\d{1,2}|\d{2})(?=[^\d年月\/.\s])/i, '').replace(/(TT|タイテ)(?=[\s(（]|$)/g, ' ');
+    s = s.replace(/[(（]\s*(\d{1,2}|コピー|copy|[月火水木金土日](・[月火水木金土日])*|祝)\s*[)）]/ig, ' ');
+    s = s.replace(/(?:令和|R)\s*(\d{1,2}|元)\s*年?度?(\s*\d{1,2}\s*[月.\/]\s*\d{1,2}\s*日?)?/ig, ' ');
+    s = s.replace(/20\d\d\s*[年\/.]\s*\d{1,2}\s*[月\/.]\s*\d{1,2}\s*日?/g, ' ').replace(/(?:^|\s)20\d{6}(?=\s|$)/g, ' ').replace(/(?:^|\s)\d{6}(?=\s|$)/g, ' ');
+    s = s.replace(/20\d\d\s*年?度?/g, ' ').replace(/\d{1,2}\s*月\s*\d{1,2}\s*日/g, ' ').replace(/(?:^|\s)\d{1,2}\/\d{1,2}(?=\s|$)/g, ' ');
+    s = s.replace(/(?:^|\s)v\s*\d+(?=\s|$)/ig, ' ').replace(/(最終|確定|修正|再々|再|速報|暫定|公式|送付用|配布用|掲載用|HP用)版?/g, ' ');
+    s = s.replace(/(大会要項|要項|プログラム|競技日程|タイムテーブル|注意事項|総合結果|結果一覧|リザルト|結果|記録一覧|記録表|記録(?!会))/g, ' ');
+    s = s.replace(/(?:^|\s)(result|results|final|fix|copy)(?=\s|$)/ig, ' ');
+    s = s.replace(/(?:^|\s)\d{1,2}(?=\s|$)/g, ' ').replace(/\s+/g, ' ').trim().replace(/^[・、,.\s]+|[・、,.\s]+$/g, '');
+    return s;
+  }
+  function meetNameOk(s) { return s && s.length >= 2 && s.length <= 50 && !GENERIC.test(s) && !/^[\w\s.]+$/.test(s) && /[一-龯ぁ-んァ-ン]/.test(s); }
+  // fileName: ファイル名、docName: 資料の見出しから拾った大会名（なければ空）。{name, date, from} を返す
+  function meetSegment(s) {
+    s = nk(s || ''); var m = s.match(/(第\s*\d+\s*回[^\s]*?(大会|選手権|記録会|競技会)[^\s]*(\s*兼\s*[^\s]+)?)/);
+    return m ? m[1] : s;
+  }
+  function guessMeet(fileName, docName) {
+    var f = cleanMeetName(fileName), d = cleanMeetName(meetSegment(docName)), name = '', from = '';
+    var fOk = meetNameOk(f), dOk = meetNameOk(d), fKw = fOk && MEET_KW.test(f), dKw = dOk && /(大会|選手権|記録会|競技会)/.test(d);
+    if (dKw) { name = d; from = 'doc'; }
+    else if (fKw || (fOk && !dOk)) { name = f; from = 'file'; }
+    else if (dOk) { name = d; from = 'doc'; }
+    var md = (nk(fileName || '').match(/(\d{1,2})\s*月\s*(\d{1,2})\s*日/) || nk(fileName || '').match(/(?:^|[^\d\/])(\d{1,2})\/(\d{1,2})(?![\d\/])/) || []);
+    return { name: name, date: dateFromText(fileName) || dateFromText(docName), md: md.length ? +md[1] + '月' + +md[2] + '日' : '', from: from };
+  }
   function recId(meetName, date, r) { return [nk(meetName).replace(/\s/g, ''), date, normEvent(r.event), r.round, r.heat, nameKey(r.name || r.kana), schoolBase(r.team), r.mark].join('|'); }
   return { parsePdf: parsePdf, parseCells: parseCells, parsePlain: parsePlain, textToStream: textToStream, normEvent: normEvent, markValue: markValue, windApplies: windApplies, windClass: windClass, windNum: windNum,
-    computeBests: computeBests, athleteKey: athleteKey, matchSchool: matchSchool, recId: recId, normSchool: normSchool, schoolBase: schoolBase, nk: nk };
+    computeBests: computeBests, athleteKey: athleteKey, matchSchool: matchSchool, recId: recId, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
+    guessMeet: guessMeet, cleanMeetName: cleanMeetName, dateFromText: dateFromText };
 })();
 if (typeof module !== 'undefined') module.exports = ResultParser;

@@ -36,6 +36,26 @@ ok(b.best.mark==='11.90','公認ベストは11.90（追い風2.5と風不明は�
 ok(b.ref&&b.ref.mark==='11.70','参考記録は11.70（風不明）');
 ok(cb.flags.r0==='初'&&cb.flags.r2==='PB'&&!cb.flags.r1&&!cb.flags.r3,'初記録とPB更新の印');
 const id1=R.recId('大会',"2026-04-01",recs[0]),id2=R.recId('大 会',"2026-04-01",Object.assign({},recs[0]));ok(id1===id2,'同じ記録は同じID（2回入れても重ならない）');
+console.log('[4] 大会名の推測（ファイル名・見出し）');
+{const g=(f,d)=>R.guessMeet(f,d||'');const cases=[
+ ['2026第3支部学年別_結果.pdf','','第3支部学年別'],
+ ['R8_北区陸上_リザルト(1).pdf','','北区陸上'],
+ ['20261004_江東区秋季_最終.pdf','','江東区秋季'],
+ ['令和8年度豊島区春季大会記録_v2.pdf','','豊島区春季大会'],
+ ['10月4日 江東区秋季 速報.html','','江東区秋季'],
+ ['2026-05-30_2・3支部学年別大会_確定版.pdf','','2・3支部学年別大会'],
+ ['第1回架空区陸上競技大会 結果.pdf','','第1回架空区陸上競技大会'],
+ ['架空区記録会-リザルト-v2.pdf','','架空区記録会'],
+ ['result.pdf','第74回北区民体育大会','第74回北区民体育大会'],
+ ['20261004_江東区秋季_最終.pdf','第49回江東区秋季陸上競技大会','第49回江東区秋季陸上競技大会'],
+ ['豊島区.pdf','','豊島区'],
+ ['26学年別TT（黒木再々修正）.pdf','','学年別'],
+ ['timeorder.html','本郷 出場一覧（時間順） 10/10(土) 第74回北区民体育大会 兼 北区陸上競技選手権大会','第74回北区民体育大会 兼 北区陸上競技選手権大会'],
+ ['scan0001.pdf','',''],['結果.pdf','',''],['リザルト(2).pdf','','']];
+ cases.forEach(([f,d,want])=>{const r=g(f,d);ok(r.name===want,f+(d?' ＋見出し「'+d+'」':'')+' → 「'+r.name+'」');});
+ ok(g('20261004_江東区秋季.pdf').date==='2026-10-04'&&g('R8.10.4 北区.pdf').date==='2026-10-04'&&g('令和8年10月4日 北区.pdf').date==='2026-10-04'&&g('2026_10_04 北区.pdf').date==='2026-10-04','ファイル名の日付（20261004・R8.10.4・令和8年10月4日・2026_10_04）');
+ ok(g('10月4日 江東区秋季.pdf').date===''&&g('10月4日 江東区秋季.pdf').md==='10月4日','年のない日付は月日だけ控える');
+ ok(g('20261399_北区.pdf').date==='','ありえない日付は使わない');}
 if(process.argv.length>2){const {loadPages}=await import('./load.mjs');
  for(const f of process.argv.slice(2)){const r=R.parsePdf(await loadPages(f),{school:process.env.SCHOOL||'本郷'});console.log('[PDF]',f,'記録',r.recs.length,'件 警告',r.warns.length,'件');r.warns.slice(0,10).forEach(w=>console.log('   ⚠',w));}}
 console.log('\n'+pass+' passed, '+fail+' failed');process.exit(fail?1:0);
