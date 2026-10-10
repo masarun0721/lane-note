@@ -856,7 +856,7 @@
     loadPdfjs().catch(function (e) { setStatus('slStatus', '✖ ' + esc(e.message), 'ng'); });
     updateTeams();
   });
-  /* ---------- スマホで見る／共有（URLの # 以降に結果を圧縮して入れる。サーバーには送らない） ---------- */
+  /* ---------- スマホで見る／共有（長いリンク：URLの # 以降に結果を圧縮して入れる＝サーバーに送らない／短いリンク：Firebase の shares/{id} に置く） ---------- */
   var SAVE_KEY = 'lanenote.saved.v1', QR_MAX = 2900, URL_WARN = 8000;
   function shareRow(r) {
     return [r.start || '', r.call || '', r.event || '', r.round || '', r.heat == null ? '' : String(r.heat), r.posLabel || '', r.pos == null ? '' : String(r.pos),
@@ -936,21 +936,95 @@
         '<div class="mc-s"><b>オーダー番号</b> ' + tot(t[3]) + '枚<br><small>' + lst(t[3]) + '</small></div></div>';
     }).join('') || '<p class="muted">なし</p>';
   }
-  async function openShare() {
-    if (!state.rows.length) { alert('先に学校を選んで結果を出してください。'); return; }
-    var dlg = $('shareDlg'), url;
-    try { url = shareBase() + '#d=' + await encodePayload(payloadFromState()); } catch (e) { alert(e.message); return; }
+  /* ---------- 短いリンク（v0.10）：Googleでログイン中なら共有の中身を Firebase の shares/{id} に置き、?s=<id> だけのリンクにする ---------- */
+  var FB_VER = '10.14.1', FB = null, SHARE_DAYS = 120;
+  var FBCFG = window.LANE_FIREBASE_CONFIG || null;
+  var CLOUD_OK = !!(FBCFG && FBCFG.apiKey && !/^YOUR_|^__/.test(FBCFG.apiKey) && FBCFG.projectId);
+  async function loadFirebase() {
+    if (FB) return FB;
+    if (!CLOUD_OK) throw new Error('Firebase の設定がありません');
+    var base = 'https://www.gstatic.com/firebasejs/' + FB_VER + '/';
+    var m = await Promise.all([import(base + 'firebase-app.js'), import(base + 'firebase-auth.js'), import(base + 'firebase-firestore.js')]);
+    var app = m[0].initializeApp(FBCFG);
+    FB = { A: m[1], F: m[2], auth: m[1].getAuth(app), fs: m[2].getFirestore(app) };
+    try { await FB.auth.authStateReady(); } catch (e) { }
+    return FB;
+  }
+  function newShareId() {   // 10文字の英数字（62種）。crypto の乱数を使う（推測できない）
+    var A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789', out = '', b = new Uint8Array(1);
+    while (out.length < 10) { crypto.getRandomValues(b); if (b[0] < 248) out += A[b[0] % 62]; }
+    return out;
+  }
+  function withTimeout(pr, ms) { return Promise.race([pr, new Promise(function (_, ng) { setTimeout(function () { ng(new Error('時間切れ（通信できませんでした）')); }, ms); })]); }
+  async function makeShortUrl(str) {
+    await loadFirebase();
+    var u = FB.auth.currentUser; if (!u) return null;
+    if (str.length > 190000) throw new Error('中身が大きすぎて短いリンクにできません');
+    var id = newShareId();
+    await withTimeout(FB.F.setDoc(FB.F.doc(FB.fs, 'shares', id), { data: str, ownerUid: u.uid, createdAt: FB.F.serverTimestamp(), expiresAt: FB.F.Timestamp.fromMillis(Date.now() + SHARE_DAYS * 864e5) }), 15000);
+    return shareBase() + '?s=' + id;
+  }
+  async function fetchShare(id) {
+    await loadFirebase();
+    var d = await withTimeout(FB.F.getDoc(FB.F.doc(FB.fs, 'shares', id)), 15000);
+    if (!d.exists()) throw new Error('このリンクは見つかりませんでした（削除されたか、期限切れの可能性があります）');
+    var x = d.data();
+    if (x.expiresAt && x.expiresAt.toMillis && x.expiresAt.toMillis() < Date.now()) throw new Error('このリンクは有効期限が切れています（作成から' + SHARE_DAYS + '日）');
+    if (typeof x.data !== 'string') throw new Error('リンクの中身を読めませんでした');
+    return x.data;
+  }
+  var shareLong = '', shareShort = '';
+  function renderShareAuth() {
+    var u = FB && FB.auth.currentUser, box = $('shareAuth');
+    if (!box) return;
+    if (!CLOUD_OK) { box.hidden = true; return; }
+    box.hidden = false;
+    $('shareAuthInfo').innerHTML = u ? '☁ <b>' + esc(u.email || u.displayName || 'ログイン中') + '</b> でログイン中：短いリンクを作れます' : 'Googleでログインすると、短いリンク（QRも小さく）で共有できます。';
+    $('shareSignIn').hidden = !!u; $('shareSignOut').hidden = !u;
+  }
+  function showShareUrl(url, note) {
     $('shareUrl').value = url;
-    var file = !/^https?:$/.test(location.protocol);
-    $('shareInfo').innerHTML = '<b>' + esc(state.teams.join('・')) + '</b>（' + state.rows.length + '件）　リンクの長さ：<b>' + url.length.toLocaleString() + '文字</b>' +
-      (url.length > URL_WARN ? '<div class="warn">⚠ リンクがとても長いです（' + URL_WARN.toLocaleString() + '文字超）。アプリによっては切れてしまうので、学校を減らして作り直してください。</div>' : '') +
+    var file = !/^https?:$/.test(location.protocol), isShort = url === shareShort && !!shareShort;
+    $('shareInfo').innerHTML = '<b>' + esc(state.teams.join('・')) + '</b>（' + state.rows.length + '件）　リンクの長さ：<b>' + url.length.toLocaleString() + '文字</b>' + (isShort ? '（短いリンク・' + SHARE_DAYS + '日間有効）' : '') +
+      (note ? '<div class="warn small">' + note + '</div>' : '') +
+      (!isShort && url.length > URL_WARN ? '<div class="warn">⚠ リンクがとても長いです（' + URL_WARN.toLocaleString() + '文字超）。アプリによっては切れてしまうので、学校を減らして作り直すか、Googleでログインして短いリンクにしてください。</div>' : '') +
       (file ? '<div class="warn small">このページはパソコンのファイルとして開いているため、リンクは公開版のアドレス（' + esc(SHARE_BASE) + '）で作りました。公開版で開いたときに表示されます。</div>' : '');
+    $('shareHow').textContent = isShort ? '短いリンクの中身（選んだ学校の結果）は LANE NOTE の Firebase（Google）に' + SHARE_DAYS + '日間保存され、リンクを知っている人なら誰でも見られます。PDFそのものは入りません。' : '結果はリンクの「#」より後ろに圧縮して入っています。この部分はサーバーへ送られません（開いた端末の中だけで表示します）。PDFそのものは入りません。';
     var qr = $('shareQr');
     if (url.length <= QR_MAX && typeof qrcode === 'function') {
-      try { var q = qrcode(0, 'L'); q.addData(url, 'Byte'); q.make(); qr.innerHTML = q.createSvgTag({ cellSize: 3, margin: 3, scalable: true }); }
+      try { var q = qrcode(0, isShort ? 'M' : 'L'); q.addData(url, 'Byte'); q.make(); qr.innerHTML = q.createSvgTag({ cellSize: 3, margin: 3, scalable: true }); }
       catch (e) { qr.innerHTML = '<p class="warn small">QRコードを作れませんでした（' + esc(e.message) + '）。リンクをコピーして送ってください。</p>'; }
-    } else qr.innerHTML = '<p class="warn small">リンクが長すぎてQRコードに入りません（' + url.length.toLocaleString() + '文字／上限 約' + QR_MAX.toLocaleString() + '文字）。リンクをコピーして送るか、学校を1校ずつにしてください。</p>';
+    } else qr.innerHTML = '<p class="warn small">リンクが長すぎてQRコードに入りません（' + url.length.toLocaleString() + '文字／上限 約' + QR_MAX.toLocaleString() + '文字）。リンクをコピーして送るか、Googleでログインして短いリンクにしてください。</p>';
+  }
+  async function tryShort(str) {
+    shareShort = '';
+    if (!CLOUD_OK) { showShareUrl(shareLong, ''); return; }
+    $('shareInfo').innerHTML = '短いリンクを作っています…';
+    try {
+      var s = await makeShortUrl(str); renderShareAuth();
+      if (s) { shareShort = s; showShareUrl(s, ''); }
+      else showShareUrl(shareLong, 'ログインしていないので、長いリンクで作りました（下の「Googleでログイン」で短くできます）。');
+    } catch (e) { renderShareAuth(); showShareUrl(shareLong, '短いリンクを作れなかったので、長いリンクで作りました（' + esc(e.message) + '）。'); }
+  }
+  var shareStr = '';
+  async function openShare() {
+    if (!state.rows.length) { alert('先に学校を選んで結果を出してください。'); return; }
+    var dlg = $('shareDlg');
+    try { shareStr = await encodePayload(payloadFromState()); } catch (e) { alert(e.message); return; }
+    shareLong = shareBase() + '#d=' + shareStr; shareShort = '';
+    $('shareUrl').value = ''; $('shareQr').innerHTML = '';
+    renderShareAuth();
     dlg.hidden = false; $('shareCopy').focus();
+    await tryShort(shareStr);
+  }
+  async function shareSignIn() {
+    try { await loadFirebase(); await FB.A.signInWithPopup(FB.auth, new FB.A.GoogleAuthProvider()); }
+    catch (e) {
+      if (e && /popup-blocked|operation-not-supported/.test(e.code || '')) { try { await FB.A.signInWithRedirect(FB.auth, new FB.A.GoogleAuthProvider()); return; } catch (e2) { e = e2; } }
+      if (e && /popup-closed|cancelled-popup/.test(e.code || '')) return;
+      $('shareAuthInfo').innerHTML = '<span class="ng">✖ ログインできませんでした：' + esc(e.message) + '</span>'; return;
+    }
+    renderShareAuth(); if (shareStr) await tryShort(shareStr);
   }
   function loadSaved() { try { var a = JSON.parse(localStorage.getItem(SAVE_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
   function storeSaved(a) { localStorage.setItem(SAVE_KEY, JSON.stringify(a)); }
@@ -990,7 +1064,7 @@
       storeSaved(a); $('vSave').textContent = '✔ この端末に保存済み'; $('vSave').disabled = true; renderSaved();
     } catch (e) { alert('保存できませんでした（ブラウザの設定・プライベートモード・容量の可能性）：' + e.message); }
   }
-  function closeViewer() { document.body.classList.remove('viewer-mode'); $('viewer').hidden = true; viewing = null; if (/^#d=/.test(location.hash)) history.replaceState(null, '', location.pathname + location.search); renderSaved(); }
+  function closeViewer() { document.body.classList.remove('viewer-mode'); $('viewer').hidden = true; viewing = null; if (/^#d=/.test(location.hash) || /[?&]s=/.test(location.search)) history.replaceState(null, '', location.pathname); renderSaved(); }
   function setupShare() {
     $('btnShare').addEventListener('click', openShare);
     $('shareClose').addEventListener('click', function () { $('shareDlg').hidden = true; });
@@ -1001,6 +1075,8 @@
       if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(u).then(done, function () { $('shareUrl').select(); document.execCommand('copy'); done(); });
       else { $('shareUrl').select(); document.execCommand('copy'); done(); }
     });
+    $('shareSignIn').addEventListener('click', shareSignIn);
+    $('shareSignOut').addEventListener('click', async function () { try { await loadFirebase(); await FB.A.signOut(FB.auth); } catch (e) { } shareShort = ''; renderShareAuth(); if (shareLong) showShareUrl(shareLong, 'ログアウトしたので、長いリンクに戻しました。'); });
     $('vSave').addEventListener('click', saveViewing);
     $('vClose').addEventListener('click', closeViewer);
     document.querySelectorAll('#viewer .vtabs button').forEach(function (b) { b.addEventListener('click', function () {
@@ -1009,7 +1085,15 @@
     }); });
     var fromHash = function () { var m = /^#d=(.+)$/.exec(location.hash); if (m) openViewerStr(m[1], true); };
     window.addEventListener('hashchange', fromHash);
-    renderSaved(); fromHash();
+    var fromQuery = async function () {
+      var m = /[?&]s=([A-Za-z0-9]{6,40})(?:&|$)/.exec(location.search); if (!m) return false;
+      document.body.classList.add('viewer-mode'); $('viewer').hidden = false; $('vTitle').textContent = 'LANE NOTE 閲覧'; $('vTime').innerHTML = '<p class="small muted">読み込んでいます…</p>';
+      try { await openViewerStr(await fetchShare(m[1]), true); }
+      catch (e) { $('vTime').innerHTML = '<p class="warn">リンクを開けませんでした：' + esc(e.message) + '（電波の良いところでもう一度開いてください）</p>'; }
+      return true;
+    };
+    renderSaved();
+    if (/^#d=/.test(location.hash)) fromHash(); else fromQuery();
     // 公開版（https）のときだけ、このページ自体を端末に置いておく（オフラインでも閲覧できるように）。PDFや選手データはキャッシュしない
     if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) navigator.serviceWorker.register('sw.js').catch(function () { });
   }

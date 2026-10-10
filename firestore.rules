@@ -1,9 +1,25 @@
 rules_version = '2';
 // LANE LOG：ログインした本人だけが自分の users/{uid} 以下を読み書きできる
+// LANE NOTE 短いリンク：shares/{id} は IDを知っていれば誰でも1件読める（一覧は不可）。作れるのはログインした本人のみ、変更不可、削除は作った本人だけ
 service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{userId}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    match /shares/{shareId} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if request.auth != null
+        && shareId.matches('^[A-Za-z0-9]{10}$')
+        && request.resource.data.keys().hasOnly(['data', 'ownerUid', 'createdAt', 'expiresAt'])
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.data is string
+        && request.resource.data.data.size() < 200000
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.expiresAt is timestamp
+        && request.resource.data.expiresAt < request.time + duration.value(200, 'd');
+      allow update: if false;
+      allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
     }
     match /{document=**} {
       allow read, write: if false;
