@@ -457,6 +457,10 @@ tr.haswarn td{background:#fff8e1}
 .rb-stats{font-size:13px;color:var(--muted);margin:6px 0}
 .rb-filter{margin:8px 0}
 .danger{background:#c0392b!important;box-shadow:0 2px 0 #8f2a1f!important}
+.beta-banner{margin:10px 0 6px;padding:10px 14px;background:#fff4d6;border:2px solid #f0a500;border-left-width:8px;border-radius:8px;color:#4a3500;line-height:1.55;font-size:14px;overflow-wrap:anywhere}
+.beta-banner b{display:block;font-size:17px;color:#8a5a00;margin-bottom:2px}
+.beta-tag{display:inline-block;margin-left:4px;padding:0 6px;border-radius:4px;background:#f0a500;color:#222;font-weight:700;font-size:.9em}
+@media (max-width:600px){.beta-banner{font-size:13px;padding:8px 10px;border-left-width:6px}.beta-banner b{font-size:16px}}
 @media (max-width:720px){ .rbt td,.rbt th{font-size:12px;padding:3px 4px} .rb-row>*{flex:1 1 100%} }
 /* ===== スマホ（600px以下）：一覧をカード型にして、氏名・種目・記録を先に大きく ===== */
 @media (max-width:600px){
@@ -493,7 +497,7 @@ tr.haswarn td{background:#fff8e1}
 <body class="records">
 <header>
   <div class="hdr-meta">
-    <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／記録帳 v0.2.2</div>
+    <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／記録帳 v0.2.3 <span class="beta-tag">試作</span></div>
     <div class="credit">Presented by Sakata</div>
     <div class="hdr-msg">すべての陸上競技部顧問が、少しでも楽になりますように。</div>
   </div>
@@ -504,6 +508,7 @@ tr.haswarn td{background:#fff8e1}
 </svg><span class="vh">LANE NOTE（レーンノート）記録帳</span></h1>
     <span class="badge">試作版</span>
   </div>
+  <div class="beta-banner" role="note" aria-label="試作中のお知らせ"><b>⚠️ 試作中（β版）</b><span>機能や画面は予告なく変わることがあります。記録が消えたり読み取りを間違えたりする可能性があるので、大事な記録は元の結果資料でも確認してください。</span></div>
   <p class="tagline">記録帳：大会の結果から、自校の記録と自己ベストをためていく</p>
   <nav class="pagenav" aria-label="ページ"><a href="./">🏁 大会準備</a><a href="records.html" class="on" aria-current="page">📒 記録帳</a></nav>
 </header>
@@ -561,7 +566,7 @@ tr.haswarn td{background:#fff8e1}
 </main>
 <footer><details class="about"><summary><b>この記録帳について</b>（版・対応している形式・既知の制限）</summary>
   <ul>
-    <li><b>LANE NOTE（レーンノート）記録帳 試作版</b>　版：<span class="appver"></span>／記録帳 v0.2.2（2026年10月10日 作成）／ Presented by Sakata</li>
+    <li><b>LANE NOTE（レーンノート）記録帳 試作版</b>　版：<span class="appver"></span>／記録帳 v0.2.3（2026年10月10日 作成）／ Presented by Sakata</li>
     <li>読める形式：組ごとに2列で並ぶ結果PDF（「順位・レーン・ナンバー・氏名・所属・記録」の見出しがあるもの。北区・江東区・都高体連などで確認）／ 結果サイトのHTML（表のあるもの）・その貼り付け。</li>
     <li>既知の制限：リレー・混成の得点・スキャン（画像）PDFは読みません。大会名・日付が資料に無いときは手で入れてください。風が読めない記録は公認ベストに数えません。</li>
     <li>使っている部品（外部CDNから読み込み、ハッシュで確認）：pdf.js 4.10.38（Apache-2.0, Mozilla）／ SheetJS Community Edition 0.20.3（Apache-2.0）／ Firebase JS SDK 10.14.1（Apache-2.0, Google・ログインと保存）</li>
@@ -960,7 +965,7 @@ if (typeof module !== 'undefined') module.exports = ResultParser;
 
 </script>
 <script>
-var APP_VERSION = "v0.9", REC_VERSION = "v0.2.2";
+var APP_VERSION = "v0.9", REC_VERSION = "v0.2.3";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>

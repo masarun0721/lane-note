@@ -34,6 +34,10 @@ tr.haswarn td{background:#fff8e1}
 .rb-stats{font-size:13px;color:var(--muted);margin:6px 0}
 .rb-filter{margin:8px 0}
 .danger{background:#c0392b!important;box-shadow:0 2px 0 #8f2a1f!important}
+.beta-banner{margin:10px 0 6px;padding:10px 14px;background:#fff4d6;border:2px solid #f0a500;border-left-width:8px;border-radius:8px;color:#4a3500;line-height:1.55;font-size:14px;overflow-wrap:anywhere}
+.beta-banner b{display:block;font-size:17px;color:#8a5a00;margin-bottom:2px}
+.beta-tag{display:inline-block;margin-left:4px;padding:0 6px;border-radius:4px;background:#f0a500;color:#222;font-weight:700;font-size:.9em}
+@media (max-width:600px){.beta-banner{font-size:13px;padding:8px 10px;border-left-width:6px}.beta-banner b{font-size:16px}}
 @media (max-width:720px){ .rbt td,.rbt th{font-size:12px;padding:3px 4px} .rb-row>*{flex:1 1 100%} }
 /* ===== スマホ（600px以下）：一覧をカード型にして、氏名・種目・記録を先に大きく ===== */
 @media (max-width:600px){
@@ -70,7 +74,7 @@ tr.haswarn td{background:#fff8e1}
 <body class="records">
 <header>
   <div class="hdr-meta">
-    <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／記録帳 __REC_VERSION__</div>
+    <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／記録帳 __REC_VERSION__ <span class="beta-tag">試作</span></div>
     <div class="credit">Presented by Sakata</div>
     <div class="hdr-msg">すべての陸上競技部顧問が、少しでも楽になりますように。</div>
   </div>
@@ -78,6 +82,7 @@ tr.haswarn td{background:#fff8e1}
     <h1 class="logo">__LOGO_DARK__<span class="vh">LANE NOTE（レーンノート）記録帳</span></h1>
     <span class="badge">試作版</span>
   </div>
+  <div class="beta-banner" role="note" aria-label="試作中のお知らせ"><b>⚠️ 試作中（β版）</b><span>機能や画面は予告なく変わることがあります。記録が消えたり読み取りを間違えたりする可能性があるので、大事な記録は元の結果資料でも確認してください。</span></div>
   <p class="tagline">記録帳：大会の結果から、自校の記録と自己ベストをためていく</p>
   <nav class="pagenav" aria-label="ページ"><a href="./">🏁 大会準備</a><a href="records.html" class="on" aria-current="page">📒 記録帳</a></nav>
 </header>
