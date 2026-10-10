@@ -91,8 +91,10 @@
     var have = {}; (await getAll()).forEach(function (r) { have[r.id] = 1; });
     var add = list.filter(function (r) { return !have[r.id]; });
     if (add.length) await tx('readwrite', function (s) { add.forEach(function (r) { s.put(r); }); });
-    return { added: add.length, dup: list.length - add.length };
+    return { added: add.length, dup: list.length - add.length, ids: add.map(function (r) { return r.id; }) };
   }
+
+  function delIds(ids) { return tx('readwrite', function (s) { ids.forEach(function (id) { s.delete(id); }); }); }
 
   /* ---------- 読み込み ---------- */
   var batches = [], seq = 0, ALL = [];
@@ -191,7 +193,15 @@
     var b = batches.filter(function (x) { return x.id === +box.getAttribute('data-b'); })[0]; if (b) b.meta[f] = e.target.value.trim();
   });
   $('rbBatches').addEventListener('click', async function (e) {
-    var del = e.target.getAttribute('data-del'), sv = e.target.getAttribute('data-save');
+    var del = e.target.getAttribute('data-del'), sv = e.target.getAttribute('data-save'), un = e.target.getAttribute('data-undo');
+    if (un) {
+      var ub = batches.filter(function (x) { return x.id === +un; })[0], ust = document.querySelector('[data-st="' + un + '"]');
+      if (!ub || !(ub.addedIds || []).length) return;
+      if (!confirm('今読み込んで保存した ' + ub.addedIds.length + '件を記録帳から取り消します。よろしいですか？')) return;
+      var n = ub.addedIds.length; await delIds(ub.addedIds); ub.addedIds = [];
+      ust.className = 'status ok'; ust.textContent = '✔ 今読み込んだ ' + n + '件を取り消しました（もう一度「記録帳に保存」で入れ直せます）。';
+      await reload(); return;
+    }
     if (del) { batches = batches.filter(function (b) { return b.id !== +del; }); renderBatches(); return; }
     if (!sv) return;
     var b = batches.filter(function (x) { return x.id === +sv; })[0], st = document.querySelector('[data-st="' + sv + '"]');
@@ -202,7 +212,9 @@
     });
     try {
       var res = await putMany(rs);
-      st.className = 'status ok'; st.textContent = '✔ ' + res.added + '件を保存しました' + (res.dup ? '（' + res.dup + '件はすでに保存済みなので重ねませんでした）' : '') + '。';
+      b.addedIds = (b.addedIds || []).concat(res.ids);
+      st.className = 'status ok'; st.innerHTML = '✔ ' + res.added + '件を保存しました' + (res.dup ? '（' + res.dup + '件はすでに保存済みなので重ねませんでした）' : '') + '。' +
+        (b.addedIds.length ? ' <button class="btn sub" type="button" data-undo="' + b.id + '">今読み込んだ分を取り消す（' + b.addedIds.length + '件）</button>' : '');
       await reload();
     } catch (err) { st.className = 'status ng'; st.textContent = '✖ 保存できませんでした：' + err.message; }
   });
@@ -231,7 +243,16 @@
     var f = defs[s.k]; return rows.slice().sort(function (a, b) { return cmp(f(a), f(b)) * s.d; });
   }
   function th(key, k, label) { var s = sort[key], ar = s && s.k === k ? (s.d > 0 ? '▲' : '▼') : ''; return '<th data-sort="' + k + '">' + label + '<span class="ar">' + ar + '</span></th>'; }
-  $('rbView').addEventListener('click', function (e) {
+  $('rbView').addEventListener('click', async function (e) {
+    var dm = e.target.getAttribute && e.target.getAttribute('data-delmeet');
+    if (dm) {
+      // その大会の記録だけを消す（学校名・しぼりこみに関係なく、その大会のすべての記録）
+      var ids = ALL.filter(function (r) { return r.date + '|' + r.meet === dm; }).map(function (r) { return r.id; });
+      if (!ids.length) return;
+      if (!confirm('「' + dm.replace('|', ' ') + '」の記録 ' + ids.length + '件を消します。元に戻せません。よろしいですか？')) return;
+      await delIds(ids); status('rbDataStatus', '✔ 「' + esc(dm.replace('|', ' ')) + '」の記録 ' + ids.length + '件を消しました。自己ベストを計算し直しました。', 'ok');
+      await reload(); return;
+    }
     var t = e.target.closest('th[data-sort]'); if (!t) return; var k = t.getAttribute('data-sort'), s = sort[view];
     sort[view] = s && s.k === k ? { k: k, d: -s.d } : { k: k, d: 1 }; render();
   });
@@ -258,9 +279,14 @@
       rs = sortRows(rs, view, d2);
       var lastMeet = '';
       html = '<table class="rbt"><tr>' + th(view, 'date', '日付') + th(view, 'meet', '大会') + th(view, 'event', '種目') + '<th>ラウンド</th><th>組</th>' + th(view, 'name', '氏名') + th(view, 'grade', '学年') + '<th>所属</th>' + th(view, 'mark', '記録') + '<th>風</th>' + th(view, 'rank', '順位') + '<th>備考</th></tr>' + rs.map(function (r) {
-        var sep = view === 'meet' && !sort.meet && r.date + r.meet !== lastMeet ? ' class="gsep"' : ''; lastMeet = r.date + r.meet;
+        var head = '';
+        if (view === 'meet' && !sort.meet && r.date + '|' + r.meet !== lastMeet) {
+          var key = r.date + '|' + r.meet, cnt = rows.filter(function (x) { return x.date + '|' + x.meet === key; }).length;
+          head = '<tr class="gsep rb-meet"><td colspan="12"><b>' + esc(r.date) + '　' + esc(r.meet) + '</b>　<span class="small muted">' + cnt + '件</span> <button class="btn sub rb-delmeet" type="button" data-delmeet="' + esc(key) + '">この大会を消す</button></td></tr>';
+        }
+        var sep = ''; lastMeet = r.date + '|' + r.meet;
         var fl = flags[r.id] === 'PB' ? '<span class="pb">PB</span>' : flags[r.id] === '初' ? '<span class="pb first">初</span>' : '';
-        return '<tr' + sep + '><td>' + esc(r.date) + '</td><td>' + esc(r.meet) + '</td><td>' + esc(r.event) + '</td><td>' + esc(r.round) + '</td><td class="rn">' + esc(r.heat) + '</td><td>' + esc(r.name) + '</td><td class="rn">' + esc(r.grade) + '</td><td>' + esc(r.team) + '</td><td class="rn"><b>' + esc(r.mark) + '</b>' + fl + windTag(r) + '</td><td class="rn">' + esc(r.wind) + '</td><td class="rn">' + esc(r.rank) + '</td><td><small>' + esc(r.comment) + '</small></td></tr>';
+        return head + '<tr' + sep + '><td>' + esc(r.date) + '</td><td>' + esc(r.meet) + '</td><td>' + esc(r.event) + '</td><td>' + esc(r.round) + '</td><td class="rn">' + esc(r.heat) + '</td><td>' + esc(r.name) + '</td><td class="rn">' + esc(r.grade) + '</td><td>' + esc(r.team) + '</td><td class="rn"><b>' + esc(r.mark) + '</b>' + fl + windTag(r) + '</td><td class="rn">' + esc(r.wind) + '</td><td class="rn">' + esc(r.rank) + '</td><td><small>' + esc(r.comment) + '</small></td></tr>';
       }).join('') + '</table>';
     }
     $('rbView').innerHTML = rows.length ? html : '<p class="muted small">表示する記録がありません。</p>';

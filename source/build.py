@@ -16,7 +16,7 @@ SHARE_BASE = 'https://masarun0721.github.io/lane-note/'   # 共有リンク・QR
 VERSION = 'v0.9'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
 # 作成日は版番号から取れないので固定（ビルドした日で変わると、公開時の一致検査ができないため）
 BUILD_DATE = '2026年10月09日'
-REC_VERSION = 'v0.1'   # 記録帳（records.html）だけの版
+REC_VERSION = 'v0.1.1'   # 記録帳（records.html）だけの版
 REC_BUILD_DATE = '2026年10月10日'
 
 
