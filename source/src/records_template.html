@@ -54,7 +54,13 @@ tr.haswarn td{background:#fff8e1}
 <main>
 <section class="box">
   <h2><span class="no">1</span>学校名と結果の資料</h2>
-  <div class="privacy">🔒 <b>記録はこのブラウザの中（IndexedDB）にだけ保存し、どこにも送りません。</b>読み取りもすべてこの端末の中で行います。別のパソコンへ移すときは「ファイルに書き出す」を使ってください。共用のパソコンでは、使い終わったら「全部消す」を押してください。</div>
+  <div class="privacy">🔒 <b>Googleでログインすると、記録はあなた専用のクラウド（Firebase）に保存され、どの端末からでも見られます。</b>ほかの人の記録は見えず、ほかの人からもあなたの記録は見えません。ログインしないときは、このブラウザの中（IndexedDB）にだけ保存します。結果資料の読み取りはすべてこの端末の中で行います。共用のパソコンでは、使い終わったらログアウトしてください。</div>
+  <div class="rb-row" id="rbAuth" style="margin:10px 0;align-items:center">
+    <span id="rbAuthInfo" class="small"></span>
+    <button class="btn" id="rbSignIn" type="button" hidden>Googleでログイン</button>
+    <button class="btn sub" id="rbSignOut" type="button" hidden>ログアウト</button>
+  </div>
+  <div class="status" id="rbAuthStatus"></div>
   <div class="disclaimer sm" style="margin-top:8px">ⓘ 結果の資料の文字を読み取って整理しているだけです。<b>記録は必ず元の結果資料と照らし合わせて確認してください。</b>読めなかったところは空欄にして警告を出します（推測で埋めません）。</div>
   <div class="rb-row" style="margin:10px 0">
     <label>学校名 <input type="text" id="rbSchool" placeholder="例：本郷" autocomplete="off"></label>
@@ -102,10 +108,11 @@ tr.haswarn td{background:#fff8e1}
     <li><b>LANE NOTE（レーンノート）記録帳 試作版</b>　版：<span class="appver"></span>／記録帳 __REC_VERSION__（__BUILD_DATE__ 作成）／ Presented by Sakata</li>
     <li>読める形式：組ごとに2列で並ぶ結果PDF（「順位・レーン・ナンバー・氏名・所属・記録」の見出しがあるもの。北区・江東区・都高体連などで確認）／ 結果サイトのHTML（表のあるもの）・その貼り付け。</li>
     <li>既知の制限：リレー・混成の得点・スキャン（画像）PDFは読みません。大会名・日付が資料に無いときは手で入れてください。風が読めない記録は公認ベストに数えません。</li>
-    <li>使っている部品（外部CDNから読み込み、ハッシュで確認）：pdf.js 4.10.38（Apache-2.0, Mozilla）／ SheetJS Community Edition 0.20.3（Apache-2.0）</li>
+    <li>使っている部品（外部CDNから読み込み、ハッシュで確認）：pdf.js 4.10.38（Apache-2.0, Mozilla）／ SheetJS Community Edition 0.20.3（Apache-2.0）／ Firebase JS SDK 10.14.1（Apache-2.0, Google・ログインと保存）</li>
   </ul></details>
-<div class="f-disc">ⓘ 本ツールは結果資料の文字を読み取って自動で整理しているだけです。内容は必ず元の結果資料と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div><div><b class="f-brand">LANE NOTE</b>（レーンノート）記録帳 試作版 ／ <span class="f-credit">Presented by Sakata</span></div>🔒 記録はこのブラウザの中にだけ保存し、サーバーへ送信しません（部品取得のため外部CDNへ通信します）。 <a href="./">大会準備のページへ</a></footer>
+<div class="f-disc">ⓘ 本ツールは結果資料の文字を読み取って自動で整理しているだけです。内容は必ず元の結果資料と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div><div><b class="f-brand">LANE NOTE</b>（レーンノート）記録帳 試作版 ／ <span class="f-credit">Presented by Sakata</span></div>🔒 ログイン中の記録は本人だけが読めるクラウド（Google Firebase）に保存します。ログインしないときはこのブラウザの中にだけ保存します（部品取得のため外部CDNへ通信します）。 <a href="./">大会準備のページへ</a></footer>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
+<script src="firebase-config.js"></script>
 <script>
 __RESULTS__
 </script>

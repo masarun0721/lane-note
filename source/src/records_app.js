@@ -1,4 +1,4 @@
-/* ===== 記録帳の画面（データはこのブラウザの IndexedDB にだけ置く） ===== */
+/* ===== 記録帳の画面（ログイン時は Firebase の users/{uid} に本人だけが読める形で保存、未ログイン時はこのブラウザの IndexedDB にだけ置く） ===== */
 (function () {
   'use strict';
   var R = ResultParser;
@@ -74,27 +74,132 @@
     return out;
   }
 
-  /* ---------- IndexedDB ---------- */
-  var dbp = null;
-  function db() {
-    if (!dbp) dbp = new Promise(function (ok, ng) {
+  /* ---------- 保存先：IndexedDB（未ログイン時の保存先・ログイン時はオフライン用の控え） ---------- */
+  var dbps = {};
+  function db(name) {
+    name = name || curDbName();
+    if (!dbps[name]) dbps[name] = new Promise(function (ok, ng) {
       if (!window.indexedDB) { ng(new Error('このブラウザでは保存（IndexedDB）が使えません')); return; }
-      var q = indexedDB.open('lanenote-records', 1);
+      var q = indexedDB.open(name, 1);
       q.onupgradeneeded = function () { var d = q.result; if (!d.objectStoreNames.contains('records')) d.createObjectStore('records', { keyPath: 'id' }); };
       q.onsuccess = function () { ok(q.result); }; q.onerror = function () { ng(q.error); };
     });
-    return dbp;
+    return dbps[name];
   }
-  function tx(mode, fn) { return db().then(function (d) { return new Promise(function (ok, ng) { var t = d.transaction('records', mode), s = t.objectStore('records'), r = fn(s); t.oncomplete = function () { ok(r && r.result !== undefined ? r.result : r); }; t.onerror = function () { ng(t.error); }; }); }); }
-  function getAll() { return db().then(function (d) { return new Promise(function (ok, ng) { var q = d.transaction('records').objectStore('records').getAll(); q.onsuccess = function () { ok(q.result || []); }; q.onerror = function () { ng(q.error); }; }); }); }
-  async function putMany(list) {
-    var have = {}; (await getAll()).forEach(function (r) { have[r.id] = 1; });
-    var add = list.filter(function (r) { return !have[r.id]; });
-    if (add.length) await tx('readwrite', function (s) { add.forEach(function (r) { s.put(r); }); });
-    return { added: add.length, dup: list.length - add.length, ids: add.map(function (r) { return r.id; }) };
+  var LOCAL_DB = 'lanenote-records';            // v0.1 からの「この端末だけ」の保存先
+  function curDbName() { return USER ? 'lanenote-cache-' + USER.uid : LOCAL_DB; }   // ログイン中は人ごとの控え
+  function ltx(mode, fn, name) { return db(name).then(function (d) { return new Promise(function (ok, ng) { var t = d.transaction('records', mode), s = t.objectStore('records'), r = fn(s); t.oncomplete = function () { ok(r && r.result !== undefined ? r.result : r); }; t.onerror = function () { ng(t.error); }; }); }); }
+  function lgetAll(name) { return db(name).then(function (d) { return new Promise(function (ok, ng) { var q = d.transaction('records').objectStore('records').getAll(); q.onsuccess = function () { ok(q.result || []); }; q.onerror = function () { ng(q.error); }; }); }); }
+
+  /* ---------- 保存先：Firebase（ログインすると users/{uid}/records に保存し、どの端末からでも同じ記録が見える） ---------- */
+  var FB_VER = '10.14.1', FB = null, USER = null, OFFLINE = false;
+  var CFG = window.LANE_FIREBASE_CONFIG || null;
+  var CLOUD_READY = !!(CFG && CFG.apiKey && !/^YOUR_|^__/.test(CFG.apiKey) && CFG.projectId && !/^YOUR_/.test(CFG.projectId));
+  function docId(id) { return String(id).replace(/\//g, '∕'); }     // Firestore のIDに「/」は使えない
+  function clean(r) { var o = {}; Object.keys(r).forEach(function (k) { if (r[k] !== undefined) o[k] = r[k]; }); return o; }
+  async function loadFirebase() {
+    if (FB) return FB;
+    var base = 'https://www.gstatic.com/firebasejs/' + FB_VER + '/';
+    var m = await Promise.all([import(base + 'firebase-app.js'), import(base + 'firebase-auth.js'), import(base + 'firebase-firestore.js')]);
+    var app = m[0].initializeApp(CFG);
+    FB = { A: m[1], F: m[2], auth: m[1].getAuth(app), fs: m[2].getFirestore(app) };
+    return FB;
+  }
+  function col() { return FB.F.collection(FB.fs, 'users', USER.uid, 'records'); }
+  async function cloudPut(list) {
+    for (var i = 0; i < list.length; i += 400) {             // 1回のまとめ書きは500件まで
+      var b = FB.F.writeBatch(FB.fs);
+      list.slice(i, i + 400).forEach(function (r) { b.set(FB.F.doc(col(), docId(r.id)), clean(r)); });
+      await b.commit();
+    }
+  }
+  async function cloudDel(ids) {
+    for (var i = 0; i < ids.length; i += 400) {
+      var b = FB.F.writeBatch(FB.fs);
+      ids.slice(i, i + 400).forEach(function (id) { b.delete(FB.F.doc(col(), docId(id))); });
+      await b.commit();
+    }
   }
 
-  function delIds(ids) { return tx('readwrite', function (s) { ids.forEach(function (id) { s.delete(id); }); }); }
+  // 一覧を読む：ログイン中はクラウドから読み、控え（IndexedDB）を入れ替える。つながらないときは控えを出す
+  async function getAll() {
+    if (!USER) return lgetAll();
+    try {
+      var snap = await FB.F.getDocs(col()), list = [];
+      snap.forEach(function (d) { list.push(d.data()); });
+      OFFLINE = false;
+      try { await ltx('readwrite', function (s) { s.clear(); list.forEach(function (r) { s.put(r); }); }); } catch (e) { }
+      return list;
+    } catch (e) {
+      OFFLINE = true;
+      return lgetAll();
+    }
+  }
+  async function putMany(list) {
+    var have = {}; ALL.forEach(function (r) { have[r.id] = 1; });
+    if (!USER) (await lgetAll()).forEach(function (r) { have[r.id] = 1; });
+    var add = list.filter(function (r) { return !have[r.id]; });
+    if (add.length) {
+      if (USER) await cloudPut(add);
+      await ltx('readwrite', function (s) { add.forEach(function (r) { s.put(r); }); });
+    }
+    return { added: add.length, dup: list.length - add.length, ids: add.map(function (r) { return r.id; }) };
+  }
+  async function delIds(ids) {
+    if (USER) await cloudDel(ids);
+    await ltx('readwrite', function (s) { ids.forEach(function (id) { s.delete(id); }); });
+  }
+  async function clearAll() {
+    if (USER) await cloudDel(ALL.map(function (r) { return r.id; }));
+    await ltx('readwrite', function (s) { s.clear(); });
+  }
+
+  // 初めてログインしたとき、この端末に v0.1 でためた記録をクラウドへ1回だけ上げる（端末の記録は消さない）
+  async function migrateLocal() {
+    var key = 'lanenote-migrated-' + USER.uid;
+    try { if (localStorage.getItem(key)) return; } catch (e) { }
+    var local = []; try { local = await lgetAll(LOCAL_DB); } catch (e) { }
+    if (local.length) {
+      status('rbAuthStatus', 'この端末の記録 ' + local.length + '件をクラウドへ移しています…', 'busy');
+      var have = {}; (await getAll()).forEach(function (r) { have[r.id] = 1; });
+      var add = local.filter(function (r) { return !have[r.id]; });
+      await cloudPut(add);
+      status('rbAuthStatus', '✔ この端末にあった記録 ' + add.length + '件をクラウドへ移しました' + (local.length - add.length ? '（' + (local.length - add.length) + '件はすでにあったので重ねませんでした）' : '') + '。', 'ok');
+    }
+    try { localStorage.setItem(key, new Date().toISOString()); } catch (e) { }
+  }
+
+  function renderAuth() {
+    var info = $('rbAuthInfo'), inB = $('rbSignIn'), outB = $('rbSignOut');
+    if (!CLOUD_READY) { info.innerHTML = '💻 <b>この端末だけに保存中</b>（クラウド保存はまだ準備中です）'; inB.hidden = true; outB.hidden = true; return; }
+    if (USER) { info.innerHTML = '☁ <b>' + esc(USER.email || USER.displayName || 'ログイン中') + '</b> でログイン中：記録はクラウドに保存し、どの端末からでも見られます' + (OFFLINE ? '<br><span class="ng">⚠ いまクラウドにつながらないので、この端末の控えを表示しています</span>' : ''); inB.hidden = true; outB.hidden = false; }
+    else { info.innerHTML = '💻 <b>ログインしていません</b>：記録はこの端末だけに保存されます。Googleでログインすると、どの端末からでも同じ記録が見られます。'; inB.hidden = false; outB.hidden = true; }
+  }
+  async function initCloud() {
+    renderAuth();
+    if (!CLOUD_READY) return;
+    try { await loadFirebase(); } catch (e) { status('rbAuthStatus', '✖ ログインの部品を読み込めませんでした（' + esc(e.message) + '）。この端末だけに保存します。', 'ng'); return; }
+    FB.A.onAuthStateChanged(FB.auth, async function (u) {
+      USER = u || null; renderAuth();
+      if (USER) { try { await migrateLocal(); } catch (e) { status('rbAuthStatus', '✖ この端末の記録をクラウドへ移せませんでした：' + esc(e.message) + '（次にページを開いたときにもう一度試します）', 'ng'); } }
+      await reload(); renderAuth();
+    });
+  }
+  $('rbSignIn').addEventListener('click', async function () {
+    try { await loadFirebase(); await FB.A.signInWithPopup(FB.auth, new FB.A.GoogleAuthProvider()); }
+    catch (e) {
+      if (e && /popup-blocked|operation-not-supported/.test(e.code || '')) { try { await FB.A.signInWithRedirect(FB.auth, new FB.A.GoogleAuthProvider()); return; } catch (e2) { e = e2; } }
+      if (e && /popup-closed|cancelled-popup/.test(e.code || '')) return;
+      status('rbAuthStatus', '✖ ログインできませんでした：' + esc(e.message), 'ng');
+    }
+  });
+  $('rbSignOut').addEventListener('click', async function () {
+    if (!confirm('ログアウトします。クラウドの記録は消えません（もう一度ログインすれば見られます）。')) return;
+    var uid = USER && USER.uid;
+    await FB.A.signOut(FB.auth);
+    if (uid) try { indexedDB.deleteDatabase('lanenote-cache-' + uid); delete dbps['lanenote-cache-' + uid]; } catch (e) { }   // 共用の端末に控えを残さない
+    status('rbAuthStatus', '✔ ログアウトしました。', 'ok');
+  });
 
   /* ---------- 読み込み ---------- */
   var batches = [], seq = 0, ALL = [];
@@ -226,7 +331,7 @@
     document.querySelectorAll('.tabs button').forEach(function (b) { b.classList.toggle('on', b === e.target); }); render();
   });
   $('rbQ').addEventListener('input', render); $('rbMine').addEventListener('change', render);
-  async function reload() { try { ALL = await getAll(); } catch (e) { ALL = []; status('rbDataStatus', '✖ ' + esc(e.message), 'ng'); } render(); }
+  async function reload() { try { ALL = await getAll(); } catch (e) { ALL = []; status('rbDataStatus', '✖ ' + esc(e.message), 'ng'); } render(); if (CLOUD_READY) renderAuth(); }
   function filtered() {
     var q = R.nk($('rbQ').value).replace(/\s/g, ''), s = school(), mine = $('rbMine').checked;
     return ALL.filter(function (r) {
@@ -313,8 +418,8 @@
   });
   $('rbClear').addEventListener('click', async function () {
     if (!ALL.length) { status('rbDataStatus', '消す記録はありません。', ''); return; }
-    if (!confirm('このブラウザに保存した記録 ' + ALL.length + '件をすべて消します。元に戻せません。\n（必要なら先に「ファイルに書き出す」をしてください）\n\n本当に消しますか？')) return;
-    await tx('readwrite', function (s) { s.clear(); });
+    if (!confirm('' + (USER ? 'クラウドに保存した' : 'このブラウザに保存した') + '記録 ' + ALL.length + '件をすべて消します。元に戻せません。\n（必要なら先に「ファイルに書き出す」をしてください）\n\n本当に消しますか？')) return;
+    try { await clearAll(); } catch (e) { status('rbDataStatus', '✖ 消せませんでした：' + esc(e.message), 'ng'); return; }
     status('rbDataStatus', '✔ すべて消しました。', 'ok'); await reload();
   });
   $('rbXlsx').addEventListener('click', function () {
@@ -331,5 +436,5 @@
     XLSX.writeFile(wb, 'LANE_NOTE_記録帳_' + stamp() + '.xlsx');
     status('rbDataStatus', '✔ Excelに書き出しました（表示中の ' + rows.length + '件）。', 'ok');
   });
-  reload();
+  if (CLOUD_READY) initCloud(); else { renderAuth(); reload(); }
 })();

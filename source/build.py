@@ -16,7 +16,7 @@ SHARE_BASE = 'https://masarun0721.github.io/lane-note/'   # 共有リンク・QR
 VERSION = 'v0.9'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
 # 作成日は版番号から取れないので固定（ビルドした日で変わると、公開時の一致検査ができないため）
 BUILD_DATE = '2026年10月09日'
-REC_VERSION = 'v0.1.1'   # 記録帳（records.html）だけの版
+REC_VERSION = 'v0.2'   # 記録帳（records.html）だけの版
 REC_BUILD_DATE = '2026年10月10日'
 
 
@@ -52,7 +52,7 @@ def build():
     for k, v in rep.items():
         assert k in html, k
         html = html.replace(k, v)
-    return html, text('src/sw.js'), build_records(html)
+    return html, text('src/sw.js'), build_records(html), text('src/firebase-config.js')
 
 
 def build_records(index_html):
@@ -73,24 +73,24 @@ def build_records(index_html):
     return rec
 
 
-OUTPUTS = ('index.html', 'sw.js', 'records.html')   # 公開するファイル（--check もこの3つを確かめる）
+OUTPUTS = ('index.html', 'sw.js', 'records.html', 'firebase-config.js')   # 公開するファイル（--check もこれらを確かめる）
 
 
-def write(out, html, sw, rec):
+def write(out, html, sw, rec, cfg):
     out.mkdir(parents=True, exist_ok=True)
-    for name, body in zip(OUTPUTS, (html, sw, rec)):
+    for name, body in zip(OUTPUTS, (html, sw, rec, cfg)):
         (out / name).write_bytes(body.encode('utf-8'))
     print(out / 'index.html', len(html), '/', out / 'sw.js', '/', out / 'records.html', len(rec))
 
 
 def main(argv):
-    html, sw, rec = build()
+    html, sw, rec, cfg = build()
     if len(argv) == 2 and argv[0] == '--out':
-        write(pathlib.Path(argv[1]), html, sw, rec)
+        write(pathlib.Path(argv[1]), html, sw, rec, cfg)
         return 0
     if len(argv) == 2 and argv[0] == '--check':
         d, ng = pathlib.Path(argv[1]), 0
-        for name, body in zip(OUTPUTS, (html, sw, rec)):
+        for name, body in zip(OUTPUTS, (html, sw, rec, cfg)):
             f = d / name
             if not f.exists() or f.read_bytes() != body.encode('utf-8'):
                 print('NG: %s がソースからのビルド結果と一致しません（build.py を実行してから公開してください）' % f)
@@ -101,7 +101,7 @@ def main(argv):
     if argv:
         print(__doc__)
         return 2
-    write(ROOT / 'dist', html, sw, rec)
+    write(ROOT / 'dist', html, sw, rec, cfg)
     (ROOT / 'LANE_NOTE.html').write_bytes(html.encode('utf-8'))   # 手元でダブルクリックして開く用
     print(ROOT / 'LANE_NOTE.html')
     return 0
