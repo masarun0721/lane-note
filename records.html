@@ -458,12 +458,42 @@ tr.haswarn td{background:#fff8e1}
 .rb-filter{margin:8px 0}
 .danger{background:#c0392b!important;box-shadow:0 2px 0 #8f2a1f!important}
 @media (max-width:720px){ .rbt td,.rbt th{font-size:12px;padding:3px 4px} .rb-row>*{flex:1 1 100%} }
+/* ===== スマホ（600px以下）：一覧をカード型にして、氏名・種目・記録を先に大きく ===== */
+@media (max-width:600px){
+  #rbAuth .btn,.drop,.tabs button,#rbExport,#rbXlsx,#rbClear,label.btn,#rbPasteGo{min-height:44px}
+  #rbAuth .btn{width:100%;font-size:16px}
+  .tabs button{flex:1 1 0;font-size:15px}
+  #rbQ{width:100%;min-height:44px;font-size:16px}
+  .rb-filter label{min-height:44px;display:flex;align-items:center;gap:6px}
+  #rbView.tblwrap{overflow-x:visible}
+  #rbView .rbt,#rbView .rbt tbody{display:block;width:100%}
+  #rbView .rbt tr.hd{display:none}
+  #rbView .rbt tr.rc{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;padding:10px 4px;border-bottom:1px solid var(--line);min-height:44px}
+  #rbView .rbt tr.rc td{display:block;border:0;padding:0;white-space:normal;font-size:12.5px;color:var(--muted);text-align:left;background:transparent}
+  #rbView .rbt tr.rc td:empty{display:none}
+  #rbView .rbt tr.rc td.c-name{order:1;font-size:17px;font-weight:800;color:inherit}
+  #rbView .rbt tr.rc td.c-ev{order:2;font-size:15px;font-weight:700;color:var(--navy);margin-left:auto}
+  #rbView .rbt tr.rc td.c-mark{order:3;flex:0 0 100%;font-size:28px;line-height:1.2;color:inherit;font-variant-numeric:tabular-nums}
+  #rbView .rbt tr.rc td.c-mark .pb,#rbView .rbt tr.rc td.c-mark .ref,#rbView .rbt tr.rc td.c-mark .unk{font-size:12px;vertical-align:middle}
+  #rbView .rbt tr.rc td.c-wind{order:4}
+  #rbView .rbt tr.rc td.c-rank{order:5}
+  #rbView .rbt tr.rc td.c-meet{order:6}
+  #rbView .rbt tr.rc td.c-date{order:7}
+  #rbView .rbt tr.rc td.c-team{order:8}
+  #rbView .rbt tr.rc td.c-round,#rbView .rbt tr.rc td.c-heat,#rbView .rbt tr.rc td.c-grade{order:9}
+  #rbView .rbt tr.rc td.c-ref,#rbView .rbt tr.rc td.c-cnt,#rbView .rbt tr.rc td.c-cmt{order:10}
+  #rbView .rbt tr.rc td.c-ref{flex:0 0 100%}
+  #rbView .rbt tr.rc td[data-l]::before{content:attr(data-l) " ";font-size:11px}
+  #rbView .rbt tr.rb-meet{display:block}
+  #rbView .rbt tr.rb-meet td{display:block;white-space:normal;font-size:14px}
+  #rbView .rb-delmeet{min-height:44px}
+}
 </style>
 </head>
 <body class="records">
 <header>
   <div class="hdr-meta">
-    <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／記録帳 v0.2.1</div>
+    <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／記録帳 v0.2.2</div>
     <div class="credit">Presented by Sakata</div>
     <div class="hdr-msg">すべての陸上競技部顧問が、少しでも楽になりますように。</div>
   </div>
@@ -531,7 +561,7 @@ tr.haswarn td{background:#fff8e1}
 </main>
 <footer><details class="about"><summary><b>この記録帳について</b>（版・対応している形式・既知の制限）</summary>
   <ul>
-    <li><b>LANE NOTE（レーンノート）記録帳 試作版</b>　版：<span class="appver"></span>／記録帳 v0.2.1（2026年10月10日 作成）／ Presented by Sakata</li>
+    <li><b>LANE NOTE（レーンノート）記録帳 試作版</b>　版：<span class="appver"></span>／記録帳 v0.2.2（2026年10月10日 作成）／ Presented by Sakata</li>
     <li>読める形式：組ごとに2列で並ぶ結果PDF（「順位・レーン・ナンバー・氏名・所属・記録」の見出しがあるもの。北区・江東区・都高体連などで確認）／ 結果サイトのHTML（表のあるもの）・その貼り付け。</li>
     <li>既知の制限：リレー・混成の得点・スキャン（画像）PDFは読みません。大会名・日付が資料に無いときは手で入れてください。風が読めない記録は公認ベストに数えません。</li>
     <li>使っている部品（外部CDNから読み込み、ハッシュで確認）：pdf.js 4.10.38（Apache-2.0, Mozilla）／ SheetJS Community Edition 0.20.3（Apache-2.0）／ Firebase JS SDK 10.14.1（Apache-2.0, Google・ログインと保存）</li>
@@ -930,7 +960,7 @@ if (typeof module !== 'undefined') module.exports = ResultParser;
 
 </script>
 <script>
-var APP_VERSION = "v0.9", REC_VERSION = "v0.2.1";
+var APP_VERSION = "v0.9", REC_VERSION = "v0.2.2";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>
@@ -1319,17 +1349,18 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
       bs.sort(view === 'ath' ? function (a, b) { return cmp(R.nk(a.name), R.nk(b.name)) || cmp(a.event, b.event); } : function (a, b) { return cmp(a.event, b.event) || cmp(mv(a.best || a.ref), mv(b.best || b.ref)); });
       bs = sortRows(bs, view, defs);
       var first = view === 'ath' ? th(view, 'name', '氏名') + th(view, 'team', '所属') + th(view, 'event', '種目') : th(view, 'event', '種目') + th(view, 'name', '氏名') + th(view, 'team', '所属');
-      html = '<table class="rbt"><tr>' + first + th(view, 'best', '自己ベスト（公認）') + '<th>風</th>' + th(view, 'date', '日付') + '<th>大会</th><th>参考記録（追い風・風不明）</th>' + th(view, 'count', '記録数') + '</tr>' + bs.map(function (b) {
+      html = '<table class="rbt"><tr class="hd">' + first + th(view, 'best', '自己ベスト（公認）') + '<th>風</th>' + th(view, 'date', '日付') + '<th>大会</th><th>参考記録（追い風・風不明）</th>' + th(view, 'count', '記録数') + '</tr>' + bs.map(function (b) {
         var r = b.best || {}, f = b.ref;
-        var lead = view === 'ath' ? '<td>' + esc(b.name) + '</td><td>' + esc(b.team) + '</td><td>' + esc(b.eventLabel) + '</td>' : '<td>' + esc(b.eventLabel) + '</td><td>' + esc(b.name) + '</td><td>' + esc(b.team) + '</td>';
-        return '<tr>' + lead + '<td class="rn"><b>' + esc(r.mark || '—') + '</b></td><td class="rn">' + esc(r.wind) + '</td><td>' + esc(r.date) + '</td><td>' + esc(r.meet) + '</td><td>' + (f ? esc(f.mark) + windTag(f) + ' <small class="muted">' + esc(f.wind) + ' ' + esc(f.date) + '</small>' : '') + '</td><td class="rn">' + b.count + '</td></tr>';
+        var cN = '<td class="c-name">' + esc(b.name) + '</td>', cT = '<td class="c-team">' + esc(b.team) + '</td>', cE = '<td class="c-ev">' + esc(b.eventLabel) + '</td>';
+        var lead = view === 'ath' ? cN + cT + cE : cE + cN + cT;
+        return '<tr class="rc">' + lead + '<td class="rn c-mark"><b>' + esc(r.mark || '—') + '</b></td><td class="rn c-wind" data-l="風">' + esc(r.wind) + '</td><td class="c-date">' + esc(r.date) + '</td><td class="c-meet">' + esc(r.meet) + '</td><td class="c-ref" data-l="参考">' + (f ? esc(f.mark) + windTag(f) + ' <small class="muted">' + esc(f.wind) + ' ' + esc(f.date) + '</small>' : '') + '</td><td class="rn c-cnt" data-l="記録数">' + b.count + '</td></tr>';
       }).join('') + '</table>';
     } else {
       var rs = rows.slice().sort(function (a, b) { return cmp(b.date, a.date) || cmp(a.meet, b.meet) || cmp(R.normEvent(a.event), R.normEvent(b.event)) || cmp(a.order || 0, b.order || 0); });
       var d2 = { date: function (r) { return r.date; }, meet: function (r) { return r.meet; }, event: function (r) { return R.normEvent(r.event); }, name: function (r) { return R.nk(r.name); }, grade: function (r) { return r.grade; }, mark: mv, rank: function (r) { return r.rank === '' ? 999 : +r.rank; } };
       rs = sortRows(rs, view, d2);
       var lastMeet = '';
-      html = '<table class="rbt"><tr>' + th(view, 'date', '日付') + th(view, 'meet', '大会') + th(view, 'event', '種目') + '<th>ラウンド</th><th>組</th>' + th(view, 'name', '氏名') + th(view, 'grade', '学年') + '<th>所属</th>' + th(view, 'mark', '記録') + '<th>風</th>' + th(view, 'rank', '順位') + '<th>備考</th></tr>' + rs.map(function (r) {
+      html = '<table class="rbt"><tr class="hd">' + th(view, 'date', '日付') + th(view, 'meet', '大会') + th(view, 'event', '種目') + '<th>ラウンド</th><th>組</th>' + th(view, 'name', '氏名') + th(view, 'grade', '学年') + '<th>所属</th>' + th(view, 'mark', '記録') + '<th>風</th>' + th(view, 'rank', '順位') + '<th>備考</th></tr>' + rs.map(function (r) {
         var head = '';
         if (view === 'meet' && !sort.meet && r.date + '|' + r.meet !== lastMeet) {
           var key = r.date + '|' + r.meet, cnt = rows.filter(function (x) { return x.date + '|' + x.meet === key; }).length;
@@ -1337,7 +1368,7 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
         }
         var sep = ''; lastMeet = r.date + '|' + r.meet;
         var fl = flags[r.id] === 'PB' ? '<span class="pb">PB</span>' : flags[r.id] === '初' ? '<span class="pb first">初</span>' : '';
-        return head + '<tr' + sep + '><td>' + esc(r.date) + '</td><td>' + esc(r.meet) + '</td><td>' + esc(r.event) + '</td><td>' + esc(r.round) + '</td><td class="rn">' + esc(r.heat) + '</td><td>' + esc(r.name) + '</td><td class="rn">' + esc(r.grade) + '</td><td>' + esc(r.team) + '</td><td class="rn"><b>' + esc(r.mark) + '</b>' + fl + windTag(r) + '</td><td class="rn">' + esc(r.wind) + '</td><td class="rn">' + esc(r.rank) + '</td><td><small>' + esc(r.comment) + '</small></td></tr>';
+        return head + '<tr class="rc"' + sep + '><td class="c-date">' + esc(r.date) + '</td><td class="c-meet">' + esc(r.meet) + '</td><td class="c-ev">' + esc(r.event) + '</td><td class="c-round">' + esc(r.round) + '</td><td class="rn c-heat" data-l="組">' + esc(r.heat) + '</td><td class="c-name">' + esc(r.name) + '</td><td class="rn c-grade" data-l="学年">' + esc(r.grade) + '</td><td class="c-team">' + esc(r.team) + '</td><td class="rn c-mark"><b>' + esc(r.mark) + '</b>' + fl + windTag(r) + '</td><td class="rn c-wind" data-l="風">' + esc(r.wind) + '</td><td class="rn c-rank" data-l="順位">' + esc(r.rank) + '</td><td class="c-cmt"><small>' + esc(r.comment) + '</small></td></tr>';
       }).join('') + '</table>';
     }
     $('rbView').innerHTML = rows.length ? html : '<p class="muted small">表示する記録がありません。</p>';
