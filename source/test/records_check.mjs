@@ -56,6 +56,36 @@ console.log('[4] 大会名の推測（ファイル名・見出し）');
  ok(g('20261004_江東区秋季.pdf').date==='2026-10-04'&&g('R8.10.4 北区.pdf').date==='2026-10-04'&&g('令和8年10月4日 北区.pdf').date==='2026-10-04'&&g('2026_10_04 北区.pdf').date==='2026-10-04','ファイル名の日付（20261004・R8.10.4・令和8年10月4日・2026_10_04）');
  ok(g('10月4日 江東区秋季.pdf').date===''&&g('10月4日 江東区秋季.pdf').md==='10月4日','年のない日付は月日だけ控える');
  ok(g('20261399_北区.pdf').date==='','ありえない日付は使わない');}
+console.log('[5] シーズン・PBの伸び・ランキング・歴代（v0.3）');
+{ok(R.seasonOf('2026-04-01')===2026&&R.seasonOf('2026-03-31')===2025&&R.seasonOf('2027-03-01')===2026&&R.seasonOf('')===null,'シーズンは4月始まりの年度');
+ ok(R.improvement('12.00','11.85')===0.15&&R.improvement('5m50','5m74')===0.24&&R.improvement('4:40.00','4:31.15')===8.85,'改善幅（時間は短縮・距離は伸び）');
+ ok(R.fmtImprovement(0.15,true)==='−0.15秒'&&R.fmtImprovement(0.24,false)==='+0.24','改善幅の表示');
+ const mk=(id,d,ev,n,g,m,w)=>({id,date:d,event:ev,name:n,team:'架空高',grade:g,mark:m,wind:w});
+ const rs=[mk('a1','2025-06-01','男子100m','架空 一郎','高1','12.00','+1.0'),mk('a2','2026-05-01','男子100m','架空 一郎','高2','11.80','+0.5'),mk('a3','2026-06-01','男子100m','架空 一郎','高2','11.60','+2.5'),
+  mk('a4','2026-07-01','男子100m','架空 一郎','高2','11.70',''),mk('b1','2026-05-01','男子100m','見本 二郎','高1','11.90','+0.1'),mk('c1','2023-05-01','男子100m','先輩 太郎','高3','11.20','+1.5'),
+  mk('d1','2026-05-01','男子走幅跳','架空 一郎','高2','5m50','+1.0'),mk('d2','2026-09-01','男子走幅跳','架空 一郎','高2','5m74','+1.9'),mk('e1','2026-09-01','男子走幅跳','見本 二郎','高1','5m80','+3.0')];
+ const pd=R.pbDetails(rs);
+ ok(pd.a1.flag==='初'&&pd.a2.flag==='PB'&&pd.a2.prev.id==='a1'&&pd.a2.diff===0.2,'PBの直前ベストと伸び（12.00→11.80 で 0.20）');
+ ok(!pd.a3&&!pd.a4,'追い風2.0超・風不明はPBにしない');
+ ok(pd.d2.flag==='PB'&&pd.d2.diff===0.24&&!pd.e1,'フィールドのPB（+0.24）・追い風参考は除く');
+ const all=R.ranking(rs,{});
+ ok(all['男子100m'].map(x=>x.name).join(',')==='先輩 太郎,架空 一郎,見本 二郎','全期間ランキング（時間は速い順）');
+ ok(all['男子100m'][1].best.mark==='11.80','ランキングの記録は公認ベスト');
+ const s26=R.ranking(rs,{season:2026});
+ ok(s26['男子100m'].length===2&&s26['男子100m'][0].name==='架空 一郎','今シーズンだけ（先輩・昨年度は除く）');
+ const g1=R.ranking(rs,{season:2026,grade:1});
+ ok(g1['男子100m'].length===1&&g1['男子100m'][0].name==='見本 二郎'&&!g1['男子走幅跳'],'学年で絞り込む（風参考だけの選手は載らない）');
+ ok(R.ranking(rs,{grade:2})['男子100m'].map(x=>x.name).join()==='架空 一郎','学年は最新の記録で判定（高1→高2の選手は2年）');
+ const tie=R.ranking([mk('t1','2026-05-01','男子400m','甲','高1','55.00',''),mk('t2','2026-05-01','男子400m','乙','高1','55.00',''),mk('t3','2026-05-01','男子400m','丙','高1','56.00','')],{})['男子400m'];
+ ok(tie.map(x=>x.rank).join()==='1,1,3','同記録は同順位');
+ const at=R.allTimeTop(rs,2);
+ ok(at['男子100m'].length===2&&at['男子100m'][0].year==='2023'&&at['男子100m'][0].season===2023,'歴代は上位n人・年を出す');
+ ok(at['男子走幅跳'][0].best.mark==='5m74','歴代のフィールドは遠い順（参考記録は除く）');
+ const pf=R.athleteProfile(rs,R.athleteKey(rs[0]));
+ ok(pf.events.length===2&&pf.grade==='高2','選手ページ：種目ごと');
+ const e100=pf.events.find(e=>e.event===R.normEvent('男子100m'));
+ ok(e100.best.mark==='11.80'&&e100.ref.mark==='11.60'&&e100.points.length===2&&e100.lower&&e100.recent[0].id==='a4','選手ページ：公認ベスト・参考・グラフ点（公認のみ）・最近の記録');
+ ok(R.athleteProfile(rs,'nobody')===null,'いない選手はnull');}
 if(process.argv.length>2){const {loadPages}=await import('./load.mjs');
  for(const f of process.argv.slice(2)){const r=R.parsePdf(await loadPages(f),{school:process.env.SCHOOL||'本郷'});console.log('[PDF]',f,'記録',r.recs.length,'件 警告',r.warns.length,'件');r.warns.slice(0,10).forEach(w=>console.log('   ⚠',w));}}
 console.log('\n'+pass+' passed, '+fail+' failed');process.exit(fail?1:0);

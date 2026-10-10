@@ -492,12 +492,49 @@ tr.haswarn td{background:#fff8e1}
   #rbView .rbt tr.rb-meet td{display:block;white-space:normal;font-size:14px}
   #rbView .rb-delmeet{min-height:44px}
 }
+/* ===== v0.3：ホーム・選手のページ・ランキング・歴代（カード） ===== */
+a.ath{color:var(--navy);font-weight:700;text-decoration:underline;text-decoration-color:#c9d2e0;text-underline-offset:3px}
+.card{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:10px 0;background:#fff;overflow-wrap:anywhere}
+.card.empty{background:#f7f9fc;text-align:center}.card.empty .btn{min-height:44px}
+.card-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin-bottom:6px}.card-h b{font-size:16px}
+.card-h .tag{font-size:11px;font-weight:700;background:var(--navy);color:#fff;border-radius:6px;padding:1px 7px}
+.kpis{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px;margin:8px 0}
+.kpi{border:1px solid var(--line);border-radius:12px;padding:10px;background:#fff;display:flex;flex-direction:column}
+.kpi b{font-size:26px;line-height:1.1;font-variant-numeric:tabular-nums}.kpi span{font-size:12px;color:var(--muted)}.kpi small{display:block}
+.kpi.hot{background:#fde8e1;border-color:#f3b8a5}.kpi.hot b{color:#a8402b;font-size:32px}
+.big-n{font-size:20px;color:#a8402b}
+.pblist,.rank,.recent{list-style:none;margin:0;padding:0}
+.pblist li{display:grid;grid-template-columns:1fr auto;gap:0 10px;padding:8px 0;border-top:1px solid var(--line);align-items:baseline}
+.pblist .ath{font-size:16px;min-height:28px}.pblist .ev{text-align:right;color:var(--navy);font-weight:700;font-size:14px}
+.pblist .lmk b{font-size:22px;font-variant-numeric:tabular-nums}.pblist .prev{text-align:right;font-size:12.5px;color:var(--muted)}
+.up{color:#1a7f37;margin-left:6px;font-size:14px}
+.rank li{display:grid;grid-template-columns:34px 1fr auto;grid-template-areas:"no nm mk" "no gr gr" "no sub sub";gap:0 10px;padding:7px 0;border-top:1px solid var(--line);align-items:center;min-height:44px}
+.rank .no{grid-area:no;font-weight:800;font-size:18px;text-align:center;color:var(--muted)}.rank .no.n1{color:#c8960c}.rank .no.n2{color:#7d8794}.rank .no.n3{color:#a0643c}
+.rank .ath{grid-area:nm;font-size:16px}.rank .gr{grid-area:gr;font-size:12px;color:var(--muted)}
+.rank .lmk{grid-area:mk;font-size:20px;text-align:right;font-variant-numeric:tabular-nums}.rank .sub{grid-area:sub;font-size:11.5px;color:var(--muted)}
+.ropt{margin:6px 0}.ropt select{min-height:44px;font-size:16px;padding:4px 8px;border:1px solid #c9d2e0;border-radius:8px}
+.back{min-height:44px;margin:4px 0}
+.ath-h .nm{font-size:22px;margin-right:8px}
+.evbest{display:flex;flex-direction:column}.bigmk{font-size:32px;line-height:1.15;font-variant-numeric:tabular-nums}
+.sparkbox{margin:8px 0 4px}.spark{display:block;width:100%;max-width:420px;height:56px;background:#f7f9fc;border-radius:8px}
+.recent li{display:flex;flex-wrap:wrap;gap:2px 10px;align-items:baseline;padding:6px 0;border-top:1px solid var(--line)}
+.recent .d{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}.recent b{font-size:17px}.recent .m{flex:1 1 100%;font-size:12px;color:var(--muted)}
+#rbView.view-home,#rbView.view-rank,#rbView.view-hist,#rbView.view-athlete{overflow-x:visible}
+body.ath-open #rbLegend{display:none}
+@media (max-width:600px){
+  .tabs{display:grid!important;grid-template-columns:repeat(3,1fr);overflow:visible!important}
+  .tabs button{font-size:14px!important;padding:8px 2px!important;white-space:normal!important}
+  .kpis{grid-template-columns:1fr 1fr 1fr}.kpi.hot{grid-column:1/-1}
+  .rank .ath,.pblist .ath{display:inline-flex;align-items:center;min-height:44px}
+  .ropt label{flex:1 1 40%!important;display:flex;flex-direction:column;font-size:12px}
+  #rbView a.ath{display:inline-flex;align-items:center;min-height:32px}
+}
 </style>
 </head>
 <body class="records">
 <header>
   <div class="hdr-meta">
-    <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／LANE LOG v0.2.4 <span class="beta-tag">試作</span></div>
+    <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／LANE LOG v0.3.0 <span class="beta-tag">試作</span></div>
     <div class="credit">Presented by Sakata</div>
     <div class="hdr-msg">すべての陸上競技部顧問が、少しでも楽になりますように。</div>
   </div>
@@ -545,7 +582,7 @@ tr.haswarn td{background:#fff8e1}
   <h2><span class="no">2</span>LANE LOG</h2>
   <div class="rb-stats" id="rbStats"></div>
   <div class="tabbar"><div class="tabs" role="tablist">
-    <button class="on" data-v="ath" type="button">選手別</button><button data-v="ev" type="button">種目別</button><button data-v="meet" type="button">大会別</button><button data-v="all" type="button">全記録</button>
+    <button class="on" data-v="home" type="button">ホーム</button><button data-v="ath" type="button">選手別</button><button data-v="rank" type="button">部内ランキング</button><button data-v="meet" type="button">大会別</button><button data-v="hist" type="button">歴代記録</button><button data-v="all" type="button">全記録</button>
   </div></div>
   <div class="rb-filter rb-row"><input type="text" id="rbQ" placeholder="しぼりこみ（氏名・種目・大会名など）"><label class="small"><input type="checkbox" id="rbMine" checked> 学校名の選手だけ</label></div>
   <p class="small muted" id="rbLegend"><span class="pb">PB</span> 自己ベスト更新　<span class="pb first">初</span> その種目の初記録　<span class="ref">追参</span> 追い風2.0m超（公認ベストにしない）　<span class="unk">風?</span> 風が読めなかった記録（公認ベストにしない）</p>
@@ -566,7 +603,7 @@ tr.haswarn td{background:#fff8e1}
 </main>
 <footer><details class="about"><summary><b>このLANE LOGについて</b>（版・対応している形式・既知の制限）</summary>
   <ul>
-    <li><b>LANE NOTE（レーンノート）LANE LOG（レーンログ） 試作版</b>　版：<span class="appver"></span>／LANE LOG v0.2.4（2026年10月10日 作成）／ Presented by Sakata</li>
+    <li><b>LANE NOTE（レーンノート）LANE LOG（レーンログ） 試作版</b>　版：<span class="appver"></span>／LANE LOG v0.3.0（2026年10月10日 作成）／ Presented by Sakata</li>
     <li>読める形式：組ごとに2列で並ぶ結果PDF（「順位・レーン・ナンバー・氏名・所属・記録」の見出しがあるもの。北区・江東区・都高体連などで確認）／ 結果サイトのHTML（表のあるもの）・その貼り付け。</li>
     <li>既知の制限：リレー・混成の得点・スキャン（画像）PDFは読みません。大会名・日付が資料に無いときは手で入れてください。風が読めない記録は公認ベストに数えません。</li>
     <li>使っている部品（外部CDNから読み込み、ハッシュで確認）：pdf.js 4.10.38（Apache-2.0, Mozilla）／ SheetJS Community Edition 0.20.3（Apache-2.0）／ Firebase JS SDK 10.14.1（Apache-2.0, Google・ログインと保存）</li>
@@ -913,6 +950,83 @@ var ResultParser = (function () {
     return { bests: bests, flags: flags };
   }
 
+
+  /* ---------- LANE LOG v0.3：シーズン・ランキング・歴代・PBの伸び ---------- */
+  // シーズン＝学校の年度（4月〜翌3月）。2026-10-04 → 2026、2027-03-01 → 2026
+  function seasonOf(date) { var m = String(date || '').match(/^(\d{4})-(\d{2})/); if (!m) return null; return +m[2] >= 4 ? +m[1] : +m[1] - 1; }
+  function seasonLabel(y) { return y == null ? '' : y + '年度'; }
+  function isOfficial(r) { var w = windClass(r); return (w === 'ok' || w === 'na') && !!markValue(r.mark); }
+  function gradeNum(g) { var m = nk(g || '').match(/(\d)/); return m ? +m[1] : null; }
+  function isBetter(a, b) { return !b || (a.lower ? a.v < b.v : a.v > b.v); }
+  function byDate(a, b) { return (a.date || '').localeCompare(b.date || '') || (a.order || 0) - (b.order || 0); }
+  // 改善幅：時間は短くなった分、距離・得点は伸びた分（どちらも正の数で返す）
+  function improvement(prevMark, newMark) {
+    var a = markValue(prevMark), b = markValue(newMark); if (!a || !b || a.lower !== b.lower) return null;
+    return Math.round((a.lower ? a.v - b.v : b.v - a.v) * 100) / 100;
+  }
+  function fmtImprovement(d, lower) { if (d == null) return ''; return (lower ? '−' : '+') + d.toFixed(2) + (lower ? '秒' : ''); }
+  // 各記録の PB 情報：{ flag:'PB'|'初', prev: 直前の公認ベストの記録, diff: 改善幅 }
+  function pbDetails(recs) {
+    var groups = {}, out = {};
+    recs.forEach(function (r) { var k = athleteKey(r) + '|' + normEvent(r.event); (groups[k] = groups[k] || []).push(r); });
+    Object.keys(groups).forEach(function (k) {
+      var best = null;
+      groups[k].slice().sort(byDate).forEach(function (r) {
+        if (!isOfficial(r)) return;
+        var mv = markValue(r.mark);
+        if (isBetter(mv, best && best.mv)) {
+          out[r.id] = best ? { flag: 'PB', prev: best.r, diff: improvement(best.r.mark, r.mark), lower: mv.lower } : { flag: '初', prev: null, diff: null, lower: mv.lower };
+          best = { r: r, mv: mv };
+        }
+      });
+    });
+    return out;
+  }
+  // 部内ランキング：opt.season（年度・null で全期間）、opt.grade（1/2/3・null で全学年）
+  // 学年は対象期間の中でいちばん新しい記録の学年で判定する
+  function ranking(recs, opt) {
+    opt = opt || {};
+    var rs = recs.filter(function (r) { return opt.season == null || seasonOf(r.date) === opt.season; });
+    var groups = {};
+    rs.forEach(function (r) { var ev = normEvent(r.event), k = athleteKey(r); ((groups[ev] = groups[ev] || {})[k] = groups[ev][k] || []).push(r); });
+    var out = {};
+    Object.keys(groups).forEach(function (ev) {
+      var list = [];
+      Object.keys(groups[ev]).forEach(function (k) {
+        var g = groups[ev][k].slice().sort(byDate), last = g[g.length - 1], best = null;
+        var gr = null; for (var i = g.length - 1; i >= 0 && gr == null; i--) gr = gradeNum(g[i].grade);
+        if (opt.grade != null && gr !== opt.grade) return;
+        g.forEach(function (r) { if (isOfficial(r)) { var mv = markValue(r.mark); if (isBetter(mv, best && best.mv)) best = { r: r, mv: mv }; } });
+        if (best) list.push({ key: k, name: last.name || last.kana, team: last.team, grade: gr, best: best.r, mv: best.mv, count: g.length });
+      });
+      list.sort(function (a, b) { return a.mv.lower ? a.mv.v - b.mv.v : b.mv.v - a.mv.v; });
+      var prev = null; list.forEach(function (x, i) { x.rank = prev && prev.mv.v === x.mv.v ? prev.rank : i + 1; prev = x; });
+      if (list.length) out[ev] = list;
+    });
+    return out;
+  }
+  // 歴代記録：種目ごとに、選手ひとりにつき公認ベスト1つで上位 n 人（卒業生も含む）
+  function allTimeTop(recs, n) {
+    var r = ranking(recs, {}), out = {};
+    Object.keys(r).forEach(function (ev) { out[ev] = r[ev].slice(0, n || 10).map(function (x) { return Object.assign({}, x, { season: seasonOf(x.best.date), year: String(x.best.date || '').slice(0, 4) }); }); });
+    return out;
+  }
+  // 選手のページ：種目ごとに公認ベスト・参考・最近の記録・グラフ用の点（公認記録を日付順）
+  function athleteProfile(recs, key) {
+    var mine = recs.filter(function (r) { return athleteKey(r) === key; });
+    if (!mine.length) return null;
+    var cb = computeBests(mine), byEv = {};
+    mine.forEach(function (r) { var ev = normEvent(r.event); (byEv[ev] = byEv[ev] || []).push(r); });
+    var last = mine.slice().sort(byDate)[mine.length - 1];
+    var events = cb.bests.map(function (b) {
+      var g = byEv[b.event].slice().sort(byDate);
+      var pts = g.filter(isOfficial).map(function (r) { return { date: r.date, v: markValue(r.mark).v, mark: r.mark }; });
+      var any = g.map(function (r) { return markValue(r.mark); }).filter(Boolean)[0];
+      return { event: b.event, eventLabel: b.eventLabel, best: b.best, ref: b.ref, count: b.count, recent: g.slice().reverse().slice(0, 5), points: pts, lower: any ? any.lower : true };
+    }).sort(function (a, b) { return a.event < b.event ? -1 : a.event > b.event ? 1 : 0; });
+    return { key: key, name: last.name || last.kana, kana: last.kana, team: last.team, grade: last.grade, events: events, count: mine.length };
+  }
+
   /* ---------- 大会名の推測（ファイル名・資料の見出しから） ---------- */
   var GENERIC = /^(result|results|kekka|document|doc|scan|file|print|download|untitled|list|timeorder|preview|program|pdf|html?|無題|名称未設定|新しいファイル|プレビュー|一覧|資料|結果)$/i;
   var MEET_KW = /(大会|選手権|記録会|競技会|リレー|カーニバル|フェスティバル|陸上|学年別|新人戦|支部|区民|都民|総体|インターハイ|駅伝|予選)/;
@@ -959,13 +1073,13 @@ var ResultParser = (function () {
   function recId(meetName, date, r) { return [nk(meetName).replace(/\s/g, ''), date, normEvent(r.event), r.round, r.heat, nameKey(r.name || r.kana), schoolBase(r.team), r.mark].join('|'); }
   return { parsePdf: parsePdf, parseCells: parseCells, parsePlain: parsePlain, textToStream: textToStream, normEvent: normEvent, markValue: markValue, windApplies: windApplies, windClass: windClass, windNum: windNum,
     computeBests: computeBests, athleteKey: athleteKey, matchSchool: matchSchool, recId: recId, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
-    guessMeet: guessMeet, cleanMeetName: cleanMeetName, dateFromText: dateFromText };
+    guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText };
 })();
 if (typeof module !== 'undefined') module.exports = ResultParser;
 
 </script>
 <script>
-var APP_VERSION = "v0.9", REC_VERSION = "v0.2.4";
+var APP_VERSION = "v0.9", REC_VERSION = "v0.3.0";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>
@@ -1305,12 +1419,17 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
     } catch (err) { st.className = 'status ng'; st.textContent = '✖ 保存できませんでした：' + err.message; }
   });
 
-  /* ---------- 一覧 ---------- */
-  var view = 'ath', sort = { ath: null, ev: null, meet: null, all: null };
+  /* ---------- 一覧（v0.3：ホーム・選手・部内ランキング・大会別・歴代・全記録。選手のページは #athlete=… で開く） ---------- */
+  var view = 'home', sort = { ath: null, meet: null, all: null }, rankOpt = { season: 'now', grade: '' };
+  function setTab(v) { view = v; document.querySelectorAll('.tabs button').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-v') === v); }); }
   document.querySelector('.tabs').addEventListener('click', function (e) {
-    var v = e.target.getAttribute('data-v'); if (!v) return; view = v;
-    document.querySelectorAll('.tabs button').forEach(function (b) { b.classList.toggle('on', b === e.target); }); render();
+    var v = e.target.getAttribute('data-v'); if (!v) return; setTab(v);
+    if (curAthlete()) { history.pushState(null, '', location.pathname + location.search); }
+    render();
   });
+  function curAthlete() { var m = location.hash.match(/^#athlete=(.+)$/); if (!m) return ''; try { return decodeURIComponent(m[1]); } catch (e) { return ''; } }
+  window.addEventListener('hashchange', function () { render(); if (curAthlete()) window.scrollTo(0, $('rbView').getBoundingClientRect().top + window.scrollY - document.querySelector('.tabbar').offsetHeight - 8); });
+  window.addEventListener('popstate', function () { render(); });
   $('rbQ').addEventListener('input', render); $('rbMine').addEventListener('change', render);
   async function reload() { try { ALL = await getAll(); } catch (e) { ALL = []; status('rbDataStatus', '✖ ' + esc(e.message), 'ng'); } render(); if (CLOUD_READY) renderAuth(); }
   function filtered() {
@@ -1329,7 +1448,12 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
     var f = defs[s.k]; return rows.slice().sort(function (a, b) { return cmp(f(a), f(b)) * s.d; });
   }
   function th(key, k, label) { var s = sort[key], ar = s && s.k === k ? (s.d > 0 ? '▲' : '▼') : ''; return '<th data-sort="' + k + '">' + label + '<span class="ar">' + ar + '</span></th>'; }
+  function athLink(key, name) { return '<a class="ath" href="#athlete=' + encodeURIComponent(key) + '">' + esc(name) + '</a>'; }
+  function nowSeason() { var d = new Date(); return R.seasonOf(d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-01'); }
+  function evLabel(rows, ev) { for (var i = 0; i < rows.length; i++) if (R.normEvent(rows[i].event) === ev) return rows[i].event; return ev; }
   $('rbView').addEventListener('click', async function (e) {
+    if (e.target.closest('[data-back]')) { e.preventDefault(); if (window.__athNav) { window.__athNav = false; history.back(); } else { history.pushState(null, '', location.pathname + location.search); render(); } return; }
+    if (e.target.closest('a.ath')) { window.__athNav = true; return; }
     var dm = e.target.getAttribute && e.target.getAttribute('data-delmeet');
     if (dm) {
       // その大会の記録だけを消す（学校名・しぼりこみに関係なく、その大会のすべての記録）
@@ -1339,44 +1463,114 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
       await delIds(ids); status('rbDataStatus', '✔ 「' + esc(dm.replace('|', ' ')) + '」の記録 ' + ids.length + '件を消しました。自己ベストを計算し直しました。', 'ok');
       await reload(); return;
     }
+    var go = e.target.closest('[data-go]'); if (go) { setTab(go.getAttribute('data-go')); render(); return; }
     var t = e.target.closest('th[data-sort]'); if (!t) return; var k = t.getAttribute('data-sort'), s = sort[view];
     sort[view] = s && s.k === k ? { k: k, d: -s.d } : { k: k, d: 1 }; render();
   });
+  $('rbView').addEventListener('change', function (e) {
+    var f = e.target.getAttribute('data-ropt'); if (!f) return; rankOpt[f] = e.target.value; render();
+  });
+  // 小さな推移グラフ（上ほど良い記録：時間は下向き、距離は上向きに描く）
+  function spark(pts, lower) {
+    if (pts.length < 2) return '<span class="small muted">記録が2つ以上たまるとグラフが出ます</span>';
+    var W = 260, H = 56, P = 6, vs = pts.map(function (p) { return p.v; }), lo = Math.min.apply(null, vs), hi = Math.max.apply(null, vs), span = hi - lo || 1;
+    var xy = pts.map(function (p, i) { var x = P + i * (W - 2 * P) / (pts.length - 1), n = (p.v - lo) / span, y = lower ? P + n * (H - 2 * P) : H - P - n * (H - 2 * P); return [Math.round(x * 10) / 10, Math.round(y * 10) / 10]; });
+    var bi = 0; vs.forEach(function (v, i) { if (lower ? v < vs[bi] : v > vs[bi]) bi = i; });
+    return '<svg class="spark" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="記録の推移（上ほど良い）"><polyline fill="none" stroke="#1f3a68" stroke-width="2" points="' + xy.map(function (p) { return p.join(','); }).join(' ') + '"/>' +
+      xy.map(function (p, i) { return '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="' + (i === bi ? 4.5 : 3) + '" fill="' + (i === bi ? '#e4572e' : '#1f3a68') + '"><title>' + esc(pts[i].date + ' ' + pts[i].mark) + '</title></circle>'; }).join('') + '</svg>';
+  }
+  function pbFlag(f) { return f === 'PB' ? '<span class="pb">PB</span>' : f === '初' ? '<span class="pb first">初</span>' : ''; }
+  function renderHome(rows) {
+    if (!rows.length) return '<div class="card empty"><b>まだ記録がありません</b><p>上の「1 学校名と結果の資料」で、大会の結果PDFや保存したWebページを入れて「LANE LOGに保存」を押すと、ここに最近の大会の自己ベストやシーズンの記録がまとまって出ます。</p><button class="btn" type="button" onclick="document.getElementById(\'rbDrop\').scrollIntoView({behavior:\'smooth\'})">結果の資料を入れる</button></div>';
+    var pd = R.pbDetails(rows), ns = nowSeason();
+    var aths = {}, meets = {}, seasonPB = 0, seasonPBAth = {};
+    rows.forEach(function (r) { aths[R.athleteKey(r)] = 1; var k = r.date + '|' + r.meet; (meets[k] = meets[k] || []).push(r); var p = pd[r.id]; if (p && p.flag === 'PB' && R.seasonOf(r.date) === ns) { seasonPB++; seasonPBAth[R.athleteKey(r)] = 1; } });
+    var mk = Object.keys(meets).sort().reverse();
+    var h = '<div class="kpis"><div class="kpi hot"><b>' + seasonPB + '</b><span>今シーズンの自己ベスト更新<small>（' + R.seasonLabel(ns) + '・' + Object.keys(seasonPBAth).length + '人）</small></span></div><div class="kpi"><b>' + Object.keys(aths).length + '</b><span>選手</span></div><div class="kpi"><b>' + rows.length + '</b><span>記録</span></div><div class="kpi"><b>' + mk.length + '</b><span>大会</span></div></div>';
+    mk.slice(0, 2).forEach(function (k, i) {
+      var list = meets[k], pbs = list.filter(function (r) { return pd[r.id] && pd[r.id].flag === 'PB'; }), firsts = list.filter(function (r) { return pd[r.id] && pd[r.id].flag === '初'; });
+      pbs.sort(function (a, b) { return cmp(R.nk(a.name), R.nk(b.name)) || cmp(R.normEvent(a.event), R.normEvent(b.event)); });
+      h += '<div class="card"><div class="card-h"><span class="tag">' + (i ? 'その前の大会' : '最新の大会') + '</span><b>' + esc(list[0].meet) + '</b><span class="small muted">' + esc(list[0].date) + '・' + list.length + '件</span></div>' +
+        '<p class="small">自己ベスト更新 <b class="big-n">' + pbs.length + '</b>件' + (firsts.length ? '　初記録 ' + firsts.length + '件' : '') + '</p>' +
+        (pbs.length ? '<ul class="pblist">' + pbs.map(function (r) { var p = pd[r.id]; return '<li>' + athLink(R.athleteKey(r), r.name || r.kana) + '<span class="ev">' + esc(r.event) + '</span><span class="lmk"><b>' + esc(r.mark) + '</b><span class="pb">PB</span></span><span class="prev">前のベスト ' + esc(p.prev.mark) + '<b class="up">' + esc(R.fmtImprovement(p.diff, p.lower)) + '</b></span></li>'; }).join('') + '</ul>' : '<p class="small muted">この大会では自己ベストの更新はありませんでした。</p>') + '</div>';
+    });
+    return h;
+  }
+  function renderAthlete(rows, key) {
+    var pf = R.athleteProfile(rows, key) || R.athleteProfile(ALL, key);
+    var back = '<button class="btn sub back" type="button" data-back="1">← もどる</button>';
+    if (!pf) return back + '<p class="muted">この選手の記録が見つかりませんでした。</p>';
+    var pd = R.pbDetails(ALL.filter(function (r) { return R.athleteKey(r) === key; }));
+    return back + '<div class="card ath-h"><b class="nm">' + esc(pf.name) + '</b>' + (pf.kana ? '<span class="small muted">' + esc(pf.kana) + '</span>' : '') + '<div class="small muted">' + esc(pf.team) + (pf.grade ? '・' + esc(pf.grade) : '') + '・' + pf.events.length + '種目・' + pf.count + '件</div></div>' +
+      pf.events.map(function (e) {
+        var b = e.best;
+        return '<div class="card evc"><div class="card-h"><b>' + esc(e.eventLabel) + '</b><span class="small muted">' + e.count + '件</span></div>' +
+          '<div class="evbest"><span class="small muted">自己ベスト（公認）</span><b class="bigmk">' + esc(b ? b.mark : '—') + '</b>' + (b ? '<span class="small muted">' + (b.wind ? '風' + esc(b.wind) + '・' : '') + esc(b.date) + ' ' + esc(b.meet) + '</span>' : '') + '</div>' +
+          (e.ref ? '<div class="small">参考 ' + esc(e.ref.mark) + windTag(e.ref) + ' <span class="muted">' + esc(e.ref.wind) + ' ' + esc(e.ref.date) + '</span></div>' : '') +
+          '<div class="sparkbox">' + spark(e.points, e.lower) + '<span class="small muted">' + (e.points.length > 1 ? '公認記録の推移（上ほど良い・赤がベスト）' : '') + '</span></div>' +
+          '<ul class="recent">' + e.recent.map(function (r) { return '<li><span class="d">' + esc(r.date) + '</span><b>' + esc(r.mark) + '</b>' + pbFlag(pd[r.id] && pd[r.id].flag) + windTag(r) + '<span class="m">' + (r.wind ? '風' + esc(r.wind) + '・' : '') + esc(r.meet) + (r.round ? '・' + esc(r.round) : '') + '</span></li>'; }).join('') + '</ul></div>';
+      }).join('');
+  }
+  function renderRank(rows) {
+    var ns = nowSeason(), opt = { season: rankOpt.season === 'now' ? ns : null, grade: rankOpt.grade ? +rankOpt.grade : null };
+    var rk = R.ranking(rows, opt), evs = Object.keys(rk).sort();
+    var ctl = '<div class="rb-row ropt"><label>期間 <select data-ropt="season"><option value="now"' + (rankOpt.season === 'now' ? ' selected' : '') + '>今シーズン（' + R.seasonLabel(ns) + '）</option><option value="all"' + (rankOpt.season === 'all' ? ' selected' : '') + '>全期間</option></select></label>' +
+      '<label>学年 <select data-ropt="grade">' + [['', '全学年'], ['1', '1年'], ['2', '2年'], ['3', '3年']].map(function (o) { return '<option value="' + o[0] + '"' + (rankOpt.grade === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></label></div>';
+    if (!evs.length) return ctl + '<p class="muted small">この条件の公認記録がありません。期間や学年を変えてみてください。</p>';
+    return ctl + evs.map(function (ev) {
+      return '<div class="card"><div class="card-h"><b>' + esc(evLabel(rows, ev)) + '</b><span class="small muted">' + rk[ev].length + '人</span></div><ol class="rank">' + rk[ev].map(function (x) {
+        return '<li><span class="no n' + x.rank + '">' + x.rank + '</span>' + athLink(x.key, x.name) + '<span class="gr">' + (x.grade ? x.grade + '年' : '') + '</span><b class="lmk">' + esc(x.best.mark) + '</b><span class="sub">' + (x.best.wind ? '風' + esc(x.best.wind) + '・' : '') + esc(x.best.date) + '</span></li>';
+      }).join('') + '</ol></div>';
+    }).join('');
+  }
+  function renderAllTime(rows) {
+    var at = R.allTimeTop(rows, 10), evs = Object.keys(at).sort();
+    if (!evs.length) return '<p class="muted small">公認記録がまだありません。</p>';
+    return '<p class="small muted">種目ごとに、卒業生も含めた歴代の上位10人（ひとり1記録・公認のみ）です。</p>' + evs.map(function (ev) {
+      return '<div class="card"><div class="card-h"><b>' + esc(evLabel(rows, ev)) + '</b><span class="small muted">歴代 ' + at[ev].length + '人</span></div><ol class="rank">' + at[ev].map(function (x) {
+        return '<li><span class="no n' + x.rank + '">' + x.rank + '</span>' + athLink(x.key, x.name) + '<span class="gr">' + esc(R.seasonLabel(x.season)) + '</span><b class="lmk">' + esc(x.best.mark) + '</b><span class="sub">' + (x.best.wind ? '風' + esc(x.best.wind) + '・' : '') + esc(x.best.date) + ' ' + esc(x.best.meet) + '</span></li>';
+      }).join('') + '</ol></div>';
+    }).join('');
+  }
   function render() {
     var rows = filtered(), cb = R.computeBests(rows), flags = cb.flags;
     var meets = {}; rows.forEach(function (r) { var k = r.date + '|' + r.meet; meets[k] = (meets[k] || 0) + 1; });
     var aths = {}; rows.forEach(function (r) { aths[R.athleteKey(r)] = 1; });
     $('rbStats').textContent = ALL.length ? '保存している記録：' + ALL.length + '件（表示 ' + rows.length + '件・選手 ' + Object.keys(aths).length + '人・大会 ' + Object.keys(meets).length + '件）' : 'まだ記録がありません。上で結果の資料を入れて「LANE LOGに保存」を押してください。';
+    var ak = curAthlete(), v = $('rbView');
+    document.body.classList.toggle('ath-open', !!ak);
+    v.className = 'tblwrap view-' + (ak ? 'athlete' : view);
+    if (ak) { v.innerHTML = renderAthlete(rows, ak); return; }
+    if (view === 'home') { v.innerHTML = renderHome(rows); return; }
+    if (!rows.length) { v.innerHTML = '<p class="muted small">表示する記録がありません。</p>'; return; }
+    if (view === 'rank') { v.innerHTML = renderRank(rows); return; }
+    if (view === 'hist') { v.innerHTML = renderAllTime(rows); return; }
     var html = '';
-    if (view === 'ath' || view === 'ev') {
+    if (view === 'ath') {
       var bs = cb.bests.slice();
       var defs = { name: function (b) { return R.nk(b.name); }, team: function (b) { return R.nk(b.team); }, event: function (b) { return b.event; }, best: function (b) { return mv(b.best || b.ref); }, date: function (b) { return (b.best || b.ref || {}).date || ''; }, count: function (b) { return -b.count; } };
-      bs.sort(view === 'ath' ? function (a, b) { return cmp(R.nk(a.name), R.nk(b.name)) || cmp(a.event, b.event); } : function (a, b) { return cmp(a.event, b.event) || cmp(mv(a.best || a.ref), mv(b.best || b.ref)); });
+      bs.sort(function (a, b) { return cmp(R.nk(a.name), R.nk(b.name)) || cmp(a.event, b.event); });
       bs = sortRows(bs, view, defs);
-      var first = view === 'ath' ? th(view, 'name', '氏名') + th(view, 'team', '所属') + th(view, 'event', '種目') : th(view, 'event', '種目') + th(view, 'name', '氏名') + th(view, 'team', '所属');
-      html = '<table class="rbt"><tr class="hd">' + first + th(view, 'best', '自己ベスト（公認）') + '<th>風</th>' + th(view, 'date', '日付') + '<th>大会</th><th>参考記録（追い風・風不明）</th>' + th(view, 'count', '記録数') + '</tr>' + bs.map(function (b) {
+      html = '<table class="rbt"><tr class="hd">' + th(view, 'name', '氏名') + th(view, 'team', '所属') + th(view, 'event', '種目') + th(view, 'best', '自己ベスト（公認）') + '<th>風</th>' + th(view, 'date', '日付') + '<th>大会</th><th>参考記録（追い風・風不明）</th>' + th(view, 'count', '記録数') + '</tr>' + bs.map(function (b) {
         var r = b.best || {}, f = b.ref;
-        var cN = '<td class="c-name">' + esc(b.name) + '</td>', cT = '<td class="c-team">' + esc(b.team) + '</td>', cE = '<td class="c-ev">' + esc(b.eventLabel) + '</td>';
-        var lead = view === 'ath' ? cN + cT + cE : cE + cN + cT;
-        return '<tr class="rc">' + lead + '<td class="rn c-mark"><b>' + esc(r.mark || '—') + '</b></td><td class="rn c-wind" data-l="風">' + esc(r.wind) + '</td><td class="c-date">' + esc(r.date) + '</td><td class="c-meet">' + esc(r.meet) + '</td><td class="c-ref" data-l="参考">' + (f ? esc(f.mark) + windTag(f) + ' <small class="muted">' + esc(f.wind) + ' ' + esc(f.date) + '</small>' : '') + '</td><td class="rn c-cnt" data-l="記録数">' + b.count + '</td></tr>';
+        return '<tr class="rc"><td class="c-name">' + athLink(b.key, b.name) + '</td><td class="c-team">' + esc(b.team) + '</td><td class="c-ev">' + esc(b.eventLabel) + '</td><td class="rn c-mark"><b>' + esc(r.mark || '—') + '</b></td><td class="rn c-wind" data-l="風">' + esc(r.wind) + '</td><td class="c-date">' + esc(r.date) + '</td><td class="c-meet">' + esc(r.meet) + '</td><td class="c-ref" data-l="参考">' + (f ? esc(f.mark) + windTag(f) + ' <small class="muted">' + esc(f.wind) + ' ' + esc(f.date) + '</small>' : '') + '</td><td class="rn c-cnt" data-l="記録数">' + b.count + '</td></tr>';
       }).join('') + '</table>';
     } else {
       var rs = rows.slice().sort(function (a, b) { return cmp(b.date, a.date) || cmp(a.meet, b.meet) || cmp(R.normEvent(a.event), R.normEvent(b.event)) || cmp(a.order || 0, b.order || 0); });
       var d2 = { date: function (r) { return r.date; }, meet: function (r) { return r.meet; }, event: function (r) { return R.normEvent(r.event); }, name: function (r) { return R.nk(r.name); }, grade: function (r) { return r.grade; }, mark: mv, rank: function (r) { return r.rank === '' ? 999 : +r.rank; } };
       rs = sortRows(rs, view, d2);
-      var lastMeet = '';
-      html = '<table class="rbt"><tr class="hd">' + th(view, 'date', '日付') + th(view, 'meet', '大会') + th(view, 'event', '種目') + '<th>ラウンド</th><th>組</th>' + th(view, 'name', '氏名') + th(view, 'grade', '学年') + '<th>所属</th>' + th(view, 'mark', '記録') + '<th>風</th>' + th(view, 'rank', '順位') + '<th>備考</th></tr>' + rs.map(function (r) {
-        var head = '';
-        if (view === 'meet' && !sort.meet && r.date + '|' + r.meet !== lastMeet) {
-          var key = r.date + '|' + r.meet, cnt = rows.filter(function (x) { return x.date + '|' + x.meet === key; }).length;
+      var grouped = view === 'meet' && !sort.meet, lastMeet = '';   // 大会別は見出しに大会名と日付を出すので、カードの中では繰り返さない
+      html = '<table class="rbt"><tr class="hd">' + (grouped ? '' : th(view, 'date', '日付') + th(view, 'meet', '大会')) + th(view, 'event', '種目') + '<th>ラウンド</th><th>組</th>' + th(view, 'name', '氏名') + th(view, 'grade', '学年') + '<th>所属</th>' + th(view, 'mark', '記録') + '<th>風</th>' + th(view, 'rank', '順位') + '<th>備考</th></tr>' + rs.map(function (r) {
+        var head = '', key = r.date + '|' + r.meet;
+        if (grouped && key !== lastMeet) {
+          var cnt = meets[key] || 0;
           head = '<tr class="gsep rb-meet"><td colspan="12"><b>' + esc(r.date) + '　' + esc(r.meet) + '</b>　<span class="small muted">' + cnt + '件</span> <button class="btn sub rb-delmeet" type="button" data-delmeet="' + esc(key) + '">この大会を消す</button></td></tr>';
         }
-        var sep = ''; lastMeet = r.date + '|' + r.meet;
-        var fl = flags[r.id] === 'PB' ? '<span class="pb">PB</span>' : flags[r.id] === '初' ? '<span class="pb first">初</span>' : '';
-        return head + '<tr class="rc"' + sep + '><td class="c-date">' + esc(r.date) + '</td><td class="c-meet">' + esc(r.meet) + '</td><td class="c-ev">' + esc(r.event) + '</td><td class="c-round">' + esc(r.round) + '</td><td class="rn c-heat" data-l="組">' + esc(r.heat) + '</td><td class="c-name">' + esc(r.name) + '</td><td class="rn c-grade" data-l="学年">' + esc(r.grade) + '</td><td class="c-team">' + esc(r.team) + '</td><td class="rn c-mark"><b>' + esc(r.mark) + '</b>' + fl + windTag(r) + '</td><td class="rn c-wind" data-l="風">' + esc(r.wind) + '</td><td class="rn c-rank" data-l="順位">' + esc(r.rank) + '</td><td class="c-cmt"><small>' + esc(r.comment) + '</small></td></tr>';
+        lastMeet = key;
+        return head + '<tr class="rc">' + (grouped ? '' : '<td class="c-date">' + esc(r.date) + '</td><td class="c-meet">' + esc(r.meet) + '</td>') + '<td class="c-ev">' + esc(r.event) + '</td><td class="c-round">' + esc(r.round) + '</td><td class="rn c-heat" data-l="組">' + esc(r.heat) + '</td><td class="c-name">' + athLink(R.athleteKey(r), r.name || r.kana) + '</td><td class="rn c-grade" data-l="学年">' + esc(r.grade) + '</td><td class="c-team">' + esc(r.team) + '</td><td class="rn c-mark"><b>' + esc(r.mark) + '</b>' + pbFlag(flags[r.id]) + windTag(r) + '</td><td class="rn c-wind" data-l="風">' + esc(r.wind) + '</td><td class="rn c-rank" data-l="順位">' + esc(r.rank) + '</td><td class="c-cmt"><small>' + esc(r.comment) + '</small></td></tr>';
       }).join('') + '</table>';
     }
-    $('rbView').innerHTML = rows.length ? html : '<p class="muted small">表示する記録がありません。</p>';
+    v.innerHTML = html;
   }
 
   /* ---------- 書き出し・読み込み・消去 ---------- */

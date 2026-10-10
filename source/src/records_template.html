@@ -69,6 +69,43 @@ tr.haswarn td{background:#fff8e1}
   #rbView .rbt tr.rb-meet td{display:block;white-space:normal;font-size:14px}
   #rbView .rb-delmeet{min-height:44px}
 }
+/* ===== v0.3：ホーム・選手のページ・ランキング・歴代（カード） ===== */
+a.ath{color:var(--navy);font-weight:700;text-decoration:underline;text-decoration-color:#c9d2e0;text-underline-offset:3px}
+.card{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:10px 0;background:#fff;overflow-wrap:anywhere}
+.card.empty{background:#f7f9fc;text-align:center}.card.empty .btn{min-height:44px}
+.card-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin-bottom:6px}.card-h b{font-size:16px}
+.card-h .tag{font-size:11px;font-weight:700;background:var(--navy);color:#fff;border-radius:6px;padding:1px 7px}
+.kpis{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px;margin:8px 0}
+.kpi{border:1px solid var(--line);border-radius:12px;padding:10px;background:#fff;display:flex;flex-direction:column}
+.kpi b{font-size:26px;line-height:1.1;font-variant-numeric:tabular-nums}.kpi span{font-size:12px;color:var(--muted)}.kpi small{display:block}
+.kpi.hot{background:#fde8e1;border-color:#f3b8a5}.kpi.hot b{color:#a8402b;font-size:32px}
+.big-n{font-size:20px;color:#a8402b}
+.pblist,.rank,.recent{list-style:none;margin:0;padding:0}
+.pblist li{display:grid;grid-template-columns:1fr auto;gap:0 10px;padding:8px 0;border-top:1px solid var(--line);align-items:baseline}
+.pblist .ath{font-size:16px;min-height:28px}.pblist .ev{text-align:right;color:var(--navy);font-weight:700;font-size:14px}
+.pblist .lmk b{font-size:22px;font-variant-numeric:tabular-nums}.pblist .prev{text-align:right;font-size:12.5px;color:var(--muted)}
+.up{color:#1a7f37;margin-left:6px;font-size:14px}
+.rank li{display:grid;grid-template-columns:34px 1fr auto;grid-template-areas:"no nm mk" "no gr gr" "no sub sub";gap:0 10px;padding:7px 0;border-top:1px solid var(--line);align-items:center;min-height:44px}
+.rank .no{grid-area:no;font-weight:800;font-size:18px;text-align:center;color:var(--muted)}.rank .no.n1{color:#c8960c}.rank .no.n2{color:#7d8794}.rank .no.n3{color:#a0643c}
+.rank .ath{grid-area:nm;font-size:16px}.rank .gr{grid-area:gr;font-size:12px;color:var(--muted)}
+.rank .lmk{grid-area:mk;font-size:20px;text-align:right;font-variant-numeric:tabular-nums}.rank .sub{grid-area:sub;font-size:11.5px;color:var(--muted)}
+.ropt{margin:6px 0}.ropt select{min-height:44px;font-size:16px;padding:4px 8px;border:1px solid #c9d2e0;border-radius:8px}
+.back{min-height:44px;margin:4px 0}
+.ath-h .nm{font-size:22px;margin-right:8px}
+.evbest{display:flex;flex-direction:column}.bigmk{font-size:32px;line-height:1.15;font-variant-numeric:tabular-nums}
+.sparkbox{margin:8px 0 4px}.spark{display:block;width:100%;max-width:420px;height:56px;background:#f7f9fc;border-radius:8px}
+.recent li{display:flex;flex-wrap:wrap;gap:2px 10px;align-items:baseline;padding:6px 0;border-top:1px solid var(--line)}
+.recent .d{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}.recent b{font-size:17px}.recent .m{flex:1 1 100%;font-size:12px;color:var(--muted)}
+#rbView.view-home,#rbView.view-rank,#rbView.view-hist,#rbView.view-athlete{overflow-x:visible}
+body.ath-open #rbLegend{display:none}
+@media (max-width:600px){
+  .tabs{display:grid!important;grid-template-columns:repeat(3,1fr);overflow:visible!important}
+  .tabs button{font-size:14px!important;padding:8px 2px!important;white-space:normal!important}
+  .kpis{grid-template-columns:1fr 1fr 1fr}.kpi.hot{grid-column:1/-1}
+  .rank .ath,.pblist .ath{display:inline-flex;align-items:center;min-height:44px}
+  .ropt label{flex:1 1 40%!important;display:flex;flex-direction:column;font-size:12px}
+  #rbView a.ath{display:inline-flex;align-items:center;min-height:32px}
+}
 </style>
 </head>
 <body class="records">
@@ -119,7 +156,7 @@ tr.haswarn td{background:#fff8e1}
   <h2><span class="no">2</span>LANE LOG</h2>
   <div class="rb-stats" id="rbStats"></div>
   <div class="tabbar"><div class="tabs" role="tablist">
-    <button class="on" data-v="ath" type="button">選手別</button><button data-v="ev" type="button">種目別</button><button data-v="meet" type="button">大会別</button><button data-v="all" type="button">全記録</button>
+    <button class="on" data-v="home" type="button">ホーム</button><button data-v="ath" type="button">選手別</button><button data-v="rank" type="button">部内ランキング</button><button data-v="meet" type="button">大会別</button><button data-v="hist" type="button">歴代記録</button><button data-v="all" type="button">全記録</button>
   </div></div>
   <div class="rb-filter rb-row"><input type="text" id="rbQ" placeholder="しぼりこみ（氏名・種目・大会名など）"><label class="small"><input type="checkbox" id="rbMine" checked> 学校名の選手だけ</label></div>
   <p class="small muted" id="rbLegend"><span class="pb">PB</span> 自己ベスト更新　<span class="pb first">初</span> その種目の初記録　<span class="ref">追参</span> 追い風2.0m超（公認ベストにしない）　<span class="unk">風?</span> 風が読めなかった記録（公認ベストにしない）</p>

@@ -336,6 +336,83 @@ var ResultParser = (function () {
     return { bests: bests, flags: flags };
   }
 
+
+  /* ---------- LANE LOG v0.3：シーズン・ランキング・歴代・PBの伸び ---------- */
+  // シーズン＝学校の年度（4月〜翌3月）。2026-10-04 → 2026、2027-03-01 → 2026
+  function seasonOf(date) { var m = String(date || '').match(/^(\d{4})-(\d{2})/); if (!m) return null; return +m[2] >= 4 ? +m[1] : +m[1] - 1; }
+  function seasonLabel(y) { return y == null ? '' : y + '年度'; }
+  function isOfficial(r) { var w = windClass(r); return (w === 'ok' || w === 'na') && !!markValue(r.mark); }
+  function gradeNum(g) { var m = nk(g || '').match(/(\d)/); return m ? +m[1] : null; }
+  function isBetter(a, b) { return !b || (a.lower ? a.v < b.v : a.v > b.v); }
+  function byDate(a, b) { return (a.date || '').localeCompare(b.date || '') || (a.order || 0) - (b.order || 0); }
+  // 改善幅：時間は短くなった分、距離・得点は伸びた分（どちらも正の数で返す）
+  function improvement(prevMark, newMark) {
+    var a = markValue(prevMark), b = markValue(newMark); if (!a || !b || a.lower !== b.lower) return null;
+    return Math.round((a.lower ? a.v - b.v : b.v - a.v) * 100) / 100;
+  }
+  function fmtImprovement(d, lower) { if (d == null) return ''; return (lower ? '−' : '+') + d.toFixed(2) + (lower ? '秒' : ''); }
+  // 各記録の PB 情報：{ flag:'PB'|'初', prev: 直前の公認ベストの記録, diff: 改善幅 }
+  function pbDetails(recs) {
+    var groups = {}, out = {};
+    recs.forEach(function (r) { var k = athleteKey(r) + '|' + normEvent(r.event); (groups[k] = groups[k] || []).push(r); });
+    Object.keys(groups).forEach(function (k) {
+      var best = null;
+      groups[k].slice().sort(byDate).forEach(function (r) {
+        if (!isOfficial(r)) return;
+        var mv = markValue(r.mark);
+        if (isBetter(mv, best && best.mv)) {
+          out[r.id] = best ? { flag: 'PB', prev: best.r, diff: improvement(best.r.mark, r.mark), lower: mv.lower } : { flag: '初', prev: null, diff: null, lower: mv.lower };
+          best = { r: r, mv: mv };
+        }
+      });
+    });
+    return out;
+  }
+  // 部内ランキング：opt.season（年度・null で全期間）、opt.grade（1/2/3・null で全学年）
+  // 学年は対象期間の中でいちばん新しい記録の学年で判定する
+  function ranking(recs, opt) {
+    opt = opt || {};
+    var rs = recs.filter(function (r) { return opt.season == null || seasonOf(r.date) === opt.season; });
+    var groups = {};
+    rs.forEach(function (r) { var ev = normEvent(r.event), k = athleteKey(r); ((groups[ev] = groups[ev] || {})[k] = groups[ev][k] || []).push(r); });
+    var out = {};
+    Object.keys(groups).forEach(function (ev) {
+      var list = [];
+      Object.keys(groups[ev]).forEach(function (k) {
+        var g = groups[ev][k].slice().sort(byDate), last = g[g.length - 1], best = null;
+        var gr = null; for (var i = g.length - 1; i >= 0 && gr == null; i--) gr = gradeNum(g[i].grade);
+        if (opt.grade != null && gr !== opt.grade) return;
+        g.forEach(function (r) { if (isOfficial(r)) { var mv = markValue(r.mark); if (isBetter(mv, best && best.mv)) best = { r: r, mv: mv }; } });
+        if (best) list.push({ key: k, name: last.name || last.kana, team: last.team, grade: gr, best: best.r, mv: best.mv, count: g.length });
+      });
+      list.sort(function (a, b) { return a.mv.lower ? a.mv.v - b.mv.v : b.mv.v - a.mv.v; });
+      var prev = null; list.forEach(function (x, i) { x.rank = prev && prev.mv.v === x.mv.v ? prev.rank : i + 1; prev = x; });
+      if (list.length) out[ev] = list;
+    });
+    return out;
+  }
+  // 歴代記録：種目ごとに、選手ひとりにつき公認ベスト1つで上位 n 人（卒業生も含む）
+  function allTimeTop(recs, n) {
+    var r = ranking(recs, {}), out = {};
+    Object.keys(r).forEach(function (ev) { out[ev] = r[ev].slice(0, n || 10).map(function (x) { return Object.assign({}, x, { season: seasonOf(x.best.date), year: String(x.best.date || '').slice(0, 4) }); }); });
+    return out;
+  }
+  // 選手のページ：種目ごとに公認ベスト・参考・最近の記録・グラフ用の点（公認記録を日付順）
+  function athleteProfile(recs, key) {
+    var mine = recs.filter(function (r) { return athleteKey(r) === key; });
+    if (!mine.length) return null;
+    var cb = computeBests(mine), byEv = {};
+    mine.forEach(function (r) { var ev = normEvent(r.event); (byEv[ev] = byEv[ev] || []).push(r); });
+    var last = mine.slice().sort(byDate)[mine.length - 1];
+    var events = cb.bests.map(function (b) {
+      var g = byEv[b.event].slice().sort(byDate);
+      var pts = g.filter(isOfficial).map(function (r) { return { date: r.date, v: markValue(r.mark).v, mark: r.mark }; });
+      var any = g.map(function (r) { return markValue(r.mark); }).filter(Boolean)[0];
+      return { event: b.event, eventLabel: b.eventLabel, best: b.best, ref: b.ref, count: b.count, recent: g.slice().reverse().slice(0, 5), points: pts, lower: any ? any.lower : true };
+    }).sort(function (a, b) { return a.event < b.event ? -1 : a.event > b.event ? 1 : 0; });
+    return { key: key, name: last.name || last.kana, kana: last.kana, team: last.team, grade: last.grade, events: events, count: mine.length };
+  }
+
   /* ---------- 大会名の推測（ファイル名・資料の見出しから） ---------- */
   var GENERIC = /^(result|results|kekka|document|doc|scan|file|print|download|untitled|list|timeorder|preview|program|pdf|html?|無題|名称未設定|新しいファイル|プレビュー|一覧|資料|結果)$/i;
   var MEET_KW = /(大会|選手権|記録会|競技会|リレー|カーニバル|フェスティバル|陸上|学年別|新人戦|支部|区民|都民|総体|インターハイ|駅伝|予選)/;
@@ -382,6 +459,6 @@ var ResultParser = (function () {
   function recId(meetName, date, r) { return [nk(meetName).replace(/\s/g, ''), date, normEvent(r.event), r.round, r.heat, nameKey(r.name || r.kana), schoolBase(r.team), r.mark].join('|'); }
   return { parsePdf: parsePdf, parseCells: parseCells, parsePlain: parsePlain, textToStream: textToStream, normEvent: normEvent, markValue: markValue, windApplies: windApplies, windClass: windClass, windNum: windNum,
     computeBests: computeBests, athleteKey: athleteKey, matchSchool: matchSchool, recId: recId, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
-    guessMeet: guessMeet, cleanMeetName: cleanMeetName, dateFromText: dateFromText };
+    guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText };
 })();
 if (typeof module !== 'undefined') module.exports = ResultParser;
