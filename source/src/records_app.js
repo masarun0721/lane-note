@@ -1,4 +1,4 @@
-/* ===== 記録帳の画面（ログイン時は Firebase の users/{uid} に本人だけが読める形で保存、未ログイン時はこのブラウザの IndexedDB にだけ置く） ===== */
+/* ===== LANE LOGの画面（ログイン時は Firebase の users/{uid} に本人だけが読める形で保存、未ログイン時はこのブラウザの IndexedDB にだけ置く） ===== */
 (function () {
   'use strict';
   var R = ResultParser;
@@ -248,7 +248,7 @@
         addBatch({ src: names.length > 3 ? names.slice(0, 3).join('、') + ' ほか' + (names.length - 3) + '件' : names.join('、'), kind: 'HTML', all: res, meta: applyGuess({ name: res.meet.name, date: res.meet.date }, names[0]) });
       }
     }
-    status('rbStatus', '読み取りました。下の内容を確かめて「記録帳に保存」を押してください。', 'ok');
+    status('rbStatus', '読み取りました。下の内容を確かめて「LANE LOGに保存」を押してください。', 'ok');
   }
   $('rbFile').addEventListener('change', function () { handleFiles(this.files); this.value = ''; });
   var drop = $('rbDrop');
@@ -300,7 +300,7 @@
         '<p class="small">読み取った記録：' + rs.length + '件' + (b.all.recs.length !== rs.length ? '（全体 ' + b.all.recs.length + '件のうち）' : '') + '</p>' +
         (ws.length ? '<ul class="rb-warn">' + ws.map(function (w) { return '<li>⚠ ' + esc(w) + '</li>'; }).join('') + '</ul>' : '') +
         (rs.length ? '<div class="tblwrap"><table class="rbt">' + REC_HEAD + rs.map(function (r) { return recRow(r); }).join('') + '</table></div>' : '') +
-        '<div class="rb-row" style="margin-top:8px"><button class="btn" data-save="' + b.id + '" type="button"' + (rs.length ? '' : ' disabled') + '>記録帳に保存</button><button class="btn sub" data-del="' + b.id + '" type="button">取り消す</button></div><div class="status" data-st="' + b.id + '"></div></div>';
+        '<div class="rb-row" style="margin-top:8px"><button class="btn" data-save="' + b.id + '" type="button"' + (rs.length ? '' : ' disabled') + '>LANE LOGに保存</button><button class="btn sub" data-del="' + b.id + '" type="button">取り消す</button></div><div class="status" data-st="' + b.id + '"></div></div>';
     }).join('');
   }
   $('rbBatches').addEventListener('input', function (e) {
@@ -312,9 +312,9 @@
     if (un) {
       var ub = batches.filter(function (x) { return x.id === +un; })[0], ust = document.querySelector('[data-st="' + un + '"]');
       if (!ub || !(ub.addedIds || []).length) return;
-      if (!confirm('今読み込んで保存した ' + ub.addedIds.length + '件を記録帳から取り消します。よろしいですか？')) return;
+      if (!confirm('今読み込んで保存した ' + ub.addedIds.length + '件をLANE LOGから取り消します。よろしいですか？')) return;
       var n = ub.addedIds.length; await delIds(ub.addedIds); ub.addedIds = [];
-      ust.className = 'status ok'; ust.textContent = '✔ 今読み込んだ ' + n + '件を取り消しました（もう一度「記録帳に保存」で入れ直せます）。';
+      ust.className = 'status ok'; ust.textContent = '✔ 今読み込んだ ' + n + '件を取り消しました（もう一度「LANE LOGに保存」で入れ直せます）。';
       await reload(); return;
     }
     if (del) { batches = batches.filter(function (b) { return b.id !== +del; }); renderBatches(); return; }
@@ -375,7 +375,7 @@
     var rows = filtered(), cb = R.computeBests(rows), flags = cb.flags;
     var meets = {}; rows.forEach(function (r) { var k = r.date + '|' + r.meet; meets[k] = (meets[k] || 0) + 1; });
     var aths = {}; rows.forEach(function (r) { aths[R.athleteKey(r)] = 1; });
-    $('rbStats').textContent = ALL.length ? '保存している記録：' + ALL.length + '件（表示 ' + rows.length + '件・選手 ' + Object.keys(aths).length + '人・大会 ' + Object.keys(meets).length + '件）' : 'まだ記録がありません。上で結果の資料を入れて「記録帳に保存」を押してください。';
+    $('rbStats').textContent = ALL.length ? '保存している記録：' + ALL.length + '件（表示 ' + rows.length + '件・選手 ' + Object.keys(aths).length + '人・大会 ' + Object.keys(meets).length + '件）' : 'まだ記録がありません。上で結果の資料を入れて「LANE LOGに保存」を押してください。';
     var html = '';
     if (view === 'ath' || view === 'ev') {
       var bs = cb.bests.slice();
@@ -413,14 +413,14 @@
   function stamp() { var d = new Date(); return d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2); }
   $('rbExport').addEventListener('click', function () {
     if (!ALL.length) { status('rbDataStatus', '書き出す記録がありません。', 'ng'); return; }
-    download('LANE_NOTE_記録帳_' + stamp() + '.json', new Blob([JSON.stringify({ app: 'LANE NOTE 記録帳', format: 1, version: REC_VERSION, exportedAt: new Date().toISOString(), records: ALL }, null, 1)], { type: 'application/json' }));
+    download('LANE_LOG_' + stamp() + '.json', new Blob([JSON.stringify({ app: 'LANE LOG', format: 1, version: REC_VERSION, exportedAt: new Date().toISOString(), records: ALL }, null, 1)], { type: 'application/json' }));
     status('rbDataStatus', '✔ ' + ALL.length + '件をファイルに書き出しました。', 'ok');
   });
   $('rbImport').addEventListener('change', async function () {
     var f = this.files[0]; this.value = ''; if (!f) return;
     try {
       var j = JSON.parse(await f.text()), list = Array.isArray(j) ? j : j.records;
-      if (!Array.isArray(list)) throw new Error('記録帳のファイルではないようです');
+      if (!Array.isArray(list)) throw new Error('LANE LOGのファイルではないようです');
       list = list.filter(function (r) { return r && r.id && r.name !== undefined && r.mark !== undefined && r.meet && r.date; });
       var res = await putMany(list);
       status('rbDataStatus', '✔ ' + res.added + '件を読み込みました' + (res.dup ? '（' + res.dup + '件はすでにあるので重ねませんでした）' : '') + '。', 'ok');
@@ -444,7 +444,7 @@
     var wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(a), '記録一覧');
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(b), '自己ベスト');
-    XLSX.writeFile(wb, 'LANE_NOTE_記録帳_' + stamp() + '.xlsx');
+    XLSX.writeFile(wb, 'LANE_LOG_' + stamp() + '.xlsx');
     status('rbDataStatus', '✔ Excelに書き出しました（表示中の ' + rows.length + '件）。', 'ok');
   });
   if (CLOUD_READY) initCloud(); else { renderAuth(); reload(); }

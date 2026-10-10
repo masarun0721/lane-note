@@ -1,5 +1,5 @@
 rules_version = '2';
-// LANE NOTE 記録帳：ログインした本人だけが自分の users/{uid} 以下を読み書きできる
+// LANE LOG：ログインした本人だけが自分の users/{uid} 以下を読み書きできる
 service cloud.firestore {
   match /databases/{database}/documents {
     match /users/{userId}/{document=**} {

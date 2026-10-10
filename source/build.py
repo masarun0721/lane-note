@@ -2,7 +2,7 @@
 """LANE NOTE を1つのHTMLにまとめる。
 
   python3 build.py              → dist/index.html, dist/sw.js（公開用）と LANE_NOTE.html（手元用）
-  python3 build.py --out DIR    → DIR/index.html・DIR/sw.js・DIR/records.html（記録帳）を作る（GitHub Actions 用）
+  python3 build.py --out DIR    → DIR/index.html・DIR/sw.js・DIR/records.html（LANE LOG）を作る（GitHub Actions 用）
   python3 build.py --check DIR  → ビルドして DIR の3つのファイルと1バイトも違わないか確かめる
 
 パスはこのファイルの場所からの相対で決める（どこに置いても・どこから実行しても同じ結果）。
@@ -16,7 +16,7 @@ SHARE_BASE = 'https://masarun0721.github.io/lane-note/'   # 共有リンク・QR
 VERSION = 'v0.9'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
 # 作成日は版番号から取れないので固定（ビルドした日で変わると、公開時の一致検査ができないため）
 BUILD_DATE = '2026年10月09日'
-REC_VERSION = 'v0.2.3'   # 記録帳（records.html）だけの版
+REC_VERSION = 'v0.2.4'   # LANE LOG（records.html）だけの版
 REC_BUILD_DATE = '2026年10月10日'
 
 
@@ -56,7 +56,7 @@ def build():
 
 
 def build_records(index_html):
-    """記録帳のページ。見た目は大会準備のページと同じCSSを使う（template.html の <style> をそのまま入れる）"""
+    """LANE LOGのページ。見た目は大会準備のページと同じCSSを使う（template.html の <style> をそのまま入れる）"""
     base = text('src/template.html')
     css = base[base.index('<style>') + 7:base.index('</style>')]
     rec = text('src/records_template.html')

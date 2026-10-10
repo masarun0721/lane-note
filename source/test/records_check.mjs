@@ -1,4 +1,4 @@
-// 記録帳の読み取り・自己ベストの確認（架空の選手・架空の大会。実在のデータは使わない）
+// LANE LOGの読み取り・自己ベストの確認（架空の選手・架空の大会。実在のデータは使わない）
 //   node records_check.mjs                → 架空データだけで確認
 //   node records_check.mjs a.pdf b.pdf …  → 手元の結果PDFも読んで件数と警告を出す（要 pdfjs-dist。PDFはコミットしない）
 import {createRequire} from 'module';const require=createRequire(import.meta.url);

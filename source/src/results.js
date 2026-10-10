@@ -1,4 +1,4 @@
-/* ===== 記録帳：大会結果（PDF・HTML・貼り付け）の読み取りと自己ベスト（座標ベース・AI不使用・推測で補わない） ===== */
+/* ===== LANE LOG：大会結果（PDF・HTML・貼り付け）の読み取りと自己ベスト（座標ベース・AI不使用・推測で補わない） ===== */
 var ResultParser = (function () {
   'use strict';
   var nk = function (s) { return (s || '').normalize('NFKC'); };

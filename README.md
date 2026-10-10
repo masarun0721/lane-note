@@ -4,7 +4,7 @@
 
 公開 URL: https://masarun0721.github.io/lane-note/
 
-## 記録帳（records.html・試作 v0.1.1）
+## LANE LOG（records.html・試作 v0.2.4）
 
 大会の結果（PDF・保存したWebページのHTML・ページを貼り付けた文章）から自校の選手の記録を読み取り、ためていく別ページです（https://masarun0721.github.io/lane-note/records.html ）。選手別・種目別・大会別に一覧でき、自己ベスト（追い風2.0m超・風が読めない記録は公認ベストにしない）と自己ベスト更新の記録がわかります。Googleでログインすると、記録は LANE NOTE の Firebase（Google の Firestore）に本人のアカウントごとに保存され、本人だけが読み書きでき、どの端末からでも見られます。ログインしないときは、このブラウザの IndexedDB にだけ保存します。結果資料の読み取りはブラウザの中で行います。JSONファイルへの書き出し・読み込み、Excel（SheetJS）への書き出し、大会ごとの削除（大会別の一覧の「この大会を消す」）、読み込み直後の「今読み込んだ分を取り消す」、全消去ができます。大会準備のページ（index.html）は今までどおり何も保存しない作りのままです。
 
@@ -34,6 +34,6 @@ python3 source/build.py --out .     # リポジトリ直下の index.html・sw.j
 python3 source/build.py --check .   # 直下の3つのファイルがソースからのビルド結果と一致するか確かめる
 ```
 
-版は `source/build.py` の `VERSION` で決めます（画面右上と「このツールについて」に出ます）。`main` に push すると GitHub Actions がソースからビルドし、直下の `index.html`・`sw.js` と一致することを確かめてから公開します（一致しなければ公開しません）。公開されるのは `index.html`、`records.html`、`sw.js`、`.nojekyll` だけです。記録帳のソースは `source/src/records_template.html`・`records_app.js`・`results.js`（結果の読み取り）で、見た目は `template.html` の CSS をそのまま使います。記録帳の版は `build.py` の `REC_VERSION` です。
+版は `source/build.py` の `VERSION` で決めます（画面右上と「このツールについて」に出ます）。`main` に push すると GitHub Actions がソースからビルドし、直下の `index.html`・`sw.js` と一致することを確かめてから公開します（一致しなければ公開しません）。公開されるのは `index.html`、`records.html`、`sw.js`、`.nojekyll` だけです。LANE LOGのソースは `source/src/records_template.html`・`records_app.js`・`results.js`（結果の読み取り）で、見た目は `template.html` の CSS をそのまま使います。LANE LOGの版は `build.py` の `REC_VERSION` です。
 
-`source/test/` には架空の大会PDFを作るスクリプト（`make_fixtures.py`、要 reportlab）と、解析結果を確かめるスクリプト（`fixtures_check.mjs`、要 pdfjs-dist）があります。`records_check.mjs` は記録帳の読み取り・自己ベストを架空データで確かめます（手元の結果PDFを引数に渡すと件数と警告も出します）。実在の選手データやPDFはリポジトリに入れません。
+`source/test/` には架空の大会PDFを作るスクリプト（`make_fixtures.py`、要 reportlab）と、解析結果を確かめるスクリプト（`fixtures_check.mjs`、要 pdfjs-dist）があります。`records_check.mjs` はLANE LOGの読み取り・自己ベストを架空データで確かめます（手元の結果PDFを引数に渡すと件数と警告も出します）。実在の選手データやPDFはリポジトリに入れません。

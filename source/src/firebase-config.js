@@ -1,4 +1,4 @@
-/* LANE NOTE 記録帳：Firebase の設定（プロジェクト lane-note のウェブアプリ firebaseConfig）
+/* LANE LOG：Firebase の設定（プロジェクト lane-note のウェブアプリ firebaseConfig）
  * これらの値は公開されても問題ない識別子です（データは firestore.rules で本人だけに制限しています）。 */
 window.LANE_FIREBASE_CONFIG = {
   apiKey: "AIzaSyDdgn8Nl4ELiqJAlL6LQrTg0zgTtp0DUGM",
