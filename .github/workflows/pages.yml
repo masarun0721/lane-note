@@ -33,7 +33,7 @@ jobs:
       - name: Build from source
         run: python3 source/build.py --out _site
 
-      # リポジトリ直下の index.html・sw.js が、ソースからのビルド結果と1バイトも違わないか確かめる。
+      # リポジトリ直下の index.html・sw.js・records.html（記録帳）が、ソースからのビルド結果と1バイトも違わないか確かめる。
       # 違えば公開しない（ソースを直したのに build.py を実行し忘れた、などを防ぐ）
       - name: Check committed files match the build
         run: python3 source/build.py --check .

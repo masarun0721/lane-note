@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LANE NOTE 記録帳（試作版）</title>
+<link rel="icon" type="image/svg+xml" href="__FAVICON__">
+<link rel="apple-touch-icon" sizes="180x180" href="__APPLE_ICON__">
+<style>
+__BASE_CSS__
+/* ===== 記録帳だけの見た目 ===== */
+.rb-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.rb-row input[type=text],.rb-row input[type=date],.rb-row select{font-size:15px;padding:6px 8px;border:1px solid #c9d2e0;border-radius:8px}
+#rbPaste{width:100%;min-height:110px;font-size:13px;border:1px solid #c9d2e0;border-radius:8px;padding:8px;font-family:inherit}
+.rb-batch{border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:12px;background:#fffdfb}
+.rb-batch h3{margin:0 0 6px;font-size:15px}
+.rb-warn{background:#fff8e1;border:1px solid #f3d27a;border-radius:8px;padding:6px 10px;font-size:12.5px;margin:6px 0;max-height:160px;overflow:auto}
+.rb-warn li{margin:0}
+.tblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.rbt td,.rbt th{padding:4px 6px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+.rbt th{background:#f5f3ef;font-size:12.5px}
+.rbt td.rn{text-align:right;font-variant-numeric:tabular-nums}
+.pb{display:inline-block;font-size:11px;font-weight:800;border-radius:6px;padding:0 5px;margin-left:4px;background:#fde8e1;color:#a8402b}
+.pb.first{background:#eef1f6;color:#4a5578}
+.ref{display:inline-block;font-size:11px;border-radius:6px;padding:0 5px;margin-left:4px;background:#fff1cc;color:#8a5a00}
+.unk{display:inline-block;font-size:11px;border-radius:6px;padding:0 5px;margin-left:4px;background:#eee;color:#666}
+tr.haswarn td{background:#fff8e1}
+.rb-stats{font-size:13px;color:var(--muted);margin:6px 0}
+.rb-filter{margin:8px 0}
+.danger{background:#c0392b!important;box-shadow:0 2px 0 #8f2a1f!important}
+@media (max-width:720px){ .rbt td,.rbt th{font-size:12px;padding:3px 4px} .rb-row>*{flex:1 1 100%} }
+</style>
+</head>
+<body class="records">
+<header>
+  <div class="hdr-meta">
+    <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／記録帳 __REC_VERSION__</div>
+    <div class="credit">Presented by Sakata</div>
+    <div class="hdr-msg">すべての陸上競技部顧問が、少しでも楽になりますように。</div>
+  </div>
+  <div class="brand">
+    <h1 class="logo">__LOGO_DARK__<span class="vh">LANE NOTE（レーンノート）記録帳</span></h1>
+    <span class="badge">試作版</span>
+  </div>
+  <p class="tagline">記録帳：大会の結果から、自校の記録と自己ベストをためていく</p>
+  <nav class="pagenav" aria-label="ページ"><a href="./">🏁 大会準備</a><a href="records.html" class="on" aria-current="page">📒 記録帳</a></nav>
+</header>
+<main>
+<section class="box">
+  <h2><span class="no">1</span>学校名と結果の資料</h2>
+  <div class="privacy">🔒 <b>記録はこのブラウザの中（IndexedDB）にだけ保存し、どこにも送りません。</b>読み取りもすべてこの端末の中で行います。別のパソコンへ移すときは「ファイルに書き出す」を使ってください。共用のパソコンでは、使い終わったら「全部消す」を押してください。</div>
+  <div class="disclaimer sm" style="margin-top:8px">ⓘ 結果の資料の文字を読み取って整理しているだけです。<b>記録は必ず元の結果資料と照らし合わせて確認してください。</b>読めなかったところは空欄にして警告を出します（推測で埋めません）。</div>
+  <div class="rb-row" style="margin:10px 0">
+    <label>学校名 <input type="text" id="rbSchool" placeholder="例：本郷" autocomplete="off"></label>
+    <span class="small muted">「本郷」と打つと「本郷」「本郷高」「本郷中」を拾います。</span>
+  </div>
+  <div class="drop" id="rbDrop" tabindex="0" role="button" aria-label="結果のファイルを選ぶ">
+    <div class="big">📄 結果のPDF・保存したWebページ（HTML）をここへ</div>
+    <div class="small muted">複数まとめて入れられます（種目ごとにページが分かれた結果サイトは、ページを全部保存して一度に入れてください）</div>
+    <input type="file" id="rbFile" multiple accept=".pdf,.html,.htm,.txt,application/pdf,text/html">
+    <div class="status" id="rbStatus"></div>
+  </div>
+  <details style="margin-top:10px"><summary><b>Webページの結果を貼り付ける</b>（ファイルにできないとき）</summary>
+    <p class="small muted">結果のページを開き、Ctrl+A（全部選ぶ）→ Ctrl+C（コピー）して、ここに貼り付けます。種目ごとにページが分かれているときは、続けて貼り付けてかまいません。</p>
+    <textarea id="rbPaste" placeholder="ここに貼り付け"></textarea>
+    <button class="btn sub" id="rbPasteGo" type="button">貼り付けた文章を読み取る</button>
+  </details>
+  <div id="rbBatches"></div>
+</section>
+
+<section class="box">
+  <h2><span class="no">2</span>記録帳</h2>
+  <div class="rb-stats" id="rbStats"></div>
+  <div class="tabbar"><div class="tabs" role="tablist">
+    <button class="on" data-v="ath" type="button">選手別</button><button data-v="ev" type="button">種目別</button><button data-v="meet" type="button">大会別</button><button data-v="all" type="button">全記録</button>
+  </div></div>
+  <div class="rb-filter rb-row"><input type="text" id="rbQ" placeholder="しぼりこみ（氏名・種目・大会名など）"><label class="small"><input type="checkbox" id="rbMine" checked> 学校名の選手だけ</label></div>
+  <p class="small muted" id="rbLegend"><span class="pb">PB</span> 自己ベスト更新　<span class="pb first">初</span> その種目の初記録　<span class="ref">追参</span> 追い風2.0m超（公認ベストにしない）　<span class="unk">風?</span> 風が読めなかった記録（公認ベストにしない）</p>
+  <div class="tblwrap" id="rbView"></div>
+</section>
+
+<section class="box">
+  <h2><span class="no">3</span>データの持ち運び・消去</h2>
+  <div class="rb-row">
+    <button class="btn sub" id="rbExport" type="button">💾 ファイルに書き出す（JSON）</button>
+    <label class="btn sub" style="display:inline-block">📂 ファイルから読み込む<input type="file" id="rbImport" accept=".json,application/json" hidden></label>
+    <button class="btn sub" id="rbXlsx" type="button">📊 Excelに書き出す</button>
+    <button class="btn danger" id="rbClear" type="button">🗑 全部消す</button>
+  </div>
+  <p class="small muted">書き出したファイルには選手の氏名と記録が入ります。学校のルールに従って保管してください。読み込むと、今ある記録に足し合わせます（同じ記録は重ねません）。</p>
+  <div class="status" id="rbDataStatus"></div>
+</section>
+</main>
+<footer><details class="about"><summary><b>この記録帳について</b>（版・対応している形式・既知の制限）</summary>
+  <ul>
+    <li><b>LANE NOTE（レーンノート）記録帳 試作版</b>　版：<span class="appver"></span>／記録帳 __REC_VERSION__（__BUILD_DATE__ 作成）／ Presented by Sakata</li>
+    <li>読める形式：組ごとに2列で並ぶ結果PDF（「順位・レーン・ナンバー・氏名・所属・記録」の見出しがあるもの。北区・江東区・都高体連などで確認）／ 結果サイトのHTML（表のあるもの）・その貼り付け。</li>
+    <li>既知の制限：リレー・混成の得点・スキャン（画像）PDFは読みません。大会名・日付が資料に無いときは手で入れてください。風が読めない記録は公認ベストに数えません。</li>
+    <li>使っている部品（外部CDNから読み込み、ハッシュで確認）：pdf.js 4.10.38（Apache-2.0, Mozilla）／ SheetJS Community Edition 0.20.3（Apache-2.0）</li>
+  </ul></details>
+<div class="f-disc">ⓘ 本ツールは結果資料の文字を読み取って自動で整理しているだけです。内容は必ず元の結果資料と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div><div><b class="f-brand">LANE NOTE</b>（レーンノート）記録帳 試作版 ／ <span class="f-credit">Presented by Sakata</span></div>🔒 記録はこのブラウザの中にだけ保存し、サーバーへ送信しません（部品取得のため外部CDNへ通信します）。 <a href="./">大会準備のページへ</a></footer>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
+<script>
+__RESULTS__
+</script>
+<script>
+var APP_VERSION = "__VERSION__", REC_VERSION = "__REC_VERSION__";
+document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
+</script>
+<script>
+__RECAPP__
+</script>
+</body>
+</html>

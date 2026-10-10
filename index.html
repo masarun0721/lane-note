@@ -425,6 +425,10 @@ footer a{color:var(--navy)}
   #timeCards,#athCards{display:block}
 }
 @media print{.mcards,#viewer,#savedHome,.dlg{display:none!important}}
+.pagenav{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.pagenav a{display:inline-block;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.45);border-radius:999px;padding:3px 12px;font-size:13px;text-decoration:none}
+.pagenav a.on{background:#fff;color:var(--navy);font-weight:700}
+@media print{.pagenav{display:none}}
 </style>
 </head>
 <body>
@@ -442,6 +446,7 @@ footer a{color:var(--navy)}
     <span class="badge">試作版</span>
   </div>
   <p class="tagline">スタートリストから、自校の出場一覧・記録用紙・ナンバーカードまで</p>
+  <nav class="pagenav" aria-label="ページ"><a href="./" class="on" aria-current="page">🏁 大会準備</a><a href="records.html">📒 記録帳（試作）</a></nav>
 </header>
 <main>
 <section class="box" id="viewer" hidden>
@@ -589,7 +594,7 @@ footer a{color:var(--navy)}
     <li>Wordのナンバーカードは「HGP創英角ｺﾞｼｯｸUB」「ＭＳ ゴシック」を使います。フォントは同梱していません（各パソコンに入っているものを使います。無い場合は別のフォントで表示されます）。</li>
     <li>既知の制限：対応を確認した形式は北区型スタートリスト＋タイムテーブル／江東区型プログラムのみ。スキャン（画像）PDFは読めません。複数日の大会は対象日を選んで1日分ずつ出します（日付が書かれていない資料は日付を区別できません）。タイムテーブルの時刻は「組のまとまり」の開始時刻で、後ろの組は遅くなります。参加料は「1種目あたり」の単価だけ自動計算します。</li>
   </ul></details>
-<div class="f-disc">ⓘ 本ツールはPDFの文字を読み取って自動で整理しているだけです。内容は必ず元のスタートリスト・タイムテーブル等と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div><div><b class="f-brand">LANE NOTE</b>（レーンノート）試作版 ／ <span class="f-credit">Presented by Sakata</span></div>🔒 本ツールはPDF本文・選手情報をサーバーへ送信・保存する処理を行いません（部品取得のため外部CDNへ通信します）。 <a href="#dataPolicy" onclick="document.getElementById('dataPolicy').open=true">データの取り扱いについて</a></footer>
+<div class="f-disc">ⓘ 本ツールはPDFの文字を読み取って自動で整理しているだけです。内容は必ず元のスタートリスト・タイムテーブル等と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div><div><b class="f-brand">LANE NOTE</b>（レーンノート）試作版 ／ <span class="f-credit">Presented by Sakata</span></div>🔒 本ツールはPDF本文・選手情報をサーバーへ送信・保存する処理を行いません（部品取得のため外部CDNへ通信します）。 <a href="#dataPolicy" onclick="document.getElementById('dataPolicy').open=true">データの取り扱いについて</a> ／ <a href="records.html">記録帳（試作）</a></footer>
 
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG" crossorigin="anonymous"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>

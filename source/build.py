@@ -2,8 +2,8 @@
 """LANE NOTE を1つのHTMLにまとめる。
 
   python3 build.py              → dist/index.html, dist/sw.js（公開用）と LANE_NOTE.html（手元用）
-  python3 build.py --out DIR    → DIR/index.html と DIR/sw.js だけを作る（GitHub Actions 用）
-  python3 build.py --check DIR  → ビルドして DIR/index.html・DIR/sw.js と1バイトも違わないか確かめる
+  python3 build.py --out DIR    → DIR/index.html・DIR/sw.js・DIR/records.html（記録帳）を作る（GitHub Actions 用）
+  python3 build.py --check DIR  → ビルドして DIR の3つのファイルと1バイトも違わないか確かめる
 
 パスはこのファイルの場所からの相対で決める（どこに置いても・どこから実行しても同じ結果）。
 外部ライブラリは使わない（Python 3 の標準ライブラリだけ）。
@@ -16,6 +16,8 @@ SHARE_BASE = 'https://masarun0721.github.io/lane-note/'   # 共有リンク・QR
 VERSION = 'v0.9'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
 # 作成日は版番号から取れないので固定（ビルドした日で変わると、公開時の一致検査ができないため）
 BUILD_DATE = '2026年10月09日'
+REC_VERSION = 'v0.1'   # 記録帳（records.html）だけの版
+REC_BUILD_DATE = '2026年10月10日'
 
 
 def b64(p):
@@ -50,24 +52,45 @@ def build():
     for k, v in rep.items():
         assert k in html, k
         html = html.replace(k, v)
-    return html, text('src/sw.js')
+    return html, text('src/sw.js'), build_records(html)
 
 
-def write(out, html, sw):
+def build_records(index_html):
+    """記録帳のページ。見た目は大会準備のページと同じCSSを使う（template.html の <style> をそのまま入れる）"""
+    base = text('src/template.html')
+    css = base[base.index('<style>') + 7:base.index('</style>')]
+    rec = text('src/records_template.html')
+    rep = {
+        '__BASE_CSS__': css, '__RESULTS__': text('src/results.js'), '__RECAPP__': text('src/records_app.js'),
+        '__LOGO_DARK__': logo_inline('logo/option_A_dark.svg'),
+        '__FAVICON__': 'data:image/svg+xml;base64,' + b64('logo/option_A_icon.svg'),
+        '__APPLE_ICON__': 'data:image/png;base64,' + b64('logo/png/option_A_icon_180.png'),
+        '__VERSION__': VERSION, '__REC_VERSION__': REC_VERSION, '__BUILD_DATE__': REC_BUILD_DATE,
+    }
+    for k, v in rep.items():
+        assert k in rec, k
+        rec = rec.replace(k, v)
+    return rec
+
+
+OUTPUTS = ('index.html', 'sw.js', 'records.html')   # 公開するファイル（--check もこの3つを確かめる）
+
+
+def write(out, html, sw, rec):
     out.mkdir(parents=True, exist_ok=True)
-    (out / 'index.html').write_bytes(html.encode('utf-8'))
-    (out / 'sw.js').write_bytes(sw.encode('utf-8'))
-    print(out / 'index.html', len(html), '/', out / 'sw.js')
+    for name, body in zip(OUTPUTS, (html, sw, rec)):
+        (out / name).write_bytes(body.encode('utf-8'))
+    print(out / 'index.html', len(html), '/', out / 'sw.js', '/', out / 'records.html', len(rec))
 
 
 def main(argv):
-    html, sw = build()
+    html, sw, rec = build()
     if len(argv) == 2 and argv[0] == '--out':
-        write(pathlib.Path(argv[1]), html, sw)
+        write(pathlib.Path(argv[1]), html, sw, rec)
         return 0
     if len(argv) == 2 and argv[0] == '--check':
         d, ng = pathlib.Path(argv[1]), 0
-        for name, body in (('index.html', html), ('sw.js', sw)):
+        for name, body in zip(OUTPUTS, (html, sw, rec)):
             f = d / name
             if not f.exists() or f.read_bytes() != body.encode('utf-8'):
                 print('NG: %s がソースからのビルド結果と一致しません（build.py を実行してから公開してください）' % f)
@@ -78,7 +101,7 @@ def main(argv):
     if argv:
         print(__doc__)
         return 2
-    write(ROOT / 'dist', html, sw)
+    write(ROOT / 'dist', html, sw, rec)
     (ROOT / 'LANE_NOTE.html').write_bytes(html.encode('utf-8'))   # 手元でダブルクリックして開く用
     print(ROOT / 'LANE_NOTE.html')
     return 0
