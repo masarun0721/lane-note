@@ -449,11 +449,50 @@ footer a{color:var(--navy)}
 .pagenav a.on{background:#fff;color:var(--navy);font-weight:700}
 @media print{.pagenav{display:none}}
 
+/* ===== v0.13：不具合・要望を送る（両ページ共通） ===== */
+.fb-link{background:none;border:0;color:var(--navy);text-decoration:underline;cursor:pointer;font:inherit;padding:0}
+.fb-btn{display:inline-flex;align-items:center;gap:4px;min-height:40px;margin:6px 0;padding:6px 14px;border:1px solid #1f3a68;border-radius:10px;background:#fff;color:#1f3a68;font-weight:700;cursor:pointer;font-size:14px}
+.fb-back{position:fixed;inset:0;background:rgba(15,25,45,.55);z-index:1000;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:16px 10px}
+.fb-back[hidden]{display:none}
+.fb-dlg{background:#fff;border-radius:14px;max-width:520px;width:100%;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.fb-dlg h2{margin:0 0 6px;font-size:19px}
+.fb-kind{border:0;padding:0;margin:8px 0;display:flex;gap:14px;flex-wrap:wrap}.fb-kind legend{font-weight:700;margin-bottom:4px}
+.fb-kind label{display:inline-flex;align-items:center;gap:4px;min-height:40px;font-size:16px}
+.fb-l{display:block;font-weight:700;margin:8px 0}.fb-l textarea,.fb-l input{display:block;width:100%;box-sizing:border-box;font:inherit;font-size:16px;font-weight:400;padding:8px;border:1px solid #c9d2e0;border-radius:8px;margin-top:4px}
+.fb-auto ul{margin:4px 0;padding-left:18px;overflow-wrap:anywhere}
+.fb-btns{display:flex;gap:10px;margin-top:10px}.fb-btns .btn{min-height:44px;flex:1}
+body.fb-open{overflow:hidden}
+
 /* ===== 記録ページだけの見た目 ===== */
 .divsw{display:flex;gap:0;margin:4px 0 10px;border:1px solid #1f3a68;border-radius:10px;overflow:hidden;width:max-content}
 .divsw button{border:0;background:#fff;color:#1f3a68;font-size:15px;font-weight:700;padding:8px 18px;min-height:40px;cursor:pointer}
 .divsw button+button{border-left:1px solid #1f3a68}
 .divsw button.on{background:#1f3a68;color:#fff}
+.sexsw{margin-top:-4px}
+.sexsw[hidden]{display:none}
+.evsw{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:2px 0 8px;margin:4px 0}
+.evsw button{flex:0 0 auto;border:1px solid #1f3a68;background:#fff;color:#1f3a68;border-radius:999px;padding:6px 14px;min-height:40px;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap}
+.evsw button.on{background:#1f3a68;color:#fff}
+.evsum{list-style:none;margin:0;padding:0}
+.evsum li{display:grid;grid-template-columns:1fr auto;grid-template-areas:"nm mk" "sub sub";gap:0 10px;padding:8px 0;border-top:1px solid var(--line);align-items:center}
+.evsum .evn{grid-area:nm;text-align:left;background:none;border:0;padding:0;font:inherit;font-size:16px;font-weight:700;color:var(--navy);text-decoration:underline;text-decoration-color:#c9d2e0;cursor:pointer;min-height:36px}
+.evsum .lmk{grid-area:mk;font-size:22px;font-variant-numeric:tabular-nums}.evsum .sub{grid-area:sub;font-size:12px;color:var(--muted)}
+.wx{display:inline-block;font-size:12px;background:#eaf4ff;color:#1f4f86;border-radius:6px;padding:0 6px;margin-left:2px;white-space:nowrap}
+.rb-wedit{font-size:12px!important;padding:3px 10px!important;margin-left:4px}
+.wxedit{margin-top:6px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px}
+.wxedit label,.xlw label{display:inline-flex;align-items:center;gap:4px;font-size:14px}
+.wxedit input,.wxedit select,.xlw input,.xlw select{font-size:15px;padding:5px 6px;border:1px solid #c9d2e0;border-radius:8px}
+.xlw{margin:6px 0;background:#f4f8fd;border-radius:8px;padding:6px 8px}
+.xlmap{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px;margin:6px 0}
+.xlmap label{display:flex;flex-direction:column;font-size:12.5px;font-weight:700;border:1px solid var(--line);border-radius:8px;padding:5px 6px;background:#fff}
+.xlmap label.got{border-color:#9cc9a8;background:#f2fbf4}.xlmap label.need{border-color:#e08b7a;background:#fff2ef}.xlmap label.off{color:var(--muted)}
+.xlmap select{font-size:14px;padding:4px;margin-top:2px;max-width:100%}
+.review{background:#fffaf0;border-color:#f0c36d}.review summary{cursor:pointer;font-size:15px}
+.rv{display:inline-block;background:#e67e22;color:#fff;font-size:12px;font-weight:800;border-radius:6px;padding:1px 7px}
+.rvlist{list-style:none;margin:6px 0 0;padding:0}.rvlist li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-top:1px solid #f3dfb5}
+.rvbtn{display:flex;gap:6px;flex:0 0 auto}.rvbtn .btn{min-height:44px;padding:6px 14px;font-size:15px}
+.rvdone{margin:4px 0 8px}.rvdone .btn{font-size:12px;padding:2px 8px}
+.beta-banner .fb-link{display:inline;margin-left:4px;font-weight:700}
 .rb-meetlist{margin:6px 0 0;padding-left:18px;font-size:13px}.rb-meetlist li{margin:2px 0}
 .rb-done{font-size:15px}
 .meetsel{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 8px}.meetsel select{max-width:100%;font-size:15px;padding:6px}
@@ -562,7 +601,7 @@ body.ath-open #rbLegend{display:none}
 <body class="records">
 <header>
   <div class="hdr-meta">
-    <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／記録 v0.4.0 <span class="beta-tag">試作</span></div>
+    <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／記録 v0.5.0 <span class="beta-tag">試作</span></div>
     <div class="credit">Presented by Sakata</div>
     <div class="hdr-msg">すべての陸上競技部顧問が、少しでも楽になりますように。</div>
   </div>
@@ -573,14 +612,14 @@ body.ath-open #rbLegend{display:none}
 </svg><span class="vh">LANE NOTE（レーンノート）記録</span></h1>
     <span class="badge">試作版</span>
   </div>
-  <div class="beta-banner" role="note" aria-label="試作中のお知らせ"><b>⚠️ 試作中（β版）</b><span>機能や画面は予告なく変わることがあります。記録が消えたり読み取りを間違えたりする可能性があるので、大事な記録は元の結果資料でも確認してください。</span></div>
+  <div class="beta-banner" role="note" aria-label="試作中のお知らせ"><b>⚠️ 試作中（β版）</b><span>機能や画面は予告なく変わることがあります。記録が消えたり読み取りを間違えたりする可能性があるので、大事な記録は元の結果資料でも確認してください。<button type="button" class="fb-link" data-feedback="1">📮 不具合・要望を送る</button></span></div>
   <p class="tagline">記録：大会の結果から、自校の記録と自己ベストをためていく</p>
   <nav class="pagenav" aria-label="ページ"><a href="./">🏁 大会準備</a><a href="records.html" class="on" aria-current="page">📒 記録</a></nav>
 </header>
 <main>
 <section class="box">
   <h2><span class="no">1</span>学校名と結果の資料</h2>
-  <div class="privacy">🔒 <b>Googleでログインすると、記録はあなた専用のクラウド（Firebase）に保存され、どの端末からでも見られます。</b>ほかの人の記録は見えず、ほかの人からもあなたの記録は見えません。ログインしないときは、このブラウザの中（IndexedDB）にだけ保存します。結果資料の読み取りはすべてこの端末の中で行います。共用のパソコンでは、使い終わったらログアウトしてください。</div>
+  <div class="privacy">🔒 <b>Googleでログインすると、記録はあなた専用のクラウド（Firebase）に保存され、どの端末からでも見られます。</b>ほかの人の記録は見えず、ほかの人からもあなたの記録は見えません。ログインしないときは、このブラウザの中（IndexedDB）にだけ保存します。結果資料・Excelの読み取りはすべてこの端末の中で行います。大会ごとの天気・気温と、中学/高校を選んだ選手の情報も、記録と同じ場所（ログイン中はあなた専用のクラウド）に保存します。「不具合・要望を送る」で送った内容だけは作成者に届きます（記録や選手名は自動では送りません）。共用のパソコンでは、使い終わったらログアウトしてください。</div>
   <div class="rb-row" id="rbAuth" style="margin:10px 0;align-items:center">
     <span id="rbAuthInfo" class="small"></span>
     <button class="btn" id="rbSignIn" type="button" hidden>Googleでログイン</button>
@@ -593,9 +632,9 @@ body.ath-open #rbLegend{display:none}
     <span class="small muted">「本郷」と打つと「本郷」「本郷高」「本郷中」を拾います。</span>
   </div>
   <div class="drop" id="rbDrop" tabindex="0" role="button" aria-label="結果のファイルを選ぶ">
-    <div class="big">📄 結果のPDF・保存したWebページ（HTML）をここへ</div>
+    <div class="big">📄 結果のPDF・保存したWebページ（HTML）・Excel（.xlsx/.xls/.csv）をここへ</div>
     <div class="small muted">複数まとめて入れられます（種目ごとにページが分かれた結果サイトは、ページを全部保存して一度に入れてください）</div>
-    <input type="file" id="rbFile" multiple accept=".pdf,.html,.htm,.txt,application/pdf,text/html">
+    <input type="file" id="rbFile" multiple accept=".pdf,.html,.htm,.txt,.xlsx,.xls,.csv,application/pdf,text/html">
     <div class="status" id="rbStatus"></div>
   </div>
   <details style="margin-top:10px"><summary><b>Webページの結果を貼り付ける</b>（ファイルにできないとき）</summary>
@@ -611,6 +650,8 @@ body.ath-open #rbLegend{display:none}
 <section class="box">
   <h2><span class="no">2</span>記録</h2>
   <div class="divsw" role="radiogroup" aria-label="中学・高校の切り替え" id="rbDiv"><button type="button" data-div="all">すべて</button><button type="button" data-div="jh">中学</button><button type="button" data-div="hs">高校</button></div>
+  <div class="divsw sexsw" role="radiogroup" aria-label="男子・女子の切り替え" id="rbSex" hidden><button type="button" data-sex="m">男子</button><button type="button" data-sex="f">女子</button></div>
+  <div id="rbReview"></div>
   <div class="rb-stats" id="rbStats"></div>
   <div class="tabbar"><div class="tabs" role="tablist">
     <button class="on" data-v="home" type="button">ホーム</button><button data-v="ath" type="button">選手別</button><button data-v="rank" type="button">部内ランキング</button><button data-v="meet" type="button">大会別</button><button data-v="hist" type="button">歴代記録</button><button data-v="all" type="button">全記録</button>
@@ -634,14 +675,85 @@ body.ath-open #rbLegend{display:none}
 </main>
 <footer><details class="about"><summary><b>この記録ページについて</b>（版・対応している形式・既知の制限）</summary>
   <ul>
-    <li><b>LANE NOTE（レーンノート）記録 試作版</b>　版：<span class="appver"></span>／記録 v0.4.0（2026年10月11日 作成）／ Presented by Sakata</li>
+    <li><b>LANE NOTE（レーンノート）記録 試作版</b>　版：<span class="appver"></span>／記録 v0.5.0（2026年10月11日 作成）／ Presented by Sakata</li>
     <li>読める形式：組ごとに2列で並ぶ結果PDF（「順位・レーン・ナンバー・氏名・所属・記録」の見出しがあるもの。北区・江東区・都高体連などで確認）／ 結果サイトのHTML（表のあるもの）・その貼り付け。</li>
+    <li>Excel・CSV（v0.5）：見出し（氏名・種目・記録・日付など）を自動で見つけて取り込みます。日付は必須、大会名は任意（空なら「大会名なし（日付）」）。</li>
     <li>既知の制限：リレー・混成の得点・スキャン（画像）PDFは読みません。大会名・日付が資料に無いときは手で入れてください。風が読めない記録は公認ベストに数えません。</li>
     <li>使っている部品（外部CDNから読み込み、ハッシュで確認）：pdf.js 4.10.38（Apache-2.0, Mozilla）／ SheetJS Community Edition 0.20.3（Apache-2.0）／ Firebase JS SDK 10.14.1（Apache-2.0, Google・ログインと保存）</li>
   </ul></details>
-<div class="f-disc">ⓘ 本ツールは結果資料の文字を読み取って自動で整理しているだけです。内容は必ず元の結果資料と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div><div><b class="f-brand">LANE NOTE</b>（レーンノート）記録 試作版 ／ <span class="f-credit">Presented by Sakata</span></div>🔒 ログイン中の記録は本人だけが読めるクラウド（Google Firebase）に保存します。ログインしないときはこのブラウザの中にだけ保存します（部品取得のため外部CDNへ通信します）。 <a href="./">大会準備のページへ</a></footer>
+<div class="f-disc">ⓘ 本ツールは結果資料の文字を読み取って自動で整理しているだけです。内容は必ず元の結果資料と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div><div><b class="f-brand">LANE NOTE</b>（レーンノート）記録 試作版 ／ <span class="f-credit">Presented by Sakata</span></div>🔒 ログイン中の記録は本人だけが読めるクラウド（Google Firebase）に保存します。ログインしないときはこのブラウザの中にだけ保存します（部品取得のため外部CDNへ通信します）。「不具合・要望を送る」の内容だけは作成者に届きます。 <a href="./">大会準備のページへ</a><br><button type="button" class="fb-btn" data-feedback="1">📮 不具合・要望を送る</button></footer>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
 <script src="firebase-config.js"></script>
+<script>
+/* ===== 不具合・要望を送る（v0.13）：ページの中のフォームから Firestore の feedback/{自動ID} に1件書くだけ（読む・直す・消すは誰にもできない）。
+   記録・選手名・PDFの中身は送らない。送るのは 種類・内容・連絡先（任意）・ページ名・版・ブラウザの種類（userAgent）・画面の大きさ・開いているタブとURLのパス（#以降と?以降は送らない） ===== */
+(function () {
+  'use strict';
+  var FB_VER = '10.14.1', KINDS = ['不具合', '要望', 'その他'];
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  function cfg() { var c = window.LANE_FIREBASE_CONFIG; return c && c.apiKey && !/^YOUR_|^__/.test(c.apiKey) && c.projectId ? c : null; }
+  function pageName() { return document.body.classList.contains('records') ? '記録' : '大会準備'; }
+  function version() { return (window.APP_VERSION || '') + (window.REC_VERSION && document.body.classList.contains('records') ? '／記録 ' + window.REC_VERSION : ''); }
+  function curTab() { var b = document.querySelector('.tabs button.on'); return b ? b.textContent.trim().slice(0, 30) : ''; }
+  function info() {
+    return { page: pageName(), version: version(), ua: String(navigator.userAgent || '').slice(0, 400), screen: (screen.width || 0) + 'x' + (screen.height || 0) + '（表示 ' + window.innerWidth + 'x' + window.innerHeight + '）',
+      path: (location.pathname || '/').slice(0, 200) + (curTab() ? '［' + curTab() + '］' : '') };
+  }
+  var dlg = null;
+  function build() {
+    dlg = document.createElement('div'); dlg.className = 'fb-back'; dlg.hidden = true;
+    dlg.innerHTML = '<div class="fb-dlg" role="dialog" aria-modal="true" aria-labelledby="fbTitle"><form id="fbForm" novalidate>' +
+      '<h2 id="fbTitle">📮 不具合・要望を送る</h2>' +
+      '<p class="small muted">読み取りの間違い・動かないところ・「こうなったら助かる」を送ってください。ログインしていなくても送れます。</p>' +
+      '<fieldset class="fb-kind"><legend>種類</legend>' + KINDS.map(function (k, i) { return '<label><input type="radio" name="fbKind" value="' + k + '"' + (i ? '' : ' checked') + '> ' + k + '</label>'; }).join('') + '</fieldset>' +
+      '<label class="fb-l">内容 <b class="ng">（必須）</b><textarea id="fbBody" maxlength="5000" rows="6" placeholder="例：記録ページの大会別で、〇〇大会の100mの風が出ません"></textarea></label>' +
+      '<label class="fb-l">連絡先（任意・返事がほしいとき）<input type="text" id="fbContact" maxlength="200" placeholder="メールアドレスなど"></label>' +
+      '<details class="small fb-auto"><summary>いっしょに送る情報（記録や選手名は送りません）</summary><ul id="fbInfo"></ul></details>' +
+      '<div class="status" id="fbStatus" aria-live="polite"></div>' +
+      '<div class="fb-btns"><button class="btn" type="submit" id="fbSend">送信する</button><button class="btn sub" type="button" id="fbClose">閉じる</button></div>' +
+      '</form></div>';
+    document.body.appendChild(dlg);
+    dlg.addEventListener('click', function (e) { if (e.target === dlg) close(); });
+    dlg.querySelector('#fbClose').addEventListener('click', close);
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !dlg.hidden) close(); });
+    dlg.querySelector('#fbForm').addEventListener('submit', send);
+  }
+  function st(html, cls) { var el = dlg.querySelector('#fbStatus'); el.innerHTML = html; el.className = 'status ' + (cls || ''); }
+  function open() {
+    if (!dlg) build();
+    var i = info(); dlg.querySelector('#fbInfo').innerHTML = '<li>ページ：' + esc(i.page) + '</li><li>版：' + esc(i.version) + '</li><li>場所：' + esc(i.path) + '</li><li>画面：' + esc(i.screen) + '</li><li>ブラウザ：' + esc(i.ua) + '</li>';
+    st('', ''); dlg.querySelector('#fbSend').disabled = false; dlg.hidden = false; document.body.classList.add('fb-open');
+    setTimeout(function () { dlg.querySelector('#fbBody').focus(); }, 30);
+  }
+  function close() { dlg.hidden = true; document.body.classList.remove('fb-open'); }
+  function withTimeout(pr, ms) { return Promise.race([pr, new Promise(function (_, ng) { setTimeout(function () { ng(new Error('時間切れ（通信できませんでした）')); }, ms); })]); }
+  async function send(e) {
+    e.preventDefault();
+    var body = dlg.querySelector('#fbBody').value.trim(), contact = dlg.querySelector('#fbContact').value.trim(), kind = (dlg.querySelector('input[name=fbKind]:checked') || {}).value || 'その他';
+    if (!body) { st('✖ 内容を書いてください。', 'ng'); dlg.querySelector('#fbBody').focus(); return; }
+    if (body.length > 5000 || contact.length > 200) { st('✖ 内容は5000文字・連絡先は200文字までです。', 'ng'); return; }
+    var c = cfg(); if (!c) { st('✖ 送信の準備ができていません（設定がありません）。', 'ng'); return; }
+    var btn = dlg.querySelector('#fbSend'); btn.disabled = true; st('送信中…', 'busy');
+    try {
+      var base = 'https://www.gstatic.com/firebasejs/' + FB_VER + '/';
+      var m = await withTimeout(Promise.all([import(base + 'firebase-app.js'), import(base + 'firebase-auth.js'), import(base + 'firebase-firestore.js')]), 15000);
+      var app = m[0].getApps().length ? m[0].getApp() : m[0].initializeApp(c), auth = m[1].getAuth(app), uid = null;
+      try { await withTimeout(auth.authStateReady(), 4000); } catch (x) { }
+      if (auth.currentUser) uid = auth.currentUser.uid;
+      var i = info();
+      await withTimeout(m[2].addDoc(m[2].collection(m[2].getFirestore(app), 'feedback'), { kind: kind, body: body, contact: contact, page: i.page, version: i.version, ua: i.ua, screen: i.screen, path: i.path, createdAt: m[2].serverTimestamp(), uid: uid }), 15000);
+      st('✔ <b>送信しました。</b>ありがとうございます！', 'ok');
+      dlg.querySelector('#fbBody').value = ''; dlg.querySelector('#fbContact').value = '';
+    } catch (err) {
+      btn.disabled = false;
+      st('✖ 送信できませんでした：' + esc(err && err.message || err) + '<br><small>通信を確かめて、もう一度押してください。</small>', 'ng');
+    }
+  }
+  document.addEventListener('click', function (e) { var a = e.target.closest && e.target.closest('[data-feedback]'); if (!a) return; e.preventDefault(); open(); });
+  window.LaneFeedback = { open: open, info: info };
+})();
+
+</script>
 <script>
 /* ===== LANE LOG：大会結果（PDF・HTML・貼り付け）の読み取りと自己ベスト（座標ベース・AI不使用・推測で補わない） ===== */
 var ResultParser = (function () {
@@ -688,7 +800,13 @@ var ResultParser = (function () {
     return '';
   }
   // 中学／高校：所属の「中・高」→ 種目見出しの「中学・高校」→ 学年の「中2・高1」の順で決める。決められなければ ''
+  var DIV_HINTS = {};   // v0.5：所属に中・高の無い記録の区分（推測・手で選んだもの）。記録の id → 'jh'|'hs'
+  function setDivisionHints(m) { DIV_HINTS = m || {}; }
   function divisionOf(r) {
+    if (r && r.id && DIV_HINTS[r.id]) return DIV_HINTS[r.id];
+    return rawDivisionOf(r);
+  }
+  function rawDivisionOf(r) {
     var t = normSchool(r && r.team || '');
     if (/(中学校|中学|中等教育学校|中)$/.test(t)) return 'jh';
     if (/(高等学校|高校|高)$/.test(t)) return 'hs';
@@ -703,11 +821,12 @@ var ResultParser = (function () {
   function divLabel(d) { return d === 'jh' ? '中学' : d === 'hs' ? '高校' : ''; }
   // ランキング・PB・グラフで使う種目のキー：区分（中学/高校）＋学年別などの区分＋種目
   function eventKey(r) { var c = eventCat(r.event), d = divisionOf(r); return (d ? d + ':' : '') + normEvent(r.event) + (c ? '#' + c : ''); }
-  function eventKeyLabel(r) {
+  function eventKeyLabel(r, noGender) {
     var n = normEvent(r.event), g = (n.match(/^(男子|女子)/) || [''])[0], c = eventCat(r.event), d = divLabel(divisionOf(r));
     var cat = c === '共通' ? (d || '') + '共通' : /^\d年$/.test(c) ? (d ? d.charAt(0) : '') + c.charAt(0) : /年$/.test(c) ? (d || '') + c : c;
     if (!cat && d) cat = d;
-    return g + (cat ? ' ' + cat + ' ' : '') + n.slice(g.length);
+    var out = g + (cat ? ' ' + cat + ' ' : '') + n.slice(g.length);
+    return noGender && g ? out.slice(g.length).trim() : out;
   }
   function hasMark(r) { return !!markValue(r && r.mark); }
   function shownWind(r) { return hasMark(r) && windApplies(r.event) ? (r.wind || '') : ''; }   // DNS・DNF・失格などには風を出さない
@@ -1153,17 +1272,178 @@ var ResultParser = (function () {
     var md = (nk(fileName || '').match(/(\d{1,2})\s*月\s*(\d{1,2})\s*日/) || nk(fileName || '').match(/(?:^|[^\d\/])(\d{1,2})\/(\d{1,2})(?![\d\/])/) || []);
     return { name: name, date: dateFromText(fileName) || dateFromText(docName), md: md.length ? +md[1] + '月' + +md[2] + '日' : '', from: from };
   }
+
+  /* ---------- v0.5：種目の並び（区分ごと・陸上の種目順）・男女 ---------- */
+  function genderOf(r) { var g = (normEvent(r && r.event || '').match(/^(男子|女子)/) || [''])[0]; return g === '男子' ? 'm' : g === '女子' ? 'f' : ''; }
+  var GROUPS = ['中1', '中2', '中3', '中学共通', '高校', 'その他'];
+  function divGroup(r) {
+    var d = divisionOf(r), c = eventCat(r.event);
+    if (d === 'jh') return /^[1-3]年$/.test(c) ? '中' + c.charAt(0) : (c === '' || c === '共通') ? '中学共通' : 'その他';
+    if (d === 'hs') return '高校';
+    return 'その他';
+  }
+  // 種目の順：短距離→中長距離→ハードル→リレー→競歩→跳躍→投てき→混成。距離は数で比べる
+  function disciplineOrder(ev) {
+    var s = normEvent(ev).replace(/^(男子|女子)/, ''), m = s.match(/(\d+(?:,\d{3})*)\s*m/), dist = m ? +m[1].replace(/,/g, '') : 0;
+    var t;
+    if (/リレー|R$|×/.test(s)) t = 3;
+    else if (/競歩|W$|\dmW/.test(s)) t = 4;
+    else if (/H|ハードル/.test(s) && dist) t = 2;
+    else if (/SC|障害/.test(s)) t = 2.5;
+    else if (/走高跳/.test(s)) { t = 5; dist = 1; } else if (/棒高跳/.test(s)) { t = 5; dist = 2; } else if (/走幅跳/.test(s)) { t = 5; dist = 3; } else if (/三段跳/.test(s)) { t = 5; dist = 4; }
+    else if (/跳/.test(s)) { t = 5; dist = 9; }
+    else if (/砲丸/.test(s)) { t = 6; dist = 1; } else if (/円盤/.test(s)) { t = 6; dist = 2; } else if (/ハンマー/.test(s)) { t = 6; dist = 3; } else if (/やり|ジャベ/.test(s)) { t = 6; dist = 4; }
+    else if (/投/.test(s)) { t = 6; dist = 9; }
+    else if (/種|混成/.test(s)) t = 7;
+    else if (dist) t = dist <= 400 ? 0 : 1;
+    else t = 8;
+    return [t, dist, s];
+  }
+  function cmpEventRec(a, b) {
+    var ga = GROUPS.indexOf(divGroup(a)), gb = GROUPS.indexOf(divGroup(b)); if (ga !== gb) return ga - gb;
+    var xa = genderOf(a), xb = genderOf(b); if (xa !== xb) return (xa === 'm' ? 0 : xa === 'f' ? 1 : 2) - (xb === 'm' ? 0 : xb === 'f' ? 1 : 2);
+    var da = disciplineOrder(a.event), db = disciplineOrder(b.event);
+    return da[0] - db[0] || da[1] - db[1] || (da[2] < db[2] ? -1 : da[2] > db[2] ? 1 : 0) || (eventKey(a) < eventKey(b) ? -1 : eventKey(a) > eventKey(b) ? 1 : 0);
+  }
+  // keys: eventKey の配列、rows: 記録。→ [{group:'中1', items:[{key, label, rec}]}]（区分の順・種目の順）
+  function groupEvents(keys, rows, noGender) {
+    var rep = {}; rows.forEach(function (r) { var k = eventKey(r); if (!rep[k]) rep[k] = r; });
+    var list = keys.filter(function (k) { return rep[k]; }).map(function (k) { return rep[k]; }).sort(cmpEventRec), out = [], cur = null;
+    list.forEach(function (r) { var g = divGroup(r); if (!cur || cur.group !== g) { cur = { group: g, items: [] }; out.push(cur); } cur.items.push({ key: eventKey(r), label: eventKeyLabel(r, noGender), rec: r }); });
+    keys.filter(function (k) { return !rep[k]; }).forEach(function (k) { if (!cur || cur.group !== 'その他') { cur = { group: 'その他', items: [] }; out.push(cur); } cur.items.push({ key: k, label: k, rec: null }); });
+    return out;
+  }
+  function gendersIn(rows) { var o = {}; rows.forEach(function (r) { var g = genderOf(r); if (g) o[g] = 1; }); return Object.keys(o).sort().reverse(); }
+
+  /* ---------- v0.5：所属に中・高の無い記録の区分を、同じ選手のほかの大会から決める ---------- */
+  // 同じ選手＝氏名（とフリガナがあればフリガナも）・学校名（中・高を除いた部分）が同じ
+  function personKey(r) { return nameKey(r.name || r.kana) + '@' + schoolBase(r.team); }
+  // overrides: personKey → 'jh'|'hs'（画面で選んだもの）
+  // 戻り値 { hints: {id: div}, review: [{person, name, kana, team, ids, reason, dates}] }
+  function inferDivisions(recs, overrides) {
+    overrides = overrides || {};
+    var known = {}, unknown = {};
+    recs.forEach(function (r) {
+      var k = personKey(r), d = rawDivisionOf(r);
+      if (d) (known[k] = known[k] || []).push(r); else (unknown[k] = unknown[k] || []).push(r);
+    });
+    var hints = {}, review = [];
+    Object.keys(unknown).forEach(function (k) {
+      var us = unknown[k], ov = overrides[k];
+      if (ov === 'jh' || ov === 'hs') { us.forEach(function (r) { hints[r.id] = ov; }); return; }
+      var ks = (known[k] || []).filter(function (x) { var a = kanaKey(x.kana), b = kanaKey(us[0].kana); return !a || !b || a === b; });
+      var divs = {}; ks.forEach(function (x) { divs[rawDivisionOf(x)] = 1; });
+      var dl = Object.keys(divs), reason = '', undecided = [];
+      if (!dl.length) reason = 'ほかの大会に、中学か高校かがわかる記録がありません';
+      else if (dl.length > 1) reason = '同じ名前の選手が中学にも高校にもいます';
+      else {
+        var d = dl[0], ss = ks.map(function (x) { return { s: seasonOf(x.date), g: gradeNum(x.grade) }; }).filter(function (x) { return x.s != null; });
+        us.forEach(function (r) {
+          var u = seasonOf(r.date), ok = true;
+          if (u != null && ss.length) {
+            if (d === 'jh') { var mx = ss.reduce(function (a, b) { return b.s > a.s || (b.s === a.s && (b.g || 0) > (a.g || 0)) ? b : a; }); if (u > mx.s) ok = mx.g != null && u - mx.s <= 3 - mx.g; }
+            else { var mn = ss.reduce(function (a, b) { return b.s < a.s || (b.s === a.s && (b.g || 9) < (a.g || 9)) ? b : a; }); if (u < mn.s) ok = mn.g != null && mn.s - u <= mn.g - 1; }
+          }
+          if (ok) hints[r.id] = d; else undecided.push(r);
+        });
+        if (undecided.length) { us = undecided; reason = '中3から高1に上がる時期（4月）をまたぐので、どちらか決められません'; }
+      }
+      if (reason) { var f = us[0]; review.push({ person: k, name: f.name || f.kana, kana: f.kana || '', team: f.team, ids: us.map(function (r) { return r.id; }), dates: us.map(function (r) { return r.date; }).sort(), reason: reason }); }
+    });
+    return { hints: hints, review: review };
+  }
+
+  /* ---------- v0.5：Excel・CSV の取り込み ---------- */
+  var HEADER_FIELDS = [
+    ['name', /^(氏名|名前|選手名|選手|なまえ|name)$/i], ['kana', /^(フリガナ|ふりがな|カナ|ヨミ|よみ|読み|氏名カナ|カナ氏名)$/], ['grade', /^(学年|年)$/],
+    ['team', /^(所属|学校|学校名|チーム|所属名)$/], ['event', /^(種目|種目名|競技|event)$/i], ['mark', /^(記録|タイム|結果|記録\(タイム\)|time|mark)$/i],
+    ['wind', /^(風|風速|風力|wind)$/i], ['date', /^(日付|年月日|月日|日にち|実施日|大会日|date)$/i], ['meet', /^(大会|大会名|競技会|記録会|meet)$/i],
+    ['rank', /^(順位|着順|着|rank)$/i], ['round', /^(ラウンド|予決|予選決勝|区分|round)$/i], ['sex', /^(性別|男女)$/]];
+  var FIELD_LABELS = { name: '氏名', kana: 'フリガナ', grade: '学年', team: '所属', event: '種目', mark: '記録', wind: '風', date: '日付', meet: '大会名', rank: '順位', round: 'ラウンド', sex: '性別' };
+  function mapHeaders(headers) {
+    var map = {};
+    (headers || []).forEach(function (h, i) {
+      var s = nk(String(h == null ? '' : h)).replace(/[\s　:：*＊※]/g, '');
+      HEADER_FIELDS.some(function (f) { if (map[f[0]] == null && f[1].test(s)) { map[f[0]] = i; return true; } return false; });
+    });
+    return map;
+  }
+  // 見出しの行：最初の15行で、見出しにいちばん多く当たる行（2つ以上）
+  function findHeaderRow(aoa) {
+    var best = -1, bn = 1;
+    for (var i = 0; i < Math.min(15, aoa.length); i++) { var n = Object.keys(mapHeaders(aoa[i])).length; if (n > bn) { bn = n; best = i; } }
+    return best;
+  }
+  // 日付のセル → 'YYYY-MM-DD'（2026/9/13・2026-09-13・2026年9月13日・R8.9.13・令和8年9月13日・H30.5.1・Excelの通し番号・Date）
+  function parseDateCell(v) {
+    if (v == null || v === '') return '';
+    if (Object.prototype.toString.call(v) === '[object Date]') return isNaN(v) ? '' : okDate(v.getFullYear(), v.getMonth() + 1, v.getDate());
+    if (typeof v === 'number' || /^\d{5}(\.\d+)?$/.test(String(v).trim())) {
+      var n = Math.floor(+v); if (n < 36526 || n > 73050) return '';   // 2000〜2099年
+      var d = new Date(Date.UTC(1899, 11, 30) + n * 864e5);
+      return okDate(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate());
+    }
+    var s = nk(String(v)).trim(), m;
+    if ((m = s.match(/^(20\d\d)\s*[年\/.\-]\s*(\d{1,2})\s*[月\/.\-]\s*(\d{1,2})\s*日?/))) return okDate(m[1], m[2], m[3]);
+    if ((m = s.match(/^(20\d\d)(\d\d)(\d\d)$/))) return okDate(m[1], m[2], m[3]);
+    if ((m = s.match(/^(令和|R)\s*(\d{1,2}|元)\s*[年.\/\-]\s*(\d{1,2})\s*[月.\/\-]\s*(\d{1,2})/i))) return okDate(2018 + (m[2] === '元' ? 1 : +m[2]), m[3], m[4]);
+    if ((m = s.match(/^(平成|H)\s*(\d{1,2}|元)\s*[年.\/\-]\s*(\d{1,2})\s*[月.\/\-]\s*(\d{1,2})/i))) return okDate(1988 + (m[2] === '元' ? 1 : +m[2]), m[3], m[4]);
+    return '';
+  }
+  function isFieldEvent(ev) { return /(跳|投|スロー)/.test(nk(ev)); }
+  // Excel の記録：数値になったもの（11.5 → 11.50、走幅跳の 5.74 → 5m74、時刻の形 0.00314… → 4:31.30）を結果資料と同じ形に
+  function normImportMark(v, ev, text) {
+    if (v == null) return '';
+    var t = nk(String(text != null && text !== '' ? text : v)).trim().replace(/秒$/, '');
+    if (typeof v === 'number' && v > 0 && v < 1 && !isFieldEvent(ev)) {   // 時刻の書式（1日を1とした数）
+      var sec = Math.round(v * 86400 * 100) / 100, mm = Math.floor(sec / 60), ss = sec - mm * 60;
+      t = mm ? mm + ':' + (ss < 10 ? '0' : '') + ss.toFixed(2) : ss.toFixed(2);
+    }
+    t = t.replace(/^(\d{1,2})分(\d{1,2})秒?(\d{1,2})$/, '$1:$2.$3').replace(/^(\d{1,2})'(\d{2})"(\d{1,2})$/, '$1:$2.$3');
+    if (/^\d+\.\d$/.test(t)) t += '0';
+    if (isFieldEvent(ev) && /^\d{1,2}\.\d{2}$/.test(t)) t = t.replace('.', 'm');
+    return t;
+  }
+  // aoa: 行の配列（raw）、txt: 同じ形の表示文字（なければ aoa）、map: 列の割り当て、hr: 見出しの行
+  function importRows(aoa, map, opt) {
+    opt = opt || {}; var txt = opt.text || aoa, hr = opt.headerRow == null ? 0 : opt.headerRow, recs = [], bad = [];
+    var cell = function (row, f) { return map[f] == null ? '' : row[map[f]]; };
+    var ctext = function (i, f) { var r = txt[i] || []; return map[f] == null ? '' : r[map[f]]; };
+    for (var i = hr + 1; i < aoa.length; i++) {
+      var row = aoa[i] || []; if (!row.some(function (c) { return c != null && String(c).trim() !== ''; })) continue;
+      var name = nk(String(cell(row, 'name') || '')).replace(/\s+/g, ' ').trim(), ev = nk(String(cell(row, 'event') || '')).replace(/\s+/g, ' ').trim();
+      var sex = nk(String(cell(row, 'sex') || '')).trim();
+      if (sex && !/(男|女)/.test(ev)) ev = (/^(女|f)/i.test(sex) ? '女子' : /^(男|m)/i.test(sex) ? '男子' : '') + ev;
+      var date = parseDateCell(cell(row, 'date')) || parseDateCell(ctext(i, 'date'));
+      var mark = normImportMark(cell(row, 'mark'), ev, ctext(i, 'mark'));
+      var w = cell(row, 'wind'), wind = w === '' || w == null ? '' : nk(String(typeof w === 'number' ? (w > 0 ? '+' : '') + w.toFixed(1) : w)).replace(/[()（）\s]/g, '').replace('±', '');
+      var meet = nk(String(cell(row, 'meet') || '')).replace(/\s+/g, ' ').trim();
+      var g = parseGrade(name), grade = nk(String(cell(row, 'grade') || '')).replace(/年生?$/, '').trim() || g.grade;
+      var r = { event: ev, round: nk(String(cell(row, 'round') || '')).trim(), heat: '', rank: /^\d+$/.test(String(cell(row, 'rank') || '').trim()) ? +String(cell(row, 'rank')).trim() : '', lane: '', bib: '',
+        name: g.name, kana: nk(String(cell(row, 'kana') || '')).trim(), grade: grade, team: nk(String(cell(row, 'team') || '')).trim() || opt.school || '', mark: mark, wind: hasMark({ mark: mark }) && windApplies(ev) ? wind : '', comment: '', row: i + 1, date: date, meet: meet || (date ? '大会名なし（' + date + '）' : '') };
+      var probs = [];
+      if (!date) probs.push('日付');
+      if (!r.name) probs.push('氏名');
+      if (!r.event) probs.push('種目');
+      if (!r.mark) probs.push('記録'); else if (!markValue(r.mark) && !STATUS.test(r.mark)) probs.push('記録の形（「' + r.mark + '」）');
+      r.warn = probs.join('・');
+      if (probs.length) bad.push(r); else recs.push(r);
+    }
+    return { recs: recs, bad: bad };
+  }
   function recId(meetName, date, r) { return [nk(meetName).replace(/\s/g, ''), date, normEvent(r.event), r.round, r.heat, nameKey(r.name || r.kana), schoolBase(r.team), r.mark].join('|'); }
   return { parsePdf: parsePdf, parseCells: parseCells, parsePlain: parsePlain, textToStream: textToStream, normEvent: normEvent, markValue: markValue, windApplies: windApplies, windClass: windClass, windNum: windNum,
     computeBests: computeBests, athleteKey: athleteKey, matchSchool: matchSchool, recId: recId, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
     guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText,
-    eventCat: eventCat, divisionOf: divisionOf, divLabel: divLabel, eventKey: eventKey, eventKeyLabel: eventKeyLabel, shownWind: shownWind, hasMark: hasMark, sortAthletes: sortAthletes, kanaKey: kanaKey };
+    eventCat: eventCat, divisionOf: divisionOf, divLabel: divLabel, eventKey: eventKey, eventKeyLabel: eventKeyLabel, shownWind: shownWind, hasMark: hasMark, sortAthletes: sortAthletes, kanaKey: kanaKey,
+    setDivisionHints: setDivisionHints, rawDivisionOf: rawDivisionOf, genderOf: genderOf, divGroup: divGroup, disciplineOrder: disciplineOrder, groupEvents: groupEvents, gendersIn: gendersIn, GROUPS: GROUPS,
+    personKey: personKey, inferDivisions: inferDivisions, mapHeaders: mapHeaders, findHeaderRow: findHeaderRow, parseDateCell: parseDateCell, normImportMark: normImportMark, importRows: importRows, FIELD_LABELS: FIELD_LABELS, isFieldEvent: isFieldEvent };
 })();
 if (typeof module !== 'undefined') module.exports = ResultParser;
 
 </script>
 <script>
-var APP_VERSION = "v0.12", REC_VERSION = "v0.4.0";
+var APP_VERSION = "v0.13", REC_VERSION = "v0.5.0";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>
@@ -1290,6 +1570,41 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
     }
   }
 
+  /* ---------- v0.5：大会ごとの天気（users/{uid}/meets/{大会}）・中学/高校を手で選んだ選手（users/{uid}/settings/divOverrides） ---------- */
+  var METS = {}, DIV_OV = {}, REVIEW = [];
+  function lsGet(k, d) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } }
+  function metsKey() { return USER ? 'lanenote-rec-meets-' + USER.uid : 'lanenote-rec-meets'; }
+  function ovKey() { return USER ? 'lanenote-rec-divov-' + USER.uid : 'lanenote-rec-divov'; }
+  async function loadSide() {
+    METS = lsGet(metsKey(), {}); DIV_OV = lsGet(ovKey(), {});
+    if (!USER || OFFLINE) return;
+    try {
+      var snap = await FB.F.getDocs(FB.F.collection(FB.fs, 'users', USER.uid, 'meets')), m = {};
+      snap.forEach(function (d) { var x = d.data(); if (x && x.key) m[x.key] = x; });
+      METS = m; lsSet(metsKey(), m);
+      var ov = await FB.F.getDoc(FB.F.doc(FB.fs, 'users', USER.uid, 'settings', 'divOverrides'));
+      DIV_OV = ov.exists() && ov.data().map || {}; lsSet(ovKey(), DIV_OV);
+    } catch (e) { }
+  }
+  async function saveMeet(key, w) {
+    var p = key.split('|'), o = { key: key, date: p[0], meet: p.slice(1).join('|'), weather: w.weather || '', temp: w.temp === '' || w.temp == null || isNaN(+w.temp) ? null : +w.temp, humidity: w.humidity === '' || w.humidity == null || isNaN(+w.humidity) ? null : +w.humidity, updatedAt: new Date().toISOString() };
+    METS[key] = o; lsSet(metsKey(), METS);
+    if (USER) await FB.F.setDoc(FB.F.doc(FB.fs, 'users', USER.uid, 'meets', docId(key)), o);
+  }
+  async function saveOverrides() { lsSet(ovKey(), DIV_OV); if (USER) await FB.F.setDoc(FB.F.doc(FB.fs, 'users', USER.uid, 'settings', 'divOverrides'), { map: DIV_OV, updatedAt: new Date().toISOString() }); }
+  function applyInference() { var inf = R.inferDivisions(ALL, DIV_OV); R.setDivisionHints(inf.hints); REVIEW = inf.review; }
+  var WEATHERS = [['晴', '☀️'], ['晴時々曇', '🌤'], ['曇', '⛅'], ['小雨', '🌦'], ['雨', '🌧'], ['雪', '❄'], ['強風', '🌬']];
+  function wIcon(w) { for (var i = 0; i < WEATHERS.length; i++) if (WEATHERS[i][0] === w) return WEATHERS[i][1]; return ''; }
+  function weatherText(key) { var m = METS[key]; if (!m) return ''; var t = []; if (m.weather) t.push(wIcon(m.weather) + ' ' + m.weather); if (m.temp != null) t.push(m.temp + '℃'); if (m.humidity != null) t.push('湿度' + m.humidity + '%'); return t.join(' '); }
+  function weatherTag(key) { var t = weatherText(key); return t ? '<span class="wx">' + esc(t) + '</span>' : ''; }
+  function weatherInputs(w, attr) {
+    w = w || {};
+    return '<label>天気 <select ' + attr + '="weather"><option value="">（なし）</option>' + WEATHERS.map(function (x) { return '<option value="' + x[0] + '"' + (w.weather === x[0] ? ' selected' : '') + '>' + x[1] + ' ' + x[0] + '</option>'; }).join('') + '</select></label>' +
+      '<label>気温 <input type="number" step="0.1" inputmode="decimal" ' + attr + '="temp" value="' + esc(w.temp == null ? '' : w.temp) + '" style="width:5.5em">℃</label>' +
+      '<label>湿度 <input type="number" step="1" min="0" max="100" inputmode="numeric" ' + attr + '="humidity" value="' + esc(w.humidity == null ? '' : w.humidity) + '" style="width:4.5em">%</label>';
+  }
+
   // 一覧を読む：ログイン中はクラウドから読み、控え（IndexedDB）を入れ替える。つながらないときは控えを出す
   async function getAll() {
     if (!USER) return lgetAll();
@@ -1396,7 +1711,9 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
     var html = files.filter(function (f) { return /\.html?$/i.test(f.name) || f.type === 'text/html'; });
     var pdfs = files.filter(function (f) { return /\.pdf$/i.test(f.name) || f.type === 'application/pdf'; });
     var txts = files.filter(function (f) { return /\.txt$/i.test(f.name); });
-    var other = files.filter(function (f) { return html.indexOf(f) < 0 && pdfs.indexOf(f) < 0 && txts.indexOf(f) < 0; });
+    var xls = files.filter(function (f) { return /\.(xlsx|xls|csv)$/i.test(f.name); });
+    var other = files.filter(function (f) { return html.indexOf(f) < 0 && pdfs.indexOf(f) < 0 && txts.indexOf(f) < 0 && xls.indexOf(f) < 0; });
+    for (var xi = 0; xi < xls.length; xi++) { try { await readSheet(xls[xi]); } catch (e) { addBatch({ src: xls[xi].name, kind: 'Excel', error: e.message }); } }
     if (other.length) status('rbStatus', '✖ 読めない種類のファイルです：' + esc(other.map(function (f) { return f.name; }).join('、')), 'ng');
     for (var i = 0; i < pdfs.length; i++) {
       var f = pdfs[i];
@@ -1419,6 +1736,56 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
     }
     status('rbStatus', '読み取りました。下の内容を確かめて「記録に保存」を押してください。', 'ok');
   }
+  /* ---------- v0.5：Excel・CSV（今まで先生がまとめてきた記録）を取り込む ---------- */
+  async function readSheet(f) {
+    if (!window.XLSX) throw new Error('Excelを読む部品を読み込めませんでした（インターネット接続を確認してください）');
+    var wb;
+    if (/\.csv$/i.test(f.name)) {
+      var buf = new Uint8Array(await f.arrayBuffer()), txt = new TextDecoder('utf-8').decode(buf);
+      if ((txt.match(/\ufffd/g) || []).length > 3) txt = new TextDecoder('shift_jis').decode(buf);
+      wb = XLSX.read(txt.replace(/^\ufeff/, ''), { type: 'string', raw: true });
+    } else wb = XLSX.read(new Uint8Array(await f.arrayBuffer()), { type: 'array' });
+    var b = { src: f.name, kind: 'Excel', xl: { wb: wb, sheet: wb.SheetNames[0] }, meta: {} };
+    loadXlSheet(b); addBatch(b);
+  }
+  function loadXlSheet(b) {
+    var ws = b.xl.wb.Sheets[b.xl.sheet];
+    b.xl.aoa = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' });
+    b.xl.txt = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' });
+    b.xl.hr = Math.max(0, R.findHeaderRow(b.xl.txt));
+    b.xl.map = R.mapHeaders(b.xl.txt[b.xl.hr] || []);
+    xlRun(b);
+  }
+  function xlRun(b) { b.xl.res = R.importRows(b.xl.aoa, b.xl.map, { text: b.xl.txt, headerRow: b.xl.hr, school: school() }); }
+  function colName(i) { var s = ''; i++; while (i) { var m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; }
+  var XL_FIELDS = ['name', 'event', 'mark', 'date', 'meet', 'kana', 'grade', 'team', 'wind', 'rank', 'round', 'sex'], XL_REQ = { name: 1, event: 1, mark: 1, date: 1 };
+  function renderXl(b) {
+    var x = b.xl, hdr = x.txt[x.hr] || [], n = Math.max(hdr.length, (x.txt[x.hr + 1] || []).length), res = x.res;
+    var opts = function (f) { var cur = x.map[f]; var o = '<option value="">（使わない）</option>'; for (var i = 0; i < n; i++) o += '<option value="' + i + '"' + (cur === i ? ' selected' : '') + '>' + colName(i) + '列：' + esc(String(hdr[i] == null ? '' : hdr[i]).slice(0, 14) || '（見出しなし）') + '</option>'; return o; };
+    var meets = {}; res.recs.forEach(function (r) { var k = r.date + '|' + r.meet; meets[k] = (meets[k] || 0) + 1; });
+    var miss = XL_FIELDS.filter(function (f) { return XL_REQ[f] && x.map[f] == null; });
+    return '<div class="rb-batch xl" data-b="' + b.id + '"><h3>📊 Excel：' + esc(b.src) + '</h3>' +
+      '<div class="rb-row">' + (x.wb.SheetNames.length > 1 ? '<label>シート <select data-xsheet="1">' + x.wb.SheetNames.map(function (s) { return '<option' + (s === x.sheet ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '</select></label>' : '') +
+      '<label>見出しの行 <select data-xhr="1">' + x.txt.slice(0, 15).map(function (r, i) { return '<option value="' + i + '"' + (i === x.hr ? ' selected' : '') + '>' + (i + 1) + '行目：' + esc(r.filter(function (c) { return c !== ''; }).slice(0, 4).join('・').slice(0, 24)) + '</option>'; }).join('') + '</select></label></div>' +
+      '<p class="small">列の割り当て（自動で見つけました。違うところは選び直してください）。<b>＊は必須</b>。大会名が空の行は「大会名なし（日付）」になり、あとから直せます。</p>' +
+      '<div class="xlmap">' + XL_FIELDS.map(function (f) { return '<label class="' + (x.map[f] == null ? (XL_REQ[f] ? 'need' : 'off') : 'got') + '"><span>' + R.FIELD_LABELS[f] + (XL_REQ[f] ? '＊' : '') + '</span><select data-xmap="' + f + '">' + opts(f) + '</select></label>'; }).join('') + '</div>' +
+      (miss.length ? '<p class="status ng">✖ 「' + miss.map(function (f) { return R.FIELD_LABELS[f]; }).join('」「') + '」の列を選んでください。</p>' : '') +
+      '<div class="rb-row xlw"><span class="small"><b>天気（任意）</b>：この取り込みの大会すべてに付けます</span>' + weatherInputs(b.meta, 'data-f') + '</div>' +
+      '<p class="small">取り込める記録：<b>' + res.recs.length + '件</b>（' + Object.keys(meets).length + '大会）' + (res.bad.length ? '　<span class="ng">取り込めない行：' + res.bad.length + '件</span>' : '') + '</p>' +
+      (res.bad.length ? '<ul class="rb-warn">' + res.bad.slice(0, 30).map(function (r) { return '<li>⚠ ' + r.row + '行目 ' + esc(r.name || '') + ' ' + esc(r.event || '') + '：' + esc(r.warn) + (/日付/.test(r.warn) ? 'が無いか読めません（日付は必須です）' : 'が足りません') + '</li>'; }).join('') + (res.bad.length > 30 ? '<li>ほか ' + (res.bad.length - 30) + '行</li>' : '') + '</ul>' : '') +
+      (res.recs.length ? '<div class="tblwrap"><table class="rbt"><tr><th>日付</th><th>大会</th><th>種目</th><th>氏名</th><th>学年</th><th>所属</th><th>記録</th><th>風</th><th>順位</th></tr>' + res.recs.slice(0, 30).map(function (r) { return '<tr><td>' + esc(r.date) + '</td><td>' + esc(r.meet) + '</td><td>' + esc(r.event) + '</td><td>' + esc(r.name) + (r.kana ? '<br><small class="muted">' + esc(r.kana) + '</small>' : '') + '</td><td>' + esc(r.grade) + '</td><td>' + esc(r.team) + '</td><td class="rn"><b>' + esc(r.mark) + '</b></td><td class="rn">' + esc(R.shownWind(r)) + '</td><td class="rn">' + esc(r.rank) + '</td></tr>'; }).join('') + '</table></div>' + (res.recs.length > 30 ? '<p class="small muted">ほか ' + (res.recs.length - 30) + '件（保存すると全部入ります）</p>' : '') : '') +
+      '<div class="rb-row" style="margin-top:8px"><button class="btn" data-save="' + b.id + '" type="button"' + (res.recs.length && !miss.length ? '' : ' disabled') + '>記録に保存（' + res.recs.length + '件）</button><button class="btn sub" data-del="' + b.id + '" type="button">取り消す</button></div><div class="status" data-st="' + b.id + '"></div></div>';
+  }
+  $('rbBatches').addEventListener('change', function (e) {
+    var box = e.target.closest('.xl[data-b]'); if (!box) return;
+    var b = batches.filter(function (x) { return x.id === +box.getAttribute('data-b'); })[0]; if (!b || !b.xl) return;
+    var t = e.target;
+    if (t.hasAttribute('data-xsheet')) { b.xl.sheet = t.value; loadXlSheet(b); }
+    else if (t.hasAttribute('data-xhr')) { b.xl.hr = +t.value; b.xl.map = R.mapHeaders(b.xl.txt[b.xl.hr] || []); xlRun(b); }
+    else if (t.hasAttribute('data-xmap')) { var f = t.getAttribute('data-xmap'); if (t.value === '') delete b.xl.map[f]; else { Object.keys(b.xl.map).forEach(function (k) { if (b.xl.map[k] === +t.value) delete b.xl.map[k]; }); b.xl.map[f] = +t.value; } xlRun(b); }
+    else return;
+    renderBatches();
+  });
   $('rbFile').addEventListener('change', function () { handleFiles(this.files); this.value = ''; });
   var drop = $('rbDrop');
   drop.addEventListener('click', function (e) { if (e.target.tagName !== 'INPUT') $('rbFile').click(); });
@@ -1462,10 +1829,12 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
   var REC_HEAD = '<tr><th>種目</th><th>ラウンド</th><th>組</th><th>氏名</th><th>学年</th><th>所属</th><th>記録</th><th>風</th><th>順位</th><th>備考</th></tr>';
   function renderBatches() {
     $('rbBatches').innerHTML = batches.map(function (b) {
+      if (b.xl) return renderXl(b);
       if (b.error) return '<div class="rb-batch"><h3>✖ ' + esc(b.src) + '</h3><p class="status ng">' + esc(b.error) + '</p><button class="btn sub" data-del="' + b.id + '" type="button">閉じる</button></div>';
       var rs = batchRecs(b), ws = batchWarns(b);
       return '<div class="rb-batch" data-b="' + b.id + '"><h3>' + esc(b.kind) + '：' + esc(b.src) + '</h3>' +
         '<div class="rb-row"><label>大会名 <input type="text" data-f="name" value="' + esc(b.meta.name) + '" size="34"></label><label>日付 <input type="date" data-f="date" value="' + esc(b.meta.date) + '"></label></div>' +
+        '<div class="rb-row xlw"><span class="small"><b>天気（任意）</b></span>' + weatherInputs(b.meta, 'data-f') + '</div>' +
         '<p class="small">読み取った記録：' + rs.length + '件' + (b.all.recs.length !== rs.length ? '（全体 ' + b.all.recs.length + '件のうち）' : '') + '</p>' +
         (ws.length ? '<ul class="rb-warn">' + ws.map(function (w) { return '<li>⚠ ' + esc(w) + '</li>'; }).join('') + '</ul>' : '') +
         (rs.length ? '<div class="tblwrap"><table class="rbt">' + REC_HEAD + rs.map(function (r) { return recRow(r); }).join('') + '</table></div>' : '') +
@@ -1474,7 +1843,7 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
   }
   $('rbBatches').addEventListener('input', function (e) {
     var box = e.target.closest('[data-b]'), f = e.target.getAttribute('data-f'); if (!box || !f) return;
-    var b = batches.filter(function (x) { return x.id === +box.getAttribute('data-b'); })[0]; if (b) { b.meta[f] = e.target.value.trim(); if (f === 'name') { b.meta.typedName = true; b.meta.guessed = ''; } if (f === 'date') b.meta.typedDate = true; }
+    var b = batches.filter(function (x) { return x.id === +box.getAttribute('data-b'); })[0]; if (b) { b.meta[f] = e.target.value.trim(); if (f === 'weather' || f === 'temp' || f === 'humidity') return; if (f === 'name') { b.meta.typedName = true; b.meta.guessed = ''; } if (f === 'date') b.meta.typedDate = true; }
   });
   async function onBatchClick(e) {
     var del = e.target.getAttribute('data-del'), sv = e.target.getAttribute('data-save'), un = e.target.getAttribute('data-undo');
@@ -1489,6 +1858,7 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
     if (del) { batches = batches.filter(function (b) { return b.id !== +del; }); renderBatches(); return; }
     if (!sv) return;
     var b = batches.filter(function (x) { return x.id === +sv; })[0], st = document.querySelector('[data-st="' + sv + '"]');
+    if (b.xl) return saveXl(b, st);
     if (!b.meta.name || !/^\d{4}-\d{2}-\d{2}$/.test(b.meta.date || '')) { st.className = 'status ng'; st.textContent = '✖ 大会名と日付を入れてから保存してください。'; return; }
     var rs = batchRecs(b).map(function (r, i) {
       var o = Object.assign({}, r); o.meet = b.meta.name; o.date = b.meta.date; o.src = b.src; o.order = i; o.savedAt = new Date().toISOString();
@@ -1496,6 +1866,7 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
     });
     try {
       var res = await putMany(rs);
+      await saveBatchWeather(b, [b.meta.date + '|' + b.meta.name]);
       b.addedIds = (b.addedIds || []).concat(res.ids);
       // 完了：入力欄（ファイル・貼り付け・大会名）を空にして、次の大会をそのまま入れられるようにする
       DONE.push(b); batches = batches.filter(function (x) { return x !== b; }); renderBatches();
@@ -1503,6 +1874,20 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
       var done = $('rbDone'); done.className = 'status ok rb-done';
       done.innerHTML = '✔ <b>' + esc(b.meta.name) + ' 完了（' + res.added + '件保存）</b>' + (res.dup ? '<br><small>' + res.dup + '件はすでに保存済みなので重ねませんでした</small>' : '') +
         '<br><small>続けて次の大会の資料を入れられます。</small>' + (b.addedIds.length ? ' <button class="btn sub" type="button" data-undo="' + b.id + '">今の分を取り消す（' + b.addedIds.length + '件）</button>' : '');
+      await reload();
+    } catch (err) { st.className = 'status ng'; st.textContent = '✖ 保存できませんでした：' + err.message; }
+  }
+  function hasW(m) { return !!(m.weather || (m.temp !== undefined && m.temp !== '') || (m.humidity !== undefined && m.humidity !== '')); }
+  async function saveBatchWeather(b, keys) { if (!hasW(b.meta)) return; for (var i = 0; i < keys.length; i++) { try { await saveMeet(keys[i], b.meta); } catch (e) { } } }
+  async function saveXl(b, st) {
+    var now = new Date().toISOString(), rs = b.xl.res.recs.map(function (r, i) { var o = Object.assign({}, r); delete o.warn; delete o.row; o.src = b.src; o.order = i; o.savedAt = now; o.id = R.recId(o.meet, o.date, o); return o; });
+    try {
+      var res = await putMany(rs), keys = {}; rs.forEach(function (r) { keys[r.date + '|' + r.meet] = 1; });
+      await saveBatchWeather(b, Object.keys(keys));
+      b.addedIds = (b.addedIds || []).concat(res.ids); b.meta.name = b.src;
+      DONE.push(b); batches = batches.filter(function (x) { return x !== b; }); renderBatches();
+      var done = $('rbDone'); done.className = 'status ok rb-done';
+      done.innerHTML = '✔ <b>' + esc(b.src) + ' 完了（' + res.added + '件保存・' + Object.keys(keys).length + '大会）</b>' + (res.dup ? '<br><small>' + res.dup + '件はすでに保存済みなので重ねませんでした</small>' : '') + (b.xl.res.bad.length ? '<br><small>日付などが足りない ' + b.xl.res.bad.length + '行は入れていません</small>' : '') + (b.addedIds.length ? ' <button class="btn sub" type="button" data-undo="' + b.id + '">今の分を取り消す（' + b.addedIds.length + '件）</button>' : '');
       await reload();
     } catch (err) { st.className = 'status ng'; st.textContent = '✖ 保存できませんでした：' + err.message; }
   }
@@ -1515,6 +1900,30 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
   function renderDiv() { document.querySelectorAll('#rbDiv button').forEach(function (b) { var on = b.getAttribute('data-div') === DIV; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); }); }
   $('rbDiv').addEventListener('click', function (e) { var d = e.target.getAttribute('data-div'); if (!d) return; DIV = d; try { localStorage.setItem(DIVKEY, d); } catch (x) { } rankOpt.ev = ''; histOpt.ev = ''; renderDiv(); render(); });
   renderDiv();
+  var SEXKEY = 'lanenote-rec-sex', SEX = 'm', GENDERS = [], NOG = true, athSel = { key: '', ev: '' }, meetEdit = '';
+  try { SEX = localStorage.getItem(SEXKEY) || 'm'; } catch (e) { }
+  function renderSex() {
+    var box = $('rbSex'); box.hidden = GENDERS.length < 2;
+    box.querySelectorAll('button').forEach(function (b) { var on = b.getAttribute('data-sex') === SEX; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+  }
+  $('rbSex').addEventListener('click', function (e) { var d = e.target.getAttribute('data-sex'); if (!d) return; SEX = d; try { localStorage.setItem(SEXKEY, d); } catch (x) { } rankOpt.ev = ''; histOpt.ev = ''; render(); });
+  function evName(r) { var t = r.event || ''; return NOG ? t.replace(/男子|女子/, '').replace(/^\s+/, '') : t; }   // 男子だけ（女子だけ）の学校では「男子」を出さない
+  function renderReview() {
+    var s = school(), mine = $('rbMine').checked, box = $('rbReview');
+    var list = REVIEW.filter(function (x) { return !(mine && s) || R.matchSchool(x.team, s); });
+    var chosen = Object.keys(DIV_OV).filter(function (k) { return ALL.some(function (r) { return R.personKey(r) === k && !R.rawDivisionOf(r); }); });
+    if (!list.length && !chosen.length) { box.innerHTML = ''; return; }
+    box.innerHTML = (list.length ? '<details class="card review" open><summary><span class="rv">要確認</span> <b>中学か高校かわからない選手 ' + list.length + '人</b></summary><p class="small muted">所属が「' + esc(s || '学校名') + '」だけで、ほかの大会からも決められなかった選手です。選ぶとこの端末（ログイン中はクラウド）に覚えて、ランキングや自己ベストに入ります。選ぶまでは「すべて」にだけ出ます。</p><ul class="rvlist">' +
+      list.map(function (x) { return '<li><div><b>' + esc(x.name) + '</b>' + (x.kana ? ' <small class="muted">' + esc(x.kana) + '</small>' : '') + '<br><small class="muted">' + esc(x.team) + '・' + x.ids.length + '件（' + esc(x.dates[0]) + (x.dates.length > 1 && x.dates[x.dates.length - 1] !== x.dates[0] ? '〜' + esc(x.dates[x.dates.length - 1]) : '') + '）<br>' + esc(x.reason) + '</small></div><span class="rvbtn"><button type="button" class="btn sub" data-divpick="jh" data-person="' + esc(x.person) + '">中学</button><button type="button" class="btn sub" data-divpick="hs" data-person="' + esc(x.person) + '">高校</button></span></li>'; }).join('') + '</ul></details>' : '') +
+      (chosen.length ? '<details class="small rvdone"><summary>中学/高校を選んだ選手（' + chosen.length + '人）</summary><ul>' + chosen.map(function (k) { return '<li>' + esc(k.split('@')[0]) + '：' + R.divLabel(DIV_OV[k]) + ' <button type="button" class="btn sub" data-divpick="" data-person="' + esc(k) + '">選び直す</button></li>'; }).join('') + '</ul></details>' : '');
+  }
+  $('rbReview').addEventListener('click', async function (e) {
+    var b = e.target.closest('[data-divpick]'); if (!b) return;
+    var p = b.getAttribute('data-person'), d = b.getAttribute('data-divpick');
+    if (d) DIV_OV[p] = d; else delete DIV_OV[p];
+    try { await saveOverrides(); } catch (x) { status('rbDataStatus', '✖ クラウドに保存できませんでした（この端末には覚えました）：' + esc(x.message), 'ng'); }
+    applyInference(); render();
+  });
   function setTab(v) { view = v; document.querySelectorAll('.tabs button').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-v') === v); }); }
   document.querySelector('.tabs').addEventListener('click', function (e) {
     var v = e.target.getAttribute('data-v'); if (!v) return; setTab(v);
@@ -1525,12 +1934,19 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
   window.addEventListener('hashchange', function () { render(); if (curAthlete()) window.scrollTo(0, $('rbView').getBoundingClientRect().top + window.scrollY - document.querySelector('.tabbar').offsetHeight - 8); });
   window.addEventListener('popstate', function () { render(); });
   $('rbQ').addEventListener('input', render); $('rbMine').addEventListener('change', render);
-  async function reload() { try { ALL = await getAll(); } catch (e) { ALL = []; status('rbDataStatus', '✖ ' + esc(e.message), 'ng'); } render(); if (CLOUD_READY) renderAuth(); }
+  async function reload() { try { ALL = await getAll(); } catch (e) { ALL = []; status('rbDataStatus', '✖ ' + esc(e.message), 'ng'); } await loadSide(); applyInference(); render(); if (CLOUD_READY) renderAuth(); }
   function filtered() {
     var q = R.nk($('rbQ').value).replace(/\s/g, ''), s = school(), mine = $('rbMine').checked;
-    return ALL.filter(function (r) {
+    var base = ALL.filter(function (r) {
       if (mine && s && !R.matchSchool(r.team, s)) return false;
       if (DIV !== 'all' && R.divisionOf(r) !== DIV) return false;
+      return true;
+    });
+    // v0.5：男女どちらもいるときだけ男子/女子の切り替えを出し、選んだほうだけにする
+    GENDERS = R.gendersIn(base); NOG = GENDERS.length < 2;
+    if (!NOG && GENDERS.indexOf(SEX) < 0) SEX = GENDERS[0];
+    return base.filter(function (r) {
+      if (!NOG) { var g = R.genderOf(r); if (g && g !== SEX) return false; }
       if (!q) return true;
       return R.nk([r.name, r.kana, r.event, r.meet, r.team, r.date].join('')).replace(/\s/g, '').indexOf(q) >= 0;
     });
@@ -1545,9 +1961,14 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
   function th(key, k, label) { var s = sort[key], ar = s && s.k === k ? (s.d > 0 ? '▲' : '▼') : ''; return '<th data-sort="' + k + '">' + label + '<span class="ar">' + ar + '</span></th>'; }
   function athLink(key, name) { return '<a class="ath" href="#athlete=' + encodeURIComponent(key) + '">' + esc(name) + '</a>'; }
   function nowSeason() { var d = new Date(); return R.seasonOf(d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-01'); }
-  function evLabel(rows, ev) { for (var i = 0; i < rows.length; i++) if (R.eventKey(rows[i]) === ev) return R.eventKeyLabel(rows[i]); return ev; }
-  function evSelect(name, evs, cur, rows) { return '<label class="ev-only">種目 <select data-' + name + '="ev">' + evs.map(function (ev) { return '<option value="' + esc(ev) + '"' + (ev === cur ? ' selected' : '') + '>' + esc(evLabel(rows, ev)) + '</option>'; }).join('') + '</select></label>'; }
-  function evOrder(evs, rows) { return evs.slice().sort(function (a, b) { var la = evLabel(rows, a), lb = evLabel(rows, b); return la.localeCompare(lb, 'ja', { numeric: true }); }); }
+  function evLabel(rows, ev) { for (var i = 0; i < rows.length; i++) if (R.eventKey(rows[i]) === ev) return R.eventKeyLabel(rows[i], NOG); return ev; }
+  // v0.5：種目のプルダウンは区分（中1・中2・中3・中学共通・高校）ごとに見出しを付け、その中は陸上の種目順
+  function evSelect(name, evs, cur, rows) {
+    return '<label class="ev-only">種目 <select data-' + name + '="ev">' + R.groupEvents(evs, rows, NOG).map(function (g) {
+      return '<optgroup label="' + esc(g.group) + '">' + g.items.map(function (it) { return '<option value="' + esc(it.key) + '"' + (it.key === cur ? ' selected' : '') + '>' + esc(it.label) + '</option>'; }).join('') + '</optgroup>';
+    }).join('') + '</select></label>';
+  }
+  function evOrder(evs, rows) { var out = []; R.groupEvents(evs, rows, NOG).forEach(function (g) { g.items.forEach(function (it) { out.push(it.key); }); }); return out; }
   $('rbView').addEventListener('click', async function (e) {
     if (e.target.closest('[data-back]')) { e.preventDefault(); if (window.__athNav) { window.__athNav = false; history.back(); } else { history.pushState(null, '', location.pathname + location.search); render(); } return; }
     if (e.target.closest('a.ath')) { window.__athNav = true; return; }
@@ -1559,6 +1980,14 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
       if (!confirm('「' + dm.replace('|', ' ') + '」の記録 ' + ids.length + '件を消します。元に戻せません。よろしいですか？')) return;
       await delIds(ids); status('rbDataStatus', '✔ 「' + esc(dm.replace('|', ' ')) + '」の記録 ' + ids.length + '件を消しました。自己ベストを計算し直しました。', 'ok');
       await reload(); return;
+    }
+    var ae = e.target.closest('[data-athev]'); if (ae) { athSel.ev = ae.getAttribute('data-athev'); render(); return; }
+    var we = e.target.closest('[data-wedit]'); if (we) { meetEdit = meetEdit === we.getAttribute('data-wedit') ? '' : we.getAttribute('data-wedit'); render(); return; }
+    var ws = e.target.closest('[data-wsave]');
+    if (ws) {
+      var box = ws.closest('.wxedit'), w = {}; box.querySelectorAll('[data-w]').forEach(function (el) { w[el.getAttribute('data-w')] = el.value; });
+      try { await saveMeet(ws.getAttribute('data-wsave'), w); meetEdit = ''; status('rbDataStatus', '✔ 天気を保存しました。', 'ok'); } catch (x) { status('rbDataStatus', '✖ 天気を保存できませんでした：' + esc(x.message), 'ng'); }
+      render(); return;
     }
     var go = e.target.closest('[data-go]'); if (go) { setTab(go.getAttribute('data-go')); render(); return; }
     var t = e.target.closest('th[data-sort]'); if (!t) return; var k = t.getAttribute('data-sort'), s = sort[view];
@@ -1599,7 +2028,7 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
       pbs.sort(function (a, b) { return cmp(R.nk(a.name), R.nk(b.name)) || cmp(R.normEvent(a.event), R.normEvent(b.event)); });
       h += '<div class="card"><div class="card-h"><span class="tag">' + (i ? 'その前の大会' : '最新の大会') + '</span><b>' + esc(list[0].meet) + '</b><span class="small muted">' + esc(list[0].date) + '・' + list.length + '件</span></div>' +
         '<p class="small">自己ベスト更新 <b class="big-n">' + pbs.length + '</b>件' + (firsts.length ? '　初記録 ' + firsts.length + '件' : '') + '</p>' +
-        (pbs.length ? '<ul class="pblist">' + pbs.map(function (r) { var p = pd[r.id]; return '<li>' + athLink(R.athleteKey(r), r.name || r.kana) + '<span class="ev">' + esc(r.event) + '</span><span class="lmk"><b>' + esc(r.mark) + '</b><span class="pb">PB</span></span><span class="prev">前のベスト ' + esc(p.prev.mark) + '<b class="up">' + esc(R.fmtImprovement(p.diff, p.lower)) + '</b></span></li>'; }).join('') + '</ul>' : '<p class="small muted">この大会では自己ベストの更新はありませんでした。</p>') + '</div>';
+        (pbs.length ? '<ul class="pblist">' + pbs.map(function (r) { var p = pd[r.id]; return '<li>' + athLink(R.athleteKey(r), r.name || r.kana) + '<span class="ev">' + esc(evName(r)) + '</span><span class="lmk"><b>' + esc(r.mark) + '</b><span class="pb">PB</span></span><span class="prev">前のベスト ' + esc(p.prev.mark) + '<b class="up">' + esc(R.fmtImprovement(p.diff, p.lower)) + '</b></span></li>'; }).join('') + '</ul>' : '<p class="small muted">この大会では自己ベストの更新はありませんでした。</p>') + '</div>';
     });
     return h;
   }
@@ -1608,14 +2037,24 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
     var back = '<button class="btn sub back" type="button" data-back="1">← もどる</button>';
     if (!pf) return back + '<p class="muted">この選手の記録が見つかりませんでした。</p>';
     var pd = R.pbDetails(ALL.filter(function (r) { return R.athleteKey(r) === key; }));
-    return back + '<div class="card ath-h"><b class="nm">' + esc(pf.name) + '</b>' + (pf.kana ? '<span class="small muted">' + esc(pf.kana) + '</span>' : '') + '<div class="small muted">' + esc(pf.team) + (pf.grade ? '・' + esc(pf.grade) : '') + (R.divisionOf(pf) ? '・' + R.divLabel(R.divisionOf(pf)) : '') + '・' + pf.events.length + '種目・' + pf.count + '件</div></div>' +
-      pf.events.map(function (e) {
+    // v0.5：種目の切り替え（すべて＝各種目のベストを短い一覧、種目を選ぶとその種目のカードとグラフ）
+    var mineRows = rows.filter(function (r) { return R.athleteKey(r) === key; }); if (!mineRows.length) mineRows = ALL.filter(function (r) { return R.athleteKey(r) === key; });
+    var byKey = {}; pf.events.forEach(function (e) { byKey[e.event] = e; });
+    var grp = R.groupEvents(Object.keys(byKey), mineRows, NOG), order = [];
+    grp.forEach(function (g) { g.items.forEach(function (it) { byKey[it.key].eventLabel = it.label; order.push(byKey[it.key]); }); });
+    if (athSel.key !== key) athSel = { key: key, ev: '' };
+    if (athSel.ev && !byKey[athSel.ev]) athSel.ev = '';
+    var sw = order.length > 1 ? '<div class="evsw" role="tablist" aria-label="種目の切り替え"><button type="button" data-athev=""' + (athSel.ev ? '' : ' class="on" aria-selected="true"') + '>すべて</button>' + order.map(function (e) { return '<button type="button" data-athev="' + esc(e.event) + '"' + (athSel.ev === e.event ? ' class="on" aria-selected="true"' : '') + '>' + esc(e.eventLabel) + '</button>'; }).join('') + '</div>' : '';
+    var shown = order.length > 1 && !athSel.ev ? null : (athSel.ev ? [byKey[athSel.ev]] : order);
+    var summary = shown ? '' : '<div class="card"><div class="card-h"><b>種目ごとの自己ベスト</b><span class="small muted">押すとグラフと記録</span></div><ul class="evsum">' + order.map(function (e) { var b = e.best || e.ref; return '<li><button type="button" class="evn" data-athev="' + esc(e.event) + '">' + esc(e.eventLabel) + '</button><b class="lmk">' + esc(b ? b.mark : '—') + (e.best ? '' : (b ? windTag(b) : '')) + '</b><span class="sub">' + (b ? (R.shownWind(b) ? '風' + esc(b.wind) + '・' : '') + esc(b.date) + ' ' + esc(b.meet) + ' ' + weatherTag(b.date + '|' + b.meet) : '') + '・' + e.count + '件</span></li>'; }).join('') + '</ul></div>';
+    return back + '<div class="card ath-h"><b class="nm">' + esc(pf.name) + '</b>' + (pf.kana ? '<span class="small muted">' + esc(pf.kana) + '</span>' : '') + '<div class="small muted">' + esc(((mineRows.filter(function (r) { return R.rawDivisionOf(r); }).sort(function (x, y) { return cmp(x.date, y.date); }).pop()) || pf).team) + (pf.grade ? '・' + esc(pf.grade) : '') + (R.divisionOf(pf) ? '・' + R.divLabel(R.divisionOf(pf)) : '') + '・' + pf.events.length + '種目・' + pf.count + '件</div></div>' + sw + summary +
+      (shown || []).map(function (e) {
         var b = e.best;
         return '<div class="card evc"><div class="card-h"><b>' + esc(e.eventLabel) + '</b><span class="small muted">' + e.count + '件</span></div>' +
-          '<div class="evbest"><span class="small muted">自己ベスト（公認）</span><b class="bigmk">' + esc(b ? b.mark : '—') + '</b>' + (b ? '<span class="small muted">' + (R.shownWind(b) ? '風' + esc(b.wind) + '・' : '') + esc(b.date) + ' ' + esc(b.meet) + '</span>' : '') + '</div>' +
+          '<div class="evbest"><span class="small muted">自己ベスト（公認）</span><b class="bigmk">' + esc(b ? b.mark : '—') + '</b>' + (b ? '<span class="small muted">' + (R.shownWind(b) ? '風' + esc(b.wind) + '・' : '') + esc(b.date) + ' ' + esc(b.meet) + ' ' + weatherTag(b.date + '|' + b.meet) + '</span>' : '') + '</div>' +
           (e.ref ? '<div class="small">参考 ' + esc(e.ref.mark) + windTag(e.ref) + ' <span class="muted">' + esc(e.ref.wind) + ' ' + esc(e.ref.date) + '</span></div>' : '') +
           '<div class="sparkbox chartbox">' + spark(e.allPoints, e.lower, chartOfficial) + (e.allPoints.length > 1 ? '<span class="chartopt"><span class="muted">推移（上ほど良い）●公認 <b style="color:#e4572e">●</b>ベスト </span>' + (e.allPoints.some(function (p) { return p.ref; }) ? '<span class="lg-ref"><svg width="10" height="10" aria-hidden="true"><circle cx="5" cy="5" r="3.5" fill="#fff" stroke="#8a96ad" stroke-width="1.5"/></svg>参考（追い風・風不明）</span>' : '') + (e.allPoints.some(function (p) { return p.ref; }) ? '<label><input type="checkbox" data-official="1"' + (chartOfficial ? ' checked' : '') + '> 公認だけ</label>' : '') + '</span>' : '') + '</div>' +
-          '<ul class="recent">' + e.recent.map(function (r) { return '<li><span class="d">' + esc(r.date) + '</span><b>' + esc(r.mark) + '</b>' + pbFlag(pd[r.id] && pd[r.id].flag) + windTag(r) + '<span class="m">' + (R.shownWind(r) ? '風' + esc(r.wind) + '・' : '') + esc(r.meet) + (r.round ? '・' + esc(r.round) : '') + '</span></li>'; }).join('') + '</ul></div>';
+          '<ul class="recent">' + e.recent.map(function (r) { return '<li><span class="d">' + esc(r.date) + '</span><b>' + esc(r.mark) + '</b>' + pbFlag(pd[r.id] && pd[r.id].flag) + windTag(r) + '<span class="m">' + (R.shownWind(r) ? '風' + esc(r.wind) + '・' : '') + esc(r.meet) + (r.round ? '・' + esc(r.round) : '') + ' ' + weatherTag(r.date + '|' + r.meet) + '</span></li>'; }).join('') + '</ul></div>';
       }).join('');
   }
   function renderRank(rows) {
@@ -1652,7 +2091,7 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
     var meets = {}; rows.forEach(function (r) { var k = r.date + '|' + r.meet; meets[k] = (meets[k] || 0) + 1; });
     var aths = {}; rows.forEach(function (r) { aths[R.athleteKey(r)] = 1; });
     $('rbStats').textContent = ALL.length ? '保存している記録：' + ALL.length + '件（表示 ' + rows.length + '件・選手 ' + Object.keys(aths).length + '人・大会 ' + Object.keys(meets).length + '件）' : 'まだ記録がありません。上で結果の資料を入れて「記録に保存」を押してください。';
-    renderMeetList();
+    renderMeetList(); renderSex(); renderReview();
     var ak = curAthlete(), v = $('rbView');
     document.body.classList.toggle('ath-open', !!ak);
     v.className = 'tblwrap view-' + (ak ? 'athlete' : view);
@@ -1670,7 +2109,7 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
       bs = sortRows(bs, view, defs);
       html = '<table class="rbt"><tr class="hd">' + th(view, 'name', '氏名') + th(view, 'team', '所属') + th(view, 'event', '種目') + th(view, 'best', '自己ベスト（公認）') + '<th>風</th>' + th(view, 'date', '日付') + '<th>大会</th><th>参考記録（追い風・風不明）</th>' + th(view, 'count', '記録数') + '</tr>' + bs.map(function (b) {
         var r = b.best || {}, f = b.ref;
-        return '<tr class="rc"><td class="c-name">' + athLink(b.key, b.name) + '</td><td class="c-team">' + esc(b.team) + '</td><td class="c-ev">' + esc(b.eventLabel) + '</td><td class="rn c-mark"><b>' + esc(r.mark || '—') + '</b></td><td class="rn c-wind" data-l="風">' + esc(R.shownWind(r)) + '</td><td class="c-date">' + esc(r.date) + '</td><td class="c-meet">' + esc(r.meet) + '</td><td class="c-ref" data-l="参考">' + (f ? esc(f.mark) + windTag(f) + ' <small class="muted">' + esc(R.shownWind(f)) + ' ' + esc(f.date) + '</small>' : '') + '</td><td class="rn c-cnt" data-l="記録数">' + b.count + '</td></tr>';
+        return '<tr class="rc"><td class="c-name">' + athLink(b.key, b.name) + '</td><td class="c-team">' + esc(b.team) + '</td><td class="c-ev">' + esc(NOG && (b.best || b.ref) ? R.eventKeyLabel(b.best || b.ref, true) : b.eventLabel) + '</td><td class="rn c-mark"><b>' + esc(r.mark || '—') + '</b></td><td class="rn c-wind" data-l="風">' + esc(R.shownWind(r)) + '</td><td class="c-date">' + esc(r.date) + '</td><td class="c-meet">' + esc(r.meet) + '</td><td class="c-ref" data-l="参考">' + (f ? esc(f.mark) + windTag(f) + ' <small class="muted">' + esc(R.shownWind(f)) + ' ' + esc(f.date) + '</small>' : '') + '</td><td class="rn c-cnt" data-l="記録数">' + b.count + '</td></tr>';
       }).join('') + '</table>';
     } else {
       var rs = rows.slice().sort(function (a, b) { return cmp(b.date, a.date) || cmp(a.meet, b.meet) || cmp(R.normEvent(a.event), R.normEvent(b.event)) || cmp(a.order || 0, b.order || 0); });
@@ -1688,10 +2127,12 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
         var head = '', key = r.date + '|' + r.meet;
         if (grouped && key !== lastMeet) {
           var cnt = meets[key] || 0;
-          head = '<tr class="gsep rb-meet"><td colspan="12"><b>' + esc(r.date) + '　' + esc(r.meet) + '</b>　<span class="small muted">' + cnt + '件</span> <button class="btn sub rb-delmeet" type="button" data-delmeet="' + esc(key) + '">この大会を消す</button></td></tr>';
+          var mw = METS[key] || {};
+          head = '<tr class="gsep rb-meet"><td colspan="12"><b>' + esc(r.date) + '　' + esc(r.meet) + '</b>　<span class="small muted">' + cnt + '件</span> ' + weatherTag(key) + ' <button class="btn sub rb-wedit" type="button" data-wedit="' + esc(key) + '">' + (weatherText(key) ? '天気を直す' : '☀️ 天気・気温を入れる') + '</button> <button class="btn sub rb-delmeet" type="button" data-delmeet="' + esc(key) + '">この大会を消す</button>' +
+            (meetEdit === key ? '<div class="rb-row wxedit">' + weatherInputs(mw, 'data-w') + '<button class="btn" type="button" data-wsave="' + esc(key) + '">保存</button></div>' : '') + '</td></tr>';
         }
         lastMeet = key;
-        return head + '<tr class="rc">' + (grouped ? '' : '<td class="c-date">' + esc(r.date) + '</td><td class="c-meet">' + esc(r.meet) + '</td>') + '<td class="c-ev">' + esc(r.event) + '</td><td class="c-round">' + esc(r.round) + '</td><td class="rn c-heat" data-l="組">' + esc(r.heat) + '</td><td class="c-name">' + athLink(R.athleteKey(r), r.name || r.kana) + '</td><td class="rn c-grade" data-l="学年">' + esc(r.grade) + '</td><td class="c-team">' + esc(r.team) + '</td><td class="rn c-mark"><b>' + esc(r.mark) + '</b>' + pbFlag(flags[r.id]) + windTag(r) + '</td><td class="rn c-wind" data-l="風">' + esc(R.shownWind(r)) + '</td><td class="rn c-rank" data-l="順位">' + esc(r.rank) + '</td><td class="c-cmt"><small>' + esc(r.comment) + '</small></td></tr>';
+        return head + '<tr class="rc">' + (grouped ? '' : '<td class="c-date">' + esc(r.date) + '</td><td class="c-meet">' + esc(r.meet) + '</td>') + '<td class="c-ev">' + esc(evName(r)) + '</td><td class="c-round">' + esc(r.round) + '</td><td class="rn c-heat" data-l="組">' + esc(r.heat) + '</td><td class="c-name">' + athLink(R.athleteKey(r), r.name || r.kana) + '</td><td class="rn c-grade" data-l="学年">' + esc(r.grade) + '</td><td class="c-team">' + esc(r.team) + '</td><td class="rn c-mark"><b>' + esc(r.mark) + '</b>' + pbFlag(flags[r.id]) + windTag(r) + '</td><td class="rn c-wind" data-l="風">' + esc(R.shownWind(r)) + '</td><td class="rn c-rank" data-l="順位">' + esc(r.rank) + '</td><td class="c-cmt"><small>' + esc(r.comment) + '</small></td></tr>';
       }).join('') + '</table>';
     }
     v.innerHTML = html;
@@ -1726,8 +2167,8 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
     if (!window.XLSX) { status('rbDataStatus', '✖ Excel書き出しの部品を読み込めませんでした（インターネット接続を確認してください）。', 'ng'); return; }
     var rows = filtered(); if (!rows.length) { status('rbDataStatus', '書き出す記録がありません。', 'ng'); return; }
     var cb = R.computeBests(rows);
-    var a = [['日付', '大会', '種目', 'ラウンド', '組', '氏名', 'フリガナ', '学年', '所属', '記録', '風', '順位', '備考', '自己ベスト', '風の扱い']].concat(rows.slice().sort(function (x, y) { return cmp(x.date, y.date) || cmp(x.order || 0, y.order || 0); }).map(function (r) {
-      var w = R.windClass(r); return [r.date, r.meet, r.event, r.round, r.heat, r.name, r.kana, r.grade, r.team, r.mark, R.shownWind(r), r.rank, r.comment, cb.flags[r.id] || '', w === 'aid' ? '追い風参考' : w === 'unk' ? '風不明' : ''];
+    var a = [['日付', '大会', '種目', 'ラウンド', '組', '氏名', 'フリガナ', '学年', '所属', '記録', '風', '順位', '備考', '自己ベスト', '風の扱い', '天気']].concat(rows.slice().sort(function (x, y) { return cmp(x.date, y.date) || cmp(x.order || 0, y.order || 0); }).map(function (r) {
+      var w = R.windClass(r); return [r.date, r.meet, r.event, r.round, r.heat, r.name, r.kana, r.grade, r.team, r.mark, R.shownWind(r), r.rank, r.comment, cb.flags[r.id] || '', w === 'aid' ? '追い風参考' : w === 'unk' ? '風不明' : '', weatherText(r.date + '|' + r.meet)];
     }));
     var b = [['氏名', '所属', '種目', '自己ベスト（公認）', '風', '日付', '大会', '参考記録', '参考の風', '参考の日付', '記録数']].concat(cb.bests.map(function (x) { var r = x.best || {}, f = x.ref || {}; return [x.name, x.team, x.eventLabel, r.mark || '', r.wind || '', r.date || '', r.meet || '', f.mark || '', f.wind || '', f.date || '', x.count]; }));
     var wb = XLSX.utils.book_new();

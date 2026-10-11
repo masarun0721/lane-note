@@ -1,5 +1,7 @@
 rules_version = '2';
 // LANE LOG：ログインした本人だけが自分の users/{uid} 以下を読み書きできる
+// LANE NOTE 記録 v0.5：大会ごとの天気 users/{uid}/meets/{大会}・中学/高校の選択 users/{uid}/settings/divOverrides も上の users ルールの中（本人だけ）
+// LANE NOTE 不具合・要望：feedback/{id} は誰でも1件作れる（ログイン不要・形と大きさを確認）。読む・直す・消すはアプリからは誰もできない（作成者は Firebase コンソールで見る）
 // LANE NOTE 短いリンク：shares/{id} は IDを知っていれば誰でも1件読める（一覧は不可）。作れるのはログインした本人のみ、変更不可、削除は作った本人だけ
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -20,6 +22,23 @@ service cloud.firestore {
         && request.resource.data.expiresAt < request.time + duration.value(200, 'd');
       allow update: if false;
       allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
+    }
+    match /feedback/{id} {
+      allow create: if request.resource.data.keys().hasOnly(['kind', 'body', 'contact', 'page', 'version', 'ua', 'screen', 'path', 'createdAt', 'uid'])
+        && request.resource.data.keys().hasAll(['kind', 'body', 'createdAt', 'uid'])
+        && request.resource.data.kind in ['不具合', '要望', 'その他']
+        && request.resource.data.body is string
+        && request.resource.data.body.size() >= 1
+        && request.resource.data.body.size() <= 5000
+        && (!('contact' in request.resource.data) || (request.resource.data.contact is string && request.resource.data.contact.size() <= 200))
+        && (!('page' in request.resource.data) || (request.resource.data.page is string && request.resource.data.page.size() <= 40))
+        && (!('version' in request.resource.data) || (request.resource.data.version is string && request.resource.data.version.size() <= 60))
+        && (!('ua' in request.resource.data) || (request.resource.data.ua is string && request.resource.data.ua.size() <= 500))
+        && (!('screen' in request.resource.data) || (request.resource.data.screen is string && request.resource.data.screen.size() <= 80))
+        && (!('path' in request.resource.data) || (request.resource.data.path is string && request.resource.data.path.size() <= 300))
+        && request.resource.data.createdAt == request.time
+        && (request.resource.data.uid == null || (request.auth != null && request.resource.data.uid == request.auth.uid));
+      allow read, update, delete: if false;
     }
     match /{document=**} {
       allow read, write: if false;

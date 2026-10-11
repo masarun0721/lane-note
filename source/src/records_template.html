@@ -13,6 +13,31 @@ __BASE_CSS__
 .divsw button{border:0;background:#fff;color:#1f3a68;font-size:15px;font-weight:700;padding:8px 18px;min-height:40px;cursor:pointer}
 .divsw button+button{border-left:1px solid #1f3a68}
 .divsw button.on{background:#1f3a68;color:#fff}
+.sexsw{margin-top:-4px}
+.sexsw[hidden]{display:none}
+.evsw{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:2px 0 8px;margin:4px 0}
+.evsw button{flex:0 0 auto;border:1px solid #1f3a68;background:#fff;color:#1f3a68;border-radius:999px;padding:6px 14px;min-height:40px;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap}
+.evsw button.on{background:#1f3a68;color:#fff}
+.evsum{list-style:none;margin:0;padding:0}
+.evsum li{display:grid;grid-template-columns:1fr auto;grid-template-areas:"nm mk" "sub sub";gap:0 10px;padding:8px 0;border-top:1px solid var(--line);align-items:center}
+.evsum .evn{grid-area:nm;text-align:left;background:none;border:0;padding:0;font:inherit;font-size:16px;font-weight:700;color:var(--navy);text-decoration:underline;text-decoration-color:#c9d2e0;cursor:pointer;min-height:36px}
+.evsum .lmk{grid-area:mk;font-size:22px;font-variant-numeric:tabular-nums}.evsum .sub{grid-area:sub;font-size:12px;color:var(--muted)}
+.wx{display:inline-block;font-size:12px;background:#eaf4ff;color:#1f4f86;border-radius:6px;padding:0 6px;margin-left:2px;white-space:nowrap}
+.rb-wedit{font-size:12px!important;padding:3px 10px!important;margin-left:4px}
+.wxedit{margin-top:6px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px}
+.wxedit label,.xlw label{display:inline-flex;align-items:center;gap:4px;font-size:14px}
+.wxedit input,.wxedit select,.xlw input,.xlw select{font-size:15px;padding:5px 6px;border:1px solid #c9d2e0;border-radius:8px}
+.xlw{margin:6px 0;background:#f4f8fd;border-radius:8px;padding:6px 8px}
+.xlmap{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px;margin:6px 0}
+.xlmap label{display:flex;flex-direction:column;font-size:12.5px;font-weight:700;border:1px solid var(--line);border-radius:8px;padding:5px 6px;background:#fff}
+.xlmap label.got{border-color:#9cc9a8;background:#f2fbf4}.xlmap label.need{border-color:#e08b7a;background:#fff2ef}.xlmap label.off{color:var(--muted)}
+.xlmap select{font-size:14px;padding:4px;margin-top:2px;max-width:100%}
+.review{background:#fffaf0;border-color:#f0c36d}.review summary{cursor:pointer;font-size:15px}
+.rv{display:inline-block;background:#e67e22;color:#fff;font-size:12px;font-weight:800;border-radius:6px;padding:1px 7px}
+.rvlist{list-style:none;margin:6px 0 0;padding:0}.rvlist li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-top:1px solid #f3dfb5}
+.rvbtn{display:flex;gap:6px;flex:0 0 auto}.rvbtn .btn{min-height:44px;padding:6px 14px;font-size:15px}
+.rvdone{margin:4px 0 8px}.rvdone .btn{font-size:12px;padding:2px 8px}
+.beta-banner .fb-link{display:inline;margin-left:4px;font-weight:700}
 .rb-meetlist{margin:6px 0 0;padding-left:18px;font-size:13px}.rb-meetlist li{margin:2px 0}
 .rb-done{font-size:15px}
 .meetsel{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 8px}.meetsel select{max-width:100%;font-size:15px;padding:6px}
@@ -129,14 +154,14 @@ body.ath-open #rbLegend{display:none}
     <h1 class="logo">__LOGO_DARK__<span class="vh">LANE NOTE（レーンノート）記録</span></h1>
     <span class="badge">試作版</span>
   </div>
-  <div class="beta-banner" role="note" aria-label="試作中のお知らせ"><b>⚠️ 試作中（β版）</b><span>機能や画面は予告なく変わることがあります。記録が消えたり読み取りを間違えたりする可能性があるので、大事な記録は元の結果資料でも確認してください。</span></div>
+  <div class="beta-banner" role="note" aria-label="試作中のお知らせ"><b>⚠️ 試作中（β版）</b><span>機能や画面は予告なく変わることがあります。記録が消えたり読み取りを間違えたりする可能性があるので、大事な記録は元の結果資料でも確認してください。<button type="button" class="fb-link" data-feedback="1">📮 不具合・要望を送る</button></span></div>
   <p class="tagline">記録：大会の結果から、自校の記録と自己ベストをためていく</p>
   <nav class="pagenav" aria-label="ページ"><a href="./">🏁 大会準備</a><a href="records.html" class="on" aria-current="page">📒 記録</a></nav>
 </header>
 <main>
 <section class="box">
   <h2><span class="no">1</span>学校名と結果の資料</h2>
-  <div class="privacy">🔒 <b>Googleでログインすると、記録はあなた専用のクラウド（Firebase）に保存され、どの端末からでも見られます。</b>ほかの人の記録は見えず、ほかの人からもあなたの記録は見えません。ログインしないときは、このブラウザの中（IndexedDB）にだけ保存します。結果資料の読み取りはすべてこの端末の中で行います。共用のパソコンでは、使い終わったらログアウトしてください。</div>
+  <div class="privacy">🔒 <b>Googleでログインすると、記録はあなた専用のクラウド（Firebase）に保存され、どの端末からでも見られます。</b>ほかの人の記録は見えず、ほかの人からもあなたの記録は見えません。ログインしないときは、このブラウザの中（IndexedDB）にだけ保存します。結果資料・Excelの読み取りはすべてこの端末の中で行います。大会ごとの天気・気温と、中学/高校を選んだ選手の情報も、記録と同じ場所（ログイン中はあなた専用のクラウド）に保存します。「不具合・要望を送る」で送った内容だけは作成者に届きます（記録や選手名は自動では送りません）。共用のパソコンでは、使い終わったらログアウトしてください。</div>
   <div class="rb-row" id="rbAuth" style="margin:10px 0;align-items:center">
     <span id="rbAuthInfo" class="small"></span>
     <button class="btn" id="rbSignIn" type="button" hidden>Googleでログイン</button>
@@ -149,9 +174,9 @@ body.ath-open #rbLegend{display:none}
     <span class="small muted">「本郷」と打つと「本郷」「本郷高」「本郷中」を拾います。</span>
   </div>
   <div class="drop" id="rbDrop" tabindex="0" role="button" aria-label="結果のファイルを選ぶ">
-    <div class="big">📄 結果のPDF・保存したWebページ（HTML）をここへ</div>
+    <div class="big">📄 結果のPDF・保存したWebページ（HTML）・Excel（.xlsx/.xls/.csv）をここへ</div>
     <div class="small muted">複数まとめて入れられます（種目ごとにページが分かれた結果サイトは、ページを全部保存して一度に入れてください）</div>
-    <input type="file" id="rbFile" multiple accept=".pdf,.html,.htm,.txt,application/pdf,text/html">
+    <input type="file" id="rbFile" multiple accept=".pdf,.html,.htm,.txt,.xlsx,.xls,.csv,application/pdf,text/html">
     <div class="status" id="rbStatus"></div>
   </div>
   <details style="margin-top:10px"><summary><b>Webページの結果を貼り付ける</b>（ファイルにできないとき）</summary>
@@ -167,6 +192,8 @@ body.ath-open #rbLegend{display:none}
 <section class="box">
   <h2><span class="no">2</span>記録</h2>
   <div class="divsw" role="radiogroup" aria-label="中学・高校の切り替え" id="rbDiv"><button type="button" data-div="all">すべて</button><button type="button" data-div="jh">中学</button><button type="button" data-div="hs">高校</button></div>
+  <div class="divsw sexsw" role="radiogroup" aria-label="男子・女子の切り替え" id="rbSex" hidden><button type="button" data-sex="m">男子</button><button type="button" data-sex="f">女子</button></div>
+  <div id="rbReview"></div>
   <div class="rb-stats" id="rbStats"></div>
   <div class="tabbar"><div class="tabs" role="tablist">
     <button class="on" data-v="home" type="button">ホーム</button><button data-v="ath" type="button">選手別</button><button data-v="rank" type="button">部内ランキング</button><button data-v="meet" type="button">大会別</button><button data-v="hist" type="button">歴代記録</button><button data-v="all" type="button">全記録</button>
@@ -192,12 +219,16 @@ body.ath-open #rbLegend{display:none}
   <ul>
     <li><b>LANE NOTE（レーンノート）記録 試作版</b>　版：<span class="appver"></span>／記録 __REC_VERSION__（__BUILD_DATE__ 作成）／ Presented by Sakata</li>
     <li>読める形式：組ごとに2列で並ぶ結果PDF（「順位・レーン・ナンバー・氏名・所属・記録」の見出しがあるもの。北区・江東区・都高体連などで確認）／ 結果サイトのHTML（表のあるもの）・その貼り付け。</li>
+    <li>Excel・CSV（v0.5）：見出し（氏名・種目・記録・日付など）を自動で見つけて取り込みます。日付は必須、大会名は任意（空なら「大会名なし（日付）」）。</li>
     <li>既知の制限：リレー・混成の得点・スキャン（画像）PDFは読みません。大会名・日付が資料に無いときは手で入れてください。風が読めない記録は公認ベストに数えません。</li>
     <li>使っている部品（外部CDNから読み込み、ハッシュで確認）：pdf.js 4.10.38（Apache-2.0, Mozilla）／ SheetJS Community Edition 0.20.3（Apache-2.0）／ Firebase JS SDK 10.14.1（Apache-2.0, Google・ログインと保存）</li>
   </ul></details>
-<div class="f-disc">ⓘ 本ツールは結果資料の文字を読み取って自動で整理しているだけです。内容は必ず元の結果資料と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div><div><b class="f-brand">LANE NOTE</b>（レーンノート）記録 試作版 ／ <span class="f-credit">Presented by Sakata</span></div>🔒 ログイン中の記録は本人だけが読めるクラウド（Google Firebase）に保存します。ログインしないときはこのブラウザの中にだけ保存します（部品取得のため外部CDNへ通信します）。 <a href="./">大会準備のページへ</a></footer>
+<div class="f-disc">ⓘ 本ツールは結果資料の文字を読み取って自動で整理しているだけです。内容は必ず元の結果資料と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div><div><b class="f-brand">LANE NOTE</b>（レーンノート）記録 試作版 ／ <span class="f-credit">Presented by Sakata</span></div>🔒 ログイン中の記録は本人だけが読めるクラウド（Google Firebase）に保存します。ログインしないときはこのブラウザの中にだけ保存します（部品取得のため外部CDNへ通信します）。「不具合・要望を送る」の内容だけは作成者に届きます。 <a href="./">大会準備のページへ</a><br><button type="button" class="fb-btn" data-feedback="1">📮 不具合・要望を送る</button></footer>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
 <script src="firebase-config.js"></script>
+<script>
+__FEEDBACK__
+</script>
 <script>
 __RESULTS__
 </script>

@@ -125,6 +125,51 @@ console.log('[7] 選手別の並び・グラフの参考記録');
  const rs=[['2026-04-01','12.00','+1.0'],['2026-05-01','11.80','+2.5'],['2026-06-01','11.70','']].map((x,i)=>({id:'p'+i,date:x[0],mark:x[1],wind:x[2],event:'男子100m',name:'架空 一郎',team:'架空高'}));
  const e=R.athleteProfile(rs,R.athleteKey(rs[0])).events[0];
  ok(e.points.length===1&&e.allPoints.length===3&&e.allPoints.filter(p=>p.ref).length===2,'グラフ用：公認1点・参考（追い風・風不明）2点');}
+console.log('[8] v0.5：種目の並び・男女・中学/高校の推測・Excel取り込み');
+{const mk=(id,date,ev,name,team,grade,mark,wind,kana)=>({id,date,event:ev,name,team,grade,mark,wind:wind||'',kana:kana||''});
+ const rs=[mk('a1','2026-05-01','男子中学1年 1500m','中一 太郎','架空中','1','5:01.00'),mk('a2','2026-05-01','男子中学1年 100m','中一 太郎','架空中','1','13.50','+0.1'),
+  mk('a3','2026-05-01','男子高校 100m','高二 五郎','架空高','2','11.20','+0.1'),mk('a4','2026-05-01','男子中学共通 走幅跳','中三 三郎','架空中','3','5m50','+0.2'),
+  mk('a5','2026-05-01','男子中学共通 110mH','中三 三郎','架空中','3','16.50','+0.3'),mk('a6','2026-05-01','男子中学共通 200m','中三 三郎','架空中','3','25.00','+0.3'),
+  mk('a7','2026-05-01','男子中学共通 砲丸投','中三 三郎','架空中','3','9m00'),mk('a8','2026-05-01','男子高校 やり投','高二 五郎','架空高','2','40m00'),mk('a9','2026-05-01','男子高校 1500m','高二 五郎','架空高','2','4:20.00'),
+  mk('a10','2026-05-01','男子中学2年 100m','中二 次郎','架空中','2','12.80','+0.0'),mk('a11','2026-05-01','男子中学共通 走高跳','中三 三郎','架空中','3','1m50')];
+ const keys=[...new Set(rs.map(r=>R.eventKey(r)))];
+ const g=R.groupEvents(keys,rs,true);
+ ok(g.map(x=>x.group).join()==='中1,中2,中学共通,高校','区分の順（中1→中2→中学共通→高校）：'+g.map(x=>x.group).join());
+ ok(g[0].items.map(i=>i.label).join()==='中1 100m,中1 1500m','中1は100m→1500m（文字順の「100→1500→200」にしない）：'+g[0].items.map(i=>i.label).join());
+ ok(g[2].items.map(i=>i.label).join()==='中学共通 200m,中学共通 110mH,中学共通 走高跳,中学共通 走幅跳,中学共通 砲丸投','中学共通：短距離→ハードル→跳躍（高→幅）→投てき：'+g[2].items.map(i=>i.label).join());
+ ok(g[3].items.map(i=>i.label).join()==='高校 100m,高校 1500m,高校 やり投','高校：100m→1500m→やり投');
+ ok(R.groupEvents(keys,rs,false)[0].items[0].label==='男子 中1 100m','男女が混ざるときは「男子」を付ける');
+ const D=e=>R.disciplineOrder(e)[0];ok(D('男子4×100mR')===3&&D('男子5000mW')===4&&D('男子3000mSC')<3&&D('男子八種競技')===7&&D('女子100mH')===2,'リレー・競歩・障害・混成・ハードルの分類');
+ const mix=rs.concat([mk('f1','2026-05-01','女子中学1年 100m','中一 花子','架空中','1','14.00','+0.1')]);
+ ok(R.gendersIn(rs).join()==='m'&&R.gendersIn(mix).join()==='m,f'&&R.genderOf(mix[mix.length-1])==='f','男子だけ／男女まざりの判定');
+ // 中学/高校の推測
+ const P=[mk('p1','2026-05-01','男子100m','推測 一郎','架空中','2','12.50','+0.1'),mk('p2','2026-07-01','男子200m','推測 一郎','架空','','25.50','+0.1'),
+  mk('q1','2026-05-01','男子100m','両方 二郎','架空中','3','12.00','+0.1'),mk('q2','2026-06-01','男子100m','両方 二郎','架空高','1','11.80','+0.1'),mk('q3','2026-07-01','男子100m','両方 二郎','架空','','11.90','+0.1'),
+  mk('r1','2025-09-01','男子100m','進学 三郎','架空中','3','12.20','+0.1'),mk('r2','2026-05-10','男子100m','進学 三郎','架空','','11.95','+0.1'),
+  mk('s1','2026-05-01','男子100m','手掛 四郎','架空','','12.10','+0.1'),
+  mk('k1','2026-05-01','男子100m','同名 五郎','架空高','2','11.50','+0.1','ドウメイ ゴロウ'),mk('k2','2026-07-01','男子100m','同名 五郎','架空','','11.60','+0.1','ドウメイ ゴロウ')];
+ const inf=R.inferDivisions(P,{});
+ ok(inf.hints.p2==='jh','中学にしか出ていない選手の「架空」だけの記録は中学');
+ ok(inf.hints.k2==='hs','フリガナも同じ選手で高校と決める');
+ ok(!inf.hints.q3&&inf.review.some(x=>x.ids.includes('q3')&&/中学にも高校/.test(x.reason)),'中学にも高校にもいる名前は推測しない（要確認）');
+ ok(!inf.hints.r2&&inf.review.some(x=>x.ids.includes('r2')&&/4月/.test(x.reason)),'中3の翌年度（4月をまたぐ）は推測しない（要確認）');
+ ok(!inf.hints.s1&&inf.review.some(x=>x.ids.includes('s1')),'手がかりがなければ要確認');
+ const inf2=R.inferDivisions(P,{[R.personKey(P[5])]:'hs'});ok(inf2.hints.r2==='hs'&&!inf2.review.some(x=>x.ids.includes('r2')),'画面で選んだ区分を使う');
+ R.setDivisionHints(inf.hints);ok(R.divisionOf(P[1])==='jh'&&R.athleteKey(P[1])===R.athleteKey(P[0]),'推測した記録は同じ選手（中学）にまとまる');R.setDivisionHints({});
+ // Excel
+ const m=R.mapHeaders(['No','氏名','フリガナ','学年','所属','種目','記録','風速','年月日','大会名','順位','ラウンド']);
+ ok(m.name===1&&m.kana===2&&m.grade===3&&m.team===4&&m.event===5&&m.mark===6&&m.wind===7&&m.date===8&&m.meet===9&&m.rank===10&&m.round===11,'見出しの自動割り当て（氏名・風速・年月日・大会名…）');
+ const m2=R.mapHeaders(['名前','学校','種目','タイム','風','日付','大会']);ok(m2.name===0&&m2.team===1&&m2.mark===3&&m2.wind===4&&m2.date===5&&m2.meet===6,'別の書き方（名前・学校・タイム・日付・大会）');
+ ok(R.findHeaderRow([['2026年度 記録'],[],['氏名','種目','記録','日付'],['a','100m','12.00','2026/9/13']])===2,'見出しの行を探す（上にタイトルがあっても）');
+ ok(R.parseDateCell('2026/9/13')==='2026-09-13'&&R.parseDateCell('R8.9.13')==='2026-09-13'&&R.parseDateCell('令和8年9月13日')==='2026-09-13'&&R.parseDateCell('2026年9月13日')==='2026-09-13'&&R.parseDateCell('2026-09-13')==='2026-09-13','日付：2026/9/13・R8.9.13・令和8年9月13日');
+ ok(R.parseDateCell(46278)==='2026-09-13'&&R.parseDateCell('46278')==='2026-09-13'&&R.parseDateCell(46278.5)==='2026-09-13','Excelの通し番号（46278 = 2026/9/13）');
+ ok(R.parseDateCell(new Date(2026,8,13))==='2026-09-13'&&R.parseDateCell('')===''&&R.parseDateCell('9月13日')===''&&R.parseDateCell('2026/13/40')===''&&R.parseDateCell(12)==='','Date・空・年なし・ありえない日付・小さい数');
+ ok(R.normImportMark(11.5,'100m')==='11.50'&&R.normImportMark(5.74,'走幅跳')==='5m74'&&R.normImportMark(271.3/86400,'1500m')==='4:31.30'&&R.normImportMark('4分31秒15','1500m')==='4:31.15','記録の形をそろえる（11.5→11.50・5.74→5m74・時刻の数・4分31秒15）');
+ const aoa=[['氏名','種目','記録','風','日付','大会名'],['架空 一郎','男子100m',11.5,1.2,46278,''],['架空 一郎','男子100m','11.40','+0.5','R8.10.4','区民大会'],['架空 二郎','男子走幅跳',5.5,'',''],['','','','','','']];
+ const ir=R.importRows(aoa,R.mapHeaders(aoa[0]),{school:'架空中'});
+ ok(ir.recs.length===2&&ir.bad.length===1&&/日付/.test(ir.bad[0].warn),'日付の無い行は取り込まずに知らせる・空行は飛ばす');
+ ok(ir.recs[0].meet==='大会名なし（2026-09-13）'&&ir.recs[0].mark==='11.50'&&ir.recs[0].wind==='+1.2'&&ir.recs[0].team==='架空中'&&ir.recs[1].meet==='区民大会'&&ir.recs[1].date==='2026-10-04','大会名なしは「大会名なし（日付）」・所属が空なら学校名・風の数値');
+ const id1=R.recId(ir.recs[1].meet,ir.recs[1].date,ir.recs[1]),id2=R.recId('区民大会','2026-10-04',Object.assign({},ir.recs[1]));ok(id1===id2,'同じ記録は同じID（既存と重ならない）');}
 if(process.argv.length>2){const {loadPages}=await import('./load.mjs');
  for(const f of process.argv.slice(2)){const r=R.parsePdf(await loadPages(f),{school:process.env.SCHOOL||'本郷'});console.log('[PDF]',f,'記録',r.recs.length,'件 警告',r.warns.length,'件');r.warns.slice(0,10).forEach(w=>console.log('   ⚠',w));}}
 console.log('\n'+pass+' passed, '+fail+' failed');process.exit(fail?1:0);

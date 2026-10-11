@@ -447,6 +447,20 @@ footer a{color:var(--navy)}
 .pagenav a{display:inline-block;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.45);border-radius:999px;padding:3px 12px;font-size:13px;text-decoration:none}
 .pagenav a.on{background:#fff;color:var(--navy);font-weight:700}
 @media print{.pagenav{display:none}}
+
+/* ===== v0.13：不具合・要望を送る（両ページ共通） ===== */
+.fb-link{background:none;border:0;color:var(--navy);text-decoration:underline;cursor:pointer;font:inherit;padding:0}
+.fb-btn{display:inline-flex;align-items:center;gap:4px;min-height:40px;margin:6px 0;padding:6px 14px;border:1px solid #1f3a68;border-radius:10px;background:#fff;color:#1f3a68;font-weight:700;cursor:pointer;font-size:14px}
+.fb-back{position:fixed;inset:0;background:rgba(15,25,45,.55);z-index:1000;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:16px 10px}
+.fb-back[hidden]{display:none}
+.fb-dlg{background:#fff;border-radius:14px;max-width:520px;width:100%;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.fb-dlg h2{margin:0 0 6px;font-size:19px}
+.fb-kind{border:0;padding:0;margin:8px 0;display:flex;gap:14px;flex-wrap:wrap}.fb-kind legend{font-weight:700;margin-bottom:4px}
+.fb-kind label{display:inline-flex;align-items:center;gap:4px;min-height:40px;font-size:16px}
+.fb-l{display:block;font-weight:700;margin:8px 0}.fb-l textarea,.fb-l input{display:block;width:100%;box-sizing:border-box;font:inherit;font-size:16px;font-weight:400;padding:8px;border:1px solid #c9d2e0;border-radius:8px;margin-top:4px}
+.fb-auto ul{margin:4px 0;padding-left:18px;overflow-wrap:anywhere}
+.fb-btns{display:flex;gap:10px;margin-top:10px}.fb-btns .btn{min-height:44px;flex:1}
+body.fb-open{overflow:hidden}
 </style>
 </head>
 <body>
@@ -523,7 +537,7 @@ footer a{color:var(--navy)}
     <li><b>学校名</b>を入れます（一部でOK。例：「本郷」→ 本郷高・本郷中が出るので、必要な方にチェック）。</li>
     <li>「時間順」「選手別」「ナンバーカード」に結果が出ます。Excel保存・印刷・ナンバーカード（Word）作成ができます。</li>
   </ol>
-  <div class="notice">⚠ <b>試作版です。</b>本ツールはPDFの文字を読み取って自動で整理しているだけです。内容は必ず元のスタートリスト・タイムテーブル等と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div>
+  <div class="notice">⚠ <b>試作版です。</b><button type="button" class="fb-link" data-feedback="1">📮 不具合・要望を送る</button>　本ツールはPDFの文字を読み取って自動で整理しているだけです。内容は必ず元のスタートリスト・タイムテーブル等と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div>
   <details class="privacy" id="dataPolicy"><summary>🔒 <b>データの取り扱いについて</b>（押すと開きます）</summary>
     <ul>
       <li>PDF本文はどこにも送りません。選手情報も、下の「短いリンク」を作ったときを除いてサーバーへ送信・保存しません。</li>
@@ -534,6 +548,7 @@ footer a{color:var(--navy)}
       <li><b>ログインしていないとき</b>（または通信できないとき）は長いリンクになり、結果はリンクの「#」より後ろに入ります。この部分はサーバーへ送られず、どこにも保存されませんが、リンクを渡した相手は中身を見られます。</li>
       <li>このページ（大会準備）の説明です。別ページの「記録」は、Googleでログインしたときだけ記録を LANE NOTE の Firebase（Google）に本人だけが読める形で保存します（ログインしないときはそのブラウザの中だけ）。</li>
       <li><b>選手用リンク</b>（v0.11）：1人分の出場（大会名・日付・会場・種目・組・レーン・レースと招集の時刻・招集場所・その子の名前／学年／学校／ナンバー）だけを入れます。ほかの選手の名前・ナンバー（リレーの仲間も）は入れません。ログイン中は上と同じく Firebase に120日間保存（1人1件）、ログインなしは長いリンクの「#」より後ろに入ります。選手が自分で足した予定（起床など）と、開いたリンクの中身は、その選手の端末のブラウザにだけ保存し、どこにも送りません。</li>
+      <li><b>不具合・要望を送る</b>（v0.13）：フォームから送った内容は LANE NOTE の Firebase（Google）の feedback に保存し、作成者だけが確認します（送った人を含め、ほかの人は読めません）。送るのは 種類・内容・連絡先（書いたときだけ）・ページ名・版・ブラウザの種類・画面の大きさ・開いていたタブとURLのパス（「#」「?」より後ろは送りません）・ログイン中ならそのアカウントのID です。PDFの中身・選手名・記録は自動では送りません（内容に書いたものは送られます）。</li>
       <li>「ナンバーカード」タブのAmazonへのリンクは、押したときだけAmazonのページを開きます。自動で何かを送ったり、Amazonから画像などを読み込んだりはしません。</li>
     </ul></details>
 </section>
@@ -640,7 +655,7 @@ footer a{color:var(--navy)}
     <li>Wordのナンバーカードは「HGP創英角ｺﾞｼｯｸUB」「ＭＳ ゴシック」を使います。フォントは同梱していません（各パソコンに入っているものを使います。無い場合は別のフォントで表示されます）。</li>
     <li>既知の制限：対応を確認した形式は北区型スタートリスト＋タイムテーブル／江東区型プログラムのみ。スキャン（画像）PDFは読めません。複数日の大会は対象日を選んで1日分ずつ出します（日付が書かれていない資料は日付を区別できません）。タイムテーブルの時刻は「組のまとまり」の開始時刻で、後ろの組は遅くなります。参加料は「1種目あたり」の単価だけ自動計算します。</li>
   </ul></details>
-<div class="f-disc">ⓘ 本ツールはPDFの文字を読み取って自動で整理しているだけです。内容は必ず元のスタートリスト・タイムテーブル等と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div><div><b class="f-brand">LANE NOTE</b>（レーンノート）試作版 ／ <span class="f-credit">Presented by Sakata</span></div>🔒 PDF本文はサーバーへ送りません（選手情報は「短いリンク」を作ったときだけ Firebase に保存。部品取得のため外部CDNへ通信します）。 <a href="#dataPolicy" onclick="document.getElementById('dataPolicy').open=true">データの取り扱いについて</a> ／ <a href="records.html">記録（試作）</a></footer>
+<div class="f-disc">ⓘ 本ツールはPDFの文字を読み取って自動で整理しているだけです。内容は必ず元のスタートリスト・タイムテーブル等と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div><div><b class="f-brand">LANE NOTE</b>（レーンノート）試作版 ／ <span class="f-credit">Presented by Sakata</span></div>🔒 PDF本文はサーバーへ送りません（選手情報は「短いリンク」を作ったときだけ Firebase に保存。部品取得のため外部CDNへ通信します）。 <a href="#dataPolicy" onclick="document.getElementById('dataPolicy').open=true">データの取り扱いについて</a> ／ <a href="records.html">記録（試作）</a><br><button type="button" class="fb-btn" data-feedback="1">📮 不具合・要望を送る</button></footer>
 
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG" crossorigin="anonymous"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
@@ -661,6 +676,9 @@ __ZEKKEN__
 __QRCODE__
 </script>
 <script src="firebase-config.js"></script>
+<script>
+__FEEDBACK__
+</script>
 <script>
 var SHARE_BASE = "__SHARE_BASE__";
 var ZEKKEN_TEMPLATES = { koshi: "__KOSHI_B64__", mune: "__MUNE_B64__" };
