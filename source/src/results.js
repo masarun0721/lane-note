@@ -347,7 +347,8 @@ var ResultParser = (function () {
   function dedupe(recs) {
     var seen = {}, out = [];
     // v0.6（監査F06）：所属（完全な形）・中学/高校・ナンバーもキーに入れる（別の学校の同じ名前・同じ記録の選手を1人にまとめない）
-    recs.forEach(function (r) { var k = JSON.stringify([normSchool(r.team || ''), rawDivisionOf(r), normEvent(r.event) + '#' + eventCat(r.event), String(r.bib == null ? '' : r.bib), String(r.round == null ? '' : r.round), String(r.heat == null ? '' : r.heat), nameKey(r.name || r.kana), String(r.mark == null ? '' : r.mark)]); if (!seen[k]) { seen[k] = 1; out.push(r); } });
+    // v0.7（再監査A03）：保存のID・保存時の重なり判定と同じ identityParts を使う
+    recs.forEach(function (r) { var k = identityKey(r); if (!seen[k]) { seen[k] = 1; out.push(r); } });
     return out;
   }
 
@@ -452,8 +453,10 @@ var ResultParser = (function () {
       var g = byEv[b.event].slice().sort(byDate);
       var all = g.filter(hasMark).map(function (r) { return { date: r.date, v: markValue(r.mark).v, mark: r.mark, wind: r.wind || '', ref: !isOfficial(r), wc: windClass(r) }; });
       var pts = all.filter(function (p) { return !p.ref; });
+      // v0.15：記録の無い出場（DNS・DNF・DQ・NM など）もグラフの下に × で出す
+      var nm = g.filter(function (r) { return !hasMark(r) && String(r.mark || '').trim(); }).map(function (r) { return { date: r.date, mark: String(r.mark).trim(), meet: r.meet || '', round: r.round || '' }; });
       var any = g.map(function (r) { return markValue(r.mark); }).filter(Boolean)[0];
-      return { event: b.event, eventLabel: b.eventLabel, best: b.best, ref: b.ref, count: b.count, recent: g.slice().reverse().slice(0, 5), points: pts, allPoints: all, lower: any ? any.lower : true };
+      return { event: b.event, eventLabel: b.eventLabel, best: b.best, ref: b.ref, count: b.count, recent: g.slice().reverse().slice(0, 5), points: pts, allPoints: all, noMarks: nm, lower: any ? any.lower : true };
     }).sort(function (a, b) { return a.event < b.event ? -1 : a.event > b.event ? 1 : 0; });
     return { key: key, name: last.name || last.kana, kana: last.kana, team: last.team, grade: last.grade, events: events, count: mine.length };
   }
@@ -678,9 +681,23 @@ var ResultParser = (function () {
   // v0.5 までのID（中学と高校がぶつかる）。保存済みの記録との重なりを調べるときだけ使う
   function recIdLegacy(meetName, date, r) { return [nk(meetName).replace(/\s/g, ''), date, normEvent(r.event), r.round, r.heat, nameKey(r.name || r.kana), schoolBase(r.team), r.mark].join('|'); }
   // v0.6（監査F06）：中学/高校の区分を足して、本郷中と本郷高の同じ名前・同じ記録を別のIDにする
-  function recId(meetName, date, r) { var d = rawDivisionOf(r); return recIdLegacy(meetName, date, r) + (d ? '|' + d : ''); }
+  function recIdV6(meetName, date, r) { var d = rawDivisionOf(r); return recIdLegacy(meetName, date, r) + (d ? '|' + d : ''); }
+  /* v0.7（再監査A03）：解析の重複判定・保存のID・再取込・旧IDの記録との照合で、同じ「同一性」を使う。
+     所属（正規化した完全な形）・中学/高校・種目と種目の区分（1年/共通…）・ナンバー・ラウンド・組・氏名・記録。
+     区切りは JSON の配列にして、項目の中に「|」などがあってもぶつからないようにする */
+  function str_(v) { return v == null ? '' : String(v); }
+  function identityParts(r) {
+    return [normSchool(r.team || ''), rawDivisionOf(r), normEvent(r.event), eventCat(r.event), nk(str_(r.bib)).replace(/\s/g, ''), nk(str_(r.round)).replace(/\s/g, ''), nk(str_(r.heat)).replace(/\s/g, ''), nameKey(r.name || r.kana), nk(str_(r.mark)).replace(/\s/g, '')];
+  }
+  function identityKey(r) { return JSON.stringify(identityParts(r)); }
+  function meetKey(meetName, date) { return [nk(str_(meetName)).replace(/\s/g, ''), str_(date)]; }
+  // 大会・日付まで含めた同一性（保存済みの記録とくらべるとき）
+  function fullIdentity(r, meetName, date) { return JSON.stringify(meetKey(meetName == null ? r.meet : meetName, date == null ? r.date : date).concat(identityParts(r))); }
+  // ナンバーだけを除いた同一性（旧データでナンバーが無い記録と「同じかもしれない」を見つける）
+  function looseIdentity(r) { var p = meetKey(r.meet, r.date).concat(identityParts(r)); p[6] = ''; return JSON.stringify(p); }
+  function recId(meetName, date, r) { return 'v7' + fullIdentity(r, meetName, date); }
   /* ---------- v0.6（監査F09）：JSONの読み込みは、決まった項目・決まった型だけで作り直す（ほかの項目は持ち込まない） ---------- */
-  var REC_STR = ['id', 'name', 'kana', 'grade', 'team', 'event', 'round', 'mark', 'wind', 'comment', 'meet', 'date', 'src', 'savedAt', 'updatedAt', 'lane', 'bib', 'sex'];
+  var REC_STR = ['id', 'name', 'kana', 'grade', 'team', 'event', 'round', 'mark', 'wind', 'comment', 'meet', 'date', 'src', 'savedAt', 'updatedAt', 'lane', 'bib', 'sex', 'dupOf'];
   var REC_NUM = ['heat', 'rank', 'overall', 'order'];
   function sanitizeRecord(r) {
     if (!r || typeof r !== 'object' || Array.isArray(r)) return null;
@@ -734,7 +751,7 @@ var ResultParser = (function () {
     return { rec: r, errors: errs };
   }
   return { parsePdf: parsePdf, parseCells: parseCells, parsePlain: parsePlain, textToStream: textToStream, normEvent: normEvent, markValue: markValue, windApplies: windApplies, windClass: windClass, windNum: windNum,
-    computeBests: computeBests, athleteKey: athleteKey, matchSchool: matchSchool, recId: recId, recIdLegacy: recIdLegacy, manualRecord: manualRecord, sanitizeRecord: sanitizeRecord, validDate: validDate, normManualWind: normManualWind, dedupe: dedupe, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
+    computeBests: computeBests, athleteKey: athleteKey, matchSchool: matchSchool, recId: recId, recIdLegacy: recIdLegacy, recIdV6: recIdV6, identityKey: identityKey, fullIdentity: fullIdentity, looseIdentity: looseIdentity, manualRecord: manualRecord, sanitizeRecord: sanitizeRecord, validDate: validDate, normManualWind: normManualWind, dedupe: dedupe, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
     guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText,
     eventCat: eventCat, divisionOf: divisionOf, divLabel: divLabel, eventKey: eventKey, eventKeyLabel: eventKeyLabel, shownWind: shownWind, hasMark: hasMark, sortAthletes: sortAthletes, kanaKey: kanaKey,
     setDivisionHints: setDivisionHints, rawDivisionOf: rawDivisionOf, genderOf: genderOf, divGroup: divGroup, disciplineOrder: disciplineOrder, groupEvents: groupEvents, gendersIn: gendersIn, GROUPS: GROUPS,

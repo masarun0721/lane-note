@@ -1,7 +1,7 @@
-// firestore.rules をエミュレーターで確かめる（v0.14・Astra 監査の rules_check.mjs のうち最終ルールの部分を取り込み、アプリが実際に書く形のテストを足したもの）
-// 必ず demo プロジェクト・ローカルのエミュレーターで動かす（本番には絶対につながない。firebase deploy もしない）。要 Java と firebase-tools：
-//   npm i --no-save @firebase/rules-unit-testing@3.0.4 firebase@10.14.1 firebase-tools@14.12.0
-//   npx firebase emulators:exec --only firestore --project demo-lane-note --config firebase.test.json "node rules_check.mjs"
+// firestore.rules をエミュレーターで確かめる（v0.15・再監査A08：設定はリポジトリ直下の firebase.json、版は固定）
+// 必ず demo プロジェクト・ローカルのエミュレーターで動かす（本番には絶対につながない。firebase deploy もしない）。要 Java 17 以上：
+//   リポジトリ直下で：npx -y firebase-tools@14.12.0 emulators:exec --only firestore --project demo-lane-note --config firebase.json "node source/test/rules_check.mjs"
+//   （source/test で npm run test:rules でも同じ）
 import fs from 'node:fs';
 import {initializeTestEnvironment, assertFails, assertSucceeds} from '@firebase/rules-unit-testing';
 import {doc, collection, setDoc, getDoc, getDocs, updateDoc, deleteDoc, serverTimestamp, Timestamp, query, where, writeBatch, setLogLevel} from 'firebase/firestore';

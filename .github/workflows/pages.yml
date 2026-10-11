@@ -15,7 +15,30 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # v0.15（再監査A08）：firestore.rules の動的試験（ローカルの Firestore Emulator・demo プロジェクトだけ。本番にはつながない・deploy もしない）
+  # 版を固定：Java 17（Temurin）／Node 22／firebase-tools 14.12.0／@firebase/rules-unit-testing 3.0.4／firebase 10.14.1（package-lock.json）
+  rules:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install test deps
+        working-directory: source/test
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Rules test on emulator
+        run: npx -y firebase-tools@14.12.0 emulators:exec --only firestore --project demo-lane-note --config firebase.json "node source/test/rules_check.mjs"
+
   deploy:
+    needs: rules
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -42,7 +65,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Tests
         working-directory: source/test

@@ -124,9 +124,24 @@
     if (sc.epoch !== authEpoch || sc.uid !== (USER ? USER.uid : null)) { var e = new Error('ログインしているアカウントが変わったため、処理を中止しました'); e.code = 'auth-context-changed'; throw e; }
   }
   function isAbort(e) { return e && e.code === 'auth-context-changed'; }
+  // v0.7（再監査A01）：scope を省略して「今のユーザー」を取り直す経路は残さない（呼び出し側がイベントの先頭で固定して渡す）
+  function need(sc) { if (!sc || sc.epoch == null) throw new Error('内部エラー：保存先（scope）が渡されていません'); check(sc); return sc; }
+  // v0.7（再監査A04）：「この端末のデータを消す」のあとは、明示的に再開するまで控え（IndexedDB）を作らない
+  function noCacheKey(uid) { return 'lanenote-nocache-' + uid; }
+  function noCache(sc) { if (!sc.uid) return false; try { return localStorage.getItem(noCacheKey(sc.uid)) === '1'; } catch (e) { return false; } }
+  function setNoCache(uid, on) { try { if (on) localStorage.setItem(noCacheKey(uid), '1'); else localStorage.removeItem(noCacheKey(uid)); } catch (e) { } }
+  // v0.7（再監査A05）：サーバーから読む（SDKのキャッシュを「クラウドの結果」と決め付けない）
+  function offlineErr() { var e = new Error('クラウドにつながりません'); e.code = 'unavailable'; return e; }
+  async function serverDocs(q) {
+    if (FB.F.getDocsFromServer) return FB.F.getDocsFromServer(q);
+    var snap = await FB.F.getDocs(q);
+    if (snap && snap.metadata && snap.metadata.fromCache) throw offlineErr();
+    return snap;
+  }
+  function isPerm(e) { return e && /permission-denied|unauthenticated/.test(e.code || ''); }
   function colFor(uid, name) { if (!uid) throw new Error('ログインが必要です'); return FB.F.collection(FB.fs, 'users', uid, name || 'records'); }
   async function cloudPut(list, sc) {
-    sc = sc || scope(); var c = colFor(sc.uid);
+    need(sc); var c = colFor(sc.uid);
     for (var i = 0; i < list.length; i += 400) {             // 1回のまとめ書きは500件まで
       check(sc);
       var b = FB.F.writeBatch(FB.fs);
@@ -136,7 +151,7 @@
     }
   }
   async function cloudDel(ids, sc) {
-    sc = sc || scope(); var c = colFor(sc.uid);
+    need(sc); var c = colFor(sc.uid);
     for (var i = 0; i < ids.length; i += 400) {
       check(sc);
       var b = FB.F.writeBatch(FB.fs);
@@ -157,23 +172,23 @@
     var m0 = lsGet(metsKey(sc.uid), {}), o0 = lsGet(ovKey(sc.uid), {});
     if (!sc.uid || OFFLINE) return { mets: m0, ov: o0 };
     try {
-      var snap = await FB.F.getDocs(colFor(sc.uid, 'meets')), m = {}; check(sc);
+      var snap = await serverDocs(colFor(sc.uid, 'meets')), m = {}; check(sc);
       snap.forEach(function (d) { var x = d.data(); if (x && x.key) m[x.key] = x; });
-      var ov = await FB.F.getDoc(FB.F.doc(FB.fs, 'users', sc.uid, 'settings', 'divOverrides')); check(sc);
+      var ov = await (FB.F.getDocFromServer || FB.F.getDoc)(FB.F.doc(FB.fs, 'users', sc.uid, 'settings', 'divOverrides')); check(sc);
       var o = ov.exists() && ov.data().map || {};
-      lsSet(metsKey(sc.uid), m); lsSet(ovKey(sc.uid), o);
+      if (!noCache(sc)) { lsSet(metsKey(sc.uid), m); lsSet(ovKey(sc.uid), o); }
       return { mets: m, ov: o };
     } catch (e) { if (isAbort(e)) throw e; return { mets: m0, ov: o0 }; }
   }
   async function saveMeet(key, w, sc) {
-    sc = sc || scope(); check(sc);
+    need(sc);
     var p = key.split('|'), o = { key: key, date: p[0], meet: p.slice(1).join('|'), weather: w.weather || '', temp: w.temp === '' || w.temp == null || isNaN(+w.temp) ? null : +w.temp, humidity: w.humidity === '' || w.humidity == null || isNaN(+w.humidity) ? null : +w.humidity, updatedAt: new Date().toISOString() };
-    METS[key] = o; lsSet(metsKey(sc.uid), METS);
+    METS[key] = o; if (!noCache(sc)) lsSet(metsKey(sc.uid), METS);
     if (sc.uid) { await FB.F.setDoc(FB.F.doc(FB.fs, 'users', sc.uid, 'meets', docId(key)), o); check(sc); }
   }
   async function saveOverrides(sc) {
-    sc = sc || scope(); check(sc);
-    lsSet(ovKey(sc.uid), DIV_OV);
+    need(sc);
+    if (!noCache(sc)) lsSet(ovKey(sc.uid), DIV_OV);
     if (sc.uid) { await FB.F.setDoc(FB.F.doc(FB.fs, 'users', sc.uid, 'settings', 'divOverrides'), { map: DIV_OV, updatedAt: new Date().toISOString() }); check(sc); }
   }
   function applyInference() { var inf = R.inferDivisions(ALL, DIV_OV); R.setDivisionHints(inf.hints); REVIEW = inf.review; }
@@ -189,63 +204,78 @@
   }
 
   // 一覧を読む：ログイン中はクラウドから読み、控え（IndexedDB）を入れ替える。通信できないときだけ控えを出す（権限エラーは控えで隠さない）
+  // v0.7（再監査A05）：getDocsFromServer でサーバーの結果だけを「クラウドの一覧」として扱う。
+  //   通信できない（SDKのキャッシュしか無い）ときは控えを置き換えずに控えを出す。権限エラーは控えで隠さない
   async function getAll(sc) {
-    sc = sc || scope(); check(sc);
+    need(sc);
     if (!sc.uid) return lgetAll(sc.dbName, sc);
     var snap;
-    try { snap = await FB.F.getDocs(colFor(sc.uid)); }
+    try { snap = await serverDocs(colFor(sc.uid)); }
     catch (e) {
       check(sc);
-      if (e && /permission-denied|unauthenticated/.test(e.code || '')) throw new Error('クラウドの記録を読む権限がありません。ログインし直してください');
+      if (isPerm(e)) throw new Error('クラウドの記録を読む権限がありません。ログインし直してください');
       OFFLINE = true;
+      if (noCache(sc)) return [];
       return lgetAll(sc.dbName, sc);
     }
     check(sc);
     var list = []; snap.forEach(function (d) { list.push(d.data()); });
     OFFLINE = false;
+    if (noCache(sc)) return list;
     try { await ltx('readwrite', function (s) { s.clear(); list.forEach(function (r) { s.put(r); }); }, sc.dbName, sc); } catch (e) { if (isAbort(e)) throw e; }
     check(sc);
     return list;
   }
   // 保存済みと重なる記録は入れない（v0.5 までのIDで保存した記録とも、区分が同じなら重ねない）
+  /* v0.7（再監査A03）：保存済みとの重なりは「IDが同じ」ではなく、記録の中身（大会・日付＋identityParts）でくらべる。
+     ・中身が同じ → 重ねない（v0.5/v0.6 の古いIDで保存した記録も、中身で見つかる）
+     ・IDは同じだが中身が違う（古いIDがぶつかった別の選手・区分）→ 落とさず、新しいIDを付けて入れる
+     ・古い記録にナンバーが無いなど、同じか別か決められない → 自動で捨てず入れて「要確認（重複かも）」にする */
+  function hasOwn(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
   async function putMany(list, sc) {
-    sc = sc || scope(); check(sc);
+    need(sc);
     var existing = ALL.slice();
-    if (!sc.uid) existing = existing.concat(await lgetAll(sc.dbName, sc));
-    var have = {}, legacy = {};
-    existing.forEach(function (r) { have[r.id] = 1; legacy[r.id] = R.rawDivisionOf(r) || ''; });
-    var add = list.filter(function (r) {
-      if (have[r.id]) return false;
-      var old = R.recIdLegacy(r.meet, r.date, r);
-      if (Object.prototype.hasOwnProperty.call(legacy, old) && legacy[old] === (R.rawDivisionOf(r) || '')) return false;
-      have[r.id] = 1; return true;
+    if (!sc.uid || OFFLINE) existing = existing.concat(await lgetAll(sc.dbName, sc));
+    var byId = {}, full = {}, loose = {};
+    function index(r) { byId[r.id] = r; full[R.fullIdentity(r)] = r; (loose[R.looseIdentity(r)] = loose[R.looseIdentity(r)] || []).push(r); }
+    existing.forEach(index);
+    var add = [], review = 0;
+    list.forEach(function (r0) {
+      var r = Object.assign({}, r0), fi = R.fullIdentity(r);
+      if (hasOwn(full, fi)) return;                                  // 同じ記録
+      if (!r.id || hasOwn(byId, r.id)) r.id = R.recId(r.meet, r.date, r);   // IDだけぶつかった別の記録
+      if (hasOwn(byId, r.id)) return;
+      var cand = (loose[R.looseIdentity(r)] || []).filter(function (x) { return String(x.bib == null ? '' : x.bib) === '' || String(r.bib == null ? '' : r.bib) === ''; });
+      if (cand.length) { r.dupOf = String(cand[0].id); review++; }
+      index(r); add.push(r);
     });
     if (add.length) {
       if (sc.uid) await cloudPut(add, sc);
-      await ltx('readwrite', function (s) { add.forEach(function (r) { s.put(r); }); }, sc.dbName, sc);
+      if (!noCache(sc)) await ltx('readwrite', function (s) { add.forEach(function (r) { s.put(r); }); }, sc.dbName, sc);
     }
-    return { added: add.length, dup: list.length - add.length, ids: add.map(function (r) { return r.id; }) };
+    check(sc);
+    return { added: add.length, dup: list.length - add.length, review: review, ids: add.map(function (r) { return r.id; }) };
   }
   async function delIds(ids, sc) {
-    sc = sc || scope(); check(sc);
+    need(sc);
     if (sc.uid) await cloudDel(ids, sc);
     await ltx('readwrite', function (s) { ids.forEach(function (id) { s.delete(id); }); }, sc.dbName, sc);
   }
   // v0.6：1件を直す（IDが変わるときは、古いほうを消して新しいほうを入れる）
   async function replaceRecord(oldId, rec, sc) {
-    sc = sc || scope(); check(sc);
+    need(sc);
     if (sc.uid) {
       var b = FB.F.writeBatch(FB.fs), c = colFor(sc.uid);
       if (oldId !== rec.id) b.delete(FB.F.doc(c, docId(oldId)));
       b.set(FB.F.doc(c, docId(rec.id)), clean(rec));
       await b.commit(); check(sc);
     }
-    await ltx('readwrite', function (s) { if (oldId !== rec.id) s.delete(oldId); s.put(rec); }, sc.dbName, sc);
+    if (!noCache(sc)) await ltx('readwrite', function (s) { if (oldId !== rec.id) s.delete(oldId); s.put(rec); }, sc.dbName, sc);
   }
   async function clearAll(sc) {
-    sc = sc || scope(); check(sc);
+    need(sc);
     if (sc.uid) {
-      var ids = []; (await FB.F.getDocs(colFor(sc.uid))).forEach(function (d) { var x = d.data(); ids.push(x && x.id != null ? String(x.id) : d.id); }); check(sc);
+      var ids = []; (await serverDocs(colFor(sc.uid))).forEach(function (d) { var x = d.data(); ids.push(x && x.id != null ? String(x.id) : d.id); }); check(sc);
       await cloudDel(ids, sc);
     }
     await ltx('readwrite', function (s) { s.clear(); }, sc.dbName, sc);
@@ -253,7 +283,7 @@
   // v0.14（監査F07）：クラウドに置いたものを全部消す（記録・天気・中学/高校の選択）
   async function clearCloudSide(sc) {
     check(sc); if (!sc.uid) return;
-    var keys = []; (await FB.F.getDocs(colFor(sc.uid, 'meets'))).forEach(function (d) { keys.push(d.id); }); check(sc);
+    var keys = []; (await serverDocs(colFor(sc.uid, 'meets'))).forEach(function (d) { keys.push(d.id); }); check(sc);
     var b = FB.F.writeBatch(FB.fs);
     keys.forEach(function (k) { b.delete(FB.F.doc(FB.fs, 'users', sc.uid, 'meets', k)); });
     b.delete(FB.F.doc(FB.fs, 'users', sc.uid, 'settings', 'divOverrides'));
@@ -278,7 +308,7 @@
       '<div class="rb-row"><button class="btn" type="button" data-guest="move">このアカウントへ移す（' + GUEST_N + '件・端末からは消す）</button><button class="btn sub" type="button" data-guest="keep">移さない（端末に残す）</button><button class="btn sub danger-t" type="button" data-guest="discard">移さずに端末から消す</button></div>';
   }
   async function migrateGuest(mode, sc) {
-    sc = sc || scope(); check(sc);
+    need(sc);
     if (!sc.uid) throw new Error('ログインが必要です');
     var local = await lgetAll(LOCAL_DB, sc);
     if (mode === 'discard') {
@@ -288,7 +318,7 @@
     }
     var have = {}; (await getAll(sc)).forEach(function (r) { have[r.id] = 1; });
     var add = local.filter(function (r) { return r && r.id && !have[r.id]; });
-    if (add.length) { await cloudPut(add, sc); await ltx('readwrite', function (s) { add.forEach(function (r) { s.put(r); }); }, sc.dbName, sc); }
+    if (add.length) { await cloudPut(add, sc); if (!noCache(sc)) await ltx('readwrite', function (s) { add.forEach(function (r) { s.put(r); }); }, sc.dbName, sc); }
     // 天気・中学/高校の選択も、このアカウントに無いものだけ移す
     var gm = lsGet(metsKey(null), {}), go = lsGet(ovKey(null), {}), side = await loadSide(sc);
     METS = side.mets; DIV_OV = side.ov;
@@ -319,7 +349,7 @@
     var info = $('rbAuthInfo'), inB = $('rbSignIn'), outB = $('rbSignOut');
     if (!CLOUD_READY) { info.innerHTML = '💻 <b>この端末だけに保存中</b>（クラウド保存はまだ準備中です）'; inB.hidden = true; outB.hidden = true; return; }
     $('rbClearCloud').hidden = !USER;
-    if (USER) { info.innerHTML = '☁ <b>' + esc(USER.email || USER.displayName || 'ログイン中') + '</b> でログイン中：記録はクラウドに保存し、どの端末からでも見られます' + (OFFLINE ? '<br><span class="ng">⚠ いまクラウドにつながらないので、この端末の控えを表示しています</span>' : ''); inB.hidden = true; outB.hidden = false; }
+    if (USER) { info.innerHTML = '☁ <b>' + esc(USER.email || USER.displayName || 'ログイン中') + '</b> でログイン中：記録はクラウドに保存し、どの端末からでも見られます' + (OFFLINE ? '<br><span class="ng">⚠ いまクラウドにつながらないので、' + (noCache(scope()) ? '記録を表示できません（この端末には控えを置かない設定です）' : 'この端末の控えを表示しています') + '</span>' : '') + (noCache(scope()) ? '<br><span class="small">🧹 この端末には控えを置いていません（「端末のデータを消す」のあと）。 <button class="btn sub" type="button" id="rbCacheOn">この端末に控えを置く</button></span>' : ''); inB.hidden = true; outB.hidden = false; }
     else { info.innerHTML = '💻 <b>ログインしていません</b>：記録はこの端末だけに保存されます。Googleでログインすると、どの端末からでも同じ記録が見られます。'; inB.hidden = false; outB.hidden = true; }
   }
   // アカウントが変わったら、前の人の画面の中身（記録・読み込み途中の資料・入力欄）をすべて消す
@@ -343,18 +373,19 @@
     renderAuth();
     if (!CLOUD_READY) return;
     try { await loadFirebase(); } catch (e) { status('rbAuthStatus', '✖ ログインの部品を読み込めませんでした（' + esc(e.message) + '）。この端末だけに保存します。', 'ng'); reload(); return; }
-    LaneAuth.redirectResult(FB).then(function (e) { if (e) status('rbAuthStatus', '✖ ログインできませんでした：' + esc(LaneAuth.errorText(e)), 'ng'); });   // 監査F10
     FB.A.onAuthStateChanged(FB.auth, onAuth);
   }
+  // v0.7（再監査A06）：ログインは popup だけ。ブロック・キャンセルでも画面は移動しないので、入力や読み込み途中の資料はそのまま残る
   $('rbSignIn').addEventListener('click', async function () {
-    try { await loadFirebase(); await LaneAuth.signIn(FB); }
-    catch (e) { status('rbAuthStatus', '✖ ログインできませんでした：' + esc(LaneAuth.errorText(e)), 'ng'); }
+    try { await loadFirebase(); var r = await LaneAuth.signIn(FB); if (r === 'cancelled') status('rbAuthStatus', 'ⓘ ログインを取り消しました。入力した内容はそのまま残っています。', ''); }
+    catch (e) { status('rbAuthStatus', '✖ ログインできませんでした：' + esc(LaneAuth.errorText(e)) + '<br><small>入力した内容・読み込んだ資料はそのまま残っています。設定を直したら、もう一度「Googleでログイン」を押してください。</small>', 'ng'); }
   });
   var WIPE_UID = null;
   async function doSignOut() {
     var uid = USER && USER.uid;
     authEpoch++;   // 進行中の読み書きを止める（このあと前の人のDB・クラウドには書かない）
     var r = await LaneAuth.signOutAndWipe(FB, uid, closeDb);
+    if (r.signedOut && uid) setNoCache(uid, false);
     if (!r.signedOut) { status('rbAuthStatus', '✖ ログアウトできませんでした：' + esc(LaneAuth.errorText(r.error)) + '（もう一度押してください）', 'ng'); return r; }
     resetView();
     if (r.wiped) { WIPE_UID = null; status('rbAuthStatus', '✔ ログアウトし、この端末に残っていた控え（記録・天気・中学/高校の選択）も消しました。', 'ok'); }
@@ -391,9 +422,16 @@
     if (!date) flat.some(function (l) { var m = l.match(/(\d{1,2})\s*月\s*(\d{1,2})\s*日/); if (m && !/(出力|印刷)/.test(l)) { md = m[1] + '月' + m[2] + '日'; return true; } });
     return { name: name, date: date, md: md };
   }
-  async function handleFiles(files) {
+  // v0.7（再監査A01）：ファイルを選んだ時点の scope（uid＋認証の世代）を最後まで持ち回る。途中でアカウントが変わったら、プレビュー・表示を一切戻さない
+  async function handleFiles(files, sc0) {
+    var sc = sc0 || scope();
     files = Array.prototype.slice.call(files || []);
     if (!files.length) return;
+    try { await handleFilesIn(files, sc); }
+    catch (e) { if (!isAbort(e)) throw e; }
+  }
+  async function handleFilesIn(files, sc) {
+    var addBatch = function (b) { addBatchIn(b, sc); };
     var html = files.filter(function (f) { return /\.html?$/i.test(f.name) || f.type === 'text/html'; });
     var pdfs = files.filter(function (f) { return /\.pdf$/i.test(f.name) || f.type === 'application/pdf'; });
     var txts = files.filter(function (f) { return /\.txt$/i.test(f.name); });
@@ -404,41 +442,46 @@
     if (big.length) { big.forEach(function (f) { addBatch({ src: f.name, kind: 'ファイル', error: '大きすぎるので読みませんでした（' + Math.round(f.size / 1048576) + 'MB。PDFは' + Math.round(LIMITS.pdf / 1048576) + 'MB、ほかは' + Math.round(LIMITS.file / 1048576) + 'MBまで）' }); }); }
     var keep = function (f) { return big.indexOf(f) < 0; };
     html = html.filter(keep); pdfs = pdfs.filter(keep); txts = txts.filter(keep); xls = xls.filter(keep);
-    for (var xi = 0; xi < xls.length; xi++) { try { await readSheet(xls[xi]); } catch (e) { addBatch({ src: xls[xi].name, kind: 'Excel', error: e.message }); } }
+    for (var xi = 0; xi < xls.length; xi++) { try { await readSheet(xls[xi], sc); } catch (e) { if (isAbort(e)) throw e; check(sc); addBatch({ src: xls[xi].name, kind: 'Excel', error: e.message }); } }
+    check(sc);
     if (other.length) status('rbStatus', '✖ 読めない種類のファイルです：' + esc(other.map(function (f) { return f.name; }).join('、')), 'ng');
     for (var i = 0; i < pdfs.length; i++) {
       var f = pdfs[i];
       try {
-        status('rbStatus', '読み取り中…（' + esc(f.name) + '）', 'busy');
-        var res0 = await readPdf(f, function (p, n) { status('rbStatus', '読み取り中…（' + esc(f.name) + ' ' + p + '/' + n + 'ページ）', 'busy'); });
+        check(sc); status('rbStatus', '読み取り中…（' + esc(f.name) + '）', 'busy');
+        var res0 = await readPdf(f, function (p, n) { check(sc); status('rbStatus', '読み取り中…（' + esc(f.name) + ' ' + p + '/' + n + 'ページ）', 'busy'); });
+        check(sc);
         var all = R.parsePdf(res0.pages, {}), meta = applyGuess(guessMetaFromPages(res0.pages), f.name);
         addBatch({ src: f.name, kind: 'PDF', all: all, meta: meta });
-      } catch (e) { addBatch({ src: f.name, kind: 'PDF', error: e.message }); }
+      } catch (e) { if (isAbort(e)) throw e; check(sc); addBatch({ src: f.name, kind: 'PDF', error: e.message }); }
     }
     if (html.length || txts.length) {
       var stream = [], names = [];
-      for (var j = 0; j < html.length; j++) { try { stream = stream.concat(await readHtml(html[j])); names.push(html[j].name); } catch (e) { addBatch({ src: html[j].name, kind: 'HTML', error: e.message }); } }
-      for (var k = 0; k < txts.length; k++) { stream = stream.concat(R.textToStream(await txts[k].text())); names.push(txts[k].name); }
+      for (var j = 0; j < html.length; j++) { try { var hs = await readHtml(html[j]); check(sc); stream = stream.concat(hs); names.push(html[j].name); } catch (e) { if (isAbort(e)) throw e; check(sc); addBatch({ src: html[j].name, kind: 'HTML', error: e.message }); } }
+      for (var k = 0; k < txts.length; k++) { var tx = await txts[k].text(); check(sc); stream = stream.concat(R.textToStream(tx)); names.push(txts[k].name); }
+      check(sc);
       if (names.length) {
         // 種目ページごとに大会名・日付が書かれているので、まとめて1つの大会として扱う
         var res = R.parseCells(stream, {});
         addBatch({ src: names.length > 3 ? names.slice(0, 3).join('、') + ' ほか' + (names.length - 3) + '件' : names.join('、'), kind: 'HTML', all: res, meta: applyGuess({ name: res.meet.name, date: res.meet.date }, names[0]) });
       }
     }
+    check(sc);
     status('rbStatus', '読み取りました。下の内容を確かめて「記録に保存」を押してください。', 'ok');
   }
   var LIMITS = { pdf: 50 * 1048576, file: 20 * 1048576, json: 20 * 1048576, rows: 50000, paste: 2 * 1048576 };
   /* ---------- v0.5：Excel・CSV（今まで先生がまとめてきた記録）を取り込む ---------- */
-  async function readSheet(f) {
+  async function readSheet(f, sc) {
+    need(sc);
     if (!window.XLSX) throw new Error('Excelを読む部品を読み込めませんでした（インターネット接続を確認してください）');
     var wb;
     if (/\.csv$/i.test(f.name)) {
-      var buf = new Uint8Array(await f.arrayBuffer()), txt = new TextDecoder('utf-8').decode(buf);
+      var buf = new Uint8Array(await f.arrayBuffer()); check(sc); var txt = new TextDecoder('utf-8').decode(buf);
       if ((txt.match(/\ufffd/g) || []).length > 3) txt = new TextDecoder('shift_jis').decode(buf);
       wb = XLSX.read(txt.replace(/^\ufeff/, ''), { type: 'string', raw: true });
-    } else wb = XLSX.read(new Uint8Array(await f.arrayBuffer()), { type: 'array' });
+    } else { var ab = await f.arrayBuffer(); check(sc); wb = XLSX.read(new Uint8Array(ab), { type: 'array' }); }
     var b = { src: f.name, kind: 'Excel', xl: { wb: wb, sheet: wb.SheetNames[0] }, meta: {} };
-    loadXlSheet(b); addBatch(b);
+    loadXlSheet(b); addBatchIn(b, sc);
   }
   function loadXlSheet(b) {
     var ws = b.xl.wb.Sheets[b.xl.sheet];
@@ -479,14 +522,14 @@
     else return;
     renderBatches();
   });
-  $('rbFile').addEventListener('change', function () { handleFiles(this.files); this.value = ''; });
+  $('rbFile').addEventListener('change', function () { handleFiles(this.files, scope()); this.value = ''; });
   var drop = $('rbDrop');
   drop.addEventListener('click', function (e) { if (e.target.tagName !== 'INPUT') $('rbFile').click(); });
   drop.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('rbFile').click(); } });
   ['dragenter', 'dragover'].forEach(function (t) { drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.add('drag'); }); });
   ['dragleave', 'drop'].forEach(function (t) { drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.remove('drag'); }); });
   drop.addEventListener('drop', function (e) {
-    var dt = e.dataTransfer; if (dt.files && dt.files.length) { handleFiles(dt.files); return; }
+    var dt = e.dataTransfer; if (dt.files && dt.files.length) { handleFiles(dt.files, scope()); return; }
     var u = dt.getData('text/uri-list') || dt.getData('text/plain') || ''; if (isUrlOnly(u)) status('rbStatus', 'ⓘ ' + URL_NOTE, 'ng');
   });
   // v0.14：URLだけを貼ったとき・落としたとき
@@ -497,7 +540,7 @@
     if (isUrlOnly(t)) { status('rbStatus', 'ⓘ ' + URL_NOTE, 'ng'); return; }
     if (t.length > LIMITS.paste) { status('rbStatus', '✖ 貼り付けた文章が長すぎます（約200万文字まで）。種目ごとに分けて貼り付けてください。', 'ng'); return; }
     var res = R.parsePlain(t, {});
-    addBatch({ src: '貼り付け', kind: '貼り付け', all: res, meta: { name: res.meet.name, date: res.meet.date } });
+    addBatchIn({ src: '貼り付け', kind: '貼り付け', all: res, meta: { name: res.meet.name, date: res.meet.date } }, scope());
   });
   // ファイル名・資料の見出しから大会名と日付を推測して入れておく（入れた人が打った値は上書きしない）
   function applyGuess(meta, fileName) {
@@ -508,7 +551,8 @@
     if (!meta.md && g.md) meta.md = g.md;
     return meta;
   }
-  function addBatch(b) { b.id = ++seq; batches.unshift(b); renderBatches(); }
+  // 取り込みのプレビューは、読み込みを始めたときのアカウントにだけ出す（b.sc に固定。保存もこの scope で行う）
+  function addBatchIn(b, sc) { need(sc); b.sc = sc; b.id = ++seq; batches.unshift(b); renderBatches(); }
   function batchRecs(b) {
     if (!b.all) return [];
     var q = school();
@@ -552,44 +596,47 @@
       var ub = batches.concat(DONE).filter(function (x) { return x.id === +un; })[0], ust = document.querySelector('[data-st="' + un + '"]') || $('rbDone');
       if (!ub || !(ub.addedIds || []).length) return;
       if (!confirm('今読み込んで保存した ' + ub.addedIds.length + '件を記録から取り消します。よろしいですか？')) return;
-      var n = ub.addedIds.length; await delIds(ub.addedIds); ub.addedIds = [];
+      var usc = scope();
+      try { var n = ub.addedIds.length; await delIds(ub.addedIds, usc); check(usc); ub.addedIds = []; } catch (x) { if (isAbort(x)) return; ust.className = 'status ng'; ust.textContent = '✖ 取り消せませんでした：' + x.message; return; }
       ust.className = 'status ok'; ust.textContent = '✔ 今読み込んだ ' + n + '件を取り消しました（もう一度資料を入れて「記録に保存」で入れ直せます）。';
-      await reload(); return;
+      await reload(usc); return;
     }
     if (del) { batches = batches.filter(function (b) { return b.id !== +del; }); renderBatches(); return; }
     if (!sv) return;
     var b = batches.filter(function (x) { return x.id === +sv; })[0], st = document.querySelector('[data-st="' + sv + '"]');
     if (b.xl) return saveXl(b, st);
     if (!b.meta.name || !/^\d{4}-\d{2}-\d{2}$/.test(b.meta.date || '')) { st.className = 'status ng'; st.textContent = '✖ 大会名と日付を入れてから保存してください。'; return; }
-    var sc = scope(), rs = batchRecs(b).map(function (r, i) {
+    var sc = b.sc, rs = batchRecs(b).map(function (r, i) {
       var o = Object.assign({}, r); o.meet = b.meta.name; o.date = b.meta.date; o.src = b.src; o.order = i; o.savedAt = new Date().toISOString();
       o.id = R.recId(o.meet, o.date, o); return o;
     });
     try {
       var res = await putMany(rs, sc);
       await saveBatchWeather(b, [b.meta.date + '|' + b.meta.name], sc);
+      check(sc);
       b.addedIds = (b.addedIds || []).concat(res.ids);
       // 完了：入力欄（ファイル・貼り付け・大会名）を空にして、次の大会をそのまま入れられるようにする
       DONE.push(b); batches = batches.filter(function (x) { return x !== b; }); renderBatches();
       $('rbPaste').value = ''; $('rbFile').value = ''; status('rbStatus', '', '');
       var done = $('rbDone'); done.className = 'status ok rb-done';
       done.innerHTML = '✔ <b>' + esc(b.meta.name) + ' 完了（' + res.added + '件保存）</b>' + (res.dup ? '<br><small>' + res.dup + '件はすでに保存済みなので重ねませんでした</small>' : '') +
-        '<br><small>続けて次の大会の資料を入れられます。</small>' + (b.addedIds.length ? ' <button class="btn sub" type="button" data-undo="' + b.id + '">今の分を取り消す（' + b.addedIds.length + '件）</button>' : '');
-      await reload();
+        (res.review ? '<br><small class="ng">⚠ ' + res.review + '件は、前に保存した記録（ナンバーなし）と同じかもしれません。下の「要確認」で確かめてください。</small>' : '') + '<br><small>続けて次の大会の資料を入れられます。</small>' + (b.addedIds.length ? ' <button class="btn sub" type="button" data-undo="' + b.id + '">今の分を取り消す（' + b.addedIds.length + '件）</button>' : '');
+      await reload(sc);
     } catch (err) { if (isAbort(err)) return; st.className = 'status ng'; st.textContent = '✖ 保存できませんでした：' + err.message; }
   }
   function hasW(m) { return !!(m.weather || (m.temp !== undefined && m.temp !== '') || (m.humidity !== undefined && m.humidity !== '')); }
   async function saveBatchWeather(b, keys, sc) { if (!hasW(b.meta)) return; for (var i = 0; i < keys.length; i++) { try { await saveMeet(keys[i], b.meta, sc); } catch (e) { if (isAbort(e)) throw e; } } }
   async function saveXl(b, st) {
-    var sc = scope(), now = new Date().toISOString(), rs = b.xl.res.recs.map(function (r, i) { var o = Object.assign({}, r); delete o.warn; delete o.row; o.src = b.src; o.order = i; o.savedAt = now; o.id = R.recId(o.meet, o.date, o); return o; });
+    var sc = b.sc, now = new Date().toISOString(), rs = b.xl.res.recs.map(function (r, i) { var o = Object.assign({}, r); delete o.warn; delete o.row; o.src = b.src; o.order = i; o.savedAt = now; o.id = R.recId(o.meet, o.date, o); return o; });
     try {
       var res = await putMany(rs, sc), keys = {}; rs.forEach(function (r) { keys[r.date + '|' + r.meet] = 1; });
       await saveBatchWeather(b, Object.keys(keys), sc);
+      check(sc);
       b.addedIds = (b.addedIds || []).concat(res.ids); b.meta.name = b.src;
       DONE.push(b); batches = batches.filter(function (x) { return x !== b; }); renderBatches();
       var done = $('rbDone'); done.className = 'status ok rb-done';
-      done.innerHTML = '✔ <b>' + esc(b.src) + ' 完了（' + res.added + '件保存・' + Object.keys(keys).length + '大会）</b>' + (res.dup ? '<br><small>' + res.dup + '件はすでに保存済みなので重ねませんでした</small>' : '') + (b.xl.res.bad.length ? '<br><small>日付などが足りない ' + b.xl.res.bad.length + '行は入れていません</small>' : '') + (b.addedIds.length ? ' <button class="btn sub" type="button" data-undo="' + b.id + '">今の分を取り消す（' + b.addedIds.length + '件）</button>' : '');
-      await reload();
+      done.innerHTML = '✔ <b>' + esc(b.src) + ' 完了（' + res.added + '件保存・' + Object.keys(keys).length + '大会）</b>' + (res.dup ? '<br><small>' + res.dup + '件はすでに保存済みなので重ねませんでした</small>' : '') + (b.xl.res.bad.length ? '<br><small>日付などが足りない ' + b.xl.res.bad.length + '行は入れていません</small>' : '') + (res.review ? '<br><small class="ng">⚠ ' + res.review + '件は前に保存した記録と同じかもしれません（下の「要確認」）</small>' : '') + (b.addedIds.length ? ' <button class="btn sub" type="button" data-undo="' + b.id + '">今の分を取り消す（' + b.addedIds.length + '件）</button>' : '');
+      await reload(sc);
     } catch (err) { if (isAbort(err)) return; st.className = 'status ng'; st.textContent = '✖ 保存できませんでした：' + err.message; }
   }
   $('rbBatches').addEventListener('click', onBatchClick); $('rbDone').addEventListener('click', onBatchClick);
@@ -670,7 +717,7 @@
   }
   $('rmDelete').addEventListener('click', function () { if (EDIT_ID) deleteOne(EDIT_ID); });
   /* ---------- 一覧（v0.3：ホーム・選手・部内ランキング・大会別・歴代・全記録。選手のページは #athlete=… で開く） ---------- */
-  var view = 'home', sort = { ath: null, meet: null, all: null }, rankOpt = { season: 'now', grade: '', ev: '' }, histOpt = { ev: '' }, meetSel = '', chartOfficial = false;
+  var view = 'home', sort = { ath: null, meet: null, all: null }, rankOpt = { season: 'now', grade: '', ev: '' }, histOpt = { ev: '' }, meetSel = '', chartOfficial = false, chartNm = true;
   var DIVKEY = 'lanenote-rec-div', DIV = 'all';
   try { DIV = localStorage.getItem(DIVKEY) || 'all'; } catch (e) { }
   function renderDiv() { document.querySelectorAll('#rbDiv button').forEach(function (b) { var on = b.getAttribute('data-div') === DIV; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); }); }
@@ -688,16 +735,27 @@
     var s = school(), mine = $('rbMine').checked, box = $('rbReview');
     var list = REVIEW.filter(function (x) { return !(mine && s) || R.matchSchool(x.team, s); });
     var chosen = Object.keys(DIV_OV).filter(function (k) { return ALL.some(function (r) { return R.personKey(r) === k && !R.rawDivisionOf(r); }); });
-    if (!list.length && !chosen.length) { box.innerHTML = ''; return; }
-    box.innerHTML = (list.length ? '<details class="card review" open><summary><span class="rv">要確認</span> <b>中学か高校かわからない選手 ' + list.length + '人</b></summary><p class="small muted">所属が「' + esc(s || '学校名') + '」だけで、ほかの大会からも決められなかった選手です。選ぶとこの端末（ログイン中はクラウド）に覚えて、ランキングや自己ベストに入ります。選ぶまでは「すべて」にだけ出ます。</p><ul class="rvlist">' +
+    var dups = ALL.filter(function (r) { return r.dupOf; });
+    var dupHtml = dups.length ? '<details class="card review" open><summary><span class="rv">要確認</span> <b>前の記録と同じかもしれない記録 ' + dups.length + '件</b></summary><p class="small muted">前に保存した記録にナンバーが無いなどで、同じ記録か別の選手か決められなかったので、消さずに入れました。</p><ul class="rvlist">' +
+      dups.map(function (r) { var o = ALL.filter(function (x) { return x.id === r.dupOf; })[0]; return '<li><div><b>' + esc(r.name) + '</b> ' + esc(r.event) + ' <b>' + esc(r.mark) + '</b>' + (r.bib ? '（No.' + esc(r.bib) + '）' : '') + '<br><small class="muted">' + esc(r.date + ' ' + r.meet) + (o ? '／前の記録：' + esc(o.name + ' ' + o.mark) + (o.bib ? '（No.' + esc(o.bib) + '）' : '（ナンバーなし）') : '') + '</small></div><span class="rvbtn"><button type="button" class="btn sub" data-dupkeep="' + esc(r.id) + '">別の記録（両方残す）</button><button type="button" class="btn sub danger-t" data-dupdrop="' + esc(r.id) + '">同じ記録（こちらを消す）</button></span></li>'; }).join('') + '</ul></details>' : '';
+    if (!list.length && !chosen.length) { box.innerHTML = dupHtml; return; }
+    box.innerHTML = dupHtml + (list.length ? '<details class="card review" open><summary><span class="rv">要確認</span> <b>中学か高校かわからない選手 ' + list.length + '人</b></summary><p class="small muted">所属が「' + esc(s || '学校名') + '」だけで、ほかの大会からも決められなかった選手です。選ぶとこの端末（ログイン中はクラウド）に覚えて、ランキングや自己ベストに入ります。選ぶまでは「すべて」にだけ出ます。</p><ul class="rvlist">' +
       list.map(function (x) { return '<li><div><b>' + esc(x.name) + '</b>' + (x.kana ? ' <small class="muted">' + esc(x.kana) + '</small>' : '') + '<br><small class="muted">' + esc(x.team) + '・' + x.ids.length + '件（' + esc(x.dates[0]) + (x.dates.length > 1 && x.dates[x.dates.length - 1] !== x.dates[0] ? '〜' + esc(x.dates[x.dates.length - 1]) : '') + '）<br>' + esc(x.reason) + '</small></div><span class="rvbtn"><button type="button" class="btn sub" data-divpick="jh" data-person="' + esc(x.person) + '">中学</button><button type="button" class="btn sub" data-divpick="hs" data-person="' + esc(x.person) + '">高校</button></span></li>'; }).join('') + '</ul></details>' : '') +
       (chosen.length ? '<details class="small rvdone"><summary>中学/高校を選んだ選手（' + chosen.length + '人）</summary><ul>' + chosen.map(function (k) { return '<li>' + esc(k.split('@')[0]) + '：' + R.divLabel(DIV_OV[k]) + ' <button type="button" class="btn sub" data-divpick="" data-person="' + esc(k) + '">選び直す</button></li>'; }).join('') + '</ul></details>' : '');
   }
   $('rbReview').addEventListener('click', async function (e) {
+    var dk = e.target.closest('[data-dupkeep],[data-dupdrop]');
+    if (dk) {
+      var sc = scope(), keep = dk.getAttribute('data-dupkeep'), id = keep || dk.getAttribute('data-dupdrop');
+      var r = ALL.filter(function (x) { return x.id === id; })[0]; if (!r) return;
+      try { if (keep) { var o = Object.assign({}, r); delete o.dupOf; await replaceRecord(r.id, o, sc); } else { if (!confirm('この記録を消します（前の記録は残ります）。よろしいですか？')) return; await delIds([r.id], sc); } check(sc); await reload(sc); }
+      catch (x) { if (!isAbort(x)) status('rbDataStatus', '✖ できませんでした：' + esc(x.message), 'ng'); }
+      return;
+    }
     var b = e.target.closest('[data-divpick]'); if (!b) return;
     var p = b.getAttribute('data-person'), d = b.getAttribute('data-divpick');
     if (d) DIV_OV[p] = d; else delete DIV_OV[p];
-    try { await saveOverrides(); } catch (x) { status('rbDataStatus', '✖ クラウドに保存できませんでした（この端末には覚えました）：' + esc(x.message), 'ng'); }
+    try { await saveOverrides(scope()); } catch (x) { status('rbDataStatus', '✖ クラウドに保存できませんでした（この端末には覚えました）：' + esc(x.message), 'ng'); }
     applyInference(); render();
   });
   function setTab(v) { view = v; document.querySelectorAll('.tabs button').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-v') === v); }); }
@@ -754,18 +812,24 @@
     }).join('') + '</select></label>';
   }
   function evOrder(evs, rows) { var out = []; R.groupEvents(evs, rows, NOG).forEach(function (g) { g.items.forEach(function (it) { out.push(it.key); }); }); return out; }
+  // その大会の記録だけを消す（学校名・しぼりこみに関係なく、その大会のすべての記録）。大会別の「この大会を消す」と「取り込み済みの大会」の削除で共通
+  async function deleteMeet(dm) {
+    var sc = scope();   // 押した時点のアカウントに固定（再監査A01と同じ考え方）
+    var ids = ALL.filter(function (r) { return r.date + '|' + r.meet === dm; }).map(function (r) { return r.id; });
+    if (!ids.length) return;
+    var label = dm.split('|')[0] + ' ' + dm.split('|').slice(1).join('|');
+    if (!confirm('「' + label + '」の記録 ' + ids.length + '件を消します。元に戻せません。よろしいですか？')) return;
+    try { await delIds(ids, sc); check(sc); }
+    catch (x) { if (isAbort(x)) return; status('rbDataStatus', '✖ 消せませんでした：' + esc(x.message), 'ng'); return; }
+    status('rbDataStatus', '✔ 「' + esc(label) + '」の記録 ' + ids.length + '件を消しました。自己ベストを計算し直しました。', 'ok');
+    await reload(sc);
+  }
+  $('rbMeets').addEventListener('click', function (e) { var b = e.target.closest('[data-delmeet]'); if (b) deleteMeet(b.getAttribute('data-delmeet')); });
   $('rbView').addEventListener('click', async function (e) {
     if (e.target.closest('[data-back]')) { e.preventDefault(); if (window.__athNav) { window.__athNav = false; history.back(); } else { history.pushState(null, '', location.pathname + location.search); render(); } return; }
     if (e.target.closest('a.ath')) { window.__athNav = true; return; }
     var dm = e.target.getAttribute && e.target.getAttribute('data-delmeet');
-    if (dm) {
-      // その大会の記録だけを消す（学校名・しぼりこみに関係なく、その大会のすべての記録）
-      var ids = ALL.filter(function (r) { return r.date + '|' + r.meet === dm; }).map(function (r) { return r.id; });
-      if (!ids.length) return;
-      if (!confirm('「' + dm.replace('|', ' ') + '」の記録 ' + ids.length + '件を消します。元に戻せません。よろしいですか？')) return;
-      await delIds(ids); status('rbDataStatus', '✔ 「' + esc(dm.replace('|', ' ')) + '」の記録 ' + ids.length + '件を消しました。自己ベストを計算し直しました。', 'ok');
-      await reload(); return;
-    }
+    if (dm) { await deleteMeet(dm); return; }
     var ed = e.target.closest('[data-edit]'); if (ed) { startEdit(ed.getAttribute('data-edit')); var tr = ed.closest('tr'); if (tr) tr.classList.add('editing'); return; }
     var dr = e.target.closest('[data-delrec]'); if (dr) { await deleteOne(dr.getAttribute('data-delrec')); return; }
     var ae = e.target.closest('[data-athev]'); if (ae) { athSel.ev = ae.getAttribute('data-athev'); render(); return; }
@@ -773,7 +837,7 @@
     var ws = e.target.closest('[data-wsave]');
     if (ws) {
       var box = ws.closest('.wxedit'), w = {}; box.querySelectorAll('[data-w]').forEach(function (el) { w[el.getAttribute('data-w')] = el.value; });
-      try { await saveMeet(ws.getAttribute('data-wsave'), w); meetEdit = ''; status('rbDataStatus', '✔ 天気を保存しました。', 'ok'); } catch (x) { status('rbDataStatus', '✖ 天気を保存できませんでした：' + esc(x.message), 'ng'); }
+      try { await saveMeet(ws.getAttribute('data-wsave'), w, scope()); meetEdit = ''; status('rbDataStatus', '✔ 天気を保存しました。', 'ok'); } catch (x) { status('rbDataStatus', '✖ 天気を保存できませんでした：' + esc(x.message), 'ng'); }
       render(); return;
     }
     var go = e.target.closest('[data-go]'); if (go) { setTab(go.getAttribute('data-go')); render(); return; }
@@ -785,22 +849,33 @@
     if (e.target.getAttribute('data-hopt')) { histOpt.ev = e.target.value; render(); return; }
     if (e.target.hasAttribute('data-meetsel')) { meetSel = e.target.value; render(); return; }
     if (e.target.hasAttribute('data-official')) { chartOfficial = e.target.checked; render(); return; }
+    if (e.target.hasAttribute('data-shownm')) { chartNm = e.target.checked; render(); return; }
   });
   // 小さな推移グラフ（上ほど良い記録：時間は下向き、距離は上向きに描く）
   // 推移グラフ（上ほど良い記録）。参考記録（追い風・風不明）は白抜き・薄い点で「参考」と分かるように描く
-  function spark(all, lower, officialOnly) {
-    var pts = officialOnly ? all.filter(function (p) { return !p.ref; }) : all;
-    if (pts.length < 2) return '<span class="small muted">' + (officialOnly && all.length >= 2 ? '公認記録が2つ以上たまるとグラフが出ます（「公認だけ」を外すと参考記録も入ります）' : '記録が2つ以上たまるとグラフが出ます') + '</span>';
-    var W = 300, H = 70, P = 14, vs = pts.map(function (p) { return p.v; }), lo = Math.min.apply(null, vs), hi = Math.max.apply(null, vs), span = hi - lo || 1;
-    var xy = pts.map(function (p, i) { var x = P + i * (W - 2 * P) / (pts.length - 1), n = (p.v - lo) / span, y = lower ? P + n * (H - 2 * P) : H - P - n * (H - 2 * P); return [Math.round(x * 10) / 10, Math.round(y * 10) / 10]; });
+  // v0.15：DNS・DNF・失格（DQ）・NM など記録の無い出場は、グラフの下の帯に × で出す（日付順に記録と同じ横軸）
+  function spark(all, lower, officialOnly, nmList, showNm) {
+    var pts = officialOnly ? all.filter(function (p) { return !p.ref; }) : all, nms = showNm ? (nmList || []) : [];
+    if (pts.length < 2 && !nms.length) return '<span class="small muted">' + (officialOnly && all.length >= 2 ? '公認記録が2つ以上たまるとグラフが出ます（「公認だけ」を外すと参考記録も入ります）' : '記録が2つ以上たまるとグラフが出ます') + '</span>';
+    var W = 300, H = nms.length ? 88 : 70, P = 14, B = nms.length ? 18 : 0, vs = pts.map(function (p) { return p.v; }), lo = Math.min.apply(null, vs), hi = Math.max.apply(null, vs), span = hi - lo || 1;
+    var tl = pts.map(function (p, i) { return { k: 'm', i: i, date: p.date }; }).concat(nms.map(function (p, i) { return { k: 'x', i: i, date: p.date }; }));
+    tl.sort(function (a, b) { return cmp(a.date, b.date) || (a.k === b.k ? a.i - b.i : a.k === 'm' ? -1 : 1); });
+    var xs = { m: [], x: [] }, nT = tl.length; tl.forEach(function (t, j) { xs[t.k][t.i] = Math.round((nT < 2 ? W / 2 : P + j * (W - 2 * P) / (nT - 1)) * 10) / 10; });
+    var top = P, bot = H - P - B;
+    var xy = pts.map(function (p, i) { var n = (p.v - lo) / span, y = pts.length < 2 ? (top + bot) / 2 : lower ? top + n * (bot - top) : bot - n * (bot - top); return [xs.m[i], Math.round(y * 10) / 10]; });
     var bi = -1; pts.forEach(function (p, i) { if (!p.ref && (bi < 0 || (lower ? p.v < pts[bi].v : p.v > pts[bi].v))) bi = i; });
     var off = xy.filter(function (q, i) { return !pts[i].ref; });
-    return '<svg class="spark" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="記録の推移（上ほど良い・白抜きは参考記録）">' +
-      '<polyline fill="none" stroke="#9aa8c0" stroke-width="1.2" stroke-dasharray="3 3" points="' + xy.map(function (q) { return q.join(','); }).join(' ') + '"/>' +
+    var yx = H - 9;
+    return '<svg class="spark' + (nms.length ? ' hasnm' : '') + '" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="記録の推移（上ほど良い・白抜きは参考記録' + (nms.length ? '・下の×は記録なし（DNS・失格など）' : '') + '）">' +
+      (nms.length ? '<line x1="4" x2="' + (W - 4) + '" y1="' + (H - B + 1) + '" y2="' + (H - B + 1) + '" stroke="#d6dbe5" stroke-width="0.8"/>' : '') +
+      (xy.length > 1 ? '<polyline fill="none" stroke="#9aa8c0" stroke-width="1.2" stroke-dasharray="3 3" points="' + xy.map(function (q) { return q.join(','); }).join(' ') + '"/>' : '') +
       (off.length > 1 ? '<polyline fill="none" stroke="#1f3a68" stroke-width="2" points="' + off.map(function (q) { return q.join(','); }).join(' ') + '"/>' : '') +
       xy.map(function (q, i) { var p = pts[i], t = '<title>' + esc(p.date + ' ' + p.mark + (p.wind ? '（風' + p.wind + '）' : '') + (p.ref ? '・参考' : '')) + '</title>';
         return p.ref ? '<circle cx="' + q[0] + '" cy="' + q[1] + '" r="3.6" fill="#fff" stroke="#8a96ad" stroke-width="1.6">' + t + '</circle><text x="' + Math.min(W - 12, Math.max(12, q[0])) + '" y="' + Math.max(8, q[1] - 6) + '" font-size="8" fill="#8a96ad" text-anchor="middle">参考</text>'
-          : '<circle cx="' + q[0] + '" cy="' + q[1] + '" r="' + (i === bi ? 4.5 : 3) + '" fill="' + (i === bi ? '#e4572e' : '#1f3a68') + '">' + t + '</circle>'; }).join('') + '</svg>';
+          : '<circle cx="' + q[0] + '" cy="' + q[1] + '" r="' + (i === bi ? 4.5 : 3) + '" fill="' + (i === bi ? '#e4572e' : '#1f3a68') + '">' + t + '</circle>'; }).join('') +
+      nms.map(function (p, i) { var x = xs.x[i], d = 3.4;
+        return '<g class="nmx" data-nm="' + esc(p.mark) + '"><title>' + esc(p.date + ' ' + p.meet + (p.round ? '・' + p.round : '') + '：' + p.mark) + '</title><path d="M' + (x - d) + ' ' + (yx - d) + 'L' + (x + d) + ' ' + (yx + d) + 'M' + (x + d) + ' ' + (yx - d) + 'L' + (x - d) + ' ' + (yx + d) + '" stroke="#c0392b" stroke-width="1.8" stroke-linecap="round"/>' +
+          '<text x="' + Math.min(W - 10, Math.max(10, x)) + '" y="' + (yx - 5) + '" font-size="7" fill="#c0392b" text-anchor="middle">' + esc(p.mark.slice(0, 4)) + '</text></g>'; }).join('') + '</svg>';
   }
   function pbFlag(f) { return f === 'PB' ? '<span class="pb">PB</span>' : f === '初' ? '<span class="pb first">初</span>' : ''; }
   function renderHome(rows) {
@@ -840,7 +915,8 @@
         return '<div class="card evc"><div class="card-h"><b>' + esc(e.eventLabel) + '</b><span class="small muted">' + e.count + '件</span></div>' +
           '<div class="evbest"><span class="small muted">自己ベスト（公認）</span><b class="bigmk">' + esc(b ? b.mark : '—') + '</b>' + (b ? '<span class="small muted">' + (R.shownWind(b) ? '風' + esc(b.wind) + '・' : '') + esc(b.date) + ' ' + esc(b.meet) + ' ' + weatherTag(b.date + '|' + b.meet) + '</span>' : '') + '</div>' +
           (e.ref ? '<div class="small">参考 ' + esc(e.ref.mark) + windTag(e.ref) + ' <span class="muted">' + esc(e.ref.wind) + ' ' + esc(e.ref.date) + '</span></div>' : '') +
-          '<div class="sparkbox chartbox">' + spark(e.allPoints, e.lower, chartOfficial) + (e.allPoints.length > 1 ? '<span class="chartopt"><span class="muted">推移（上ほど良い）●公認 <b style="color:#e4572e">●</b>ベスト </span>' + (e.allPoints.some(function (p) { return p.ref; }) ? '<span class="lg-ref"><svg width="10" height="10" aria-hidden="true"><circle cx="5" cy="5" r="3.5" fill="#fff" stroke="#8a96ad" stroke-width="1.5"/></svg>参考（追い風・風不明）</span>' : '') + (e.allPoints.some(function (p) { return p.ref; }) ? '<label><input type="checkbox" data-official="1"' + (chartOfficial ? ' checked' : '') + '> 公認だけ</label>' : '') + '</span>' : '') + '</div>' +
+          '<div class="sparkbox chartbox">' + spark(e.allPoints, e.lower, chartOfficial, e.noMarks, chartNm) + (e.allPoints.length > 1 || (e.noMarks || []).length ? '<span class="chartopt"><span class="muted">推移（上ほど良い）●公認 <b style="color:#e4572e">●</b>ベスト </span>' + (e.allPoints.some(function (p) { return p.ref; }) ? '<span class="lg-ref"><svg width="10" height="10" aria-hidden="true"><circle cx="5" cy="5" r="3.5" fill="#fff" stroke="#8a96ad" stroke-width="1.5"/></svg>参考（追い風・風不明）</span>' : '') + (e.allPoints.some(function (p) { return p.ref; }) ? '<label><input type="checkbox" data-official="1"' + (chartOfficial ? ' checked' : '') + '> 公認だけ</label>' : '') + ((e.noMarks || []).length ? '<span class="lg-nm"><b style="color:#c0392b">×</b>記録なし（' + esc(e.noMarks.map(function (p) { return p.mark; }).filter(function (v, i, a) { return a.indexOf(v) === i; }).join('・')) + '）</span><label><input type="checkbox" data-shownm="1"' + (chartNm ? ' checked' : '') + '> DNS・失格なども表示</label>' : '') + '</span>' : '') +
+          (chartNm && (e.noMarks || []).length ? '<ul class="nmlist small muted">' + e.noMarks.map(function (p) { return '<li>× ' + esc(p.date) + ' ' + esc(p.meet) + (p.round ? '・' + esc(p.round) : '') + '：<b>' + esc(p.mark) + '</b></li>'; }).join('') + '</ul>' : '') + '</div>' +
           '<ul class="recent">' + e.recent.map(function (r) { return '<li><span class="d">' + esc(r.date) + '</span><b>' + esc(r.mark) + '</b>' + pbFlag(pd[r.id] && pd[r.id].flag) + windTag(r) + '<span class="m">' + (R.shownWind(r) ? '風' + esc(r.wind) + '・' : '') + esc(r.meet) + (r.round ? '・' + esc(r.round) : '') + ' ' + weatherTag(r.date + '|' + r.meet) + '</span></li>'; }).join('') + '</ul></div>';
       }).join('');
   }
@@ -871,7 +947,7 @@
     var m = {}; ALL.forEach(function (r) { var k = r.date + '|' + r.meet; m[k] = (m[k] || 0) + 1; });
     var ks = Object.keys(m).sort().reverse();
     $('rbMeetsN').textContent = ks.length ? '（' + ks.length + '大会）' : '（まだありません）';
-    $('rbMeets').innerHTML = ks.map(function (k) { var p = k.split('|'); return '<li>' + esc(p[0]) + '　<b>' + esc(p.slice(1).join('|')) + '</b>　<span class="muted">' + m[k] + '件</span></li>'; }).join('');
+    $('rbMeets').innerHTML = ks.map(function (k) { var p = k.split('|'); return '<li>' + esc(p[0]) + '　<b>' + esc(p.slice(1).join('|')) + '</b>　<span class="muted">' + m[k] + '件</span> <button type="button" class="btn sub danger-t rb-mdel" data-delmeet="' + esc(k) + '" aria-label="この大会の記録を削除">削除</button></li>'; }).join('');
   }
   function render() {
     var rows = filtered(), cb = R.computeBests(rows), flags = cb.flags;
@@ -933,18 +1009,22 @@
     download('LANE_NOTE_kiroku_' + stamp() + '.json', new Blob([JSON.stringify({ app: 'LANE NOTE 記録', format: 1, version: REC_VERSION, exportedAt: new Date().toISOString(), records: ALL }, null, 1)], { type: 'application/json' }));
     status('rbDataStatus', '✔ ' + ALL.length + '件をファイルに書き出しました。', 'ok');
   });
+  // v0.7（再監査A01）：ファイルを選んだ瞬間の scope に固定。読み込み待ちの間にアカウントが変わったら、保存も表示もしない
   $('rbImport').addEventListener('change', async function () {
-    var f = this.files[0]; this.value = ''; if (!f) return;
+    var sc = scope();
+    var f = this.files[0]; try { this.value = ''; } catch (e) { } if (!f) return;
     try {
       if (f.size > LIMITS.json) throw new Error('ファイルが大きすぎます（' + Math.round(LIMITS.json / 1048576) + 'MBまで）');
-      var j = JSON.parse(await f.text()), list = Array.isArray(j) ? j : j && j.records;
+      var txt = await f.text(); check(sc);
+      var j = JSON.parse(txt), list = Array.isArray(j) ? j : j && j.records;
       if (!Array.isArray(list)) throw new Error('記録のファイル（LANE NOTE 記録・旧 LANE LOG）ではないようです');
       if (list.length > LIMITS.rows) throw new Error('記録が多すぎます（' + LIMITS.rows + '件まで）');
       var good = [], bad = 0; list.forEach(function (r) { var o = R.sanitizeRecord(r); if (o) good.push(o); else bad++; });
-      var res = await putMany(good);
-      status('rbDataStatus', '✔ ' + res.added + '件を読み込みました' + (res.dup ? '（' + res.dup + '件はすでにあるので重ねませんでした）' : '') + (bad ? '。<br>⚠ 形が正しくない ' + bad + '件（日付が無い・項目の型が違うなど）は読み込みませんでした' : '') + '。', bad ? '' : 'ok');
-      await reload();
-    } catch (e) { if (isAbort(e)) return; status('rbDataStatus', '✖ 読み込めませんでした：' + esc(e.message), 'ng'); }
+      var res = await putMany(good, sc);
+      check(sc);
+      status('rbDataStatus', '✔ ' + res.added + '件を読み込みました' + (res.dup ? '（' + res.dup + '件はすでにあるので重ねませんでした）' : '') + (bad ? '。<br>⚠ 形が正しくない ' + bad + '件（日付が無い・項目の型が違うなど）は読み込みませんでした' : '') + (res.review ? '<br>⚠ ' + res.review + '件は前の記録と同じかもしれません（「要確認」で確かめてください）' : '') + '。', bad ? '' : 'ok');
+      await reload(sc);
+    } catch (e) { if (isAbort(e) || sc.epoch !== authEpoch) return; status('rbDataStatus', '✖ 読み込めませんでした：' + esc(e.message), 'ng'); }
   });
   $('rbClear').addEventListener('click', async function () {
     if (!ALL.length) { status('rbDataStatus', '消す記録はありません。', ''); return; }
@@ -965,10 +1045,18 @@
     try { localStorage.removeItem(metsKey(null)); localStorage.removeItem(ovKey(null)); } catch (e) { }
     await closeDb(LOCAL_DB);
     try { await LaneAuth.eraseDatabase(LOCAL_DB); } catch (e) { errs.push(e.message); }
-    if (USER) { try { await LaneAuth.wipeUser(USER.uid, closeDb); } catch (e) { errs.push(e.message); } }
+    // v0.7（再監査A04）：ログイン中は「控えを置かない」状態にしてから消す。このあとの読み直しはクラウドから表示するだけで、端末には書かない
+    if (USER) { setNoCache(USER.uid, true); try { await LaneAuth.wipeUser(USER.uid, closeDb); } catch (e) { errs.push(e.message); } setNoCache(USER.uid, true); }
     GUEST_N = 0; renderGuest(); resetView();
-    status('rbDataStatus', errs.length ? '⚠ 一部を消せませんでした：' + esc(errs[0]) : '✔ この端末のデータを消しました。', errs.length ? 'ng' : 'ok');
-    await reload(scope());
+    var sc = scope();
+    await reload(sc);
+    if (sc.epoch !== authEpoch) return;
+    status('rbDataStatus', errs.length ? '⚠ 一部を消せませんでした：' + esc(errs[0]) : '✔ この端末のデータを消しました。' + (USER ? 'このあと、この端末には記録の控えを置きません（ログアウトするか「この端末に控えを置く」を押すまで）。' : ''), errs.length ? 'ng' : 'ok');
+  });
+  $('rbAuthInfo').addEventListener('click', async function (e) {
+    if (!e.target.closest('#rbCacheOn') || !USER) return;
+    setNoCache(USER.uid, false); authEpoch++; await reload(scope());
+    status('rbDataStatus', '✔ この端末に控えを置くようにしました（電波がないときも見られます）。', 'ok');
   });
   $('rbXlsx').addEventListener('click', function () {
     if (!window.XLSX) { status('rbDataStatus', '✖ Excel書き出しの部品を読み込めませんでした（インターネット接続を確認してください）。', 'ng'); return; }

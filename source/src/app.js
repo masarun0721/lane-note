@@ -989,8 +989,29 @@
     var app = m[0].getApps().length ? m[0].getApp() : m[0].initializeApp(FBCFG);   // 不具合・要望フォームが先に初期化していても大丈夫なように
     FB = { A: m[1], F: m[2], auth: m[1].getAuth(app), fs: m[2].getFirestore(app) };
     try { await FB.auth.authStateReady(); } catch (e) { }
-    LaneAuth.redirectResult(FB).then(function (e) { if (e) alert('ログインできませんでした：' + LaneAuth.errorText(e)); });   // 監査F10：画面ごと移動したログインの結果
+    LaneAuth.redirectResult(FB);   // v0.15（再監査A06）：ログインは popup だけ（v0.14 の redirect の印を消すだけ）
+    lastUid = FB.auth.currentUser ? FB.auth.currentUser.uid : null;
+    if (FB.A.onAuthStateChanged) FB.A.onAuthStateChanged(FB.auth, onShareAuth);
     return FB;
+  }
+  /* v0.15（再監査A02）：大会準備のページにも「認証の世代（authEpoch）＋uid」を入れる。
+     ログイン・ログアウト・切り替え（別タブでのログアウトも onAuthStateChanged で届く）のたびに世代を進め、
+     読み込み途中の共有一覧・作成中の短いリンクの結果は、世代か uid が違えば画面に出さない */
+  var authEpoch = 0, lastUid = null;
+  function curUid() { return FB && FB.auth.currentUser ? FB.auth.currentUser.uid : null; }
+  function authScope() { return { uid: curUid(), epoch: authEpoch }; }
+  function authOk(sc) { return sc.epoch === authEpoch && sc.uid === curUid(); }
+  function abortErr() { var e = new Error('ログインしているアカウントが変わったため、中止しました'); e.code = 'auth-context-changed'; return e; }
+  function clearAllShares() {
+    document.querySelectorAll('.myShares').forEach(function (b) { b.dataset.gen = String((+b.dataset.gen || 0) + 1); b.innerHTML = '<p class="small muted">Googleでログインすると、作った短いリンクの一覧が出て、共有を止められます。</p>'; });
+  }
+  function onShareAuth(u) {
+    var uid = u ? u.uid : null;
+    if (uid === lastUid) return;
+    lastUid = uid; authEpoch++;
+    clearAllShares(); shareShort = ''; PL.links = {};
+    try { renderShareAuth(); plAuth(); if (!$('playerDlg').hidden) renderPlayerList(); } catch (e) { }
+    if (uid) document.querySelectorAll('.myShares').forEach(function (b) { renderMyShares(b); });
   }
   function newShareId() {   // 10文字の英数字（62種）。crypto の乱数を使う（推測できない）
     var A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789', out = '', b = new Uint8Array(1);
@@ -998,8 +1019,9 @@
     return out;
   }
   function withTimeout(pr, ms) { return Promise.race([pr, new Promise(function (_, ng) { setTimeout(function () { var e = new Error('時間切れ（通信できませんでした）'); e.code = 'network-timeout'; ng(e); }, ms); })]); }
-  async function makeShortUrl(str, label) {
+  async function makeShortUrl(str, label, sc) {
     await loadFirebase();
+    sc = sc || authScope(); if (!authOk(sc)) throw abortErr();
     var u = FB.auth.currentUser; if (!u) return null;
     if (str.length > 190000) throw new Error('中身が大きすぎて短いリンクにできません');
     var id = newShareId(), exp = FB.F.Timestamp.fromMillis(Date.now() + SHARE_DAYS * 864e5);
@@ -1009,6 +1031,7 @@
     b.set(FB.F.doc(FB.fs, 'users', u.uid, 'shareIndex', id), { createdAt: FB.F.serverTimestamp(), expiresAt: exp, label: String(label || '大会の予定').slice(0, 80) });
     try { await withTimeout(b.commit(), 15000); }
     catch (e) { if (e && /permission-denied/.test(e.code || '')) { var x = new Error('サーバーに断られました。端末の時計が大きくずれていると作れません（設定で日付と時刻を「自動」にしてください）'); x.code = e.code; throw x; } throw e; }
+    if (!authOk(sc)) throw abortErr();   // 作っている間にアカウントが変わったら、前の人のリンクを画面に出さない
     return shareBase() + '?s=' + id;
   }
   // v0.14（監査F08）：期限切れ・止めたリンク・見つからないリンクは、エラーの種類（code）を付けて返す
@@ -1030,9 +1053,10 @@
     return { data: x.data, createdAt: made, expiresAt: isFinite(until) ? until : null };
   }
   // 自分が作った短いリンクの一覧と、共有を止める（shares/{id} と一覧の両方を消す）
-  async function listMyShares() {
-    await loadFirebase(); var u = FB.auth.currentUser; if (!u) return null;
-    var snap = await withTimeout(FB.F.getDocs(FB.F.collection(FB.fs, 'users', u.uid, 'shareIndex')), 15000), out = [];
+  async function listMyShares(sc) {
+    await loadFirebase(); sc = sc || authScope(); if (!sc.uid) return null; if (!authOk(sc)) throw abortErr();
+    var snap = await withTimeout(FB.F.getDocs(FB.F.collection(FB.fs, 'users', sc.uid, 'shareIndex')), 15000), out = [];
+    if (!authOk(sc)) throw abortErr();
     snap.forEach(function (d) { var x = d.data() || {}; out.push({ id: d.id, label: x.label || '', createdAt: x.createdAt && x.createdAt.toMillis ? x.createdAt.toMillis() : null, expiresAt: x.expiresAt && x.expiresAt.toMillis ? x.expiresAt.toMillis() : null }); });
     return out.sort(function (a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
   }
@@ -1045,20 +1069,23 @@
   function fmtDay(ms) { if (!ms) return '—'; var d = new Date(ms); return (d.getMonth() + 1) + '/' + d.getDate(); }
   async function renderMyShares(box) {
     if (!box) return;
+    var gen = String((+box.dataset.gen || 0) + 1); box.dataset.gen = gen;   // この枠への描画の世代（あとから来た古い応答は捨てる）
     if (!CLOUD_OK || !(FB && FB.auth.currentUser)) { box.innerHTML = '<p class="small muted">Googleでログインすると、作った短いリンクの一覧が出て、共有を止められます。</p>'; return; }
+    var sc = authScope(), fresh = function () { return box.dataset.gen === gen && authOk(sc); };
     box.innerHTML = '<p class="small muted">読み込んでいます…</p>';
     try {
-      var list = await listMyShares(), now = Date.now();
+      var list = await listMyShares(sc), now = Date.now();
+      if (!fresh()) return;
       box.innerHTML = list && list.length ? '<ul class="myshares">' + list.map(function (x) {
         var dead = x.expiresAt && x.expiresAt < now;
         return '<li><span><b>' + esc(x.label || '短いリンク') + '</b><small>作成 ' + fmtDay(x.createdAt) + '・' + (dead ? '期限切れ' : fmtDay(x.expiresAt) + ' まで') + '・?s=' + esc(x.id) + '</small></span><button type="button" class="btn sub danger-t" data-stopshare="' + esc(x.id) + '">' + (dead ? '一覧から消す' : '共有を止める') + '</button></li>';
       }).join('') + '</ul>' : '<p class="small muted">短いリンクはまだ作っていません（v0.14より前に作ったリンクは、ここには出ません）。</p>';
-    } catch (e) { box.innerHTML = '<p class="small ng">一覧を読めませんでした：' + esc(e.message) + '</p>'; }
+    } catch (e) { if (!fresh() || e.code === 'auth-context-changed') return; box.innerHTML = '<p class="small ng">一覧を読めませんでした：' + esc(e.message) + '</p>'; }
   }
   document.addEventListener('click', async function (e) {
     var b = e.target.closest && e.target.closest('[data-stopshare]'); if (!b) return;
     var id = b.getAttribute('data-stopshare');
-    if (!confirm('このリンク（?s=' + id + '）の共有を止めます。止めると、リンクを持っている人も開けなくなります。元に戻せません。よろしいですか？')) return;
+    if (!confirm('このリンク（?s=' + id + '）の共有を止めます。止めると、このリンクからは誰も開けなくなります。元に戻せません。\n\n※すでに相手の端末に「保存」されたコピー・長いリンク・スクリーンショットは、共有を止めても消せません。\n\nよろしいですか？')) return;
     b.disabled = true;
     try { await stopShare(id); document.querySelectorAll('.myShares').forEach(renderMyShares); }
     catch (x) { b.disabled = false; alert('止められませんでした：' + x.message); }
@@ -1079,7 +1106,7 @@
       (note ? '<div class="warn small">' + note + '</div>' : '') +
       (!isShort && url.length > URL_WARN ? '<div class="warn">⚠ リンクがとても長いです（' + URL_WARN.toLocaleString() + '文字超）。アプリによっては切れてしまうので、学校を減らして作り直すか、Googleでログインして短いリンクにしてください。</div>' : '') +
       (file ? '<div class="warn small">このページはパソコンのファイルとして開いているため、リンクは公開版のアドレス（' + esc(SHARE_BASE) + '）で作りました。公開版で開いたときに表示されます。</div>' : '');
-    $('shareHow').textContent = isShort ? '短いリンクの中身（選んだ学校の結果）は LANE NOTE の Firebase（Google）に保存され、作ってから' + SHARE_DAYS + '日のあいだ、リンクを知っている人なら誰でも見られます（期限を過ぎると開けなくなります。下の「作った短いリンク」からいつでも止められます）。PDFそのものは入りません。' : '結果はリンクの「#」より後ろに圧縮して入っています。この部分はサーバーへ送られません（開いた端末の中だけで表示します）。PDFそのものは入りません。';
+    $('shareHow').textContent = isShort ? '短いリンクの中身（選んだ学校の結果）は LANE NOTE の Firebase（Google）に保存され、作ってから' + SHARE_DAYS + '日のあいだ、リンクを知っている人なら誰でも見られます（期限を過ぎると開けなくなります。下の「作った短いリンク」からいつでも止められます）。ただし、受け取った人が「この端末に保存」したコピー（電波のない端末）・スクリーンショットは、止めても回収できません。PDFそのものは入りません。' : '結果はリンクの「#」より後ろに圧縮して入っています。この部分はサーバーへ送られません（開いた端末の中だけで表示します）。長いリンクは止めることができません（送った相手・保存したコピー・スクリーンショットは残ります）。PDFそのものは入りません。';
     var qr = $('shareQr');
     if (url.length <= QR_MAX && typeof qrcode === 'function') {
       try { var q = qrcode(0, isShort ? 'M' : 'L'); q.addData(url, 'Byte'); q.make(); qr.innerHTML = q.createSvgTag({ cellSize: 3, margin: 3, scalable: true }); }
@@ -1087,14 +1114,14 @@
     } else qr.innerHTML = '<p class="warn small">リンクが長すぎてQRコードに入りません（' + url.length.toLocaleString() + '文字／上限 約' + QR_MAX.toLocaleString() + '文字）。リンクをコピーして送るか、Googleでログインして短いリンクにしてください。</p>';
   }
   async function tryShort(str) {
-    shareShort = '';
+    shareShort = ''; var sc = authScope();
     if (!CLOUD_OK) { showShareUrl(shareLong, ''); return; }
     $('shareInfo').innerHTML = '短いリンクを作っています…';
     try {
-      var s = await makeShortUrl(str, '大会：' + ($('meetName').value || '（大会名なし）') + '（' + state.teams.join('・').slice(0, 30) + '）'); renderShareAuth();
+      var s = await makeShortUrl(str, '大会：' + ($('meetName').value || '（大会名なし）') + '（' + state.teams.join('・').slice(0, 30) + '）', sc); if (!authOk(sc)) return; renderShareAuth();
       if (s) { shareShort = s; showShareUrl(s, ''); }
       else showShareUrl(shareLong, 'ログインしていないので、長いリンクで作りました（下の「Googleでログイン」で短くできます）。');
-    } catch (e) { renderShareAuth(); showShareUrl(shareLong, '短いリンクを作れなかったので、長いリンクで作りました（' + esc(e.message) + '）。'); }
+    } catch (e) { if (e.code === 'auth-context-changed' || !authOk(sc)) { renderShareAuth(); showShareUrl(shareLong, 'ログインしているアカウントが変わったので、長いリンクに戻しました。'); return; } renderShareAuth(); showShareUrl(shareLong, '短いリンクを作れなかったので、長いリンクで作りました（' + esc(e.message) + '）。'); }
   }
   var shareStr = '';
   async function openShare() {
@@ -1110,14 +1137,17 @@
   async function shareSignIn() {
     try { await loadFirebase(); if (await LaneAuth.signIn(FB) !== 'popup') return; }
     catch (e) { $('shareAuthInfo').innerHTML = '<span class="ng">✖ ログインできませんでした：' + esc(LaneAuth.errorText(e)) + '</span>'; return; }
+    onShareAuth(FB.auth.currentUser);
     renderShareAuth(); renderMyShares($('shareMine')); if (shareStr) await tryShort(shareStr);
   }
   // v0.14（監査F04）：大会準備のページでログアウトしても、同じ人の「記録」の控え（この端末）を消す
   async function shareSignOut() {
     if (!confirm('ログアウトします。この端末に残っている「記録」ページの控え（ログイン中の記録のコピー）も消します。クラウドの記録・作った短いリンクは消えません。')) return;
     var uid = null; try { await loadFirebase(); uid = FB.auth.currentUser && FB.auth.currentUser.uid; } catch (e) { }
+    authEpoch++; clearAllShares();   // 進行中の一覧読み込み・短いリンク作成の結果は出さない
     var r = FB ? await LaneAuth.signOutAndWipe(FB, uid) : { signedOut: false, error: new Error('ログインの部品を読み込めませんでした') };
-    shareShort = ''; renderShareAuth(); renderMyShares($('shareMine')); plAuth();
+    if (r.signedOut) { lastUid = null; authEpoch++; PL.links = {}; }
+    shareShort = ''; renderShareAuth(); clearAllShares(); plAuth();
     var msg = !r.signedOut ? '✖ ログアウトできませんでした：' + LaneAuth.errorText(r.error) : r.wiped ? 'ログアウトし、この端末の記録の控えも消しました。' : '⚠ ログアウトはしましたが、この端末の記録の控えを消せませんでした：' + (r.error && r.error.message) + '（記録のページを閉じてから、もう一度ログイン→ログアウトしてください）';
     if (shareLong) showShareUrl(shareLong, esc(msg) + (r.signedOut ? '（長いリンクに戻しました）' : '')); else alert(msg);
   }
@@ -1125,22 +1155,39 @@
   function storeSaved(a) { localStorage.setItem(SAVE_KEY, JSON.stringify(a)); }
   function renderSaved() {
     var a = loadSaved(), html = a.length ? '<ul class="saved">' + a.map(function (s) {
-      return '<li><button class="btn sub sv-open" data-id="' + esc(s.id) + '">' + esc((s.title || '（大会名なし）') + (s.date ? '　' + s.date : '')) + '<small>' + esc((s.teams || []).join('・')) + '</small></button>' +
+      return '<li><button class="btn sub sv-open" data-id="' + esc(s.id) + '">' + esc((s.title || '（大会名なし）') + (s.date ? '　' + s.date : '')) + '<small>' + esc((s.teams || []).join('・')) + (s.exp ? '・' + fmtDay(s.exp) + 'まで' : s.shareId ? '' : '・長いリンクから保存') + '</small></button>' +
         '<button class="btn sub sv-del" data-id="' + esc(s.id) + '" aria-label="削除">削除</button></li>';
     }).join('') + '</ul>' : '<p class="small muted">この端末に保存した大会はまだありません。</p>';
     document.querySelectorAll('.savedList').forEach(function (box) {
       box.innerHTML = html;
-      box.querySelectorAll('.sv-open').forEach(function (b) { b.addEventListener('click', function () { var s = loadSaved().find(function (x) { return x.id === b.dataset.id; }); if (s) openViewerStr(s.p, false); }); });
+      box.querySelectorAll('.sv-open').forEach(function (b) { b.addEventListener('click', function () { var s = loadSaved().find(function (x) { return x.id === b.dataset.id; }); if (s) openSaved(s); }); });
       box.querySelectorAll('.sv-del').forEach(function (b) { b.addEventListener('click', function () { if (!confirm('この大会をこの端末から削除しますか？')) return; storeSaved(loadSaved().filter(function (x) { return x.id !== b.dataset.id; })); renderSaved(); }); });
     });
     $('savedHome').hidden = !a.length || document.body.classList.contains('viewer-mode');
+  }
+  /* v0.15（再監査A07）：大会全体の「この端末に保存」も、短いリンクから保存したものは元のリンクID・期限を持つ。
+     開くとき：期限切れなら消して開かない／電波があれば元のリンクがまだ有効か確かめ、止めた・期限切れ・見つからないなら消す／
+     電波がないときだけ期限内のコピーを出す。長いリンクから保存したもの（元のリンクIDなし）は、独立したコピーとして残る（その旨を表示） */
+  function dropSaved(id) { storeSaved(loadSaved().filter(function (x) { return x.id !== id; })); renderSaved(); }
+  function savedGone(msg) { document.body.classList.add('viewer-mode'); $('viewer').hidden = false; $('vTitle').textContent = 'LANE NOTE 閲覧'; ['vTime', 'vAth', 'vCards'].forEach(function (k) { $(k).innerHTML = ''; }); $('vTime').innerHTML = '<div class="warn"><b>この保存した大会は開けません。</b><br>' + esc(msg) + '。<br><small>この端末に保存していたコピーも消しました。</small></div>'; }
+  async function openSaved(s) {
+    if (s.exp && s.exp < Date.now()) { dropSaved(s.id); savedGone('元の短いリンクの有効期限が切れています'); return 'expired'; }
+    if (s.shareId && CLOUD_OK) {
+      try { var sh = await fetchShare(s.shareId); await openViewerStr(sh.data, false, s.shareId, sh.expiresAt); return 'online'; }
+      catch (e) {
+        if (/^(permission-denied|share-expired|share-not-found)$/.test(e.code || '')) { dropSaved(s.id); savedGone(e.message); return 'stopped'; }
+      }
+    }
+    await openViewerStr(s.p, false, s.shareId, s.exp);
+    if (s.shareId && CLOUD_OK) $('vMeta').textContent += '　⚠ 電波がないので、この端末に保存したコピーを出しています';
+    return 'local';
   }
   function sid(str) { var h = 5381; for (var i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0; return (h >>> 0).toString(36); }
   var viewing = null;
   async function openViewerStr(str, fromLink, shareId, exp) {
     var o;
     try { o = await decodePayload(str); if (o.k === 'p') { openPlayer(o, str, shareId || sid(str), exp); return; } } catch (e) { document.body.classList.add('viewer-mode'); $('viewer').hidden = false; $('vBody').innerHTML = '<p class="warn">リンクを読めませんでした：' + esc(e.message) + '（リンクが途中で切れている可能性があります）</p>'; $('vTitle').textContent = 'LANE NOTE 閲覧'; return; }
-    viewing = { str: str, o: o };
+    viewing = { str: str, o: o, shareId: shareId && /^[A-Za-z0-9]{6,40}$/.test(shareId) ? shareId : null, exp: exp || null };
     document.body.classList.add('viewer-mode'); $('viewer').hidden = false;
     $('vTitle').textContent = o.n || '（大会名なし）';
     $('vMeta').textContent = [o.d, o.ts.join('・'), o.g ? '作成 ' + new Date(o.g).toLocaleString('ja-JP') : ''].filter(Boolean).join('　');
@@ -1155,8 +1202,9 @@
     if (!viewing) return;
     try {
       var a = loadSaved().filter(function (x) { return x.id !== sid(viewing.str); });
-      a.unshift({ id: sid(viewing.str), title: viewing.o.n, date: viewing.o.d, teams: viewing.o.ts, savedAt: new Date().toISOString(), p: viewing.str });
+      a.unshift({ id: sid(viewing.str), title: viewing.o.n, date: viewing.o.d, teams: viewing.o.ts, savedAt: new Date().toISOString(), p: viewing.str, shareId: viewing.shareId, exp: viewing.exp });
       storeSaved(a); $('vSave').textContent = '✔ この端末に保存済み'; $('vSave').disabled = true; renderSaved();
+      $('vMeta').textContent += viewing.shareId ? '　（保存しました：元のリンクの期限まで。止められたリンクは、次に電波のあるところで開いたときに消えます）' : '　（保存しました：長いリンクからのコピーなので、この端末で消すまで残ります）';
     } catch (e) { alert('保存できませんでした（ブラウザの設定・プライベートモード・容量の可能性）：' + e.message); }
   }
   function closeViewer() { document.body.classList.remove('viewer-mode'); $('viewer').hidden = true; viewing = null; if (/^#d=/.test(location.hash) || /[?&]s=/.test(location.search)) history.replaceState(null, '', location.pathname); renderSaved(); }
@@ -1188,7 +1236,7 @@
       catch (e) {
         // v0.14（監査F08）：期限切れ・停止・見つからないときは、端末の控えも消して開かない。控えを使うのは通信できないときだけ（しかも期限内）
         if (/^(permission-denied|share-expired|share-not-found)$/.test(e.code || '')) {
-          try { localStorage.removeItem(PKEY + id); } catch (x) { }
+          try { localStorage.removeItem(PKEY + id); storeSaved(loadSaved().filter(function (x) { return x.shareId !== id; })); } catch (x) { }
           $('vTime').innerHTML = '<div class="warn"><b>このリンクは開けません。</b><br>' + esc(e.message) + '。<br><small>この端末に残っていた予定も消しました。新しいリンクが必要なら、先生に聞いてください。</small></div>';
           return true;
         }
@@ -1235,14 +1283,18 @@
   }
   async function makePlayerLinks() {
     var btn = $('plMake'); btn.disabled = true; var meta = playerMeta(), signed = false, errs = 0;
-    if (CLOUD_OK) { try { await withTimeout(loadFirebase(), 8000); signed = !!FB.auth.currentUser; } catch (e) { } }   // 電波が悪くても止まらない（長いリンクで作る）
+    if (CLOUD_OK) { try { await withTimeout(loadFirebase(), 8000); signed = !!FB.auth.currentUser; } catch (e) { } }
+    var sc = authScope();   // v0.15（再監査A02）：全員分を作り終えるまで、始めたときのアカウントに固定
+    var stop = function () { btn.disabled = false; btn.textContent = '🔗 全員分のリンクを作る'; PL.links = {}; renderPlayerList(); $('plMsg').innerHTML = '<span class="warn">ログインしているアカウントが変わったので、作るのを止めました。もう一度押してください。</span>'; };   // 電波が悪くても止まらない（長いリンクで作る）
     for (var i = 0; i < PL.list.length; i++) {
       var a = PL.list[i]; btn.textContent = '作っています… ' + (i + 1) + '／' + PL.list.length;
       var str = await encodePayload(PlayerLogic.payloadFor(state.rows, a, meta)), url = shareBase() + '#p=' + str, short = false;
-      if (signed) { try { var s = await makeShortUrl(str, '選手：' + (a.name || '') + '（' + (meta.n || '大会') + '）'); if (s) { url = s; short = true; } } catch (e) { errs++; } }
+      if (!authOk(sc)) return stop();
+      if (signed) { try { var s = await makeShortUrl(str, '選手：' + (a.name || '') + '（' + (meta.n || '大会') + '）', sc); if (s) { url = s; short = true; } } catch (e) { if (e.code === 'auth-context-changed' || !authOk(sc)) return stop(); errs++; } }
       PL.links[a.key] = { url: url, short: short, qr: qrSvg(url, short), name: a.name };
       renderPlayerList();
     }
+    if (!authOk(sc)) return stop();
     btn.disabled = false; btn.textContent = '🔁 リンクを作り直す'; renderMyShares($('plMine'));
     $('plMsg').innerHTML = errs ? '<span class="warn">' + errs + '人分は短いリンクを作れなかったので、長いリンクにしました。</span>' : '';
   }
@@ -1254,7 +1306,7 @@
     if (CLOUD_OK) loadFirebase().then(function () { plAuth(); renderMyShares($('plMine')); }, function () { });
   }
   function copyAllPlayers() {
-    var m = playerMeta(), t = (m.n ? '【' + m.n + '】' : '') + '大会当日の予定です。自分の名前のリンクを開いてください（ほかの人のリンクは開かないこと）\n※リンクを知っている人は誰でも開けます（パスワードのような鍵はありません）。グループの外には送らないでください。\n\n' +
+    var m = playerMeta(), t = (m.n ? '【' + m.n + '】' : '') + '大会当日の予定です。自分の名前のリンクを開いてください（ほかの人のリンクは開かないこと）\n※リンクを知っている人は誰でも開けます（パスワードのような鍵はありません）。グループの外には送らないでください。\n※先生が共有を止めると短いリンクは開けなくなりますが、スクリーンショットや転送された長いリンクは消せません。\n\n' +
       PL.list.filter(function (a) { return PL.links[a.key]; }).map(function (a) { return a.name + '：' + PL.links[a.key].url; }).join('\n');
     copyText(t, $('plCopyAll'), '📋 全員分をまとめてコピー（LINE用）');
   }
@@ -1323,7 +1375,7 @@
     $('plClose').addEventListener('click', function () { $('playerDlg').hidden = true; });
     $('plMake').addEventListener('click', function () { makePlayerLinks().catch(function (e) { alert(e.message); $('plMake').disabled = false; }); });
     $('plCopyAll').addEventListener('click', copyAllPlayers);
-    $('plSignIn').addEventListener('click', async function () { try { await loadFirebase(); if (await LaneAuth.signIn(FB) !== 'popup') return; } catch (e) { $('plAuthInfo').innerHTML = '<span class="ng">ログインできませんでした：' + esc(LaneAuth.errorText(e)) + '</span>'; return; } plAuth(); renderMyShares($('plMine')); });
+    $('plSignIn').addEventListener('click', async function () { try { await loadFirebase(); if (await LaneAuth.signIn(FB) !== 'popup') return; } catch (e) { $('plAuthInfo').innerHTML = '<span class="ng">ログインできませんでした：' + esc(LaneAuth.errorText(e)) + '</span>'; return; } onShareAuth(FB.auth.currentUser); plAuth(); renderMyShares($('plMine')); });
     $('pvAdd').addEventListener('click', pvSubmit);
     $('pvCancel').addEventListener('click', pvReset);
     $('pvForget').addEventListener('click', function () {   // v0.14（監査F08）：この予定を端末から消す

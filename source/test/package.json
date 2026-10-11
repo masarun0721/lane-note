@@ -4,13 +4,16 @@
   "description": "LANE NOTE のテスト（架空データのみ・本番の Firebase には接続しない）",
   "type": "module",
   "devDependencies": {
+    "@firebase/rules-unit-testing": "3.0.4",
     "fake-indexeddb": "6.2.4",
+    "firebase": "10.14.1",
     "jsdom": "26.1.0",
     "jszip": "3.10.1",
     "pdfjs-dist": "4.10.38",
     "puppeteer-core": "23.11.1"
   },
   "scripts": {
-    "test": "node records_check.mjs && node player_check.mjs && node tt_callcols_check.mjs && node quality_check.mjs && node rules_static_check.mjs && node app_check.mjs"
+    "test": "node records_check.mjs && node player_check.mjs && node tt_callcols_check.mjs && node quality_check.mjs && node rules_static_check.mjs && node app_check.mjs && node residual_regress.mjs && node chart_check.mjs",
+    "test:rules": "cd ../.. && npx -y firebase-tools@14.12.0 emulators:exec --only firestore --project demo-lane-note --config firebase.json \"node source/test/rules_check.mjs\""
   }
 }

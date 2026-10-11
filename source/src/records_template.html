@@ -42,7 +42,7 @@ __BASE_CSS__
 .rb-done{font-size:15px}
 .meetsel{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 8px}.meetsel select{max-width:100%;font-size:15px;padding:6px}
 .chartbox{display:flex;flex-direction:column;gap:4px}.chartopt{font-size:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.chartopt .lg-ref{display:inline-flex;align-items:center;gap:3px}
+.chartopt .lg-ref,.chartopt .lg-nm{display:inline-flex;align-items:center;gap:3px}.spark.hasnm{height:72px}.nmlist{margin:2px 0 0;padding-left:1.1em;list-style:none}.nmlist li{margin:1px 0}
 .ev-only select{font-size:15px}
 .rb-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .rb-row input[type=text],.rb-row input[type=date],.rb-row select{font-size:15px;padding:6px 8px;border:1px solid #c9d2e0;border-radius:8px}
@@ -171,7 +171,7 @@ tr.rc.editing td{background:#fff3ec!important}
   <div class="hdr-meta">
     <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／記録 __REC_VERSION__ <span class="beta-tag">試作</span></div>
     <div class="credit">Presented by Sakata</div>
-    <div class="hdr-msg">すべての陸上競技部顧問が、<br class="sp-br">少しでも楽になりますように。</div>
+    <div class="hdr-msg"><span class="hm-l">すべての陸上競技部顧問が、</span><span class="hm-l">少しでも楽になりますように。</span></div>
   </div>
   <div class="brand">
     <h1 class="logo">__LOGO_DARK__<span class="vh">LANE NOTE（レーンノート）記録</span></h1>

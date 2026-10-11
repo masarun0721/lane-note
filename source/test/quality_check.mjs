@@ -26,7 +26,7 @@ ok('Q2：本郷中と本郷高のように、同じ系列の中学と高校の�
   const mid = R.recId('架空大会', '2026-10-10', { ...row, team: '架空中' }), high = R.recId('架空大会', '2026-10-10', { ...row, team: '架空高' });
   assert.notEqual(mid, high);
   assert.equal(R.recId('架 空大会', '2026-10-10', { ...row, team: '架空高' }), high, '同じ記録は同じID');
-  assert.equal(R.recIdLegacy('架空大会', '2026-10-10', { ...row, team: '架空高' }) + '|hs', high, '旧IDに区分を足した形');
+  assert.equal(R.recIdLegacy('架空大会', '2026-10-10', { ...row, team: '架空高' }) + '|hs', R.recIdV6('架空大会', '2026-10-10', { ...row, team: '架空高' }), 'v0.6 のID（旧IDに区分を足した形）は recIdV6 で作れる（照合は中身で行う・v0.7 A03）');
 });
 console.log('[2] B：1件ずつ入力の正規化');
 const M = f => R.manualRecord(Object.assign({ name: '架空 一郎', event: '男子100m', mark: '11.85', date: '2026-10-04' }, f));

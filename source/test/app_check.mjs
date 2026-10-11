@@ -94,7 +94,7 @@ await check('401件の保存の途中で Bob に切り替わったら、2回目�
   const w = await recordHarness(), t = w.__t, paths = []; let release, first = true; const gate = new Promise(r => release = r);
   t.setFB(fakeFirebase({ commit: async ops => { paths.push(ops.map(o => o.path)); if (first) { first = false; await gate; } } })); t.setReady(true);
   await t.onAuth({ uid: 'alice' }); paths.length = 0; first = true;
-  const pending = t.cloudPut(Array.from({ length: 401 }, (_, i) => rec('r' + i)));
+  const pending = t.cloudPut(Array.from({ length: 401 }, (_, i) => rec("r" + i)), t.scope());
   await delay(); await t.onAuth({ uid: 'bob' }); release();
   await assert.rejects(pending, e => e.code === 'auth-context-changed');
   assert.equal(paths.length, 1); assert(paths[0].every(p => p.startsWith('users/alice/')));
@@ -138,9 +138,9 @@ await check('v0.5 までのIDで保存済みの記録は、新しいIDで入れ�
   const w = await recordHarness(), t = w.__t, R = w.ResultParser;
   const r = rec('', { team: '架空高' }); r.id = R.recIdLegacy(r.meet, r.date, r); t.setAll([r]);
   const again = { ...r }; again.id = R.recId(again.meet, again.date, again); assert.notEqual(again.id, r.id);
-  const res = await t.putMany([again]); assert.equal(res.added, 0); assert.equal(res.dup, 1);
+  const res = await t.putMany([again], t.scope()); assert.equal(res.added, 0); assert.equal(res.dup, 1);
   const mid = { ...r, team: '架空中' }; mid.id = R.recId(mid.meet, mid.date, mid);
-  assert.equal((await t.putMany([mid])).added, 1, '中学の同じ名前・同じ記録が落ちた');
+  assert.equal((await t.putMany([mid], t.scope())).added, 1, '中学の同じ名前・同じ記録が落ちた');
 });
 await check('JSONの読み込みは型を確かめ、決まった項目だけで作り直す', async () => {
   const w = await recordHarness(), R = w.ResultParser;
@@ -172,7 +172,7 @@ await check('1件ずつ入力：必須のチェック・記録の形をそろえ
 await check('記録を直す（IDが変わるときは古いほうを消す）・1件だけ消す', async () => {
   const w = await recordHarness(), t = w.__t, d = w.document, R = w.ResultParser;
   const a = rec('', { meet: '架空大会' }); a.id = R.recId(a.meet, a.date, a); const b = rec('', { name: '架空 三郎' }); b.id = R.recId(b.meet, b.date, b);
-  await t.putMany([a, b]); await t.reload(); await delay();
+  await t.putMany([a, b], t.scope()); await t.reload(); await delay();
   d.querySelector('.tabs button[data-v="all"]').click(); await delay();
   const btn = [...d.querySelectorAll('[data-edit]')].find(x => x.getAttribute('data-edit') === a.id); assert(btn, '直すボタンがない');
   btn.click(); await delay();

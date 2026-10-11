@@ -377,7 +377,9 @@ footer a{color:var(--navy)}
 /* v0.14：スマホでは右上のひとことを2行にして、白い文字で読みやすく */
 @media screen and (max-width:720px){
   .sp-br{display:inline}
-  .hdr-meta>div.hdr-msg{height:auto;line-height:1.45;white-space:normal;overflow:visible;padding:2px 0 4px}
+  /* v0.15：背景の白線は24px周期（0〜22pxがレーン・22〜24pxが白線）。ひとことも1行ずつ1レーン（高さ24px・行の高さ22px）に置く */
+  .hdr-meta>div.hdr-msg{height:48px;line-height:22px;white-space:nowrap;overflow:visible;padding:0}
+  .hdr-msg .hm-l{display:block;height:24px;line-height:22px}
   .hdr-meta .hdr-msg{font-size:11.5px;font-weight:700;letter-spacing:.03em;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.55)}
 }
 /* v0.14：不具合・要望のログイン案内・URLの案内・短いリンクの一覧・更新情報 */
@@ -491,7 +493,7 @@ body.fb-open{overflow:hidden}
   <div class="hdr-meta">
     <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span></div>
     <div class="credit">Presented by Sakata</div>
-    <div class="hdr-msg">すべての陸上競技部顧問が、<br class="sp-br">少しでも楽になりますように。</div>
+    <div class="hdr-msg"><span class="hm-l">すべての陸上競技部顧問が、</span><span class="hm-l">少しでも楽になりますように。</span></div>
   </div>
   <div class="brand">
     <h1 class="logo">__LOGO_DARK__<span class="vh">LANE NOTE（レーンノート）</span></h1>
@@ -551,7 +553,7 @@ body.fb-open{overflow:hidden}
     <div class="dlg-btns"><button class="btn" id="plMake" type="button">🔗 全員分のリンクを作る</button><button class="btn sub" id="plCopyAll" type="button" disabled>📋 全員分をまとめてコピー（LINE用）</button></div>
     <div id="plMsg" class="small"></div>
     <div id="plList" class="pl-list"></div>
-    <p class="warn small">⚠ リンクを知っている人なら誰でも、その子の名前と出場が見られます（パスワードのような鍵ではありません）。LINEのグループに貼るときは、自分のリンクだけ開くよう伝え、グループの外には送らないでください。短いリンクは作ってから119日で開けなくなり、下の一覧からいつでも止められます。</p>
+    <p class="warn small">⚠ リンクを知っている人なら誰でも、その子の名前と出場が見られます（パスワードのような鍵ではありません）。LINEのグループに貼るときは、自分のリンクだけ開くよう伝え、グループの外には送らないでください。短いリンクは作ってから119日で開けなくなり、下の一覧からいつでも止められます（止めても、選手の端末に残ったスクリーンショットや転送された長いリンクは消せません）。</p>
     <details class="small"><summary><b>作った短いリンク</b>（一覧・共有を止める）</summary><div class="myShares" id="plMine"></div></details>
     <div class="dlg-btns"><button class="btn sub" id="plClose" type="button">閉じる</button></div>
   </div>
@@ -572,7 +574,7 @@ __CHANGELOG__
       <li><b>ログアウト</b>（v0.14）：このページでログアウトすると、この端末に残っている「記録」ページの控え（ログイン中の記録のコピー）も消します。</li>
       <li>保存したファイル・印刷物は残ります。保存先のクラウド同期は各学校の設定によります。</li>
       <li>画面を閉じると、読み込んだ内容は消えます（「この端末に保存」を押したものだけ、その端末のブラウザに残ります。削除ボタンで消せます）。</li>
-      <li>「スマホで見る／共有」で<b>Googleでログインしているとき</b>は短いリンク（…/?s=英数字10文字）を作ります。このとき、選んだ学校の結果（大会名・日付・時刻・選手名など）を LANE NOTE の Firebase（Google）に保存し、リンクを知っている人なら誰でも見られます（一覧で探すことはできません）。<b>見られるのは作ってから119日まで</b>（サーバーのルールで最長120日に制限。期限を過ぎると開けなくなりますが、データの自動削除はまだしていません）。「作った短いリンク」からいつでも共有を止められ、止めると中身も消えます。リンクには作った人を区別する番号（アカウントID）も入っています。</li>
+      <li>「スマホで見る／共有」で<b>Googleでログインしているとき</b>は短いリンク（…/?s=英数字10文字）を作ります。このとき、選んだ学校の結果（大会名・日付・時刻・選手名など）を LANE NOTE の Firebase（Google）に保存し、リンクを知っている人なら誰でも見られます（一覧で探すことはできません）。<b>見られるのは作ってから119日まで</b>（サーバーのルールで最長120日に制限。期限を過ぎると開けなくなりますが、データの自動削除はまだしていません）。「作った短いリンク」からいつでも共有を止められ、止めるとサーバーの中身も消えます。<b>ただし、受け取った人が「この端末に保存」したコピー・長いリンク・スクリーンショットは、共有を止めても回収できません</b>（短いリンクから保存したコピーは、電波のあるところで開いたときに消えます。期限を過ぎたものは開けません）。リンクには作った人を区別する番号（アカウントID）も入っています。</li>
       <li><b>ログインしていないとき</b>（または通信できないとき）は長いリンクになり、結果はリンクの「#」より後ろに入ります。この部分はサーバーへ送られず、どこにも保存されませんが、リンクを渡した相手は中身を見られます。</li>
       <li>このページ（大会準備）の説明です。別ページの「記録」は、Googleでログインしたときだけ記録を LANE NOTE の Firebase（Google）に本人だけが読める形で保存します（ログインしないときはそのブラウザの中だけ）。</li>
       <li><b>選手用リンク</b>（v0.11）：1人分の出場（大会名・日付・会場・種目・組・レーン・レースと招集の時刻・招集場所・その子の名前／学年／学校／ナンバー）だけを入れます。ほかの選手の名前・ナンバー（リレーの仲間も）は入れません。ログイン中は上と同じく Firebase に保存し、作ってから119日まで見られます（1人1件・止められます）、ログインなしは長いリンクの「#」より後ろに入ります。選手が自分で足した予定（起床など）と、開いたリンクの中身は、その選手の端末のブラウザにだけ保存し、どこにも送りません（選手のページの「この予定を端末から削除」で消せます。期限切れ・止めたリンクを開くと、端末の控えも消します）。</li>
