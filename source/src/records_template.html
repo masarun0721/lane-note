@@ -219,6 +219,20 @@ tr.rc.editing td{background:#fff3ec!important}
 .lp-cond{font-style:normal}
 @media (max-width:600px){#rbPrintBody{padding:8px 6px}.lp-band{flex-direction:column;align-items:flex-start;padding:12px 12px 14px}.lp-br{align-items:flex-start;text-align:left;flex-direction:row;gap:8px;align-items:baseline}.lp-big{font-size:23px}.lp-body{padding:2px 10px 0}.lp-f{margin:auto 10px 0}.lp-cards{grid-template-columns:1fr 1fr;gap:6px}.lp-cmk{font-size:22px}#rbPrint .lp-t th,#rbPrint .lp-t td{padding:4px 4px!important;font-size:10.5px!important}}
 .lp-grp{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 8px 4px 0}.lp-grp .lp-lb{font-size:12.5px;font-weight:700;color:var(--navy,#1f3a68)}.lp-grp .btn{min-height:40px}
+/* v0.9.3：大会まとめ 1枚にまとめる（縮小） */
+.lp-onechk{display:inline-flex;align-items:center;gap:4px;font-size:13px;margin-left:6px;white-space:nowrap}
+.lp-fitnote{max-width:190mm;margin:0 auto 10px;background:#ffe9a8;color:#3a2c00;padding:6px 10px;border-radius:6px;font-weight:700;font-size:13px}
+#rbPrint .lp-one{font-size:8pt;padding-bottom:3mm}
+#rbPrint .lp-one .lp-band{padding:8px 14px}#rbPrint .lp-one .lp-big{font-size:18px}
+#rbPrint .lp-one .lp-sum{gap:4px;margin:2px 0 4px}#rbPrint .lp-one .lp-kpi{padding:3px}#rbPrint .lp-one .lp-kpi b{font-size:14px}#rbPrint .lp-one .lp-kpi span{font-size:7.5pt}
+#rbPrint .lp-one .lp-hl{margin:2px 0 4px}#rbPrint .lp-one .lp-hl ul{columns:2;column-gap:10px;margin:0;padding-left:14px;font-size:7.5pt}#rbPrint .lp-one .lp-hl li{break-inside:avoid}
+#rbPrint .lp-one .lp-cols{columns:2;column-gap:5mm}
+#rbPrint .lp-one .lp-ev{break-inside:avoid;margin:0 0 3px}#rbPrint .lp-one .lp-div{break-after:avoid;margin:3px 0 1px;font-size:8pt;padding:1px 4px}
+#rbPrint .lp-one .lp-h3{font-size:8pt;margin:2px 0 1px;padding:1px 0}
+#rbPrint .lp-one .lp-t th,#rbPrint .lp-one .lp-t td{padding:1px 2px!important;font-size:7pt!important;line-height:1.25;white-space:nowrap}
+#rbPrint .lp-one .lp-t{width:100%}#rbPrint .lp-one .lp-bdg{font-size:6.5pt;padding:0 2px}
+#rbPrint .lp-one .lp-f{margin-top:2px;font-size:7pt}
+@media print{#rbPrint .lp-one{break-after:auto;page-break-after:auto}.lp-fitnote{display:none!important}#rbPrint header.lp-band,#rbPrint footer.lp-f{display:flex!important}}
 #rbPrintHint{background:#ffe9a8;color:#3a2c00;padding:6px 10px;border-radius:6px;font-weight:700}
 .lp-pick{background:#fff;max-width:600px;margin:0 auto;padding:12px;border-radius:10px}
 .lp-pick .lp-ops{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}.lp-pick .lp-ops .btn{min-height:44px}

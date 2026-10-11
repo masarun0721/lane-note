@@ -99,6 +99,7 @@ var LanePrint = (function () {
     var body = '<div class="lp-sum"><div class="lp-kpi"><b>' + Object.keys(names).length + '</b><span>出場人数</span></div><div class="lp-kpi"><b>' + recs.length + '</b><span>記録数</span></div><div class="lp-kpi lp-kpb"><b>' + nPB + '</b><span>PB更新</span></div><div class="lp-kpi"><b>' + nFirst + '</b><span>初記録</span></div></div>';
     if (hl.length) body += '<div class="lp-hl"><div class="lp-h3"><span>🔥 PB更新</span><em>' + hl.length + '件</em></div><ul>' + hl.map(function (h) { return '<li><b>' + esc(h.r.name) + '</b> ' + esc(R.eventKeyLabel(h.r, o.nog)) + ' <span class="lp-mk">' + esc(h.r.mark) + '</span>' + (h.p.diff != null ? ' <span class="lp-up">' + esc(R.fmtImprovement(h.p.diff, h.p.lower)) + '</span>' : '') + (h.p.prev ? ' <small>（前のPB ' + esc(h.p.prev.mark) + '）</small>' : '') + '</li>'; }).join('') + '</ul></div>';
     if (!recs.length) body += '<p class="lp-empty">この条件の記録はありません。</p>';
+    body += '<div class="lp-cols">';
     R.groupEvents(evs, recs, o.nog).forEach(function (g) {
       body += '<div class="lp-div">' + esc(g.group) + '</div>';
       g.items.forEach(function (it) {
@@ -111,8 +112,11 @@ var LanePrint = (function () {
         }).join('') + '</tbody></table></div>';
       });
     });
-    var sub = [sd(o.meetDate), o.weather, o.cond].filter(Boolean).map(function (c) { return '<i>' + esc(c) + '</i>'; }).join('');
-    return page('大会まとめ', o, body, band('MEET REPORT', o.meet || '大会まとめ', sub, o));
+    var sub = [sd(o.meetDate), o.cond].filter(Boolean).map(function (c) { return '<i>' + esc(c) + '</i>'; }).join('');
+    body += '</div>';
+    // v0.9.3：天気・気温は出さない（1日の中でばらつくため）。o.one＝1枚にまとめる（縮小・2段組み）
+    var out = page('大会まとめ', o, body, band('MEET REPORT', o.meet || '大会まとめ', sub, o));
+    return o.one ? out.replace('<section class="lp-page">', '<section class="lp-page lp-one" data-one="1">') + '<p class="lp-fitnote" id="lpFitNote" hidden>人数が多いため文字が小さくなっています</p>' : out;
   }
   return { meetSheet: meetSheet, esc: esc, today: today, page: page, chart: chart, fmtV: fmtV, athleteSheet: athleteSheet, rankSheet: rankSheet };
 })();

@@ -26,7 +26,7 @@ try {
   const ken = recs.filter(r => r.meet === '県大会');
   await check('meetSheet：見出し・集計（出場4人・記録5・PB1・初記録3）・PB更新の伸び・前回との差', () => {
     const s = w.LanePrint.meetSheet(R, ken, recs, { meet: '県大会', meetDate: '2026-06-01', school: '架空中', date: '2026-10-11', weather: '☀️ 晴れ 25℃' });
-    assert.match(s, /MEET REPORT/); assert.match(s, /県大会/); assert.match(s, /2026\.06\.01/); assert.match(s, /晴れ 25℃/); assert.match(s, /出力日 2026-10-11/);
+    assert.match(s, /MEET REPORT/); assert.match(s, /県大会/); assert.match(s, /2026\.06\.01/); assert.doesNotMatch(s, /晴れ|25℃/, 'v0.9.3：天気・気温は出さない'); assert.match(s, /出力日 2026-10-11/);
     assert.match(s, /<b>4<\/b><span>出場人数/); assert.match(s, /<b>5<\/b><span>記録数/); assert.match(s, /<b>1<\/b><span>PB更新/); assert.match(s, /<b>3<\/b><span>初記録/);
     assert.match(s, /−0\.30秒/); assert.match(s, /前のPB 12\.40/); assert.match(s, /lp-bpb">PB/); assert.match(s, /lp-bfs">初記録/);
     assert.match(s, /<tr class="lp-nm"><td class="lp-nmn">例題 三郎/); assert.doesNotMatch(s, /<button/);
@@ -39,6 +39,17 @@ try {
     bs[0].click(); await delay(); let b = $('rbPrintBody').innerHTML; assert.match(b, /MEET REPORT/); assert.match(b, /山田 太郎/); assert.equal(printed, 0);
     $('rbPrintClose').click();
     const p0 = printed; w.document.querySelector('[data-print="meet"][data-act="print"]').click(); await delay(); assert.equal(printed, p0 + 1);
+  });
+  await check('v0.9.3 1枚にまとめる：既定オフ・オンで lp-one/2段組み・お知らせ・縮小の下限', async () => {
+    const off = w.LanePrint.meetSheet(R, ken, recs, { meet: '県大会' }); assert.doesNotMatch(off, /lp-one/);
+    const on = w.LanePrint.meetSheet(R, ken, recs, { meet: '県大会', one: true }); assert.match(on, /lp-page lp-one/); assert.match(on, /lp-cols/); assert.match(on, /人数が多いため文字が小さくなっています/);
+    assert.ok(on.indexOf('PB更新') < on.indexOf('lp-cols'), '要約とPB更新が先');
+    assert.equal(w.__fitScale(500, 1000), 1); assert.equal(w.__fitScale(2000, 1000), 0.6); assert.equal(w.__fitScale(1250, 1000), 0.8);
+    const cb = w.document.querySelector('[data-onepage]'); assert.ok(cb, 'チェックボックスがある'); assert.equal(cb.checked, false);
+    assert.match(cb.parentElement.textContent, /1枚にまとめる（縮小）/);
+    cb.checked = true; cb.dispatchEvent(new w.Event('change', { bubbles: true })); await delay();
+    w.document.querySelector('[data-print="meet"][data-act="view"]').click(); await delay();
+    assert.match($('rbPrintBody').innerHTML, /lp-one/); $('rbPrintClose').click();
   });
 } catch (e) { fail++; console.log('  NG setup', e && e.stack || e); }
 console.log(`meet_check: ${pass} passed, ${fail} failed`); if (fail) process.exit(1);

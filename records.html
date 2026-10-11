@@ -738,6 +738,20 @@ tr.rc.editing td{background:#fff3ec!important}
 .lp-cond{font-style:normal}
 @media (max-width:600px){#rbPrintBody{padding:8px 6px}.lp-band{flex-direction:column;align-items:flex-start;padding:12px 12px 14px}.lp-br{align-items:flex-start;text-align:left;flex-direction:row;gap:8px;align-items:baseline}.lp-big{font-size:23px}.lp-body{padding:2px 10px 0}.lp-f{margin:auto 10px 0}.lp-cards{grid-template-columns:1fr 1fr;gap:6px}.lp-cmk{font-size:22px}#rbPrint .lp-t th,#rbPrint .lp-t td{padding:4px 4px!important;font-size:10.5px!important}}
 .lp-grp{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 8px 4px 0}.lp-grp .lp-lb{font-size:12.5px;font-weight:700;color:var(--navy,#1f3a68)}.lp-grp .btn{min-height:40px}
+/* v0.9.3：大会まとめ 1枚にまとめる（縮小） */
+.lp-onechk{display:inline-flex;align-items:center;gap:4px;font-size:13px;margin-left:6px;white-space:nowrap}
+.lp-fitnote{max-width:190mm;margin:0 auto 10px;background:#ffe9a8;color:#3a2c00;padding:6px 10px;border-radius:6px;font-weight:700;font-size:13px}
+#rbPrint .lp-one{font-size:8pt;padding-bottom:3mm}
+#rbPrint .lp-one .lp-band{padding:8px 14px}#rbPrint .lp-one .lp-big{font-size:18px}
+#rbPrint .lp-one .lp-sum{gap:4px;margin:2px 0 4px}#rbPrint .lp-one .lp-kpi{padding:3px}#rbPrint .lp-one .lp-kpi b{font-size:14px}#rbPrint .lp-one .lp-kpi span{font-size:7.5pt}
+#rbPrint .lp-one .lp-hl{margin:2px 0 4px}#rbPrint .lp-one .lp-hl ul{columns:2;column-gap:10px;margin:0;padding-left:14px;font-size:7.5pt}#rbPrint .lp-one .lp-hl li{break-inside:avoid}
+#rbPrint .lp-one .lp-cols{columns:2;column-gap:5mm}
+#rbPrint .lp-one .lp-ev{break-inside:avoid;margin:0 0 3px}#rbPrint .lp-one .lp-div{break-after:avoid;margin:3px 0 1px;font-size:8pt;padding:1px 4px}
+#rbPrint .lp-one .lp-h3{font-size:8pt;margin:2px 0 1px;padding:1px 0}
+#rbPrint .lp-one .lp-t th,#rbPrint .lp-one .lp-t td{padding:1px 2px!important;font-size:7pt!important;line-height:1.25;white-space:nowrap}
+#rbPrint .lp-one .lp-t{width:100%}#rbPrint .lp-one .lp-bdg{font-size:6.5pt;padding:0 2px}
+#rbPrint .lp-one .lp-f{margin-top:2px;font-size:7pt}
+@media print{#rbPrint .lp-one{break-after:auto;page-break-after:auto}.lp-fitnote{display:none!important}#rbPrint header.lp-band,#rbPrint footer.lp-f{display:flex!important}}
 #rbPrintHint{background:#ffe9a8;color:#3a2c00;padding:6px 10px;border-radius:6px;font-weight:700}
 .lp-pick{background:#fff;max-width:600px;margin:0 auto;padding:12px;border-radius:10px}
 .lp-pick .lp-ops{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}.lp-pick .lp-ops .btn{min-height:44px}
@@ -757,7 +771,7 @@ tr.rc.editing td{background:#fff3ec!important}
 <body class="records">
 <header>
   <div class="hdr-meta">
-    <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／記録 v0.9.2</div>
+    <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／記録 v0.9.3</div>
     <div class="credit">Presented by Sakata</div>
     <div class="hdr-msg"><span class="hm-l">すべての陸上競技部顧問が、</span><span class="hm-l">少しでも楽になりますように。</span></div>
   </div>
@@ -771,7 +785,7 @@ tr.rc.editing td{background:#fff3ec!important}
   <p class="tagline">記録：大会の結果から、自校の記録と自己ベストをためていく</p>
   <nav class="pagenav" aria-label="ページ"><a href="./">🏁 大会準備</a><a href="records.html" class="on" aria-current="page">📒 記録</a><a href="guide.html">🔰 はじめての人はこちら</a></nav>
 </header>
-<div class="topbar"><details class="changelog" id="changelog"><summary><b>📰 更新情報</b>　<span class="small muted">最新：記録 v0.9.2（2026/10/11）</span><span class="cl-new">NEW</span></summary><ol><li><div class="cl-h"><b>記録 v0.9.2</b>2026/10/11</div><div class="cl-b">記録ページの「大会別」に「大会まとめ」を追加しました（👀 画面で見る／📄 PDF作成／🖨 印刷）。その大会に出たチーム全員の結果を種目ごとに、出場人数・記録数・PB更新数・初記録数、PB更新の一覧（どれだけ伸びたか）、PB・初記録の印、前回との差と一緒にまとめます。中学・高校・男女の絞り込みに合わせて出ます。</div></li><li><div class="cl-h"><b>v0.18.2</b>2026/10/11</div><div class="cl-b">記録用紙のマスを見ただけで分かるようにしました（「2年」「PB 12.10」「前回 11.98（参考）」＋小さく日付・大会名、DNSは「前回 DNS」を薄く）。見出しを「組／レーン／No.」と短くしてスマホで折り返さないようにし、凡例も書き直しました。</div></li><li><div class="cl-h"><b>v0.18.1</b>2026/10/11</div><div class="cl-b">大会準備の記録用紙で、スマホの画面だと「氏名」の列がつぶれて見えなかったのを直しました（列の幅を割合にして、氏名をいちばん広く）。「自己ベスト」の欄を「PB（これまでの公認ベスト）」と「前回大会（この種目のいちばん新しい記録）」の2列に分け、記録がないときは「―」と出します。印刷の見出しのアイコンが出ないときに壊れた画像が出ないようにしました。</div></li><li><div class="cl-h"><b>v0.18／記録 v0.9.1</b>2026/10/11</div><div class="cl-b">個人表・部内ランキング・歴代記録の書類を作り直しました（紺と赤のレーン帯の見出し、自己ベストのカード、目盛り付きの大きいグラフ、しま模様の表、PBの行に印、DNSなどは薄く表示）。新しいページ「🔰 はじめての人はこちら」に使い方とデータの取り扱いの全文をまとめ、大会準備と記録のページの長い説明は短い1行にしました。大会準備と記録のページの上の部分（版・ナビ・更新情報・はじめての人はこちら・不具合・要望を送る）を同じ形にそろえ、記録のページにも更新情報を出しました。大会準備の記録用紙（画面・印刷・PDF・Excel）に「自己ベスト」の欄を足しました（記録のページにためた公認の自己ベスト。参考記録のほうが良ければ小さく表示）。</div></li><li><div class="cl-h"><b>v0.17</b>2026/10/11</div><div class="cl-b">「ナンバーカード」タブの通販サイトへのおすすめ用品リンクと、その説明文を取りやめました。</div></li><li><div class="cl-h"><b>v0.17</b>2026/10/11</div><div class="cl-b">大会準備の「時間順」「記録用紙」の出力を「👀 画面で見る」「📄 PDF作成」「🖨 印刷」の3つのボタンに分けました。画面で見るは印刷画面を出さずにそのまま確認できます。PDF作成では「保存先で『PDFに保存』を選んでください」と案内します。</div></li><li><div class="cl-h"><b>記録 v0.9.0</b>2026/10/11</div><div class="cl-b">記録をPDF・印刷にできるようにしました（どれも「👀 画面で見る」「📄 PDF作成」「🖨 印刷」から選べます）。選手の個人表（自己ベスト・記録の一覧・グラフ）、選手を選んで1人1ページの個人表、部内ランキング・歴代記録（この種目／全種目）を、A4の印刷画面から「PDFに保存」できます。「ファイルから読み込む」ボタンの文字も真ん中にそろえました。</div></li><li><div class="cl-h"><b>v0.16／記録 v0.8.0</b>2026/10/11</div><div class="cl-b">準決勝・決勝など「通過したら」出るラウンドを、タイムテーブルから時間順・選手別・記録用紙・Excelに入れました（名前はカッコ付き・点線）。選手用リンクでは「通過！」「敗退」を押せます。記録ページで、選手ごとの「個人ページ」のリンク（自己ベスト・推移グラフ・最近の記録）を作れるようにしました。選手のページに、このスマホにだけ保存する体調メモ（体調・睡眠時間・ひとこと）を付けました。記録ページに、選手本人や保護者向けの「個人で使う」を付けました。</div></li><li><div class="cl-h"><b>v0.15／記録 v0.7.0</b>2026/10/11</div><div class="cl-b">選手のグラフに、DNS・失格などの記録なしの出場を × で出すようにしました（「DNS・失格なども表示」で切り替え）。「取り込み済みの大会」から大会ごとに削除できます。スマホのヘッダーで、右上の文字が背景のレーンの線に重ならないようにしました。外部の再監査の指摘8件（読み込み中にアカウントを切り替えたときの混入、ログアウト後に共有リンクの一覧が戻る件、ナンバー違い・種目の区分違いの記録が重複扱いで消える件、端末データを消したあとに控えが戻る件、電波がないときの控え、ログインの方式、保存した大会の期限、試験の設定）に対応しました。</div></li><li><div class="cl-h"><b>v0.14／記録 v0.6.0</b>2026/10/11</div><div class="cl-b">記録を1件ずつ入力・直す・消すことができるようになりました。共用のパソコンでも記録がほかの先生に移らないよう、ログイン・ログアウトまわりを直しました（外部の監査の指摘15件に対応）。不具合・要望を送るにはGoogleでのログインが必要になり、短いリンクは一覧から止められるようになりました。</div></li><li><div class="cl-h"><b>v0.13／記録 v0.5.0</b>2026/10/11</div><div class="cl-b">種目のプルダウンを区分ごと・陸上の種目順に並べました。Excel・CSVの取り込み、大会ごとの天気・気温、「不具合・要望を送る」フォームを付けました。</div></li><li><div class="cl-h"><b>v0.12／記録 v0.4.0</b>2026/10/11</div><div class="cl-b">本郷中と本郷高の記録が混ざらないように、中学・高校を分けてランキングや自己ベストを出すようにしました。「LANE LOG」の名前を「記録」に変えました。</div></li><li><div class="cl-h"><b>v0.11</b>2026/10/11</div><div class="cl-b">選手用リンクを作れるようにしました。選手は自分の出場だけが入ったページで、大会当日の予定を見られます（自分の予定も足せます）。</div></li><li><div class="cl-h"><b>v0.10</b>2026/10/11</div><div class="cl-b">Googleでログインしているときは、共有リンクを短く（QRも小さく）できるようにしました。</div></li><li><div class="cl-h"><b>記録 v0.3.0</b>2026/10/11</div><div class="cl-b">ホーム（最新の大会の自己ベスト更新）、選手のページと記録の推移グラフ、部内ランキング、歴代記録を付けました。</div></li><li><div class="cl-h"><b>記録 v0.2.1〜v0.2.4</b>2026/10/11</div><div class="cl-b">ファイル名や資料の見出しから大会名と日付を推測します。スマホでは一覧をカードの形にしました。試作中のお知らせを付け、名前を「LANE LOG」にしました。</div></li><li><div class="cl-h"><b>記録 v0.1.1〜v0.2</b>2026/10/10</div><div class="cl-b">大会ごとの削除と「今読み込んだ分の取り消し」を付けました。Googleでログインすると、記録をクラウドに保存して、どの端末からでも見られるようにしました。</div></li><li><div class="cl-h"><b>記録 v0.1</b>2026/10/10</div><div class="cl-b">記録のページ（当時の名前は「記録帳」）を作りました。結果のPDF・Webページから自校の記録を読み取ってため、自己ベストを出します。</div></li><li><div class="cl-h"><b>v0.9</b>2026/10/09</div><div class="cl-b">版の表示を整え、備考の「〃」・大会名・プログラム代に対応しました。ナンバーカードを全日程分まとめて出せるようにしました。</div></li></ol></details><a href="guide.html" class="tb-btn tb-guide">🔰 はじめての人はこちら</a><button type="button" class="tb-btn fb-link" data-feedback="1">🚨 不具合・要望を送る</button></div>
+<div class="topbar"><details class="changelog" id="changelog"><summary><b>📰 更新情報</b>　<span class="small muted">最新：記録 v0.9.3（2026/10/11）</span><span class="cl-new">NEW</span></summary><ol><li><div class="cl-h"><b>記録 v0.9.3</b>2026/10/11</div><div class="cl-b">大会まとめから天気・気温を外しました（1日の中でばらつくため）。「1枚にまとめる（縮小）」を付けました。オンにすると2段組みの小さめの文字でA4の1枚に収め、入りきらないときは自動で縮めます（人数が多くて文字が小さくなったときは画面にお知らせが出ます）。あわせて、個人表・ランキングなどを印刷・PDFにしたとき、上の紺の見出しの帯と下の帯が消えていたのを直しました。</div></li><li><div class="cl-h"><b>記録 v0.9.2</b>2026/10/11</div><div class="cl-b">記録ページの「大会別」に「大会まとめ」を追加しました（👀 画面で見る／📄 PDF作成／🖨 印刷）。その大会に出たチーム全員の結果を種目ごとに、出場人数・記録数・PB更新数・初記録数、PB更新の一覧（どれだけ伸びたか）、PB・初記録の印、前回との差と一緒にまとめます。中学・高校・男女の絞り込みに合わせて出ます。</div></li><li><div class="cl-h"><b>v0.18.2</b>2026/10/11</div><div class="cl-b">記録用紙のマスを見ただけで分かるようにしました（「2年」「PB 12.10」「前回 11.98（参考）」＋小さく日付・大会名、DNSは「前回 DNS」を薄く）。見出しを「組／レーン／No.」と短くしてスマホで折り返さないようにし、凡例も書き直しました。</div></li><li><div class="cl-h"><b>v0.18.1</b>2026/10/11</div><div class="cl-b">大会準備の記録用紙で、スマホの画面だと「氏名」の列がつぶれて見えなかったのを直しました（列の幅を割合にして、氏名をいちばん広く）。「自己ベスト」の欄を「PB（これまでの公認ベスト）」と「前回大会（この種目のいちばん新しい記録）」の2列に分け、記録がないときは「―」と出します。印刷の見出しのアイコンが出ないときに壊れた画像が出ないようにしました。</div></li><li><div class="cl-h"><b>v0.18／記録 v0.9.1</b>2026/10/11</div><div class="cl-b">個人表・部内ランキング・歴代記録の書類を作り直しました（紺と赤のレーン帯の見出し、自己ベストのカード、目盛り付きの大きいグラフ、しま模様の表、PBの行に印、DNSなどは薄く表示）。新しいページ「🔰 はじめての人はこちら」に使い方とデータの取り扱いの全文をまとめ、大会準備と記録のページの長い説明は短い1行にしました。大会準備と記録のページの上の部分（版・ナビ・更新情報・はじめての人はこちら・不具合・要望を送る）を同じ形にそろえ、記録のページにも更新情報を出しました。大会準備の記録用紙（画面・印刷・PDF・Excel）に「自己ベスト」の欄を足しました（記録のページにためた公認の自己ベスト。参考記録のほうが良ければ小さく表示）。</div></li><li><div class="cl-h"><b>v0.17</b>2026/10/11</div><div class="cl-b">「ナンバーカード」タブの通販サイトへのおすすめ用品リンクと、その説明文を取りやめました。</div></li><li><div class="cl-h"><b>v0.17</b>2026/10/11</div><div class="cl-b">大会準備の「時間順」「記録用紙」の出力を「👀 画面で見る」「📄 PDF作成」「🖨 印刷」の3つのボタンに分けました。画面で見るは印刷画面を出さずにそのまま確認できます。PDF作成では「保存先で『PDFに保存』を選んでください」と案内します。</div></li><li><div class="cl-h"><b>記録 v0.9.0</b>2026/10/11</div><div class="cl-b">記録をPDF・印刷にできるようにしました（どれも「👀 画面で見る」「📄 PDF作成」「🖨 印刷」から選べます）。選手の個人表（自己ベスト・記録の一覧・グラフ）、選手を選んで1人1ページの個人表、部内ランキング・歴代記録（この種目／全種目）を、A4の印刷画面から「PDFに保存」できます。「ファイルから読み込む」ボタンの文字も真ん中にそろえました。</div></li><li><div class="cl-h"><b>v0.16／記録 v0.8.0</b>2026/10/11</div><div class="cl-b">準決勝・決勝など「通過したら」出るラウンドを、タイムテーブルから時間順・選手別・記録用紙・Excelに入れました（名前はカッコ付き・点線）。選手用リンクでは「通過！」「敗退」を押せます。記録ページで、選手ごとの「個人ページ」のリンク（自己ベスト・推移グラフ・最近の記録）を作れるようにしました。選手のページに、このスマホにだけ保存する体調メモ（体調・睡眠時間・ひとこと）を付けました。記録ページに、選手本人や保護者向けの「個人で使う」を付けました。</div></li><li><div class="cl-h"><b>v0.15／記録 v0.7.0</b>2026/10/11</div><div class="cl-b">選手のグラフに、DNS・失格などの記録なしの出場を × で出すようにしました（「DNS・失格なども表示」で切り替え）。「取り込み済みの大会」から大会ごとに削除できます。スマホのヘッダーで、右上の文字が背景のレーンの線に重ならないようにしました。外部の再監査の指摘8件（読み込み中にアカウントを切り替えたときの混入、ログアウト後に共有リンクの一覧が戻る件、ナンバー違い・種目の区分違いの記録が重複扱いで消える件、端末データを消したあとに控えが戻る件、電波がないときの控え、ログインの方式、保存した大会の期限、試験の設定）に対応しました。</div></li><li><div class="cl-h"><b>v0.14／記録 v0.6.0</b>2026/10/11</div><div class="cl-b">記録を1件ずつ入力・直す・消すことができるようになりました。共用のパソコンでも記録がほかの先生に移らないよう、ログイン・ログアウトまわりを直しました（外部の監査の指摘15件に対応）。不具合・要望を送るにはGoogleでのログインが必要になり、短いリンクは一覧から止められるようになりました。</div></li><li><div class="cl-h"><b>v0.13／記録 v0.5.0</b>2026/10/11</div><div class="cl-b">種目のプルダウンを区分ごと・陸上の種目順に並べました。Excel・CSVの取り込み、大会ごとの天気・気温、「不具合・要望を送る」フォームを付けました。</div></li><li><div class="cl-h"><b>v0.12／記録 v0.4.0</b>2026/10/11</div><div class="cl-b">本郷中と本郷高の記録が混ざらないように、中学・高校を分けてランキングや自己ベストを出すようにしました。「LANE LOG」の名前を「記録」に変えました。</div></li><li><div class="cl-h"><b>v0.11</b>2026/10/11</div><div class="cl-b">選手用リンクを作れるようにしました。選手は自分の出場だけが入ったページで、大会当日の予定を見られます（自分の予定も足せます）。</div></li><li><div class="cl-h"><b>v0.10</b>2026/10/11</div><div class="cl-b">Googleでログインしているときは、共有リンクを短く（QRも小さく）できるようにしました。</div></li><li><div class="cl-h"><b>記録 v0.3.0</b>2026/10/11</div><div class="cl-b">ホーム（最新の大会の自己ベスト更新）、選手のページと記録の推移グラフ、部内ランキング、歴代記録を付けました。</div></li><li><div class="cl-h"><b>記録 v0.2.1〜v0.2.4</b>2026/10/11</div><div class="cl-b">ファイル名や資料の見出しから大会名と日付を推測します。スマホでは一覧をカードの形にしました。試作中のお知らせを付け、名前を「LANE LOG」にしました。</div></li><li><div class="cl-h"><b>記録 v0.1.1〜v0.2</b>2026/10/10</div><div class="cl-b">大会ごとの削除と「今読み込んだ分の取り消し」を付けました。Googleでログインすると、記録をクラウドに保存して、どの端末からでも見られるようにしました。</div></li><li><div class="cl-h"><b>記録 v0.1</b>2026/10/10</div><div class="cl-b">記録のページ（当時の名前は「記録帳」）を作りました。結果のPDF・Webページから自校の記録を読み取ってため、自己ベストを出します。</div></li><li><div class="cl-h"><b>v0.9</b>2026/10/09</div><div class="cl-b">版の表示を整え、備考の「〃」・大会名・プログラム代に対応しました。ナンバーカードを全日程分まとめて出せるようにしました。</div></li></ol></details><a href="guide.html" class="tb-btn tb-guide">🔰 はじめての人はこちら</a><button type="button" class="tb-btn fb-link" data-feedback="1">🚨 不具合・要望を送る</button></div>
 <p class="beta-line">⚠️ 試作版です。内容は元資料でも確認してください</p>
 <main>
 <section class="box">
@@ -878,7 +892,7 @@ tr.rc.editing td{background:#fff3ec!important}
 </main>
 <footer><details class="about"><summary><b>この記録ページについて</b>（版・対応している形式・既知の制限）</summary>
   <ul>
-    <li><b>LANE NOTE（レーンノート）記録 試作版</b>　版：<span class="appver"></span>／記録 v0.9.2（2026年10月11日 作成）／ Presented by Sakata</li>
+    <li><b>LANE NOTE（レーンノート）記録 試作版</b>　版：<span class="appver"></span>／記録 v0.9.3（2026年10月11日 作成）／ Presented by Sakata</li>
     <li>読める形式：組ごとに2列で並ぶ結果PDF（「順位・レーン・ナンバー・氏名・所属・記録」の見出しがあるもの。北区・江東区・都高体連などで確認）／ 結果サイトのHTML（表のあるもの）・その貼り付け。</li>
     <li>Excel・CSV（v0.5）：見出し（氏名・種目・記録・日付など）を自動で見つけて取り込みます。日付は必須、大会名は任意（空なら「大会名なし（日付）」）。</li>
     <li>既知の制限：リレー・混成の得点・スキャン（画像）PDFは読みません。大会名・日付が資料に無いときは手で入れてください。風が読めない記録は公認ベストに数えません。</li>
@@ -1837,7 +1851,7 @@ if (typeof module !== 'undefined') module.exports = ResultParser;
 
 </script>
 <script>
-var APP_VERSION = "v0.18.2", REC_VERSION = "v0.9.2";
+var APP_VERSION = "v0.18.2", REC_VERSION = "v0.9.3";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>
@@ -2110,6 +2124,7 @@ var LanePrint = (function () {
     var body = '<div class="lp-sum"><div class="lp-kpi"><b>' + Object.keys(names).length + '</b><span>出場人数</span></div><div class="lp-kpi"><b>' + recs.length + '</b><span>記録数</span></div><div class="lp-kpi lp-kpb"><b>' + nPB + '</b><span>PB更新</span></div><div class="lp-kpi"><b>' + nFirst + '</b><span>初記録</span></div></div>';
     if (hl.length) body += '<div class="lp-hl"><div class="lp-h3"><span>🔥 PB更新</span><em>' + hl.length + '件</em></div><ul>' + hl.map(function (h) { return '<li><b>' + esc(h.r.name) + '</b> ' + esc(R.eventKeyLabel(h.r, o.nog)) + ' <span class="lp-mk">' + esc(h.r.mark) + '</span>' + (h.p.diff != null ? ' <span class="lp-up">' + esc(R.fmtImprovement(h.p.diff, h.p.lower)) + '</span>' : '') + (h.p.prev ? ' <small>（前のPB ' + esc(h.p.prev.mark) + '）</small>' : '') + '</li>'; }).join('') + '</ul></div>';
     if (!recs.length) body += '<p class="lp-empty">この条件の記録はありません。</p>';
+    body += '<div class="lp-cols">';
     R.groupEvents(evs, recs, o.nog).forEach(function (g) {
       body += '<div class="lp-div">' + esc(g.group) + '</div>';
       g.items.forEach(function (it) {
@@ -2122,8 +2137,11 @@ var LanePrint = (function () {
         }).join('') + '</tbody></table></div>';
       });
     });
-    var sub = [sd(o.meetDate), o.weather, o.cond].filter(Boolean).map(function (c) { return '<i>' + esc(c) + '</i>'; }).join('');
-    return page('大会まとめ', o, body, band('MEET REPORT', o.meet || '大会まとめ', sub, o));
+    var sub = [sd(o.meetDate), o.cond].filter(Boolean).map(function (c) { return '<i>' + esc(c) + '</i>'; }).join('');
+    body += '</div>';
+    // v0.9.3：天気・気温は出さない（1日の中でばらつくため）。o.one＝1枚にまとめる（縮小・2段組み）
+    var out = page('大会まとめ', o, body, band('MEET REPORT', o.meet || '大会まとめ', sub, o));
+    return o.one ? out.replace('<section class="lp-page">', '<section class="lp-page lp-one" data-one="1">') + '<p class="lp-fitnote" id="lpFitNote" hidden>人数が多いため文字が小さくなっています</p>' : out;
   }
   return { meetSheet: meetSheet, esc: esc, today: today, page: page, chart: chart, fmtV: fmtV, athleteSheet: athleteSheet, rankSheet: rankSheet };
 })();
@@ -3023,6 +3041,7 @@ if (typeof module !== 'undefined') module.exports = LanePrint;
   $('rbView').addEventListener('change', function (e) {
     var f = e.target.getAttribute('data-ropt'); if (f) { rankOpt[f] = e.target.value; render(); return; }
     if (e.target.getAttribute('data-hopt')) { histOpt.ev = e.target.value; render(); return; }
+    if (e.target.hasAttribute('data-onepage')) { ONEPAGE = e.target.checked; return; }
     if (e.target.hasAttribute('data-meetsel')) { meetSel = e.target.value; render(); return; }
     if (e.target.hasAttribute('data-official')) { chartOfficial = e.target.checked; render(); return; }
     if (e.target.hasAttribute('data-shownm')) { chartNm = e.target.checked; render(); return; }
@@ -3139,6 +3158,18 @@ if (typeof module !== 'undefined') module.exports = LanePrint;
     var a = ' type="button" data-print="' + kind + '"' + (key ? ' data-key="' + esc(key) + '"' : '');
     return '<span class="lp-grp" role="group" aria-label="' + esc(label) + 'の出力"><span class="lp-lb">' + esc(label) + '</span><button class="btn sub lp-btn"' + a + ' data-act="view">👀 画面で見る</button><button class="btn sub lp-btn"' + a + ' data-act="pdf">📄 PDF作成</button><button class="btn sub lp-btn"' + a + ' data-act="print">🖨 印刷</button></span>';
   }
+  // v0.9.3：大会まとめ「1枚にまとめる（縮小）」。A4の印刷できる範囲（190×277mm）に入るよう、測って縮める（下限 FIT_MIN）
+  var ONEPAGE = false, FIT_MIN = 0.6;
+  function fitScale(h, avail) { if (!(h > 0)) return 1; return Math.max(FIT_MIN, Math.min(1, Math.floor(avail / h * 1000) / 1000)); }
+  function fitOne() {
+    var pg = $('rbPrintBody').querySelector('.lp-one'); if (!pg) return 1;
+    var mm = 96 / 25.4, st = pg.style; st.zoom = ''; st.width = '190mm'; st.maxWidth = 'none';
+    var h = pg.scrollHeight, f = fitScale(h, 277 * mm - 2); st.width = st.maxWidth = '';
+    pg.setAttribute('data-fit', f); pg.style.setProperty('--fit', f); if (f < 1) st.zoom = f;
+    var n = $('lpFitNote'); if (n) n.hidden = !(f < 0.85);
+    return f;
+  }
+  if (typeof window !== 'undefined') window.__fitScale = fitScale;
   var PDF_HINT = '保存先で『PDFに保存』を選んでください';
   function doPrint(pdf) {
     var h = $('rbPrintHint'); h.textContent = pdf ? '📄 ' + PDF_HINT : ''; h.hidden = !pdf;
@@ -3170,7 +3201,8 @@ if (typeof module !== 'undefined') module.exports = LanePrint;
     if (kind === 'meet') {   // v0.9.2：大会まとめ（いまの絞り込みのまま）
       var mr = rows.filter(function (r) { return r.date + '|' + r.meet === key; }), ks = {}; mr.forEach(function (r) { ks[R.athleteKey(r)] = 1; });
       var mp = key.split('|');
-      openPrint(LanePrint.meetSheet(R, mr, ALL.filter(function (r) { return ks[R.athleteKey(r)]; }), printMeta({ meet: mp.slice(1).join('|'), meetDate: mp[0], weather: weatherText(key), cond: filterCond() })));
+      openPrint(LanePrint.meetSheet(R, mr, ALL.filter(function (r) { return ks[R.athleteKey(r)]; }), printMeta({ meet: mp.slice(1).join('|'), meetDate: mp[0], cond: filterCond(), one: ONEPAGE })));
+      if (ONEPAGE) fitOne();
       return;
     }
     if (kind === 'pick') {
@@ -3240,7 +3272,7 @@ if (typeof module !== 'undefined') module.exports = LanePrint;
         if (mks.indexOf(meetSel) < 0) meetSel = mks[0];
         meetCtl = '<div class="meetsel"><label>大会 <select data-meetsel="1">' + mks.map(function (k) { var p = k.split('|'); return '<option value="' + esc(k) + '"' + (k === meetSel ? ' selected' : '') + '>' + esc(p[0] + '　' + p.slice(1).join('|') + '（' + meets[k] + '件）') + '</option>'; }).join('') + '</select></label></div>';
         rs = rs.filter(function (r) { return r.date + '|' + r.meet === meetSel; });
-        if (meetSel) meetCtl += '<div class="rb-row">' + ppBtns('meet', meetSel, '大会まとめ') + '</div>';
+        if (meetSel) meetCtl += '<div class="rb-row">' + ppBtns('meet', meetSel, '大会まとめ') + '<label class="lp-onechk"><input type="checkbox" data-onepage="1"' + (ONEPAGE ? ' checked' : '') + '> 1枚にまとめる（縮小）</label></div>';
       }
       rs = sortRows(rs, view, d2);
       var grouped = view === 'meet' && !sort.meet, lastMeet = '';   // 大会別は見出しに大会名と日付を出すので、カードの中では繰り返さない

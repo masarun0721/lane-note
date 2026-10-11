@@ -890,6 +890,7 @@
   $('rbView').addEventListener('change', function (e) {
     var f = e.target.getAttribute('data-ropt'); if (f) { rankOpt[f] = e.target.value; render(); return; }
     if (e.target.getAttribute('data-hopt')) { histOpt.ev = e.target.value; render(); return; }
+    if (e.target.hasAttribute('data-onepage')) { ONEPAGE = e.target.checked; return; }
     if (e.target.hasAttribute('data-meetsel')) { meetSel = e.target.value; render(); return; }
     if (e.target.hasAttribute('data-official')) { chartOfficial = e.target.checked; render(); return; }
     if (e.target.hasAttribute('data-shownm')) { chartNm = e.target.checked; render(); return; }
@@ -1006,6 +1007,18 @@
     var a = ' type="button" data-print="' + kind + '"' + (key ? ' data-key="' + esc(key) + '"' : '');
     return '<span class="lp-grp" role="group" aria-label="' + esc(label) + 'の出力"><span class="lp-lb">' + esc(label) + '</span><button class="btn sub lp-btn"' + a + ' data-act="view">👀 画面で見る</button><button class="btn sub lp-btn"' + a + ' data-act="pdf">📄 PDF作成</button><button class="btn sub lp-btn"' + a + ' data-act="print">🖨 印刷</button></span>';
   }
+  // v0.9.3：大会まとめ「1枚にまとめる（縮小）」。A4の印刷できる範囲（190×277mm）に入るよう、測って縮める（下限 FIT_MIN）
+  var ONEPAGE = false, FIT_MIN = 0.6;
+  function fitScale(h, avail) { if (!(h > 0)) return 1; return Math.max(FIT_MIN, Math.min(1, Math.floor(avail / h * 1000) / 1000)); }
+  function fitOne() {
+    var pg = $('rbPrintBody').querySelector('.lp-one'); if (!pg) return 1;
+    var mm = 96 / 25.4, st = pg.style; st.zoom = ''; st.width = '190mm'; st.maxWidth = 'none';
+    var h = pg.scrollHeight, f = fitScale(h, 277 * mm - 2); st.width = st.maxWidth = '';
+    pg.setAttribute('data-fit', f); pg.style.setProperty('--fit', f); if (f < 1) st.zoom = f;
+    var n = $('lpFitNote'); if (n) n.hidden = !(f < 0.85);
+    return f;
+  }
+  if (typeof window !== 'undefined') window.__fitScale = fitScale;
   var PDF_HINT = '保存先で『PDFに保存』を選んでください';
   function doPrint(pdf) {
     var h = $('rbPrintHint'); h.textContent = pdf ? '📄 ' + PDF_HINT : ''; h.hidden = !pdf;
@@ -1037,7 +1050,8 @@
     if (kind === 'meet') {   // v0.9.2：大会まとめ（いまの絞り込みのまま）
       var mr = rows.filter(function (r) { return r.date + '|' + r.meet === key; }), ks = {}; mr.forEach(function (r) { ks[R.athleteKey(r)] = 1; });
       var mp = key.split('|');
-      openPrint(LanePrint.meetSheet(R, mr, ALL.filter(function (r) { return ks[R.athleteKey(r)]; }), printMeta({ meet: mp.slice(1).join('|'), meetDate: mp[0], weather: weatherText(key), cond: filterCond() })));
+      openPrint(LanePrint.meetSheet(R, mr, ALL.filter(function (r) { return ks[R.athleteKey(r)]; }), printMeta({ meet: mp.slice(1).join('|'), meetDate: mp[0], cond: filterCond(), one: ONEPAGE })));
+      if (ONEPAGE) fitOne();
       return;
     }
     if (kind === 'pick') {
@@ -1107,7 +1121,7 @@
         if (mks.indexOf(meetSel) < 0) meetSel = mks[0];
         meetCtl = '<div class="meetsel"><label>大会 <select data-meetsel="1">' + mks.map(function (k) { var p = k.split('|'); return '<option value="' + esc(k) + '"' + (k === meetSel ? ' selected' : '') + '>' + esc(p[0] + '　' + p.slice(1).join('|') + '（' + meets[k] + '件）') + '</option>'; }).join('') + '</select></label></div>';
         rs = rs.filter(function (r) { return r.date + '|' + r.meet === meetSel; });
-        if (meetSel) meetCtl += '<div class="rb-row">' + ppBtns('meet', meetSel, '大会まとめ') + '</div>';
+        if (meetSel) meetCtl += '<div class="rb-row">' + ppBtns('meet', meetSel, '大会まとめ') + '<label class="lp-onechk"><input type="checkbox" data-onepage="1"' + (ONEPAGE ? ' checked' : '') + '> 1枚にまとめる（縮小）</label></div>';
       }
       rs = sortRows(rs, view, d2);
       var grouped = view === 'meet' && !sort.meet, lastMeet = '';   // 大会別は見出しに大会名と日付を出すので、カードの中では繰り返さない
