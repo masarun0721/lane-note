@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>エントリー照合｜LANE NOTE</title>
+<link rel="icon" type="image/svg+xml" href="__FAVICON__">
+<link rel="apple-touch-icon" sizes="180x180" href="__APPLE_ICON__">
+<style>
+__BASE_CSS__
+.ck-drops{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.ck-map{margin-top:10px}.ck-map summary{font-weight:700;cursor:pointer;min-height:36px}
+#ckMapBody{display:grid;gap:8px;margin-top:6px}#ckMapBody label,.ck-mrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:14px}.ck-mrow b{min-width:4.5em}
+#ckMapBody select{max-width:100%;min-height:36px;font-size:14px}#ckHead{width:5em;min-height:36px}
+.ck-sum{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.ck-kpi{background:#eef2f8;border-radius:10px;padding:10px 6px;text-align:center}.ck-kpi b{display:block;font-size:22px;font-variant-numeric:tabular-nums}.ck-kpi span{font-size:12px;color:var(--muted)}
+.ck-kpi.ng{background:#fde8ea}.ck-kpi.ng b{color:#c62032}.ck-kpi.q{background:#fff4d6}.ck-kpi.y{background:#eaf4ff}
+.ck-verdict{grid-column:1/-1;margin:4px 0 0;font-size:15px}
+.ck-acts{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.ck-acts .btn{min-height:44px;flex:1}
+.ck-h{font-size:16px;margin:16px 0 6px;color:var(--navy)}
+.ck-row{display:flex;gap:10px;border:1px solid var(--line);border-left:6px solid #2e9d5b;border-radius:10px;padding:8px 10px;margin:6px 0;background:#fff}
+.ck-row.ck-miss{border-left-color:#d7263d;background:#fff6f7}.ck-row.ck-extra{border-left-color:#e0a100;background:#fffbef}.ck-row.ck-y{border-left-color:#3b82c4}
+.ck-st{font-size:20px;line-height:1.2}.ck-main{min-width:0;flex:1}.ck-nm b{font-size:16px}.ck-ev{font-size:14px}.ck-why{font-size:13px;font-weight:700;color:#a3192b}.ck-extra .ck-why{color:#8a6400}.ck-note{color:#4a5568;margin-top:2px;overflow-wrap:anywhere}
+.ck-yure{display:inline-block;font-size:11px;font-style:normal;background:#dbeafe;color:#1e4e8c;border-radius:99px;padding:1px 8px;font-weight:700}
+.ck-okd{margin-top:10px}.ck-okd summary{cursor:pointer;min-height:40px;font-size:15px}
+.ck-rel{border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:6px 0}.ck-rel.ck-miss{background:#fff6f7}.ck-rel.ck-extra{background:#fffbef}
+.ck-mem{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:4px;font-size:14px}.ck-m.ck-miss{color:#a3192b;font-weight:700}.ck-m.ck-extra{color:#8a6400;font-weight:700}
+.ck-priv{font-size:13px;background:#eef7f0;border-radius:8px;padding:8px 10px;margin:0 0 12px}
+@media (max-width:520px){.ck-sum{grid-template-columns:repeat(2,1fr)}}
+#ckPrint{position:fixed;inset:0;z-index:1000;background:#e9edf3;overflow:auto;-webkit-overflow-scrolling:touch}#ckPrint[hidden]{display:none}
+.cp-bar{position:sticky;top:0;z-index:2;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px;background:#1f3a68;color:#fff}.cp-bar .btn{min-height:44px}
+#ckPrintBody{padding:10px;overflow-x:auto}
+.cp-page{background:#fff;color:#16203a;max-width:190mm;margin:0 auto 14px;padding:0 0 8mm;box-shadow:0 2px 10px rgba(20,40,75,.18);font-size:11.5px;border-radius:6px;overflow:hidden;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.cp-band{display:flex;justify-content:space-between;gap:10px;padding:14px 16px;color:#fff;background:linear-gradient(120deg,#14284b,#27508f);border-bottom:5px solid #d7263d}
+.cp-kind{font-size:10px;letter-spacing:.18em;font-weight:700;color:#ffb3bd}.cp-big{font-size:24px;font-weight:800}.cp-sub{font-size:12px;font-weight:700}.cp-r{text-align:right;font-size:11px}.cp-r span{opacity:.85}
+.cp-sum{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 16px}.cp-sum div{background:#eef2f8;border-radius:6px;padding:6px;text-align:center;font-size:10.5px}.cp-sum b{display:block;font-size:18px}.cp-sum .ng{background:#fde8ea}
+.cp-t{width:calc(100% - 32px);margin:6px 16px;border-collapse:collapse}.cp-t th,.cp-t td{border:1px solid #b8c2d4;padding:3px 5px;text-align:left;vertical-align:top}.cp-t th{background:#1f3a68;color:#fff;font-size:10.5px}
+.cp-t tr{break-inside:avoid;page-break-inside:avoid}.cp-miss td{background:#fff0f2}.cp-extra td{background:#fff8e3}.cp-i{text-align:center;width:2em}
+.cp-h{margin:12px 16px 4px;font-size:13px;color:#14284b}.cp-f{display:flex;justify-content:space-between;margin:10px 16px 0;padding-top:6px;border-top:2px solid #14284b;font-size:9.5px;color:#5a6680}
+@media print{
+  @page{size:A4;margin:10mm}
+  body.printing>*:not(#ckPrint){display:none!important}
+  #ckPrint{position:static;background:#fff;overflow:visible}.cp-bar{display:none!important}#ckPrintBody{padding:0}
+  .cp-page{box-shadow:none;max-width:none;margin:0;border-radius:0}
+}
+</style>
+</head>
+<body class="check">
+<header>
+  <div class="hdr-meta">
+    <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／記録 __REC_VERSION__</div>
+    <div class="credit">Presented by Sakata</div>
+    <div class="hdr-msg"><span class="hm-l">すべての陸上競技部顧問が、</span><span class="hm-l">少しでも楽になりますように。</span></div>
+  </div>
+  <div class="brand">
+    <h1 class="logo">__LOGO_DARK__<span class="vh">LANE NOTE（レーンノート）エントリー照合</span></h1>
+    <span class="badge">試作版</span>
+  </div>
+  <p class="tagline">エントリー照合：出したエントリーと、届いたスタートリストを突き合わせる</p>
+  <nav class="pagenav" aria-label="ページ"><a href="./">🏁 大会準備</a><a href="records.html">📒 記録</a><a href="check.html" class="on" aria-current="page">✅ 照合</a></nav>
+</header>
+<div class="topbar">__CHANGELOG__<a href="guide.html#g10" class="tb-btn tb-guide">🔰 はじめての人はこちら</a><button type="button" class="tb-btn fb-link" data-feedback="1">🚨 不具合・要望を送る</button></div>
+<p class="beta-line">⚠️ 試作版です。内容は元資料でも確認してください</p>
+<main>
+<section class="box">
+  <h2><span class="no">1</span>ファイルを2つ入れる</h2>
+  <p class="ck-priv">🔒 ファイルはこの端末の中だけで読み取ります。どこにも送らず、画面を閉じると消えます。</p>
+  <div class="ck-drops">
+    <div class="drop" id="ckEntDrop" tabindex="0"><div class="big">📝 エントリーファイル</div><div class="muted small">大会に出したExcel（.xlsx／.xls）・CSV<br>ここにドラッグ／クリックして選ぶ</div><input type="file" id="ckEntFile" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"><div class="status" id="ckEntStatus"></div></div>
+    <div class="drop" id="ckSlDrop" tabindex="0"><div class="big">📄 スタートリスト</div><div class="muted small">大会から届いたPDF（プログラムでもOK）<br>ここにドラッグ／クリックして選ぶ</div><input type="file" id="ckSlFile" accept="application/pdf,.pdf"><div class="status" id="ckSlStatus"></div></div>
+  </div>
+  <details class="ck-map" id="ckMap" hidden><summary>🔧 列の割り当て（自動で読めなかったときに直す）</summary><p class="small muted">大会ごとにエントリーファイルの形が違うので、氏名・種目などの列を自動で探しています。違っていたらここで選び直してください。</p><div id="ckMapBody"></div></details>
+</section>
+<section class="box">
+  <h2><span class="no">2</span>学校を選ぶ</h2>
+  <label class="small">学校名（一部でOK・エントリーファイルの所属から自動で入ります）<br><input type="text" id="ckSchool" placeholder="例：本郷" style="min-height:40px;font-size:16px;width:100%;max-width:320px"></label>
+  <div id="ckTeams" style="margin-top:6px"></div>
+</section>
+<section class="box" id="ckResult" hidden>
+  <h2><span class="no">3</span>照合の結果</h2>
+  <div class="ck-sum" id="ckSum"></div>
+  <div class="ck-acts"><button class="btn sub" type="button" data-ckprint="view">👀 画面で見る</button><button class="btn sub" type="button" data-ckprint="pdf">📄 PDF作成</button><button class="btn" type="button" data-ckprint="print">🖨 印刷</button></div>
+  <div id="ckList"></div>
+  <div id="ckRelay"></div>
+  <p class="small muted">名前は、空白・全角/半角・ひらがな/カタカナ・旧字（澤/沢、邊/邉/辺、髙/高、﨑/崎 など）の違いを「表記ゆれ」として一致させています。種目は「中1_100」と「男子中学1年 100m」のような書き方の違いを、性別の列も使ってそろえています。</p>
+</section>
+</main>
+<div id="ckPrint" hidden><div class="cp-bar"><button class="btn sub" type="button" id="ckPrintClose">✕ 閉じる</button><button class="btn" type="button" id="ckPrintPdf">📄 PDF作成</button><button class="btn" type="button" id="ckPrintGo">🖨 印刷</button><span id="ckPrintHint" hidden></span></div><div id="ckPrintBody"></div></div>
+<footer><div class="f-disc">ⓘ 本ツールはファイルの文字を読み取って自動で突き合わせているだけです。内容は必ず元のエントリーファイル・スタートリストと照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div><div><b class="f-brand">LANE NOTE</b>（レーンノート）試作版 ／ <span class="f-credit">Presented by Sakata</span></div>🔒 エントリーファイル・PDFはこの端末の中だけで読み、どこにも送りません（部品取得のため外部CDNへ通信します）。 <a href="./">大会準備のページへ</a><br><button type="button" class="fb-btn" data-feedback="1">📮 不具合・要望を送る</button></footer>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
+<script src="firebase-config.js"></script>
+<script>
+__PARSER__
+</script>
+<script>
+__LOGIC__
+</script>
+<script>
+__ENTRY__
+</script>
+<script>
+__AUTHCOMMON__
+</script>
+<script>
+__FEEDBACK__
+</script>
+<script>
+var APP_VERSION = "__VERSION__";
+document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
+</script>
+<script>
+__CHECKAPP__
+</script>
+</body>
+</html>

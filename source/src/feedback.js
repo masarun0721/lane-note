@@ -6,7 +6,7 @@
   var FB_VER = '10.14.1', KINDS = ['不具合', '要望', 'その他'];
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
   function cfg() { var c = window.LANE_FIREBASE_CONFIG; return c && c.apiKey && !/^YOUR_|^__/.test(c.apiKey) && c.projectId ? c : null; }
-  function pageName() { return document.body.classList.contains('records') ? '記録' : '大会準備'; }
+  function pageName() { return document.body.classList.contains('check') ? 'エントリー照合' : document.body.classList.contains('records') ? '記録' : '大会準備'; }
   function version() { return (window.APP_VERSION || '') + (window.REC_VERSION && document.body.classList.contains('records') ? '／記録 ' + window.REC_VERSION : ''); }
   function curTab() { var b = document.querySelector('.tabs button.on'); return b ? b.textContent.trim().slice(0, 30) : ''; }
   function info() {
