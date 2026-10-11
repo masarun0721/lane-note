@@ -28,7 +28,7 @@ try {
     const s = w.LanePrint.meetSheet(R, ken, recs, { meet: '県大会', meetDate: '2026-06-01', school: '架空中', date: '2026-10-11', weather: '☀️ 晴れ 25℃' });
     assert.match(s, /MEET REPORT/); assert.match(s, /県大会/); assert.match(s, /2026\.06\.01/); assert.doesNotMatch(s, /晴れ|25℃/, 'v0.9.3：天気・気温は出さない'); assert.match(s, /出力日 2026-10-11/);
     assert.match(s, /<b>4<\/b><span>出場人数/); assert.match(s, /<b>5<\/b><span>記録数/); assert.match(s, /<b>1<\/b><span>PB更新/); assert.match(s, /<b>3<\/b><span>初記録/);
-    assert.match(s, /−0\.30秒/); assert.match(s, /前のPB 12\.40/); assert.match(s, /lp-bpb">PB/); assert.match(s, /lp-bfs">初<span class="lp-wd">記録/);
+    assert.match(s, /−0\.30秒/); assert.match(s, /前のPB 12\.40/); assert.match(s, /lp-bpb">PB/); assert.match(s, /lp-bfs">初<\//); assert.match(s, /lp-bpb">PB −0\.30<\//); assert.doesNotMatch(s, /前回差/);
     assert.match(s, /<tr class="lp-nm"><td class="lp-nmn">例題 三郎/); assert.doesNotMatch(s, /<button/);
     assert.ok(s.indexOf('12.10') < s.indexOf('12.80') && s.indexOf('12.80') < s.indexOf('DNS'), '記録の良い順・DNSは最後');
   });
@@ -42,7 +42,7 @@ try {
   });
   await check('v0.9.3 1枚にまとめる：既定オフ・オンで lp-one/2段組み・お知らせ・縮小の下限', async () => {
     const off = w.LanePrint.meetSheet(R, ken, recs, { meet: '県大会' }); assert.doesNotMatch(off, /lp-one/);
-    const on = w.LanePrint.meetSheet(R, ken, recs, { meet: '県大会', one: true }); assert.match(on, /lp-page lp-one/); assert.match(on, /lp-cols/); assert.match(on, /lp-grid/); assert.match(on, /rowspan=/); assert.doesNotMatch(on, /lp-hl/); assert.match(on, /人数が多いため文字が小さくなっています/);
+    const on = w.LanePrint.meetSheet(R, ken, recs, { meet: '県大会', one: true }); assert.match(on, /lp-page lp-one/); assert.match(on, /lp-cols/); assert.match(on, /lp-box/); assert.doesNotMatch(on, /ラウンド/); assert.doesNotMatch(on, /lp-hl/); assert.match(on, /人数が多いため文字が小さくなっています/);
     assert.ok(on.indexOf('PB更新') < on.indexOf('lp-cols'), '要約とPB更新が先');
     assert.equal(w.__fitScale(500, 1000), 1); assert.equal(w.__fitScale(2000, 1000), 0.6); assert.equal(w.__fitScale(1250, 1000), 0.8);
     const cb = w.document.querySelector('[data-onepage]'); assert.ok(cb, 'チェックボックスがある'); assert.equal(cb.checked, false);
