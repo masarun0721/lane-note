@@ -923,9 +923,10 @@
     var h = '<section class="nt-box"><h3>📅 この大会だけ</h3>' +
       inp('name', '大会名', '例：第○回 北区中学校陸上競技大会', NM.edited.name ? '自分で入力' : $('meetName').value ? '資料から' : '') +
       inp('date', '日にち', '例：令和8年10月11日（日）', NM.edited.date ? '自分で入力' : NM.date ? '資料から' : '資料に見つからず') +
-      '<div class="nt-f"><span>競技場（保存した一覧から選べます）</span><select data-venue="1"><option value="">' + (NM.venueIdx >= 0 ? '—' : '（資料のまま／手入力）') + '</option>' + T.venues.map(function (v, i) { return '<option value="' + i + '"' + (NM.venueIdx === i ? ' selected' : '') + '>' + e(v.name) + '</option>'; }).join('') + '<option value="new">＋ 新しく追加…</option></select></div>' +
-      inp('venue', '競技場の名前', '', NM.venueIdx >= 0 ? '保存した競技場「' + e(T.venues[NM.venueIdx].name) + '」から（最寄り駅・集合場所も）' : srcOf('venue')) +
-      (NM.venue && NM.venueIdx < 0 ? '<button type="button" class="btn sub nt-small" data-va="save">💾 この競技場を保存（次から最寄り駅・集合場所も自動で入ります）</button>' : '') + inp('station', '最寄り駅', '', NM.venueIdx >= 0 && !NM.edited.station ? '保存した競技場から' : srcOf('station')) + inp('access', '駅からの行き方', '例：徒歩10分', NM.venueIdx >= 0 ? '保存した競技場から' : '') + inp('fare', '交通費（この大会）', '例：往復1,000円程度（○○駅〜○○駅）', NM.edited.fare ? '自分で入力' : NM.fare ? '保存した競技場の交通費から' : '競技場リストに金額を入れると自動で入ります') + inp('address', '住所（要点に出すときは学校の設定で）', '', srcOf('address')) + inp('phone', '電話（競技場）', '', srcOf('phone')) + inp('gate', '開門', '例：8:00', srcOf('gate')) +
+      '<div class="nt-f"><span>今回の競技場</span><select data-venue="1"><option value="">（選ばない）</option>' + T.venues.map(function (v, i) { return '<option value="' + i + '"' + (NM.venueIdx === i ? ' selected' : '') + '>' + e(v.name) + '</option>'; }).join('') + '<option value="reg">競技場を登録する…</option></select>' +
+      (ntFound.venue && LaneNotice.findVenue(T, ntFound.venue.v) < 0 ? '<p class="nt-hint">要項の競技場「' + e(ntFound.venue.v) + '」は未登録です → <button type="button" class="linkbtn" data-va="regfound">登録する</button></p>' : '') + '<small>' + (T.venues.length ? '登録した競技場を選ぶと、最寄り駅・集合場所・交通費が入ります。' : 'まだ競技場が登録されていません。「競技場を登録する…」から登録できます。') + '</small></div>' +
+      inp('venue', '文書に書く競技場名（この大会だけ）', '', NM.venueIdx >= 0 ? '登録した競技場「' + e(T.venues[NM.venueIdx].name) + '」から' : srcOf('venue')) +
+      inp('station', '最寄り駅', '', NM.venueIdx >= 0 && !NM.edited.station ? '登録した競技場から（ここで直しても登録は変わりません）' : srcOf('station')) + inp('access', '駅からの行き方', '例：徒歩10分', NM.venueIdx >= 0 ? '登録した競技場から' : '') + inp('fare', '交通費（この大会）', '例：往復1,000円程度（○○駅〜○○駅）', NM.edited.fare ? '自分で入力' : NM.fare ? '登録した競技場の交通費から' : '競技場の設定で金額を入れると自動で入ります') + inp('address', '住所（要点に出すときは学校の設定で）', '', srcOf('address')) + inp('phone', '電話（競技場）', '', srcOf('phone')) + inp('gate', '開門', '例：8:00', srcOf('gate')) +
       inp('gather', '集合時刻', '例：7:30', timeNote(T.call, 'gather')) + inp('place', '集合場所', T.place, 'ふだんの場所は「学校の設定」') +
       inp('dismiss', '解散予定', '', T.dismiss.on ? timeNote(T.dismiss, 'dismiss') : '「学校の設定」で表示を切っています') + inp('docDate', '文書の日付', '', '今日の日付（直せます）') +
       '<button type="button" class="btn sub nt-small" id="ntReauto">↻ 資料から入れ直す</button></section>';
@@ -933,7 +934,7 @@
       '<div class="nt-lay" role="radiogroup" aria-label="レイアウト">' + [['std', 'スタンダード'], ['table', 'カード'], ['clean', 'ミニマル']].map(function (l) { return '<button type="button" role="radio" aria-checked="' + (T.layout === l[0]) + '" class="nt-th' + (T.layout === l[0] ? ' on' : '') + '" style="color:' + LaneNotice.colors(T).a + '" data-layout="' + l[0] + '">' + LaneNotice.THUMB[l[0]] + '<span>' + l[1] + '</span></button>'; }).join('') + '</div>' +
       '<div class="nt-f"><span>アクセントの色</span><div class="nt-acc" role="radiogroup" aria-label="アクセントの色">' + Object.keys(LaneNotice.ACCENT).map(function (k) { return '<button type="button" role="radio" aria-checked="' + (T.accent === k) + '" class="nt-sw' + (T.accent === k ? ' on' : '') + '" data-accent="' + k + '" style="--c:' + LaneNotice.ACCENT[k] + '" title="' + LaneNotice.ACCENT_NAME[k] + '"><i></i>' + LaneNotice.ACCENT_NAME[k] + '</button>'; }).join('') + '</div><label class="nt-c"><input type="checkbox" data-t="mono"' + (T.mono ? ' checked' : '') + '> 白黒印刷向け（色を使わず、黒と灰色だけにする）</label></div>' +
       ['school:学校名', 'club:部活名', 'to:宛先', 'title:タイトル（{大会名} が入ります）', 'place:ふだんの集合場所'].map(function (p) { var k = p.split(':'); return '<label class="nt-f"><span>' + k[1] + '</span><input data-t="' + k[0] + '" value="' + e(T[k[0]]) + '"></label>'; }).join('') +
-      '<div class="nt-f" id="ntVenues"><span>競技場リスト（' + T.venues.length + '件）</span>' + T.venues.map(function (v, i) { return '<details class="nt-vn"' + (NM.venueOpen === i ? ' open' : '') + '><summary>🏟 ' + e(v.name) + '</summary>' + [['name', '名前'], ['address', '住所'], ['station', '最寄り駅'], ['access', '駅からの行き方（例：徒歩10分）'], ['place', '集合場所'], ['route', '交通費の経路（例：本郷三丁目駅〜西葛西駅）'], ['fareOne', '交通費 片道（円）'], ['fareRound', '交通費 往復（円）'], ['fareNote', '交通費のメモ（例：PASMO可）'], ['memo', 'メモ']].map(function (f) { return '<label class="nt-f"><span>' + f[1] + '</span><input data-vn="' + i + '" data-vk="' + f[0] + '" value="' + e(v[f[0]]) + '"></label>'; }).join('') + '<button type="button" class="btn sub nt-small" data-va="del" data-i="' + i + '">✕ この競技場を消す</button></details>'; }).join('') + '<button type="button" class="nt-add" data-va="add">＋ 競技場を追加</button></div>' +
+      '<div class="nt-f"><span>競技場</span><button type="button" class="btn sub nt-small" data-va="open">🏟 競技場の設定（' + T.venues.length + '件）</button></div>' +
       '<label class="nt-c"><input type="checkbox" data-t="fareInBelongings"' + (T.fareInBelongings ? ' checked' : '') + '> 交通費を「持ち物」にも書く（要点に出すかは下の「要点に出す項目」で）</label>' +
       '<div class="nt-f"><span>顧問名</span>' + list('advisors', T.advisors) + '</div>' +
       '<label class="nt-f"><span>日付の書き方</span><select data-t="era"><option value="wareki"' + (T.era === 'wareki' ? ' selected' : '') + '>和暦（令和）</option><option value="seireki"' + (T.era === 'seireki' ? ' selected' : '') + '>西暦</option></select></label>' +
@@ -988,7 +989,7 @@
     else if (d.vn != null) { NT.venues[+d.vn][d.vk] = el.value; if (ev.type === 'change') rebuild = true; }
     else if (d.venue) {
       if (ev.type !== 'change') return;
-      if (el.value === 'new') { ntAddVenue(); }
+      if (el.value === 'reg') { el.value = NM.venueIdx >= 0 ? String(NM.venueIdx) : ''; openVenues(); return; }
       else if (el.value === '') { NM.venuePick = null; ['venue', 'station', 'access', 'place', 'address'].forEach(function (k) { NM.edited[k] = false; }); }
       else { var V1 = NT.venues[+el.value]; NM.venuePick = +el.value; NM.venue = V1.name; NM.edited.venue = true; ['station', 'access', 'place', 'address'].forEach(function (k) { NM[k] = V1[k] || ''; NM.edited[k] = true; }); }
       rebuild = true;
@@ -998,7 +999,6 @@
     else if (d.son != null) { NT.sections[+d.son].on = el.checked; rebuild = true; }
     else if (d.s != null) NT.sections[+d.s][d.sk] = el.value;
     else return;
-    if (d.vn != null) NM.venueOpen = +d.vn;
     if (rebuild && ev.type === 'change') { var op = $('ntSchool') && $('ntSchool').open, y = $('ntEdit').scrollTop; ntEditor(); if ($('ntSchool')) $('ntSchool').open = op; $('ntEdit').scrollTop = y; ntRender(); } else ntSoon();
   }
   function ntClick(ev) {
@@ -1012,9 +1012,8 @@
       var S = NT.sections, k = +d.i;
       if (d.sa === 'free') S.splice(k + 1, 0, { id: 'f' + Date.now().toString(36), type: 'free', on: true, title: '', text: '' });
       else if (d.sa === 'del') S.splice(k, 1); else mv(S, k, d.sa === 'up' ? k - 1 : k + 1);
-    } else if (d.va === 'save') { NT.venues.push({ name: NM.venue, address: NM.address || '', station: NM.station || '', access: NM.access || '', place: NM.place || '', memo: '', route: '', fareOne: '', fareRound: '', fareNote: '' }); NM.venuePick = NT.venues.length - 1; ntMsg('✔ 競技場を一覧に入れました。「💾 ひな形を保存」で保存されます。'); }
-    else if (d.va === 'add') { ntAddVenue(); }
-    else if (d.va === 'del') { if (!confirm('この競技場を一覧から消します。よろしいですか？')) return; NT.venues.splice(+d.i, 1); NM.venuePick = null; }
+    } else if (d.va === 'open') { openVenues(); return; }
+    else if (d.va === 'regfound') { openVenues({ name: ntFound.venue.v, address: ntFound.address ? ntFound.address.v : '', phone: ntFound.phone ? ntFound.phone.v : '' }); return; }
     else if (b.id === 'ntFree') NT.sections.push({ id: 'f' + Date.now().toString(36), type: 'free', on: true, title: 'お願い', text: '' });
     else if (b.id === 'ntReauto') NM = { edited: {} };
     else if (b.id === 'ntSave') { ntSave(); return; }
@@ -1024,11 +1023,68 @@
     ntEditor(); if ($('ntSchool')) $('ntSchool').open = open; $('ntEdit').scrollTop = y; ntRender();
     if (d.la === 'add') { var ins = b.closest('[data-list]'); ins = document.querySelector('[data-list="' + ins.dataset.list + '"] .nt-li:last-of-type input'); if (ins) ins.focus(); }
   }
-  function ntAddVenue() { NT.venues.push({ name: NM.venue || '新しい競技場', address: NM.address || '', station: NM.station || '', access: NM.access || '', place: NM.place || '', memo: '', route: '', fareOne: '', fareRound: '', fareNote: '' }); NM.venueOpen = NT.venues.length - 1; NM.venuePick = NM.venueOpen; setTimeout(function () { if ($('ntSchool')) { $('ntSchool').open = true; var el = document.querySelector('[data-vn="' + NM.venueOpen + '"][data-vk="name"]'); if (el) { el.scrollIntoView({ block: 'center' }); el.focus(); } } }, 0); }
+  /* ---------- v0.22.3 競技場の設定（専用の画面）：一覧（カード）→ 追加・編集のフォーム。保存するとひな形（端末＋アカウント）に入る ---------- */
+  var VS = { edit: null, draft: null, pickNew: false };
+  var VF = [['name', '名前', '例：スピアーズえどりくフィールド', true], ['address', '住所', '〒…'], ['phone', '電話', ''], ['station', '最寄り駅', '例：西葛西駅'], ['access', '駅からの行き方', '例：徒歩15分'], ['place', 'いつもの集合場所', '例：正門前'],
+    ['route', '交通費：経路', '例：本郷三丁目駅〜西葛西駅'], ['fareOne', '交通費：片道（円）', '例：520'], ['fareRound', '交通費：往復（円）', '例：1040'], ['fareNote', '交通費：メモ', '例：PASMO可'], ['memo', 'メモ', '']];
+  function ntEnsure() { if (!NT) NT = ntLoadLocal() || LaneNotice.defaults(); return NT; }
+  function openVenues(prefill) {
+    ntEnsure(); VS.edit = null; VS.draft = null; VS.pickNew = false;
+    if (prefill) { VS.edit = -1; VS.draft = Object.assign(vBlank(), prefill); VS.pickNew = true; }
+    $('vnMsg').textContent = ''; $('venueView').hidden = false; vnRender();
+  }
+  function vBlank() { var o = {}; LaneNotice.VENUE_KEYS.forEach(function (k) { o[k] = ''; }); return o; }
+  function vnRender() {
+    var e = function (x) { return esc(x == null ? '' : x); }, h = '';
+    if (VS.edit == null) {
+      h = '<p class="vn-lead">よく行く競技場を登録しておくと、「保護者へのお知らせ」で選ぶだけで最寄り駅・集合場所・交通費が入ります。</p>';
+      h += NT.venues.length ? NT.venues.map(function (v, i) {
+        var fare = LaneNotice.fareText(v), row = function (l, x) { return x ? '<div><dt>' + l + '</dt><dd>' + e(x) + '</dd></div>' : ''; };
+        return '<article class="vn-card"><h3>🏟 ' + e(v.name) + '</h3><dl>' + row('住所', v.address) + row('最寄り駅', [v.station, v.access].filter(Boolean).join('　')) + row('集合場所', v.place) + row('交通費', fare) + row('メモ', v.memo) + '</dl><div class="vn-act"><button type="button" class="btn sub" data-ve="' + i + '">✏ 編集</button><button type="button" class="btn sub vn-del" data-vd="' + i + '">🗑 削除</button></div></article>';
+      }).join('') : '<p class="vn-empty">まだ登録された競技場はありません。</p>';
+      h += '<button type="button" class="btn vn-add" id="vnAdd">＋ 競技場を追加</button>';
+    } else {
+      var d = VS.draft;
+      h = '<h3 class="vn-ftl">' + (VS.edit < 0 ? '＋ 競技場を追加' : '✏ 競技場を編集') + '</h3><form id="vnForm" class="vn-form" novalidate>' + VF.map(function (f) {
+        return '<label class="nt-f"><span>' + f[1] + (f[3] ? ' <b class="req">*必須</b>' : '') + '</span><input name="' + f[0] + '" value="' + e(d[f[0]]) + '" placeholder="' + e(f[2]) + '"' + (/fare(One|Round)/.test(f[0]) ? ' inputmode="numeric"' : '') + (f[3] ? ' required' : '') + '></label>';
+      }).join('') + '<p class="vn-note">交通費は自分で調べた金額を入れてください（LANE NOTE は運賃を調べません）。</p><div class="vn-fbtn"><button type="submit" class="btn">保存</button><button type="button" class="btn sub" id="vnCancel">やめる</button></div></form>';
+    }
+    $('vnBody').innerHTML = h; $('vnBody').scrollTop = 0;
+    var f = $('vnForm'); if (f) { var n = f.querySelector('[name=name]'); if (n && !n.value) n.focus(); }
+  }
+  function vnSubmit(ev) {
+    ev.preventDefault();
+    var f = $('vnForm'), o = vBlank();
+    LaneNotice.VENUE_KEYS.forEach(function (k) { var el = f.querySelector('[name="' + k + '"]'); if (el) o[k] = el.value.trim(); });
+    if (!o.name) { $('vnMsg').textContent = '✖ 名前を入れてください。'; f.querySelector('[name=name]').focus(); return; }
+    var i = VS.edit;
+    if (i < 0) { NT.venues.push(o); i = NT.venues.length - 1; } else NT.venues[i] = o;
+    if (VS.pickNew || NM.venuePick === i) NM.venuePick = i;
+    VS.edit = null; VS.draft = null; VS.pickNew = false;
+    ntSave().then(function () { $('vnMsg').textContent = '✔ 「' + o.name + '」を保存しました。'; });
+    vnRender(); vnSync();
+  }
+  function vnSync() { if (!$('parentView').hidden) { var op = $('ntSchool') && $('ntSchool').open; NM.edited.station = NM.edited.access = NM.edited.place = NM.edited.address = false; ntEditor(); if ($('ntSchool')) $('ntSchool').open = op; ntRender(); } }
+  function setupVenues() {
+    $('vnClose').addEventListener('click', function () { $('venueView').hidden = true; });
+    var bv = $('btnVenues'); if (bv) bv.addEventListener('click', function () { openVenues(); });
+    $('vnBody').addEventListener('submit', vnSubmit);
+    $('vnBody').addEventListener('click', function (ev) {
+      var b = ev.target.closest('button'); if (!b) return;
+      if (b.id === 'vnAdd') { VS.edit = -1; VS.draft = vBlank(); vnRender(); }
+      else if (b.id === 'vnCancel') { VS.edit = null; VS.draft = null; VS.pickNew = false; $('vnMsg').textContent = ''; vnRender(); }
+      else if (b.dataset.ve != null) { VS.edit = +b.dataset.ve; VS.draft = Object.assign(vBlank(), NT.venues[VS.edit]); vnRender(); }
+      else if (b.dataset.vd != null) {
+        var i = +b.dataset.vd; if (!confirm('「' + NT.venues[i].name + '」を消します。よろしいですか？')) return;
+        NT.venues.splice(i, 1); if (NM.venuePick === i) NM.venuePick = null; else if (NM.venuePick > i) NM.venuePick--;
+        ntSave(); vnRender(); vnSync();
+      }
+    });
+  }
   function openParent() {
     refreshPrint();
     if (!state.rows.length) { alert('学校を選んで結果を出してから作ってください。'); return; }
-    if (!NT) NT = ntLoadLocal() || LaneNotice.defaults();
+    ntEnsure();
     if (!NT.school && state.teams.length === 1) NT.school = state.teams[0];
     NM = { edited: NM.edited && NM.key === ($('meetName').value + '|' + $('meetDate').value) ? NM.edited : {}, key: $('meetName').value + '|' + $('meetDate').value, _keep: NM };
     if (NM._keep && NM._keep.key === NM.key) Object.keys(NM._keep).forEach(function (k) { if (NM.edited[k]) NM[k] = NM._keep[k]; }); delete NM._keep;
@@ -1116,7 +1172,7 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     Object.keys(SID).forEach(function (k) { INIT_STATUS[k] = $(SID[k]).innerHTML; });
-    setupShare(); setupPlayer(); setupParent();
+    setupShare(); setupPlayer(); setupParent(); setupVenues();
     setupDrop('slDrop', 'slFile', 'sl');
     setupDrop('ttDrop', 'ttFile', 'tt');
     setupDrop('noteDrop', 'noteFile', 'note');
@@ -1816,5 +1872,5 @@
     $('teamList').dataset.q = ''; ruleState = {}; renderRuleMarks(); renderFeePrices(); renderDateMark(); updateTeams(); render();
     window.scrollTo(0, 0);
   }
-  window.__meetApp = { ssSave: ssSave, ssRestore: ssRestore, ssClear: ssClear, resetAll: resetAll, openPersonal: openPersonal, openPlayers: openPlayers, openPlayer: openPlayer, encodePayload: encodePayload, decodePayload: decodePayload, payloadFromState: payloadFromState, openShare: openShare, refreshPrint: refreshPrint, tableData: tableData, feeData: feeData, totalText: totalText, safeCell: safeCell, state: state, handleFile: handleFile, render: render, updateTeams: updateTeams };
+  window.__meetApp = { openVenues: openVenues, ssSave: ssSave, ssRestore: ssRestore, ssClear: ssClear, resetAll: resetAll, openPersonal: openPersonal, openPlayers: openPlayers, openPlayer: openPlayer, encodePayload: encodePayload, decodePayload: decodePayload, payloadFromState: payloadFromState, openShare: openShare, refreshPrint: refreshPrint, tableData: tableData, feeData: feeData, totalText: totalText, safeCell: safeCell, state: state, handleFile: handleFile, render: render, updateTeams: updateTeams };
 })();

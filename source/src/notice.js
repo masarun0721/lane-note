@@ -55,7 +55,7 @@ var LaneNotice = (function () {
     return t;
   }
   /* ---------- 競技場リスト（学校の設定に保存。はじめは空：駅などのデータは作らない） ---------- */
-  var VENUE_KEYS = ['name', 'address', 'station', 'access', 'place', 'memo', 'route', 'fareOne', 'fareRound', 'fareNote'];
+  var VENUE_KEYS = ['name', 'address', 'phone', 'station', 'access', 'place', 'memo', 'route', 'fareOne', 'fareRound', 'fareNote'];
   // 交通費の1行：保存した金額だけを使う（運賃を調べたり推測したりはしない）
   function fareText(v) {
     if (!v) return '';

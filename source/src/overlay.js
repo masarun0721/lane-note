@@ -4,7 +4,7 @@
 var LaneOverlay = (function () {
   'use strict';
   var LIST = [
-    { id: 'parentView', close: 'pvClose' }, { id: 'docView', close: 'docClose' }, { id: 'shareDlg', close: 'shareClose' }, { id: 'playerDlg', close: 'plClose' },
+    { id: 'parentView', close: 'pvClose' }, { id: 'venueView', close: 'vnClose' }, { id: 'docView', close: 'docClose' }, { id: 'shareDlg', close: 'shareClose' }, { id: 'playerDlg', close: 'plClose' },
     { id: 'rbPPScreen', close: 'rbPPBack', noBtn: true }, { id: 'rbPrint', close: 'rbPrintClose' }, { id: 'ckPrint', close: 'ckPrintClose' }];
   var stack = [];
   function closeOv(o) { var b = o.close && document.getElementById(o.close); if (b) b.click(); else o.el.hidden = true; }

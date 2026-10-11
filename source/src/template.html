@@ -269,6 +269,11 @@ footer a{color:var(--navy)}
 .outgrp{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center}.outgrp>b{font-size:13px}
 @media (max-width:600px){.outgrp{flex:1 1 100%}.outgrp>b{flex:1 1 100%}.toolbar .outgrp .btn{flex:1 1 30%;padding:9px 6px;font-size:13.5px}}
 .ss-note{background:#eef4ff;border:1px solid #c9d8f5;border-radius:10px;padding:6px 10px;font-size:13px;margin:8px 0}.ss-note .btn{min-height:32px;font-size:13px;margin-left:6px}
+#venueView{position:fixed;inset:0;z-index:1010;background:#f3f5f9;display:flex;flex-direction:column}#venueView[hidden]{display:none}#vnMsg{color:#d7f5df;width:100%}.vn-body{flex:1;overflow:auto;padding:12px;max-width:720px;width:100%;margin:0 auto;box-sizing:border-box}
+.vn-lead{font-size:14px;color:#334;margin:0 0 10px}.vn-card{background:#fff;border:1px solid #d5dae3;border-radius:12px;padding:10px 12px;margin:0 0 10px;box-shadow:0 1px 2px rgba(20,33,61,.06)}.vn-card h3{margin:0 0 6px;font-size:16px}.vn-card dl{margin:0;display:grid;grid-template-columns:5.5em 1fr;gap:2px 8px;font-size:13px}.vn-card dl>div{display:contents}.vn-card dt{color:#667;font-weight:700}.vn-card dd{margin:0;overflow-wrap:anywhere}
+.vn-act{display:flex;gap:8px;margin-top:8px}.vn-act .btn{min-height:40px}.vn-del{color:#b3261e}.vn-add{width:100%;min-height:48px}.vn-empty{background:#fff;border:1px dashed #b9c1ce;border-radius:12px;padding:16px;text-align:center;color:#556}
+.vn-ftl{margin:0 0 6px}.vn-form{background:#fff;border:1px solid #d5dae3;border-radius:12px;padding:10px 12px}.vn-form input{width:100%;min-height:44px;font-size:16px;border:1px solid #b9c1ce;border-radius:8px;padding:4px 8px;box-sizing:border-box}.req{color:#b3261e;font-size:11px}.vn-note{font-size:12px;color:#556}.vn-fbtn{display:flex;gap:8px;position:sticky;bottom:0;background:#fff;padding:8px 0}.vn-fbtn .btn{flex:1;min-height:48px}
+.nt-hint{font-size:12px;background:#fff7e0;border:1px solid #f0d58a;border-radius:6px;padding:4px 6px;margin:4px 0}.linkbtn{background:none;border:0;color:#1f3a68;text-decoration:underline;font-weight:700;cursor:pointer;padding:0;font-size:inherit}
 #parentView{position:fixed;inset:0;z-index:1000;background:#e9edf3;display:flex;flex-direction:column}#parentView[hidden]{display:none}
 .pv-bar{flex-wrap:wrap;gap:6px 10px}.pv-btns{display:flex;flex-wrap:wrap;gap:6px}.pv-msg{font-size:13px;color:#cfe9d6}
 .nt-wrap{flex:1;display:flex;min-height:0}.nt-edit{width:400px;flex:none;overflow:auto;padding:8px 10px 40px;background:#f6f8fb;border-right:1px solid #ccd}
@@ -285,7 +290,7 @@ footer a{color:var(--navy)}
 .nt-box{box-shadow:0 1px 2px rgba(20,33,61,.06)}.nt-sec{background:#fff}.nt-edit{background:#f3f5f9}
 .nt-small{min-height:36px;font-size:13px;margin-top:4px}.nt-tip{font-size:11px;color:#555}.nt-save{display:flex;gap:8px;position:sticky;bottom:-40px;background:#f6f8fb;padding:6px 0}
 #parentView.nt-full .nt-edit{display:none}
-@media (max-width:760px){.pv-btns .btn{min-height:36px;font-size:12px;padding:2px 8px}.nt-wrap{flex-direction:column;overflow:auto}.nt-edit{width:auto;border-right:0;overflow:visible}.nt-prev{min-height:80vh}}
+@media (max-width:760px){.pv-btns{flex-wrap:nowrap;overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch}.pv-btns .btn{min-height:36px;font-size:12px;padding:2px 8px;flex:none}.nt-wrap{flex-direction:column;overflow:auto}.nt-edit{width:auto;border-right:0;overflow:visible}.nt-prev{min-height:80vh}}
 .trial{display:inline-block;font-size:10px;font-weight:700;background:#fff3cd;color:#7a5a00;border:1px solid #f0d58a;border-radius:6px;padding:0 4px;vertical-align:middle}
 @media print{#parentView{display:none!important}}
 #docView{position:fixed;inset:0;z-index:1000;background:#e9edf3;display:flex;flex-direction:column}#docView[hidden]{display:none}
@@ -685,6 +690,7 @@ body.fb-open{overflow:hidden}
     <button class="btn sub" id="btnShare">📱 スマホで見る／共有</button>
     <button class="btn sub" id="btnPlayers">🏃 選手用リンクを作る</button>
     <button class="btn sub" id="btnParent" type="button">👪 保護者へのお知らせ</button>
+    <button class="btn sub" id="btnVenues" type="button">🏟 競技場の設定</button>
   </div>
   <div class="recmeta noprint">大会名 <input id="meetName" size="28" placeholder="例：第74回北区民体育大会"> <span class="rs na" id="dateMark" title="">－</span>日付 <input id="meetDate" size="18" placeholder="例：2026年10月11日（日）"> <small class="muted" id="dateSrc"></small> <select id="dateAlt" hidden title="日付の候補から選ぶ"></select><div class="warn small" id="multiDayWarn" hidden></div></div>
   <p class="small muted noprint">用紙：出場一覧・記録用紙＝A4縦／ナンバーカード＝B5。印刷の設定は「実際のサイズ（100%）」にしてください。</p>
@@ -730,6 +736,7 @@ body.fb-open{overflow:hidden}
   <span class="pv-btns"><button class="btn" type="button" id="pvView">👀 画面で見る</button><button class="btn" type="button" id="pvPdf">📄 PDF作成</button><button class="btn sub" type="button" id="pvPrint">🖨 印刷</button><button class="btn sub" type="button" id="pvDocx">📝 Wordで保存（.docx）</button><button class="btn sub" type="button" id="pvXlsx">📊 表をExcelで保存</button><button class="btn sub" type="button" id="pvCopyAth">📋 出場選手表をコピー</button><button class="btn sub" type="button" id="pvCopyTime">📋 時間順の予定をコピー</button><button class="btn sub" type="button" id="pvClose">✕ 閉じる</button></span>
   <span class="pv-msg" id="pvMsg" role="status"></span></div>
   <div class="nt-wrap"><div id="ntEdit" class="nt-edit"></div><div class="nt-prev"><div class="nt-pbar"><span id="ntSize"></span><span id="ntWarn" class="nt-warn" role="alert" hidden></span></div><iframe id="pvFrame" title="お知らせの見た目（A4）"></iframe></div></div></div>
+<div id="venueView" class="noprint" hidden role="dialog" aria-label="競技場の設定"><div class="docbar"><b>🏟 競技場の設定</b><button class="btn sub" type="button" id="vnClose">✕ 閉じる</button><span class="pv-msg" id="vnMsg" role="status"></span></div><div class="vn-body" id="vnBody"></div></div>
 <div id="docView" class="noprint" hidden role="dialog" aria-label="画面で見る"><div class="docbar"><b id="docTitle"></b><button class="btn" type="button" id="docPdf">📄 PDF作成</button><button class="btn" type="button" id="docPrint">🖨 印刷</button><button class="btn sub" type="button" id="docClose">✕ 閉じる</button></div><iframe id="docFrame" title="印刷の見た目"></iframe></div>
 <div id="pdfHint" class="noprint" role="status" hidden></div>
 <div id="printTime" class="psheet"></div>
