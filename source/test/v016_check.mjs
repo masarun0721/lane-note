@@ -196,8 +196,23 @@ await check('ログインなしで作ると長いリンク（#p=）。クラウ�
   await r.__recApp.makePPLinks([key]); await delay(40);
   const inp = r.document.querySelector('#rbPPList input'); assert(inp); assert.match(inp.value, /^http:\/\/127\.0\.0\.1:9090\/#p=1\./);
 });
+await check('v0.18.3 選手の個人ページは別画面：選手一覧・全員選択/全解除・人数・チェックした人だけ作る・まとめてコピー', async () => {
+  const d = r.document, $ = id => d.getElementById(id);
+  assert(!d.querySelector('details#rbPPBox')); assert.match($('rbPPOpen').textContent, /📱 選手の個人ページを作る/); assert(!/表示中の選手全員/.test(d.body.innerHTML));
+  $('rbPPOpen').click(); assert(!$('rbPPScreen').hidden);
+  const boxes = () => [...d.querySelectorAll('#rbPPNames [data-ppn]')]; assert(boxes().length >= 1);
+  assert.equal($('rbPPCount').textContent, String(boxes().length));
+  $('rbPPNone').click(); assert.equal($('rbPPCount').textContent, '0');
+  $('rbPPMake').click(); assert.match($('rbPPMsg').textContent, /1人以上/);
+  const y = boxes().find(b => /山田/.test(b.closest('label').textContent)); y.checked = true; y.dispatchEvent(new r.Event('change', { bubbles: true }));
+  assert.equal($('rbPPCount').textContent, '1');
+  $('rbPPMake').click(); for (let i = 0; i < 50 && !d.querySelector('#rbPPList input'); i++) await delay(20);
+  assert.equal(d.querySelectorAll('#rbPPList .pp-row').length, 1); assert(!$('rbPPCopy').disabled);
+  $('rbPPAll').click(); assert.equal($('rbPPCount').textContent, String(boxes().length));
+  $('rbPPBack').click(); assert($('rbPPScreen').hidden);
+});
 await check('個人で使う：名前を入れると、ランキング・歴代のタブを隠し、ホームは自分の自己ベスト', async () => {
-  r.document.getElementById('rbPersonal').checked = true; r.document.getElementById('rbPersonal').dispatchEvent(new r.Event('change'));
+  assert(!r.document.getElementById('rbSchoolRow').hidden); assert(r.document.getElementById('rbPersonRow').hidden); r.document.getElementById('rbToPersonal').click(); assert(r.document.getElementById('rbPersonal').checked);
   r.document.getElementById('rbPName').value = '山田太郎'; r.document.getElementById('rbPTeam').value = '架空'; r.document.getElementById('rbPName').dispatchEvent(new r.Event('input'));
   assert(r.document.body.classList.contains('personal-on')); assert(r.document.getElementById('rbSchoolRow').hidden); assert(!r.document.getElementById('rbPersonRow').hidden);
   const v = r.document.getElementById('rbView'); assert.match(v.textContent, /山田太郎 さんの自己ベスト/); assert.match(v.textContent, /12\.10/); assert(!/14\.00/.test(v.textContent), '別の学校の同じ名前は入れない');

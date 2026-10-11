@@ -7,6 +7,11 @@
 <link rel="icon" type="image/svg+xml" href="__FAVICON__">
 <link rel="apple-touch-icon" sizes="180x180" href="__APPLE_ICON__">
 <style>
+#rbPPScreen{position:fixed;inset:0;z-index:1000;background:#f4f6fa;overflow:auto;-webkit-overflow-scrolling:touch}#rbPPScreen[hidden]{display:none}
+.pps-bar{position:sticky;top:0;display:flex;gap:10px;align-items:center;background:#1f3a68;color:#fff;padding:8px 12px;z-index:2}.pps-body{max-width:760px;margin:0 auto;padding:12px}
+.pps-list{list-style:none;padding:0;margin:8px 0;background:#fff;border:1px solid #d6dce7;border-radius:10px}.pps-list li{border-bottom:1px solid #eef1f6}.pps-list li:last-child{border:0}.pps-list label{display:flex;gap:10px;align-items:center;padding:9px 12px;cursor:pointer}.pps-list .gr{color:#6b7488;font-size:12px;margin-left:auto}
+.rb-row[hidden]{display:none!important}
+.mode-link{background:none;border:0;padding:4px 2px;color:var(--navy);text-decoration:underline;font-size:13px;cursor:pointer;min-height:32px}
 __BASE_CSS__
 /* ===== 記録ページだけの見た目 ===== */
 .divsw{display:flex;gap:0;margin:4px 0 10px;border:1px solid #1f3a68;border-radius:10px;overflow:hidden;width:max-content}
@@ -273,7 +278,7 @@ tr.rc.editing td{background:#fff3ec!important}
     <span class="badge">試作版</span>
   </div>
   <p class="tagline">記録：大会の結果から、自校の記録と自己ベストをためていく</p>
-  <nav class="pagenav" aria-label="ページ"><a href="./">🏁 大会準備</a><a href="records.html" class="on" aria-current="page">📒 記録</a><a href="guide.html">🔰 はじめての人はこちら</a></nav>
+  <nav class="pagenav" aria-label="ページ"><a href="./">🏁 大会準備</a><a href="records.html" class="on" aria-current="page">📒 記録</a></nav>
 </header>
 <div class="topbar">__CHANGELOG__<a href="guide.html" class="tb-btn tb-guide">🔰 はじめての人はこちら</a><button type="button" class="tb-btn fb-link" data-feedback="1">🚨 不具合・要望を送る</button></div>
 <p class="beta-line">⚠️ 試作版です。内容は元資料でも確認してください</p>
@@ -289,18 +294,16 @@ tr.rc.editing td{background:#fff3ec!important}
   <div class="status" id="rbAuthStatus"></div>
   <div class="rb-guest" id="rbGuest" hidden aria-live="polite"></div>
   <div class="disclaimer sm" style="margin-top:8px">ⓘ 結果の資料の文字を読み取って整理しているだけです。<b>記録は必ず元の結果資料と照らし合わせて確認してください。</b>読めなかったところは空欄にして警告を出します（推測で埋めません）。</div>
-  <div class="rb-row rb-mode" style="margin:10px 0 0">
-    <label class="chip"><input type="checkbox" id="rbPersonal"> 👤 個人で使う</label>
-    <span class="small muted">選手・保護者向け（自分の記録だけ）</span>
-  </div>
+  <input type="checkbox" id="rbPersonal" hidden aria-hidden="true">
   <div class="rb-row" style="margin:10px 0" id="rbSchoolRow">
     <label>学校名 <input type="text" id="rbSchool" placeholder="例：本郷" autocomplete="off"></label>
     <span class="small muted">「本郷」と打つと「本郷」「本郷高」「本郷中」を拾います。</span>
+    <button type="button" class="mode-link" id="rbToPersonal">👤 個人で使う方はこちら</button>
   </div>
   <div class="rb-row" style="margin:10px 0" id="rbPersonRow" hidden>
     <label>名前 <input type="text" id="rbPName" placeholder="例：山田 太郎" autocomplete="off" maxlength="40"></label>
     <label>所属（任意） <input type="text" id="rbPTeam" placeholder="例：本郷中・〇〇AC" autocomplete="off" maxlength="60"></label>
-    <span class="small muted">同名の人が混ざらないよう所属も入れるのがおすすめ</span>
+    <button type="button" class="mode-link" id="rbToSchool">🏫 学校で使う方はこちら</button>
   </div>
   <div class="drop" id="rbDrop" tabindex="0" role="button" aria-label="結果のファイルを選ぶ">
     <div class="big">📄 結果のPDF・保存したWebページ（HTML）・Excel（.xlsx/.xls/.csv）をここへ</div>
@@ -348,11 +351,7 @@ tr.rc.editing td{background:#fff3ec!important}
   <div class="divsw sexsw" role="radiogroup" aria-label="男子・女子の切り替え" id="rbSex" hidden><button type="button" data-sex="m">男子</button><button type="button" data-sex="f">女子</button></div>
   <div id="rbReview"></div>
   <div class="rb-stats" id="rbStats"></div>
-  <details class="rb-pp" id="rbPPBox"><summary><b>📱 選手の個人ページ（リンク）</b>　<span class="small muted">選手が自分の自己ベスト・グラフを見られるリンクを作ります</span></summary>
-    <p class="small">選手ごとに、その子の記録だけを入れたリンクを作ります（ほかの選手の記録は入りません）。選手はログインなしで、自己ベスト・推移グラフ・最近の記録を見られます。<b>作った時点のコピー</b>なので、記録が増えたら作り直して送ってください。Googleでログイン中は短いリンク（作ってから119日まで・大会準備のページの「作った短いリンク」から止められます）、ログインなしは長いリンクになります。大会準備のページで同じ名前の選手用リンク（短いリンク）を作ってあれば、「大会当日の予定」へのリンクも入れます。</p>
-    <div class="rb-row"><button class="btn" type="button" id="rbPPMake">🔗 表示中の選手全員のリンクを作る</button><button class="btn sub" type="button" id="rbPPCopy" disabled>📋 まとめてコピー（LINE用）</button></div>
-    <div class="status" id="rbPPMsg"></div><div id="rbPPList"></div>
-  </details>
+  <div class="rb-pp rb-row" id="rbPPBox"><button class="btn sub" type="button" id="rbPPOpen">📱 選手の個人ページを作る</button><span class="small muted">選手が自分の記録とグラフを見られるリンクです。<a href="guide.html#g3">くわしく</a></span></div>
   <div class="tabbar"><div class="tabs" role="tablist">
     <button class="on" data-v="home" type="button">ホーム</button><button data-v="ath" type="button">選手別</button><button data-v="rank" type="button">部内ランキング</button><button data-v="meet" type="button">大会別</button><button data-v="hist" type="button">歴代記録</button><button data-v="all" type="button">全記録</button>
   </div></div>
@@ -408,6 +407,16 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
 <script>
 var SHARE_BASE = "__SHARE_BASE__";
 </script>
+<div id="rbPPScreen" hidden role="dialog" aria-label="選手の個人ページを作る"><div class="pps-bar"><button class="btn sub" type="button" id="rbPPBack">← 戻る</button><b>📱 選手の個人ページを作る</b></div><div class="pps-body">
+  <p class="small muted">チェックした選手ごとに、その子の記録だけが入ったリンクを作ります。<a href="guide.html#g3">くわしくは使い方へ</a></p>
+  <div class="divsw" id="rbPPDiv"><button type="button" data-ppdiv="all">すべて</button><button type="button" data-ppdiv="jh">中学</button><button type="button" data-ppdiv="hs">高校</button></div>
+  <div class="divsw" id="rbPPSex" hidden><button type="button" data-ppsex="all">男女</button><button type="button" data-ppsex="m">男子</button><button type="button" data-ppsex="f">女子</button></div>
+  <div class="rb-row"><button class="btn sub" type="button" id="rbPPAll">全員選択</button><button class="btn sub" type="button" id="rbPPNone">全解除</button><span class="small"><b id="rbPPCount">0</b>人を選択中</span></div>
+  <ul class="pps-list" id="rbPPNames"></ul>
+  <div class="rb-row"><button class="btn" type="button" id="rbPPMake">🔗 チェックした人のリンクを作る</button></div>
+  <div class="status" id="rbPPMsg"></div><div id="rbPPList"></div>
+  <div class="rb-row"><button class="btn sub" type="button" id="rbPPCopy" disabled>📋 まとめてコピー（LINE用）</button></div>
+</div></div>
 <div id="rbPrint" hidden role="dialog" aria-label="PDFにまとめる"><div class="lp-bar"><button class="btn" type="button" id="rbPrintPdf">📄 PDF作成</button><button class="btn" type="button" id="rbPrintGo">🖨 印刷</button><button class="btn sub" type="button" id="rbPrintClose">✕ 閉じる</button><span class="small" id="rbPrintHint" role="status" hidden></span></div><div id="rbPrintBody"></div></div>
 <script>
 __PERSONAL__

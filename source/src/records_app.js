@@ -355,7 +355,7 @@
   }
   // アカウントが変わったら、前の人の画面の中身（記録・読み込み途中の資料・入力欄）をすべて消す
   function resetView() {
-    ALL = []; batches = []; DONE = []; METS = {}; DIV_OV = {}; REVIEW = []; OFFLINE = false; MODE = { personal: false, name: '', team: '' }; PPL.links = {}; PPL.gen++; try { applyModeUi(); $('rbPPList').innerHTML = ''; status('rbPPMsg', '', ''); } catch (e) { }
+    ALL = []; batches = []; DONE = []; METS = {}; DIV_OV = {}; REVIEW = []; OFFLINE = false; MODE = { personal: false, name: '', team: '' }; PPL.links = {}; PPL.gen++; try { applyModeUi(); $('rbPPList').innerHTML = ''; $('rbPPNames').innerHTML = ''; $('rbPPScreen').hidden = true; document.body.classList.remove('pps-open'); status('rbPPMsg', '', ''); } catch (e) { }
     try { $('rbPaste').value = ''; $('rbFile').value = ''; status('rbStatus', '', ''); var d = $('rbDone'); d.innerHTML = ''; d.className = 'status'; status('rbDataStatus', '', ''); } catch (e) { }
     if (typeof manualReset === 'function') manualReset();
     renderBatches(); applyInference(); render();
@@ -445,6 +445,7 @@
     var sc = scope(); clearTimeout(modeTimer);
     modeTimer = setTimeout(function () { saveMode(sc).catch(function (e) { if (!isAbort(e)) status('rbDataStatus', '✖ 「個人で使う」の設定を保存できませんでした：' + esc(e.message), 'ng'); }); }, 600);
   }
+  [['rbToPersonal', true], ['rbToSchool', false]].forEach(function (a) { $(a[0]).addEventListener('click', function () { $('rbPersonal').checked = a[1]; modeChanged(); }); });
   ['rbPersonal', 'rbPName', 'rbPTeam'].forEach(function (id) { $(id).addEventListener(id === 'rbPersonal' ? 'change' : 'input', modeChanged); });
   function status(id, html, cls) { var el = $(id); el.innerHTML = html; el.className = 'status ' + (cls || ''); }
   function guessMetaFromPages(pages) {
@@ -881,7 +882,7 @@
       try { await saveMeet(ws.getAttribute('data-wsave'), w, scope()); meetEdit = ''; status('rbDataStatus', '✔ 天気を保存しました。', 'ok'); } catch (x) { status('rbDataStatus', '✖ 天気を保存できませんでした：' + esc(x.message), 'ng'); }
       render(); return;
     }
-    var pl = e.target.closest('[data-pplink]'); if (pl) { $('rbPPBox').open = true; makePPLinks([pl.getAttribute('data-pplink')]); $('rbPPBox').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+    var pl = e.target.closest('[data-pplink]'); if (pl) { openPPScreen([pl.getAttribute('data-pplink')]); makePPLinks([pl.getAttribute('data-pplink')]); return; }
     var pb = e.target.closest('[data-print]'); if (pb) { startPrint(pb.getAttribute('data-print'), pb.getAttribute('data-key'), pb.getAttribute('data-act') || 'view'); return; }
     var go = e.target.closest('[data-go]'); if (go) { setTab(go.getAttribute('data-go')); render(); return; }
     var t = e.target.closest('th[data-sort]'); if (!t) return; var k = t.getAttribute('data-sort'), s = sort[view];
@@ -1267,7 +1268,7 @@
   async function makePPLinks(keys) {
     var btn = $('rbPPMake'), sc = scope(), gen = ++PPL.gen;
     var alive = function () { return gen === PPL.gen && sc.epoch === authEpoch && sc.uid === (USER ? USER.uid : null); };
-    if (!keys.length) { status('rbPPMsg', '表示中の選手がいません。', 'ng'); return; }
+    if (!keys.length) { status('rbPPMsg', '選手を1人以上チェックしてください。', 'ng'); return; }
     btn.disabled = true; PPL.links = {}; renderPPList();
     var sch = [], errs = 0;
     try { if (sc.uid && !OFFLINE) sch = await ppSchedules(sc); } catch (e) { if (isAbort(e) || !alive()) { btn.disabled = false; return; } }
@@ -1286,8 +1287,40 @@
     if (!alive()) { if (gen === PPL.gen) { PPL.links = {}; renderPPList(); status('rbPPMsg', 'ログインしているアカウントが変わったので、作るのを止めました。もう一度押してください。', 'ng'); } return; }
     status('rbPPMsg', '✔ ' + Object.keys(PPL.links).length + '人分のリンクを作りました。' + (errs ? errs + '人分は短いリンクを作れなかったので、長いリンクにしました。' : '') + (sc.uid ? '' : '（ログインしていないので長いリンクです）'), errs ? 'ng' : 'ok');
   }
+  // v0.18.3：選手の個人ページは別画面で、選手を選んでから作る（個人表の選択画面と同じ形）
+  var PPS = { div: 'all', sex: 'all', off: {} };
+  function ppBase() { var s = school(), mine = $('rbMine').checked; return ALL.filter(function (r) { if (MODE.personal) return personOn() && isMe(r); return !(mine && s && !R.matchSchool(r.team, s)); }); }
+  function ppNames() {
+    var base = ppBase(), gs = R.gendersIn(base);
+    $('rbPPSex').hidden = gs.length < 2; if (gs.length < 2) PPS.sex = 'all';
+    var rows = base.filter(function (r) { if (PPS.div !== 'all' && R.divisionOf(r) !== PPS.div) return false; if (PPS.sex !== 'all') { var g = R.genderOf(r); if (g && g !== PPS.sex) return false; } return true; });
+    var seen = {}, out = []; R.sortAthletes(R.computeBests(rows).bests).forEach(function (b) { if (!seen[b.key]) { seen[b.key] = 1; out.push(b); } });
+    return out;
+  }
+  function ppCount() { $('rbPPCount').textContent = $('rbPPNames').querySelectorAll('input:checked').length; }
+  function renderPPNames() {
+    document.querySelectorAll('#rbPPDiv button').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-ppdiv') === PPS.div); });
+    document.querySelectorAll('#rbPPSex button').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-ppsex') === PPS.sex); });
+    var ls = ppNames();
+    $('rbPPNames').innerHTML = ls.length ? ls.map(function (b) { var g = (b.best || b.ref || {}).grade; return '<li><label><input type="checkbox" data-ppn="' + esc(b.key) + '"' + (PPS.off[b.key] ? '' : ' checked') + '><b>' + esc(b.name) + '</b><span class="gr">' + esc((g ? g + '年 ' : '') + (b.team || '')) + '</span></label></li>'; }).join('') : '<li class="small muted" style="padding:10px">選手がいません。</li>';
+    ppCount();
+  }
+  function openPPScreen(only) {
+    PPS.div = DIV; PPS.sex = 'all'; PPS.off = {};
+    renderPPNames();
+    if (only) { $('rbPPNames').querySelectorAll('[data-ppn]').forEach(function (b) { b.checked = only.indexOf(b.getAttribute('data-ppn')) >= 0; if (!b.checked) PPS.off[b.getAttribute('data-ppn')] = 1; }); ppCount(); }
+    $('rbPPScreen').hidden = false; $('rbPPScreen').scrollTop = 0; document.body.classList.add('pps-open');
+  }
+  $('rbPPOpen').addEventListener('click', function () { openPPScreen(); });
+  $('rbPPBack').addEventListener('click', function () { $('rbPPScreen').hidden = true; document.body.classList.remove('pps-open'); });
+  $('rbPPDiv').addEventListener('click', function (e) { var d = e.target.getAttribute('data-ppdiv'); if (d) { PPS.div = d; renderPPNames(); } });
+  $('rbPPSex').addEventListener('click', function (e) { var d = e.target.getAttribute('data-ppsex'); if (d) { PPS.sex = d; renderPPNames(); } });
+  $('rbPPAll').addEventListener('click', function () { $('rbPPNames').querySelectorAll('[data-ppn]').forEach(function (b) { b.checked = true; delete PPS.off[b.getAttribute('data-ppn')]; }); ppCount(); });
+  $('rbPPNone').addEventListener('click', function () { $('rbPPNames').querySelectorAll('[data-ppn]').forEach(function (b) { b.checked = false; PPS.off[b.getAttribute('data-ppn')] = 1; }); ppCount(); });
+  $('rbPPNames').addEventListener('change', function (e) { var k = e.target.getAttribute('data-ppn'); if (k) { if (e.target.checked) delete PPS.off[k]; else PPS.off[k] = 1; ppCount(); } });
   $('rbPPMake').addEventListener('click', function () {
-    var keys = []; filtered().forEach(function (r) { var k = R.athleteKey(r); if (keys.indexOf(k) < 0 && (!MODE.personal || isMe(r))) keys.push(k); });
+    var keys = []; $('rbPPNames').querySelectorAll('[data-ppn]:checked').forEach(function (b) { keys.push(b.getAttribute('data-ppn')); });
+    if (!keys.length) { status('rbPPMsg', '選手を1人以上チェックしてください。', 'ng'); return; }
     if (keys.length > 60 && !confirm(keys.length + '人分のリンクを作ります。時間がかかります。よろしいですか？')) return;
     makePPLinks(keys).catch(function (e) { $('rbPPMake').disabled = false; status('rbPPMsg', '✖ ' + esc(e.message), 'ng'); });
   });
@@ -1297,6 +1330,6 @@
       Object.keys(PPL.links).map(function (k) { return PPL.links[k].name + '：' + PPL.links[k].url; }).join('\n');
     copyT(t, $('rbPPCopy'), '📋 まとめてコピー（LINE用）');
   });
-  window.__recApp = { ppPayload: ppPayload, encodePP: encodePP, makePPLinks: makePPLinks, getMode: function () { return MODE; }, isMe: isMe };
+  window.__recApp = { openPPScreen: openPPScreen, ppNames: ppNames, ppPayload: ppPayload, encodePP: encodePP, makePPLinks: makePPLinks, getMode: function () { return MODE; }, isMe: isMe };
   if (CLOUD_READY) initCloud(); else { renderAuth(); reload(); }
 })();
