@@ -48,6 +48,7 @@
     var txt;
     try { txt = new TextDecoder(cs).decode(buf); } catch (e) { txt = new TextDecoder('utf-8').decode(buf); }
     if ((txt.match(/\ufffd/g) || []).length > 20 && cs !== 'shift_jis') txt = new TextDecoder('shift_jis').decode(buf);
+    var gold = R.goldMobileStream(txt); if (gold) return gold;   // v0.20.2：gold.jaic.org の速報（携帯向けの形）
     return htmlToStream(new DOMParser().parseFromString(txt, 'text/html'));
   }
   function textOf(el) { var c = el.cloneNode(true); c.querySelectorAll('br').forEach(function (b) { b.replaceWith('\n'); }); return c.textContent; }

@@ -86,25 +86,102 @@
   }
   // Webページの中のリンク（PDFと、同じサイトの別ページ）を集める。相対URLは解決する
   function findLinks(html, base) {
-    var doc = new DOMParser().parseFromString(html, 'text/html'), seen = {}, out = [], bu;
+    var doc = new DOMParser().parseFromString(html, 'text/html'), seen = {}, out = [], bu, ctx = linkContext(doc);
     try { bu = new URL(base); } catch (e) { return out; }
     var b = doc.querySelector('base[href]'); var baseHref = base; if (b) { try { baseHref = new URL(b.getAttribute('href'), base).href; } catch (e) { } }
     Array.prototype.forEach.call(doc.querySelectorAll('a[href], area[href], frame[src], iframe[src]'), function (a) {
       var raw = a.getAttribute('href') || a.getAttribute('src') || ''; if (!raw || /^\s*(#|javascript:|mailto:|tel:)/i.test(raw)) return;
       var u; try { u = new URL(raw.trim(), baseHref); } catch (e) { return; }
       if (!/^https?:$/.test(u.protocol)) return;
-      u.hash = ''; var href = u.href; if (href === bu.href.replace(/#.*$/, '') || seen[href]) return;
+      u.hash = ''; var href = u.href; if (href === bu.href.replace(/#.*$/, '')) return;
+      if (seen[href]) { seen[href].n++; return; }
       var isPdf = /\.pdf$/i.test(u.pathname);
       var isPage = !isPdf && u.host === bu.host && /(\/|\.s?html?|\.php|\.aspx?|\/[^.\/]+)$/i.test(u.pathname) && !/\.(css|js|png|jpe?g|gif|svg|ico|zip|xlsx?|docx?|csv|txt|mp4)$/i.test(u.pathname);
       if (!isPdf && !isPage) return;
-      seen[href] = 1;
-      var label = (a.textContent || a.getAttribute('title') || '').replace(/\s+/g, ' ').trim();
+      var label = nk(a.textContent || a.getAttribute('title') || '');
+      // 「1」「1組 13:19」のように短いリンク名は、前にある見出し（種目）とラウンドの行を付けて読めるようにする
+      var cx = ctx.get(a); if (cx && (label.length <= 8 || /^[\d\s:組]+$/.test(label))) label = [cx.head, cx.line, label.replace(/\s*\d{1,2}:\d{2}\s*/g, ' ').trim()].filter(Boolean).join(' ');
       // 表の中のリンクは、行の見出し（左のセル）も付けておくと何のリンクか分かりやすい
       var tr = a.closest && a.closest('tr'); var rowh = '';
       if (tr) { var c0 = tr.querySelector('th,td'); if (c0 && !c0.contains(a)) rowh = c0.textContent.replace(/\s+/g, ' ').trim().slice(0, 40); }
-      out.push({ url: href, kind: isPdf ? 'pdf' : 'page', label: (rowh && rowh !== label ? rowh + '　' : '') + (label || decodeURIComponent(u.pathname.split('/').pop() || href)) });
+      var item = { url: href, kind: isPdf ? 'pdf' : 'page', n: 1, label: (rowh && rowh !== label && label.indexOf(rowh) < 0 ? rowh + '　' : '') + (label || decodeURIComponent(u.pathname.split('/').pop() || href)) };
+      seen[href] = item; out.push(item);
     });
+    out.forEach(function (x) { if (x.n > 1) x.label += ' など' + x.n + '件の一覧'; });
     return out.slice(0, 500);
+  }
+  function nk(t) { return String(t || '').normalize('NFKC').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim(); }
+  // リンクごとの文脈：直前の見出し（<a name>・h1〜h4）と、直前のリンクでない文字の行
+  function linkContext(doc) {
+    var m = new Map(), head = '', line = '', body = doc.body || doc.documentElement; if (!body) return m;
+    var tw = doc.createTreeWalker(body, 5 /* ELEMENT|TEXT */), n;
+    while ((n = tw.nextNode())) {
+      if (n.nodeType === 1) {
+        var tg = n.tagName;
+        if ((tg === 'A' && n.hasAttribute('name') && !n.hasAttribute('href')) || /^H[1-4]$/.test(tg)) { var h = nk(n.textContent); if (h && h.length < 60) { head = h; line = ''; } }
+        else if (tg === 'A' && n.hasAttribute('href')) m.set(n, { head: head, line: line });
+      } else {
+        var p = n.parentNode; if (p && p.closest && (p.closest('a') || p.closest('script,style'))) continue;
+        var t = nk(n.textContent); if (!t || /^[(（]?全\s*\d+組[)）]?$|^結果$/.test(t)) continue;
+        line = t.replace(/\s*\d{1,2}月\d{1,2}日.*$/, '').trim().slice(0, 30);
+      }
+    }
+    return m;
+  }
+
+  /* v0.20.2：大会の速報ページ（gold.jaic.org 型：kyougi.html → kyougi1..N.html → rel001.html…）を、同じフォルダの中だけたどって結果のページを全部集める。
+     ・一覧のページ（kyougi*.html）はたどるだけ、結果のページ（rel*.html）は取り込む。コンディション・競技者一覧・開始時刻順などは飛ばす。
+     ・行儀よく：同時に2つまで・1件ごとに少し待つ・合計 max 件まで。途中でやめられる（signal）。 */
+  var GOLD_IDX = /\/kyougi\d*\.html?$/i, GOLD_RES = /\/rel\d+\.html?$/i;
+  var SKIP_URL = /\/(cond|master|tt|index|record|kiroku)\w*\.html?$/i, SKIP_LAB = /コンディション|競技者一覧|開始時刻|気象|トップ|top|戻る|大会記録/i;
+  function isMeetPage(page, links) {
+    if (!page || page.kind !== 'html') return false;
+    var n = links.filter(function (l) { return GOLD_IDX.test(l.url) || GOLD_RES.test(l.url); }).length;
+    return n >= 2 || (/(^|\.)jaic\.org$/i.test(hostOf(page.url)) && GOLD_IDX.test(page.url));
+  }
+  function hostOf(u) { try { return new URL(u).hostname; } catch (e) { return ''; } }
+  function dirOf(u) { var x = new URL(u); x.hash = ''; x.search = ''; x.pathname = x.pathname.replace(/[^\/]*$/, ''); return x.href; }
+  var sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+  async function crawlMeet(page, o) {
+    o = o || {}; var max = o.max || 300, depth = o.depth || 3, wait = o.delay == null ? 120 : o.delay, conc = o.conc || 2;
+    var dir = dirOf(page.url), seen = {}, idx = [], res = [], failed = [], req = 0, gold = isMeetPage(page, findLinks(page.html, page.url));
+    seen[page.url.replace(/#.*$/, '')] = 1;
+    var within = function (l) { return l.kind === 'page' && l.url.indexOf(dir) === 0 && !SKIP_URL.test(l.url) && !SKIP_LAB.test(l.label); };
+    var abort = function () { if (o.signal && o.signal.aborted) { var e = new Error('中止しました'); e.name = 'AbortError'; throw e; } };
+    var level = [{ page: page, d: 0 }];
+    while (level.length) {
+      var next = [], todo = [];
+      level.forEach(function (x) {
+        findLinks(x.page.html, x.page.url).filter(within).forEach(function (l) {
+          if (seen[l.url]) return; seen[l.url] = 1;
+          var isRes = gold ? GOLD_RES.test(l.url) : true, isIdx = gold ? GOLD_IDX.test(l.url) : x.d + 1 < depth;
+          if (!isRes && !isIdx) return;
+          todo.push({ l: l, d: x.d + 1, isRes: isRes, isIdx: isIdx && x.d + 1 < depth });
+        });
+      });
+      // 一覧のページを先に取る（結果のページの名前・件数がわかる）
+      todo.sort(function (a, b) { return (b.isIdx && !b.isRes) - (a.isIdx && !a.isRes); });
+      var i = 0;
+      var worker = async function () {
+        while (i < todo.length) {
+          var t = todo[i++]; abort();
+          if (req >= max) { failed.push({ label: t.l.label, error: '件数の上限（' + max + '件）に達したので読みませんでした' }); continue; }
+          req++; o.onProgress && o.onProgress({ done: req, found: res.length, total: Math.min(max, req + (todo.length - i)), label: t.l.label });
+          try {
+            var r = await fetchUrl(t.l.url, { noRedirect: true, signal: o.signal, fetch: o.fetch });
+            if (r.kind !== 'html') continue;
+            if (t.isRes) res.push({ r: r, label: t.l.label });
+            if (t.isIdx) next.push({ page: r, d: t.d });
+          } catch (e) { if (e && e.name === 'AbortError') throw e; failed.push({ label: t.l.label, error: e.message }); }
+          if (wait) await sleep(wait);
+        }
+      };
+      var ws = []; for (var k = 0; k < conc; k++) ws.push(worker()); await Promise.all(ws);
+      level = next;
+    }
+    // 取り込む順は URL（rel001, rel002 …）の順にそろえる
+    res.sort(function (a, b) { return a.r.url < b.r.url ? -1 : a.r.url > b.r.url ? 1 : 0; });
+    return { results: res, failed: failed, requests: req, gold: gold };
   }
   function guessTarget(label, targets) {
     for (var i = 0; i < targets.length; i++) if (targets[i].re && targets[i].re.test(label)) return targets[i].k;
@@ -138,7 +215,7 @@
       busy = true; $('Go').disabled = true; ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
       st('読み込み中…（LANE NOTE の中継を通して取りに行っています）', 'busy');
       try {
-        var r = await fetchUrl(u, { signal: ctrl && ctrl.signal });
+        var r = await fetchUrl(u, { signal: ctrl && ctrl.signal, fetch: o.fetch });
         var k0 = multi ? $('Tgt').value : o.targets[0].k;
         if (r.kind === 'pdf') { st('✔ PDFを取ってきました：' + r.name, 'ok'); await deliver([{ r: r, k: k0 }], ctx); return; }
         var links = findLinks(r.html, r.url).filter(function (l) { return acceptHtml || l.kind === 'pdf'; });
@@ -156,7 +233,9 @@
       var box = $('Links'), k0 = multi ? $('Tgt').value : o.targets[0].k;
       var rows = (acceptHtml ? [{ url: page.url, kind: 'self', label: 'このページ自体（' + (page.title || page.name) + '）' }] : []).concat(links);
       var opt = function (sel) { return '<option value="">読み込まない</option>' + o.targets.map(function (t) { return '<option value="' + t.k + '"' + (t.k === sel ? ' selected' : '') + '>' + esc(t.label) + '</option>'; }).join(''); };
-      box.innerHTML = '<p class="small"><b>このページから ' + links.length + ' 件のリンクが見つかりました。</b>' + (multi ? 'それぞれ「どこに入れるか」を選んでください（名前から見当をつけてあります）。' : '読み込むものにチェックを入れてください。') + '</p>' +
+      var meet = acceptHtml && isMeetPage(page, links);
+      box.innerHTML = (meet ? '<div class="url-meet"><p><b>🏟 大会の速報ページのようです。</b>種目・組ごとの結果のページを全部たどって、まとめて取り込めます（数十〜数百ページ。少し時間がかかります）。</p><button type="button" class="btn" data-crawl>📥 この大会の結果をまとめて取り込む</button></div>' : '') +
+        '<p class="small"><b>このページから ' + links.length + ' 件のリンクが見つかりました。</b>' + (multi ? 'それぞれ「どこに入れるか」を選んでください（名前から見当をつけてあります）。' : '読み込むものにチェックを入れてください。') + '</p>' +
         (!multi && o.multiple ? '<div class="url-acts"><button type="button" class="btn sub" data-all="1">全部選ぶ</button><button type="button" class="btn sub" data-all="0">全部はずす</button><label class="small"><input type="checkbox" data-onlypdf> PDFだけ表示</label></div>' : '') +
         '<ul class="url-list">' + rows.map(function (l, i) {
           var tag = l.kind === 'pdf' ? '<span class="url-k pdf">PDF</span>' : l.kind === 'self' ? '<span class="url-k self">ページ</span>' : '<span class="url-k pg">ページ</span>';
@@ -165,9 +244,10 @@
           return '<li data-kind="' + l.kind + '"><label>' + ctl + ' ' + tag + ' <span class="url-t">' + esc(l.label) + '</span></label> <a href="' + esc(l.url) + '" target="_blank" rel="noopener noreferrer" class="small muted url-a">開く</a></li>';
         }).join('') + '</ul><div class="url-acts"><button type="button" class="btn" data-load>選んだものを読み込む</button><button type="button" class="btn sub" data-cancel>やめる</button></div>';
       box.hidden = false;
-      st('リンクを ' + links.length + ' 件見つけました。読み込むものを選んでください。', '');
+      st('', '');
       box.onclick = function (e) {
         var t = e.target;
+        if (t.hasAttribute('data-crawl')) { crawlAll(page, ctx); return; }
         if (t.hasAttribute('data-all')) { box.querySelectorAll('li:not([hidden]) input[data-i]').forEach(function (c) { c.checked = t.getAttribute('data-all') === '1'; }); }
         else if (t.hasAttribute('data-onlypdf')) { box.querySelectorAll('li').forEach(function (li) { li.hidden = t.checked && li.getAttribute('data-kind') !== 'pdf'; }); }
         else if (t.hasAttribute('data-cancel')) { box.hidden = true; box.innerHTML = ''; st('', ''); }
@@ -180,13 +260,33 @@
         }
       };
     }
+    async function crawlAll(page, ctx) {
+      if (busy) return; busy = true; $('Go').disabled = true;
+      ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      var box = $('Links'); box.innerHTML = '<div class="url-meet"><p class="small">結果のページを集めています。止めたいときは「やめる」を押してください（そこまでに集めた分は取り込みません）。</p><progress id="' + id + 'Prog" max="1" value="0" style="width:100%"></progress><button type="button" class="btn sub" data-stop>やめる</button></div>';
+      box.onclick = function (e) { if (e.target.hasAttribute('data-stop') && ctrl) ctrl.abort(); };
+      try {
+        var out = await crawlMeet(page, { signal: ctrl && ctrl.signal, fetch: o.fetch, delay: o.delay, onProgress: function (p) {
+          st('読み込み中…（' + p.done + '／約' + p.total + 'ページ・結果 ' + p.found + 'ページ）' + String(p.label || '').slice(0, 40), 'busy');
+          var pr = document.getElementById(id + 'Prog'); if (pr) { pr.max = p.total; pr.value = p.done; } } });
+        box.hidden = true; box.innerHTML = '';
+        if (!out.results.length) { st('✖ 結果のページが見つかりませんでした' + (out.failed.length ? '（読み込めなかったもの ' + out.failed.length + '件）' : ''), 'ng'); return; }
+        st('✔ 結果のページを ' + out.results.length + ' 件取ってきました（通信 ' + out.requests + ' 回）。' + (out.failed.length ? '　✖ 読み込めなかったもの ' + out.failed.length + '件：' + out.failed.slice(0, 3).map(function (f) { return f.label.slice(0, 20) + '：' + f.error; }).join('／') : ''), out.failed.length ? 'warn' : 'ok');
+        busy = false;   // 取り込み（onFiles）の間も次の読み込みを受け付けてよい
+        // 最初のページ（競技一覧）も渡す：大会名はそこにだけ書いてある
+        await deliver([{ r: page, k: o.targets[0].k }].concat(out.results.map(function (x) { return { r: x.r, k: o.targets[0].k }; })), ctx);
+      } catch (e) {
+        box.hidden = true; box.innerHTML = '';
+        st(e && e.name === 'AbortError' ? 'やめました（取り込んでいません）。' : '✖ ' + (e && e.message || e), e && e.name === 'AbortError' ? '' : 'ng');
+      } finally { busy = false; $('Go').disabled = false; }
+    }
     async function loadPicked(page, pick, ctx) {
       busy = true; $('Go').disabled = true; var got = [], ng = [];
       try {
         for (var i = 0; i < pick.length; i++) {
           st('読み込み中…（' + (i + 1) + '／' + pick.length + '）' + pick[i].l.label.slice(0, 40), 'busy');
           try {
-            var r = pick[i].l.kind === 'self' ? page : await fetchUrl(pick[i].l.url, { noRedirect: true });
+            var r = pick[i].l.kind === 'self' ? page : await fetchUrl(pick[i].l.url, { noRedirect: true, fetch: o.fetch });
             if (r.kind === 'html' && !acceptHtml) throw err('type');
             got.push({ r: r, k: pick[i].k });
           } catch (e) { if (e && e.name === 'AbortError') return; ng.push(pick[i].l.label.slice(0, 30) + '：' + e.message); }
@@ -206,7 +306,7 @@
     }
     return { go: go, offer: offer, setTarget: function (k) { if (multi) $('Tgt').value = k; } };
   }
-  var api = { PROXY: PROXY, MAX: MAX, MSG: MSG, isUrlOnly: isUrlOnly, normUrl: normUrl, sniff: sniff, decodeHtml: decodeHtml, fetchUrl: fetchUrl, toFile: toFile, findLinks: findLinks, guessTarget: guessTarget, fileName: fileName, mount: mount };
+  var api = { PROXY: PROXY, MAX: MAX, MSG: MSG, isUrlOnly: isUrlOnly, normUrl: normUrl, sniff: sniff, decodeHtml: decodeHtml, fetchUrl: fetchUrl, toFile: toFile, findLinks: findLinks, guessTarget: guessTarget, isMeetPage: isMeetPage, crawlMeet: crawlMeet, fileName: fileName, mount: mount };
   if (typeof module === 'object' && module.exports) module.exports = api;
   root.LaneUrl = api;
 })(typeof window !== 'undefined' ? window : globalThis);

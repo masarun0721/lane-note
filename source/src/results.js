@@ -12,6 +12,8 @@ var ResultParser = (function () {
 
   // 「11.76」「11.76 [11.758] -2.4」「22.42/+0.4」「5m20 +1.3」→ 記録と風に分ける（[ ] の中の1/1000秒は使わない）
   function cleanMark(s) {
+    var m0 = nk(s).trim().match(/^(\S+?)\s*[(（]([+\-±]?\d{1,2}\.\d)[)）]$/);   // v0.20.2「13.56(+0.8)」
+    if (m0) return { mark: m0[1], wind: m0[2] };
     s = nk(s).replace(/\[[^\]]*\]/g, ' ').replace(/[()（）]/g, '').trim();
     var m = s.match(/^(\S+?)\/([+\-±]?\d{1,2}\.\d)$/);
     if (m) return { mark: m[1], wind: m[2] };
@@ -306,6 +308,27 @@ var ResultParser = (function () {
     if (!info.headers) warns.unshift('結果の表（「順位」「氏名」「記録」の見出し）が見つかりませんでした。');
     if (info.skippedRelay) warns.push('リレーの表は、この版では読み取りません。');
     return { recs: mergeOverall(dedupe(recs)), warns: warns, meet: meet, info: info };
+  }
+  /* v0.20.2：gold.jaic.org の速報（携帯向けの形）「1位　(663)<br>　13.56<br>田中  一帆(小6)<br>清新JAC<br>」を、表の stream にして parseCells で読む。
+     この形でなければ null（ほかのHTMLは今までどおり）。リレーの塊（番号が無い）は飛ばす（リレーはこの版では読み取らない）。 */
+  function goldMobileStream(html) {
+    html = String(html || '');
+    if (!/(\d+位|[\u3000 ]{2})[\u3000 ]*\(\d+\)\s*<br>/i.test(html)) return null;
+    var txt = function (h) { return nk(h.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')).replace(/\s+/g, ' ').trim(); };
+    var out = [], tm = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+    var dm = html.match(/<!--\s*(20\d\d)\/(\d{1,2})\/(\d{1,2})/); if (dm) out.push({ type: 'text', v: dm[1] + '年' + +dm[2] + '月' + +dm[3] + '日' });
+    if (tm) out.push({ type: 'text', v: txt(tm[1]) });
+    var body = html.replace(/^[\s\S]*?<\/head>/i, '');
+    var wm = body.match(/風\s*[:：]\s*([+\-±]?\d+\.\d)/); if (wm) out.push({ type: 'text', v: '風:' + wm[1] });
+    out.push({ type: 'row', cells: ['順位', 'No.', '記録', '氏名', '所属'], th: true });
+    body.split(/<font\b[^>]*>/i).slice(1).forEach(function (blk) {
+      blk = blk.split(/<\/font>|<hr|<ul|<a\b/i)[0];
+      var L = blk.split(/<br\s*\/?>/i).map(txt);
+      while (L.length && !L[L.length - 1]) L.pop();
+      var m = (L[0] || '').match(/^(?:(\d+)\s*位)?\s*\((\d+)\)$/); if (!m || L.length < 4) return;
+      out.push({ type: 'row', cells: [m[1] || '', m[2], L[1], L[2], L[3]] });
+    });
+    return out;
   }
   // 貼り付けた文章 → stream（タブ区切りなら表の行、そうでなければ文章）
   function textToStream(txt) {
@@ -771,7 +794,7 @@ var ResultParser = (function () {
     if (!r.meet && r.date) r.meet = '大会名なし（' + r.date + '）';
     return { rec: r, errors: errs };
   }
-  return { parsePdf: parsePdf, parseCells: parseCells, parsePlain: parsePlain, textToStream: textToStream, normEvent: normEvent, markValue: markValue, windApplies: windApplies, windClass: windClass, windNum: windNum,
+  return { parsePdf: parsePdf, parseCells: parseCells, goldMobileStream: goldMobileStream, parsePlain: parsePlain, textToStream: textToStream, normEvent: normEvent, markValue: markValue, windApplies: windApplies, windClass: windClass, windNum: windNum,
     computeBests: computeBests, pbLookup: pbLookup, nameKey: nameKey, athleteKey: athleteKey, matchSchool: matchSchool, recId: recId, recIdLegacy: recIdLegacy, recIdV6: recIdV6, identityKey: identityKey, fullIdentity: fullIdentity, looseIdentity: looseIdentity, manualRecord: manualRecord, sanitizeRecord: sanitizeRecord, validDate: validDate, normManualWind: normManualWind, dedupe: dedupe, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
     guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText,
     eventCat: eventCat, divisionOf: divisionOf, divLabel: divLabel, eventKey: eventKey, eventKeyLabel: eventKeyLabel, shownWind: shownWind, hasMark: hasMark, sortAthletes: sortAthletes, kanaKey: kanaKey,

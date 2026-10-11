@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import {fileURLToPath} from 'node:url';
 import {JSDOM} from 'jsdom';
 import {IDBFactory} from 'fake-indexeddb';
+import {createRequire} from 'node:module';
 const here = path.dirname(fileURLToPath(import.meta.url)), SRC = path.join(here, '../src'), OUT = path.join(here, '../..');
 const src = f => fs.readFileSync(path.join(SRC, f), 'utf8');
 let pass = 0, fail = 0; const delay = (ms = 40) => new Promise(r => setTimeout(r, ms));
@@ -16,7 +17,7 @@ function fakeFetch(map, log) {
     log && log.push({ u, init });
     assert(u.startsWith(PROXY + '?url='), '中継を通っていない: ' + u);
     const target = decodeURIComponent(u.slice((PROXY + '?url=').length));
-    const r = map[target]; if (!r) return new Response('nf', { status: 404 });
+    const r = typeof map[target] === 'string' ? { body: map[target] } : map[target]; if (!r) return new Response('nf', { status: 404 });
     if (r.throw) throw new TypeError('Failed to fetch');
     return new Response(r.body, { status: r.status || 200, headers: { 'Content-Type': r.type || 'text/html' } });
   };
@@ -137,11 +138,68 @@ await check('PDFだけ受け付ける画面で、リンクのないWebページ�
   await ui.go('https://m.example/p.html'); assert.match(w.document.getElementById('cuSt').textContent, /PDFへのリンクが見つかりません/);
 });
 
+
+console.log('[v0.20.2] gold.jaic.org の速報（kyougi.html → kyougi1..N.html → rel*.html）');
+const G = 'https://gold.jaic.org/tokyo/2026r/1011kaku/';
+const head = t => '<!-- 2026/10/11 13:21:37 15 (Lsoku=0)-->\n<html lang="ja">\n<head>\n<meta http-equiv="Content-Type" content="text/html; charset=utf-8">\n<title>' + t + '</title></head>\n' + t + '<br>\n';
+const blk = (rank, bib, mark, name, team, c) => '<font color="#' + (c || '000080') + '">' + (rank ? rank + '位' : '　') + '　(' + bib + ')<br>　' + mark + '<br>' + name + '<br>' + team + '<br>\n</font>';
+const GOLD = {
+  [G + 'kyougi.html']: head('第1回架空区陸上競技選手権大会') + '<font color="#000000">第1回架空区陸上競技選手権大会</font><br>競技一覧<br><a href="kyougi1.html#KY00">男子中学1年 １００ｍ</a><br><a href="kyougi1.html#KY01">男子中学共通 砲丸投(5.000kg)</a><br><a href="kyougi2.html#KY02">男子中学共通 ４×１００ｍ</a><br><a href="cond.html">コンディション画面へ</a></body></html>',
+  [G + 'kyougi1.html']: head('第1回架空区陸上競技選手権大会') + '<a href="kyougi.html">競技先頭ページへ</a><br>\n<hr><a name="KY00">男子中学1年 １００ｍ</a><br>\nﾀｲﾑﾚｰｽ&nbsp;10月11日<br>\n(全 2組)<br>\n<a href="rel001.html">1組&nbsp;10:34</a>&nbsp;<font color="#E00000">結果</font><br>\n<a href="rel002.html">2組&nbsp;10:37</a>&nbsp;<font color="#E00000">結果</font><br>\nﾀｲﾑﾚｰｽ総合結果&nbsp;10月11日<br>\n<a href="rel010.html">&nbsp;10:38</a>&nbsp;<font color="#E00000">結果</font><br>\n<hr><a name="KY01">男子中学共通 砲丸投(5.000kg)</a><br>\n決勝&nbsp;10月11日<br>\n<a href="rel003.html">&nbsp;14:00</a>&nbsp;<font color="#E00000">結果</font><br><a href="kyougi2.html">次へ</a><a href="cond.html">コンディション画面へ</a>',
+  [G + 'kyougi2.html']: head('第1回架空区陸上競技選手権大会') + '<a name="KY02">男子中学共通 ４×１００ｍ</a><br>決勝<br><a href="rel004.html">&nbsp;15:00</a><br><a href="kyougi1.html">前へ</a>',
+  [G + 'rel001.html']: head('男子中学1年 １００ｍ ﾀｲﾑﾚｰｽ1組') + '全 2組<br>\n<hr>\n<center>風:-1.1<br></center>\n' + blk(1, 1079, '12.39', '架空  一郎(中1)', '架空十中') + blk(3, 123, '12.58', '佐山  架空(中1)', '本郷中', '008000') + blk('', 124, 'DNS ', '欠場  太郎(中1)', '本郷中', '000000') + '\n<hr>\n<a href="rel002.html#CONTENTS">次のレースへ</a><br><a href="kyougi.html">競技一覧画面へ</a>',
+  [G + 'rel002.html']: head('男子中学1年 １００ｍ ﾀｲﾑﾚｰｽ2組') + '<hr>\n<center>風:+0.5<br></center>\n' + blk(1, 200, '13.42', '宮本  架空(中1)', '本郷中') + '<hr><a href="rel001.html#CONTENTS">前</a>',
+  [G + 'rel010.html']: head('男子中学1年 １００ｍ ﾀｲﾑﾚｰｽ総合結果') + '<hr>\n' + blk(1, 1079, '12.39(-1.1)', '架空  一郎(中1)', '架空十中') + blk(2, 123, '12.58(-1.1)', '佐山  架空(中1)', '本郷中') + blk(3, 200, '13.42(+0.5)', '宮本  架空(中1)', '本郷中'),
+  [G + 'rel003.html']: head('男子中学共通 砲丸投(5.000kg) 決勝') + '<hr>\n' + blk(1, 155, '  9m54', '赤木  架空(中3)', '本郷中'),
+  [G + 'rel004.html']: head('男子中学共通 ４×１００ｍ 決勝') + '<hr>\n<font color="#000080">1位　　45.33<br>本郷中A<br>\n(1)財満  架空(中3)<br>\n</font>',
+  [G + 'cond.html']: head('コンディション') + '晴れ' };
+await check('結果の行（携帯向けの形）を表にして読む：順位・番号・記録・氏名(学年)・所属・風・DNS・「12.58(-1.1)」', () => {
+  const RP = createRequire(import.meta.url)('../src/results.js');
+  const st = [G + 'rel001.html', G + 'rel002.html', G + 'rel010.html', G + 'rel003.html'].flatMap(u => RP.goldMobileStream(GOLD[u]));
+  const res = RP.parseCells(st, {}); const H = [...res.recs].filter(r => r.team === '本郷中');
+  assert.equal(res.meet.date, '2026-10-11');
+  assert.deepEqual(H.map(r => [r.event, r.round, r.heat, r.rank, r.name, r.grade, r.mark, r.wind, r.overall || '']),
+    [['男子中学1年 100m', 'タイムレース', 1, 3, '佐山 架空', '中1', '12.58', '-1.1', 2], ['男子中学1年 100m', 'タイムレース', 1, '', '欠場 太郎', '中1', 'DNS', '', ''], ['男子中学1年 100m', 'タイムレース', 2, 1, '宮本 架空', '中1', '13.42', '+0.5', 3], ['男子中学共通 砲丸投(5.000kg)', '決勝', '', 1, '赤木 架空', '中3', '9m54', '', '']]);
+  assert.equal(RP.goldMobileStream('<html><table><tr><td>順位</td></tr></table></html>'), null, 'ほかのHTMLは今までどおり');
+});
+await check('リンク名：「1組 10:34」だけでなく種目・ラウンドを付ける', () => {
+  const ls = L.findLinks(GOLD[G + 'kyougi1.html'], G + 'kyougi1.html');
+  const lab = u => [...ls].find(l => l.url === G + u).label;
+  assert.equal(lab('rel001.html'), '男子中学1年 100m タイムレース 1組'); assert.equal(lab('rel010.html'), '男子中学1年 100m タイムレース総合結果'); assert.equal(lab('rel003.html'), '男子中学共通 砲丸投(5.000kg) 決勝');
+  const top = L.findLinks(GOLD[G + 'kyougi.html'], G + 'kyougi.html'); assert.match([...top].find(l => /kyougi1/.test(l.url)).label, /男子中学1年 100m など2件の一覧/);
+});
+await check('記録のページ：「この大会の結果をまとめて取り込む」→ 一覧をたどって rel*.html を全部取り、コンディションは飛ばし、本郷だけ・総合順位つきでプレビュー', async () => {
+  const log = [], w = await recW(GOLD, log), d = w.document;
+  d.getElementById('rbSchool').value = '本郷'; d.getElementById('rbSchool').dispatchEvent(new w.Event('input'));
+  d.getElementById('ruUrl').value = G + 'kyougi.html'; d.getElementById('ruGo').click(); await delay(150);
+  const btn = d.querySelector('#ruLinks [data-crawl]'); assert(btn, 'まとめて取り込むボタンが出ない: ' + d.getElementById('ruSt').textContent + d.getElementById('ruLinks').innerHTML.slice(0,300));
+  btn.click();
+  for (let i = 0; i < 80 && !/読み取りました|✖/.test(d.getElementById('rbStatus').textContent); i++) await delay(100);
+  const got = log.map(x => decodeURIComponent(x.u.split('?url=')[1]).replace(G, ''));
+  assert.deepEqual(got.slice(1).sort(), ['kyougi1.html', 'kyougi2.html', 'rel001.html', 'rel002.html', 'rel003.html', 'rel004.html', 'rel010.html'].sort(), '取ったページ: ' + got.join(','));
+  assert(!got.includes('cond.html')); assert.equal(new Set(got).size, got.length, '同じページを2回取った');
+  assert.match(d.getElementById('ruSt').textContent, /5 件/);
+  const rows = [...d.querySelectorAll('#rbBatches tr')].filter(tr => !tr.querySelector('th')).map(tr => tr.textContent);
+  assert.equal(rows.length, 4, rows.join('\n')); assert(rows.every(r => /本郷中/.test(r))); assert(rows.some(r => /総合2/.test(r)));
+  assert.match(d.getElementById('rbBatches').innerHTML, /value="第1回架空区陸上競技選手権大会"/, [...d.querySelectorAll('#rbBatches input')].map(i => i.value).join('/'));
+});
+await check('まとめて取り込むは「やめる」で止まり、何も取り込まない・上限を超えたら読まない', async () => {
+  const many = Object.assign({}, GOLD); let html = head('架空大会') + '<a name="KY00">男子 100m</a><br>決勝<br>'; for (let i = 1; i <= 30; i++) { html += '<a href="rel' + String(100 + i) + '.html">' + i + '組</a><br>'; many[G + 'rel' + (100 + i) + '.html'] = GOLD[G + 'rel002.html']; }
+  many[G + 'kyougi1.html'] = html;
+  const w = await recW(many), d = w.document;
+  d.getElementById('ruUrl').value = G + 'kyougi.html'; d.getElementById('ruGo').click(); await delay(150);
+  d.querySelector('#ruLinks [data-crawl]').click(); await delay(400);
+  d.querySelector('#ruLinks [data-stop]').click(); await delay(400);
+  assert.match(d.getElementById('ruSt').textContent, /やめました/); assert.equal(d.getElementById('rbBatches').children.length, 0);
+  const out = await L.crawlMeet({ url: G + 'kyougi.html', kind: 'html', html: many[G + 'kyougi.html'] }, { fetch: fakeFetch(many), delay: 0, max: 10 });
+  assert.equal(out.requests, 10); assert(out.failed.some(f => /上限/.test(f.error)));
+});
+
 console.log('[v0.20-4] ビルド結果');
 await check('3ページに URL 欄・「今はまだ対応していません」は消えた・データの取り扱いに中継の説明・版 v0.20／記録 v0.10.0・worker/worker.js', () => {
   const I = fs.readFileSync(path.join(OUT, 'index.html'), 'utf8'), R = fs.readFileSync(path.join(OUT, 'records.html'), 'utf8'), C = fs.readFileSync(path.join(OUT, 'check.html'), 'utf8'), G = fs.readFileSync(path.join(OUT, 'guide.html'), 'utf8');
   for (const [h, id] of [[I, 'urlLoad'], [R, 'rbUrlLoad'], [C, 'ckUrlLoad']]) { assert(h.includes('id="' + id + '"')); assert(h.includes('LaneUrl.mount')); assert(!/今はまだURLからの読み込みには対応していません/.test(h)); assert(h.includes(PROXY)); }
-  assert.match(G, /Cloudflare/); assert.match(G, /保存しません/); assert.match(I, /v0\.20/); assert.match(R, /v0\.10\.0/);
+  assert.match(G, /Cloudflare/); assert.match(G, /保存しません/); assert.match(I, /v0\.20/); assert.match(R, /v0\.10\.\d/);
   const wk = fs.readFileSync(path.join(OUT, 'worker/worker.js'), 'utf8'); assert.match(wk, /ALLOWED_ORIGINS = \["https:\/\/masarun0721\.github\.io"\]/);
 });
 console.log(`${pass} passed, ${fail} failed`);
