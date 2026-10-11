@@ -266,6 +266,13 @@ footer a{color:var(--navy)}
   td.t{font-size:15px}
 }
 }
+.outgrp{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center}.outgrp>b{font-size:13px}
+@media (max-width:600px){.outgrp{flex:1 1 100%}.outgrp>b{flex:1 1 100%}.toolbar .outgrp .btn{flex:1 1 30%;padding:9px 6px;font-size:13.5px}}
+#docView{position:fixed;inset:0;z-index:1000;background:#e9edf3;display:flex;flex-direction:column}#docView[hidden]{display:none}
+.docbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 10px;background:#1f3a68;color:#fff}.docbar b{flex:1 1 auto}.docbar .btn{min-height:44px}
+#docFrame{flex:1 1 auto;width:100%;border:0;background:#fff}
+#pdfHint{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:1100;background:#ffe9a8;color:#3a2c00;font-weight:700;padding:10px 14px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.25);max-width:92vw}
+@media print{#docView,#pdfHint{display:none!important}}
 #printTime,#recSheet{display:none}
 @media print{
   @page{size:A4 portrait;margin:9mm 9mm 13mm 9mm;
@@ -398,14 +405,6 @@ footer a{color:var(--navy)}
 .changelog .cl-h{font-size:13px;color:#6b778c}.changelog .cl-h b{color:#1f3a68;font-size:14px;margin-right:6px}
 .changelog .cl-b{font-size:13.5px;line-height:1.6}
 .pv-forget{display:block;margin:10px auto 0;background:none;border:1px solid #e3b4ae;color:#b3261e;border-radius:10px;padding:8px 14px;font-size:13px}
-@media screen{
-  .aff{margin:14px 0 4px;max-width:520px}
-  .aff-card{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border:1px solid var(--line,#ddd);border-radius:12px;background:#fff;color:var(--navy,#14213d);font-weight:700;font-size:14px;text-decoration:none;box-shadow:0 1px 2px rgba(0,0,0,.05)}
-  .aff-card:hover,.aff-card:focus-visible{border-color:var(--track,#c8553d);box-shadow:0 2px 8px rgba(0,0,0,.08)}
-  .aff-go{color:var(--muted,#888);font-weight:400}
-  .aff-disc{margin:4px 2px 0;font-size:11px;line-height:1.5;color:var(--muted,#777)}
-}
-@media print{.aff{display:none!important}}
 @media screen{
   .mcards{display:none}
   .mc-g{background:#fff;border:1px solid var(--line);border-radius:14px;margin:10px 0;overflow:hidden;box-shadow:0 1px 2px rgba(20,33,61,.05)}
@@ -621,7 +620,6 @@ __CHANGELOG__
       <li><b>選手の個人ページ</b>（v0.16）：「記録」ページで作るリンクです。その選手1人分の記録（種目ごとの自己ベスト・最近の記録・グラフの点・記録なしの大会）と名前・学校・学年だけを入れます（ほかの選手は入れません）。ログイン中は上と同じく Firebase の shares に保存し、作ってから119日まで見られます（止められます）。ログインなしは長いリンクの「#」より後ろに入ります。作った時点のコピーなので、あとで記録が増えても自動では変わりません。</li>
       <li><b>体調メモ</b>（v0.16）：選手のページ（予定・個人ページ）で書く体調・睡眠時間・ひとことメモは、<b>その選手のスマホのブラウザにだけ保存し、どこにも送りません。先生にも見えません</b>（「この日のメモを削除」「体調メモを全部削除」で消せます）。</li>
       <li><b>不具合・要望を送る</b>（v0.13・v0.14からGoogleでのログインが必要）：フォームから送った内容は LANE NOTE の Firebase（Google）の feedback に保存し、作成者だけが確認します（送った人を含め、ほかの人は読めません）。送るのは 種類・内容・連絡先（書いたときだけ）・ページ名・版・ブラウザの種類・画面の大きさ・開いていたタブとURLのパス（「#」「?」より後ろは送りません）・ログインしているアカウントのID です（メールアドレスは送りません）。PDFの中身・選手名・記録は自動では送りません（内容に書いたものは送られます）。</li>
-      <li>「ナンバーカード」タブのAmazonへのリンクは、押したときだけAmazonのページを開きます。自動で何かを送ったり、Amazonから画像などを読み込んだりはしません。</li>
     </ul></details>
 </section>
 
@@ -666,8 +664,8 @@ __CHANGELOG__
   <div id="summary" class="cards"></div>
   <div class="toolbar">
     <button class="btn" id="btnXlsx">📊 Excelで保存</button>
-    <button class="btn sub" id="btnPrint">🖨 時間順を印刷（A4）</button>
-    <button class="btn sub" id="btnRec">📝 記録用紙を印刷</button>
+    <span class="outgrp" role="group" aria-label="時間順（出場一覧）の出力"><b>🕒 時間順（A4）</b><button class="btn sub" id="btnPrintView" type="button">👀 画面で見る</button><button class="btn sub" id="btnPrintPdf" type="button">📄 PDF作成</button><button class="btn sub" id="btnPrint" type="button">🖨 印刷</button></span>
+    <span class="outgrp" role="group" aria-label="記録用紙の出力"><b>📝 記録用紙（A4）</b><button class="btn sub" id="btnRecView" type="button">👀 画面で見る</button><button class="btn sub" id="btnRecPdf" type="button">📄 PDF作成</button><button class="btn sub" id="btnRec" type="button">🖨 印刷</button></span>
     <button class="btn sub" id="btnRecXlsx">記録用紙をExcelで保存</button>
     <button class="btn sub" id="btnShare">📱 スマホで見る／共有</button>
     <button class="btn sub" id="btnPlayers">🏃 選手用リンクを作る</button>
@@ -700,22 +698,20 @@ __CHANGELOG__
     <p class="small muted">ボタンを押すと、同梱B5テンプレートの数字だけを差し替えたWordファイルができます（B5用紙・実際のサイズで印刷）。印刷はWordから行ってください。ゼッケンは1ページ1枚、腰番は1ページに上下2枚（半分に切る）です。</p>
     <div id="cardsArea"></div>
     <div id="dlMsg"></div>
-    <aside class="aff noprint" aria-label="おすすめ用品">
-      <a class="aff-card" href="https://link.amazon/B0bVVvOTW" target="_blank" rel="noopener sponsored">🏷 おすすめゼッケン布（Amazon）<span class="aff-go" aria-hidden="true">↗</span></a>
-      <p class="aff-disc">Amazonのアソシエイトとして、LANE NOTEは適格販売により収入を得ています。</p>
-    </aside>
   </div>
   <div class="tabpane" id="paneFee" hidden>
     <div id="feeStatus" class="rules"></div>
     <table class="fee" style="width:auto;margin-top:8px"><thead><tr><th>区分</th><th>個人（1種目）</th><th>リレー（1チーム）</th></tr></thead><tbody id="feePrices"></tbody></table>
     <div id="feeArea"></div>
-    <label class="small"><input type="checkbox" id="feeInPrint" class="setting"> 「時間順を印刷」の見出しに参加料の合計を入れる</label>
+    <label class="small"><input type="checkbox" id="feeInPrint" class="setting"> 「時間順」の印刷・PDFの見出しに参加料の合計を入れる</label>
   </div>
   <div class="tabpane" id="paneCheck" hidden>
     <p class="small muted">読み取りの問題（⚠）を先に、そのあと各種目が何時に当たったか（p.＝元のスタートリスト／プログラムのページ）を並べています。おかしいところがあれば元のPDFを確認してください。</p>
     <ul id="checkList"></ul>
   </div>
 </section>
+<div id="docView" class="noprint" hidden role="dialog" aria-label="画面で見る"><div class="docbar"><b id="docTitle"></b><button class="btn" type="button" id="docPdf">📄 PDF作成</button><button class="btn" type="button" id="docPrint">🖨 印刷</button><button class="btn sub" type="button" id="docClose">✕ 閉じる</button></div><iframe id="docFrame" title="印刷の見た目"></iframe></div>
+<div id="pdfHint" class="noprint" role="status" hidden></div>
 <div id="printTime" class="psheet"></div>
 <div id="recSheet" class="psheet"></div>
 </main>
@@ -723,7 +719,6 @@ __CHANGELOG__
   <ul>
     <li><b>LANE NOTE（レーンノート）試作版</b>　版：<span class="appver"></span>（__BUILD_DATE__ 作成）／ Presented by Sakata</li>
     <li>利用条件：<span class="draft">【案・作者確認中】校内での利用は自由。再配布・改変版の配布は作者に相談してください。</span></li>
-    <li>「ナンバーカード」タブの「おすすめゼッケン布（Amazon）」：Amazonのアソシエイトとして、LANE NOTEは適格販売により収入を得ています。リンクは押したときだけ開き、広告用のスクリプトや画像は読み込みません。</li>
     <li>大会公式資料（スタートリスト・タイムテーブル・競技注意事項・要項）を優先してください。本ツールの表示と違うときは公式資料が正しいものとします。</li>
     <li>使っている部品（外部CDNから読み込み。プログラム部品はハッシュで確認し、確認できないときは読み込まない。pdf.jsの文字対応表・標準フォントのデータは確認の対象外）：pdf.js 4.10.38（Apache-2.0, Mozilla）／ JSZip 3.10.1（MIT）／ SheetJS Community Edition 0.20.3（Apache-2.0）。ハッシュ確認なし：Firebase JS SDK 10.14.1（Apache-2.0, Google・ログイン・短いリンク・不具合の送信）。同梱：QR Code Generator（Kazuhiko Arase, MIT。QRコードは株式会社デンソーウェーブの登録商標）</li>
     <li>Wordのナンバーカードは「HGP創英角ｺﾞｼｯｸUB」「ＭＳ ゴシック」を使います。フォントは同梱していません（各パソコンに入っているものを使います。無い場合は別のフォントで表示されます）。</li>

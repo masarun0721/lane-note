@@ -338,6 +338,24 @@
     window.print();
     setTimeout(done, 1000);
   }
+  // v0.17：出力は3つに分ける（👀 画面で見る＝印刷ダイアログなし／📄 PDF作成＝案内を出して印刷／🖨 印刷）
+  var PDF_HINT = '保存先で『PDFに保存』を選んでください', DOCKIND = 'time', hintTimer = 0;
+  function pdfHint(on) { var h = $('pdfHint'); h.textContent = on ? '📄 ' + PDF_HINT : ''; h.hidden = !on; clearTimeout(hintTimer); if (on) hintTimer = setTimeout(function () { h.hidden = true; }, 10000); }
+  function docHtml(kind) {
+    var css = Array.prototype.map.call(document.querySelectorAll('style'), function (s) { return s.textContent; }).join('\n').replace(/@media\s+print\s*\{/g, '@media all{');
+    return '<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>' + css + '\nbody{padding:6mm;background:#fff}#docView,#pdfHint{display:none!important}</style></head><body class="' + (kind === 'rec' ? 'print-rec' : '') + '"><main>' + $('printTime').outerHTML + $('recSheet').outerHTML + '</main></body></html>';
+  }
+  function outDoc(kind, act) {
+    if (kind === 'rec' && act === 'print') { pdfHint(false); printRec(); return; }
+    refreshPrint();
+    if (!state.rows.length) { alert('学校を選んで結果を出してから出力してください。'); return; }
+    if (kind === 'rec') buildRecSheet();
+    DOCKIND = kind;
+    if (act === 'view') { pdfHint(false); $('docTitle').textContent = kind === 'rec' ? '📝 記録用紙' : '🕒 出場一覧（時間順）'; $('docFrame').srcdoc = docHtml(kind); $('docView').hidden = false; return; }
+    pdfHint(act === 'pdf');
+    var go = function () { if (kind === 'rec') printRec(); else window.print(); };
+    if (act === 'pdf') setTimeout(go, 400); else go();
+  }
   function recAoa() {
     var h = recHead();
     var pg = null;
@@ -849,7 +867,14 @@
     RULES.forEach(function (r) { r.ids.forEach(function (id) { $(id).addEventListener('input', function () { ruleState[r.k] = 'man'; renderRuleMarks(); }); $(id).addEventListener('change', function () { ruleState[r.k] = 'man'; renderRuleMarks(); }); }); });
     document.addEventListener('click', function (e) { var el = e.target.closest && e.target.closest('label .rs[data-rule]'); if (el) { e.preventDefault(); var k = el.dataset.rule, src = $('ruleSrc'); src.hidden = false; src.innerHTML = '<b>' + markOf(k) + '</b> ' + esc(ruleTitle(k)); } });
     renderRuleMarks();
-    $('btnPrint').addEventListener('click', function () { refreshPrint(); if (!state.rows.length) { alert('学校を選んで結果を出してから印刷してください。'); return; } window.print(); });
+    $('btnPrint').addEventListener('click', function () { outDoc('time', 'print'); });
+    $('btnPrintView').addEventListener('click', function () { outDoc('time', 'view'); });
+    $('btnPrintPdf').addEventListener('click', function () { outDoc('time', 'pdf'); });
+    $('btnRecView').addEventListener('click', function () { outDoc('rec', 'view'); });
+    $('btnRecPdf').addEventListener('click', function () { outDoc('rec', 'pdf'); });
+    $('docPdf').addEventListener('click', function () { outDoc(DOCKIND, 'pdf'); });
+    $('docPrint').addEventListener('click', function () { outDoc(DOCKIND, 'print'); });
+    $('docClose').addEventListener('click', function () { $('docView').hidden = true; $('docFrame').srcdoc = ''; });
     $('daySel').addEventListener('change', function () { state.day = $('daySel').value; if (!$('meetDate').dataset.manual) $('meetDate').value = state.day ? dayLabel(state.day) : (state.date ? state.date.label : ''); renderDateMark(); render(); });
     window.addEventListener('beforeprint', function () { refreshPrint(); if (document.body.classList.contains('print-rec')) { try { buildRecSheet(); } catch (e) { } } });
     $('meetDate').addEventListener('input', refreshPrint);

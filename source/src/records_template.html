@@ -158,6 +158,7 @@ body.ath-open #rbLegend{display:none}
 .rb-manual .edit-banner{background:#e4572e;color:#fff;border-radius:8px;padding:6px 10px;font-size:13px;font-weight:700;margin:6px 0}
 .url-note{font-size:12px;color:#7a5a00;background:#fff7dc;border:1px solid #f0d58a;border-radius:8px;padding:5px 9px;margin:6px 0}
 .rb-guest{border:2px solid #e4572e;background:#fff8f4;border-radius:12px;padding:10px 12px;margin:10px 0}
+label.btn,.filebtn{display:inline-flex;align-items:center;justify-content:center;text-align:center;box-sizing:border-box;vertical-align:middle}
 .rb-guest .btn{margin:4px 6px 0 0;white-space:normal;max-width:100%;text-align:center}
 .danger-t{color:#b3261e!important;border-color:#e3b4ae!important}
 .c-ops{white-space:nowrap}.c-ops button{font-size:12px;padding:3px 8px;min-height:30px;margin:0 2px;border-radius:8px;border:1px solid #c9d2e0;background:#fff;cursor:pointer}
@@ -167,6 +168,39 @@ tr.rc.editing td{background:#fff3ec!important}
 @media (max-width:600px){
   #rbView .rbt tr.rc td.c-ops{order:11;flex:0 0 100%;display:flex!important;gap:8px;margin-top:4px}
   #rbView .rbt tr.rc td.c-ops button{flex:1;min-height:40px;font-size:13px}
+}
+
+/* v0.9.0：PDFにまとめる（印刷レイアウト） */
+#rbPrint{position:fixed;inset:0;z-index:1000;background:#e9edf3;overflow:auto;-webkit-overflow-scrolling:touch}
+#rbPrint[hidden]{display:none}
+.lp-bar{position:sticky;top:0;z-index:2;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px;background:#1f3a68;color:#fff}
+.lp-bar .btn{min-height:44px}
+#rbPrintBody{padding:10px}
+.lp-page{background:#fff;color:#111;max-width:190mm;margin:0 auto 14px;padding:10mm;box-shadow:0 1px 4px rgba(0,0,0,.15);font-size:12px;display:flex;flex-direction:column}
+.lp-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;border-bottom:2px solid #1f3a68;padding-bottom:4px;margin-bottom:8px}
+.lp-title{font-size:16px}.lp-school,.lp-date{font-size:11px;color:#444}
+.lp-f{margin-top:auto;padding-top:8px;border-top:1px solid #ccc;font-size:10px;color:#666;text-align:right}
+.lp-name b{font-size:20px;margin-right:8px}.lp-info{color:#444;margin-top:2px}
+.lp-h2{font-size:13px;font-weight:700;margin:10px 0 4px;color:#1f3a68;border-left:4px solid #1f3a68;padding-left:6px}.lp-h3{font-size:12.5px;font-weight:700;margin:8px 0 3px}
+.lp-t{width:100%;border-collapse:collapse;margin-bottom:4px}.lp-t th,.lp-t td{border:1px solid #bbb;padding:2px 4px;text-align:left;font-size:11px}
+.lp-t th{background:#eef2f8}.lp-mk{font-weight:700;font-variant-numeric:tabular-nums}.lp-pb td{background:#fff3d6}
+#rbPrint .lp-t th,#rbPrint .lp-t td{color:#111!important;text-decoration:none!important;border:1px solid #bbb!important;font-size:11px!important;line-height:1.35;white-space:normal;position:static!important}
+#rbPrint .lp-t th{background:#eef2f8!important;font-weight:700!important}#rbPrint .lp-t td{background:#fff;font-weight:400}#rbPrint .lp-t td.lp-mk{font-weight:700}#rbPrint .lp-t tr.lp-pb td{background:#fff3d6!important}
+#rbPrint .lp-info{font-size:12px!important;font-weight:400!important;color:#444!important;line-height:1.4}#rbPrint .lp-name b{font-size:20px}
+.lp-ev{break-inside:avoid}.lp-chart svg{width:100%;height:70px}.lp-cond{color:#444;margin:0 0 6px}
+.lp-grp{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 8px 4px 0}.lp-grp .lp-lb{font-size:12.5px;font-weight:700;color:var(--navy,#1f3a68)}.lp-grp .btn{min-height:40px}
+#rbPrintHint{background:#ffe9a8;color:#3a2c00;padding:6px 10px;border-radius:6px;font-weight:700}
+.lp-pick{background:#fff;max-width:600px;margin:0 auto;padding:12px;border-radius:10px}
+.lp-pick .lp-ops{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}.lp-pick .lp-ops .btn{min-height:44px}
+.lp-pick ul{list-style:none;margin:0;padding:0}.lp-pick li label{display:flex;gap:10px;align-items:center;min-height:44px;border-bottom:1px solid #e3e7ee;font-size:15px}
+.lp-pick li input{width:22px;height:22px}.lp-pick .gr{color:#667;font-size:13px;margin-left:auto}
+@media print{
+  @page{size:A4;margin:10mm}
+  body.printing>*:not(#rbPrint){display:none!important}
+  body.printing #rbPrint{position:static;overflow:visible;background:#fff}
+  .lp-bar,.lp-pick{display:none!important}#rbPrintBody{padding:0}
+  .lp-page{box-shadow:none;margin:0;padding:0;max-width:none;min-height:auto;break-after:page;page-break-after:always}
+  .lp-page:last-child{break-after:auto;page-break-after:auto}
 }
 </style>
 </head>
@@ -273,7 +307,7 @@ tr.rc.editing td{background:#fff3ec!important}
   <h2><span class="no">3</span>データの持ち運び・消去</h2>
   <div class="rb-row">
     <button class="btn sub" id="rbExport" type="button">💾 ファイルに書き出す（JSON）</button>
-    <label class="btn sub" style="display:inline-block">📂 ファイルから読み込む<input type="file" id="rbImport" accept=".json,application/json" hidden></label>
+    <label class="btn sub filebtn">📂 ファイルから読み込む<input type="file" id="rbImport" accept=".json,application/json" hidden></label>
     <button class="btn sub" id="rbXlsx" type="button">📊 Excelに書き出す</button>
     <button class="btn danger" id="rbClear" type="button">🗑 記録を全部消す</button>
   </div>
@@ -316,8 +350,12 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
 <script>
 var SHARE_BASE = "__SHARE_BASE__";
 </script>
+<div id="rbPrint" hidden role="dialog" aria-label="PDFにまとめる"><div class="lp-bar"><button class="btn" type="button" id="rbPrintPdf">📄 PDF作成</button><button class="btn" type="button" id="rbPrintGo">🖨 印刷</button><button class="btn sub" type="button" id="rbPrintClose">✕ 閉じる</button><span class="small" id="rbPrintHint" role="status" hidden></span></div><div id="rbPrintBody"></div></div>
 <script>
 __PERSONAL__
+</script>
+<script>
+__PRINT__
 </script>
 <script>
 __RECAPP__

@@ -882,6 +882,7 @@
       render(); return;
     }
     var pl = e.target.closest('[data-pplink]'); if (pl) { $('rbPPBox').open = true; makePPLinks([pl.getAttribute('data-pplink')]); $('rbPPBox').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+    var pb = e.target.closest('[data-print]'); if (pb) { startPrint(pb.getAttribute('data-print'), pb.getAttribute('data-key'), pb.getAttribute('data-act') || 'view'); return; }
     var go = e.target.closest('[data-go]'); if (go) { setTab(go.getAttribute('data-go')); render(); return; }
     var t = e.target.closest('th[data-sort]'); if (!t) return; var k = t.getAttribute('data-sort'), s = sort[view];
     sort[view] = s && s.k === k ? { k: k, d: -s.d } : { k: k, d: 1 }; render();
@@ -951,6 +952,7 @@
     var sw = order.length > 1 ? '<div class="evsw" role="tablist" aria-label="種目の切り替え"><button type="button" data-athev=""' + (athSel.ev ? '' : ' class="on" aria-selected="true"') + '>すべて</button>' + order.map(function (e) { return '<button type="button" data-athev="' + esc(e.event) + '"' + (athSel.ev === e.event ? ' class="on" aria-selected="true"' : '') + '>' + esc(e.eventLabel) + '</button>'; }).join('') + '</div>' : '';
     var shown = order.length > 1 && !athSel.ev ? null : (athSel.ev ? [byKey[athSel.ev]] : order);
     var summary = shown ? '' : '<div class="card"><div class="card-h"><b>種目ごとの自己ベスト</b><span class="small muted">押すとグラフと記録</span></div><ul class="evsum">' + order.map(function (e) { var b = e.best || e.ref; return '<li><button type="button" class="evn" data-athev="' + esc(e.event) + '">' + esc(e.eventLabel) + '</button><b class="lmk">' + esc(b ? b.mark : '—') + (e.best ? '' : (b ? windTag(b) : '')) + '</b><span class="sub">' + (b ? (R.shownWind(b) ? '風' + esc(b.wind) + '・' : '') + esc(b.date) + ' ' + esc(b.meet) + ' ' + weatherTag(b.date + '|' + b.meet) : '') + '・' + e.count + '件</span></li>'; }).join('') + '</ul></div>';
+    back += ppBtns('ath', key, '個人表');
     return back + '<div class="card ath-h"><b class="nm">' + esc(pf.name) + '</b>' + '<button class="btn sub" type="button" data-pplink="' + esc(key) + '" style="float:right">📱 個人ページのリンク</button>' + (pf.kana ? '<span class="small muted">' + esc(pf.kana) + '</span>' : '') + '<div class="small muted">' + esc(((mineRows.filter(function (r) { return R.rawDivisionOf(r); }).sort(function (x, y) { return cmp(x.date, y.date); }).pop()) || pf).team) + (pf.grade ? '・' + esc(pf.grade) : '') + (R.divisionOf(pf) ? '・' + R.divLabel(R.divisionOf(pf)) : '') + '・' + pf.events.length + '種目・' + pf.count + '件</div></div>' + sw + summary +
       (shown || []).map(function (e) {
         var b = e.best;
@@ -980,7 +982,7 @@
     var rk = R.ranking(rows, opt), evs = evOrder(Object.keys(rk), rows);
     if (evs.length && evs.indexOf(rankOpt.ev) < 0) rankOpt.ev = evs[0];
     var ctl = '<div class="rb-row ropt"><label>期間 <select data-ropt="season"><option value="now"' + (rankOpt.season === 'now' ? ' selected' : '') + '>今シーズン（' + R.seasonLabel(ns) + '）</option><option value="all"' + (rankOpt.season === 'all' ? ' selected' : '') + '>全期間</option></select></label>' +
-      '<label>学年 <select data-ropt="grade">' + [['', '全学年'], ['1', '1年'], ['2', '2年'], ['3', '3年']].map(function (o) { return '<option value="' + o[0] + '"' + (rankOpt.grade === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></label>' + (evs.length ? evSelect('ropt', evs, rankOpt.ev, rows) : '') + '</div>';
+      '<label>学年 <select data-ropt="grade">' + [['', '全学年'], ['1', '1年'], ['2', '2年'], ['3', '3年']].map(function (o) { return '<option value="' + o[0] + '"' + (rankOpt.grade === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></label>' + (evs.length ? evSelect('ropt', evs, rankOpt.ev, rows) : '') + (evs.length ? ppBtns('rank', '', 'この種目') + ppBtns('rank-all', '', '全種目') : '') + '</div>';
     if (!evs.length) return ctl + '<p class="muted small">この条件の公認記録がありません。期間や学年を変えてみてください。</p>';
     return ctl + [rankOpt.ev].map(function (ev) {
       return '<div class="card"><div class="card-h"><b>' + esc(evLabel(rows, ev)) + '</b><span class="small muted">' + rk[ev].length + '人</span></div><ol class="rank">' + rk[ev].map(function (x) {
@@ -992,12 +994,72 @@
     var at = R.allTimeTop(rows, 10), evs = evOrder(Object.keys(at), rows);
     if (!evs.length) return '<p class="muted small">公認記録がまだありません。</p>';
     if (evs.indexOf(histOpt.ev) < 0) histOpt.ev = evs[0];
-    return '<div class="rb-row ropt">' + evSelect('hopt', evs, histOpt.ev, rows) + '</div><p class="small muted">卒業生も含めた歴代の上位10人（ひとり1記録・公認のみ）です。</p>' + [histOpt.ev].map(function (ev) {
+    return '<div class="rb-row ropt">' + evSelect('hopt', evs, histOpt.ev, rows) + ppBtns('hist', '', 'この種目') + ppBtns('hist-all', '', '全種目') + '</div><p class="small muted">卒業生も含めた歴代の上位10人（ひとり1記録・公認のみ）です。</p>' + [histOpt.ev].map(function (ev) {
       return '<div class="card"><div class="card-h"><b>' + esc(evLabel(rows, ev)) + '</b><span class="small muted">歴代 ' + at[ev].length + '人</span></div><ol class="rank">' + at[ev].map(function (x) {
         return '<li><span class="no n' + x.rank + '">' + x.rank + '</span>' + athLink(x.key, x.name) + '<span class="gr">' + esc(R.seasonLabel(x.season)) + '</span><b class="lmk">' + esc(x.best.mark) + '</b><span class="sub">' + (R.shownWind(x.best) ? '風' + esc(x.best.wind) + '・' : '') + esc(x.best.date) + ' ' + esc(x.best.meet) + '</span></li>';
       }).join('') + '</ol></div>';
     }).join('');
   }
+  // v0.9.0：PDFにまとめる（印刷用の画面を重ねて出し、ブラウザの印刷→「PDFに保存」）
+  // v0.9.0：出力は3つのボタンに分ける（👀 画面で見る／📄 PDF作成／🖨 印刷）
+  function ppBtns(kind, key, label) {
+    var a = ' type="button" data-print="' + kind + '"' + (key ? ' data-key="' + esc(key) + '"' : '');
+    return '<span class="lp-grp" role="group" aria-label="' + esc(label) + 'の出力"><span class="lp-lb">' + esc(label) + '</span><button class="btn sub lp-btn"' + a + ' data-act="view">👀 画面で見る</button><button class="btn sub lp-btn"' + a + ' data-act="pdf">📄 PDF作成</button><button class="btn sub lp-btn"' + a + ' data-act="print">🖨 印刷</button></span>';
+  }
+  var PDF_HINT = '保存先で『PDFに保存』を選んでください';
+  function doPrint(pdf) {
+    var h = $('rbPrintHint'); h.textContent = pdf ? '📄 ' + PDF_HINT : ''; h.hidden = !pdf;
+    setTimeout(function () { window.print(); }, pdf ? 400 : 0);
+  }
+  function printMeta(extra) {
+    var o = { school: MODE.personal ? (MODE.team || MODE.name || '') : school(), date: LanePrint.today(), nog: NOG, spark: function (e) { return spark(e.allPoints, e.lower, false, e.noMarks, true); } };
+    for (var k in extra || {}) o[k] = extra[k]; return o;
+  }
+  function filterCond() { return [DIV === 'all' ? '' : R.divLabel(DIV), NOG ? '' : SEX].filter(Boolean).join('・'); }
+  function openPrint(html, pick) {
+    $('rbPrintBody').innerHTML = html; $('rbPrintGo').hidden = $('rbPrintPdf').hidden = !!pick; $('rbPrintHint').hidden = true; $('rbPrint').hidden = false; $('rbPrint').scrollTop = 0; document.body.classList.add('printing');
+  }
+  function closePrint() { $('rbPrint').hidden = true; $('rbPrintBody').innerHTML = ''; document.body.classList.remove('printing'); }
+  function pickList() {
+    var seen = {}, out = []; R.sortAthletes(R.computeBests(filtered()).bests).forEach(function (b) { if (!seen[b.key]) { seen[b.key] = 1; out.push(b); } });
+    return out;
+  }
+  function athSheets(keys) { var o = printMeta(); return keys.map(function (k) { return LanePrint.athleteSheet(R, ALL, k, o); }).join(''); }
+  function startPrint(kind, key, act) {
+    act = act || 'view'; PICK_ACT = act;
+    if (kind !== 'pick') { buildPrint(kind, key); if (act !== 'view') doPrint(act === 'pdf'); return; }
+    buildPrint(kind, key);
+  }
+  var PICK_ACT = 'view';
+  function buildPrint(kind, key) {
+    var rows = filtered();
+    if (kind === 'ath') { openPrint(athSheets([key])); return; }
+    if (kind === 'pick') {
+      var ls = pickList(), c = filterCond();
+      openPrint('<div class="lp-pick"><b>個人表をPDFにする選手を選ぶ</b><p class="small muted">' + (c ? 'いまの絞り込み（' + esc(c) + '）の' : '') + '選手 ' + ls.length + '人・1人1ページ</p><div class="lp-ops"><button class="btn sub" type="button" data-ppall="1">全員選択</button><button class="btn sub" type="button" data-ppnone="1">全解除</button><button class="btn" type="button" data-ppmake="1">🖨 PDFにまとめる（<span id="rbPPn">' + ls.length + '</span>人）</button></div><ul>' +
+        ls.map(function (b) { return '<li><label><input type="checkbox" data-ppk="' + esc(b.key) + '" checked><b>' + esc(b.name) + '</b><span class="gr">' + esc((b.best || b.ref || {}).grade ? (b.best || b.ref).grade + '年' : '') + ' ' + esc(b.team || '') + '</span></label></li>'; }).join('') + '</ul></div>', true);
+      return;
+    }
+    var hist = kind.indexOf('hist') === 0, all = /-all$/.test(kind), ns = nowSeason();
+    var data = hist ? R.allTimeTop(rows, 10) : R.ranking(rows, { season: rankOpt.season === 'now' ? ns : null, grade: rankOpt.grade ? +rankOpt.grade : null });
+    var evs = evOrder(Object.keys(data), rows); if (!all) evs = evs.filter(function (e) { return e === (hist ? histOpt.ev : rankOpt.ev); });
+    var cond = (hist ? '歴代の上位10人（公認のみ）' : (rankOpt.season === 'now' ? '今シーズン（' + R.seasonLabel(ns) + '）' : '全期間') + '・' + (rankOpt.grade ? rankOpt.grade + '年' : '全学年')) + (filterCond() ? '・' + filterCond() : '');
+    openPrint(LanePrint.rankSheet(R, hist ? 'hist' : 'rank', data, evs, function (ev) { return evLabel(rows, ev); }, printMeta({ cond: cond })));
+  }
+  $('rbPrintClose').addEventListener('click', closePrint);
+  $('rbPrintGo').addEventListener('click', function () { doPrint(false); });
+  $('rbPrintPdf').addEventListener('click', function () { doPrint(true); });
+  $('rbPrintBody').addEventListener('click', function (e) {
+    var t = e.target, boxes = $('rbPrintBody').querySelectorAll('[data-ppk]');
+    if (t.closest('[data-ppall]') || t.closest('[data-ppnone]')) { var on = !!t.closest('[data-ppall]'); boxes.forEach(function (b) { b.checked = on; }); }
+    if (t.closest('[data-ppmake]')) {
+      var keys = []; boxes.forEach(function (b) { if (b.checked) keys.push(b.getAttribute('data-ppk')); });
+      if (!keys.length) { alert('選手を1人以上選んでください。'); return; }
+      openPrint(athSheets(keys)); if (PICK_ACT !== 'view') doPrint(PICK_ACT === 'pdf'); return;
+    }
+    var n = $('rbPPn'); if (n) n.textContent = Array.prototype.filter.call(boxes, function (b) { return b.checked; }).length;
+  });
+  $('rbPrintBody').addEventListener('change', function () { var n = $('rbPPn'); if (n) n.textContent = $('rbPrintBody').querySelectorAll('[data-ppk]:checked').length; });
   function renderMeetList() {
     var m = {}; ALL.forEach(function (r) { var k = r.date + '|' + r.meet; m[k] = (m[k] || 0) + 1; });
     var ks = Object.keys(m).sort().reverse();
@@ -1026,7 +1088,7 @@
       var ord = {}; R.sortAthletes(bs).forEach(function (b) { if (!(b.key in ord)) ord[b.key] = Object.keys(ord).length; });
       bs.sort(function (a, b) { return ord[a.key] - ord[b.key] || cmp(a.eventLabel, b.eventLabel); });
       bs = sortRows(bs, view, defs);
-      html = '<table class="rbt"><tr class="hd">' + th(view, 'name', '氏名') + th(view, 'team', '所属') + th(view, 'event', '種目') + th(view, 'best', '自己ベスト（公認）') + '<th>風</th>' + th(view, 'date', '日付') + '<th>大会</th><th>参考記録（追い風・風不明）</th>' + th(view, 'count', '記録数') + '</tr>' + bs.map(function (b) {
+      html = '<div class="rb-row">' + ppBtns('pick', '', '個人表（選手を選ぶ）') + '</div><table class="rbt"><tr class="hd">' + th(view, 'name', '氏名') + th(view, 'team', '所属') + th(view, 'event', '種目') + th(view, 'best', '自己ベスト（公認）') + '<th>風</th>' + th(view, 'date', '日付') + '<th>大会</th><th>参考記録（追い風・風不明）</th>' + th(view, 'count', '記録数') + '</tr>' + bs.map(function (b) {
         var r = b.best || {}, f = b.ref;
         return '<tr class="rc"><td class="c-name">' + athLink(b.key, b.name) + '</td><td class="c-team">' + esc(b.team) + '</td><td class="c-ev">' + esc(NOG && (b.best || b.ref) ? R.eventKeyLabel(b.best || b.ref, true) : b.eventLabel) + '</td><td class="rn c-mark"><b>' + esc(r.mark || '—') + '</b></td><td class="rn c-wind" data-l="風">' + esc(R.shownWind(r)) + '</td><td class="c-date">' + esc(r.date) + '</td><td class="c-meet">' + esc(r.meet) + '</td><td class="c-ref" data-l="参考">' + (f ? esc(f.mark) + windTag(f) + ' <small class="muted">' + esc(R.shownWind(f)) + ' ' + esc(f.date) + '</small>' : '') + '</td><td class="rn c-cnt" data-l="記録数">' + b.count + '</td></tr>';
       }).join('') + '</table>';

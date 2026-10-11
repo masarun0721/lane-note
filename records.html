@@ -267,6 +267,13 @@ footer a{color:var(--navy)}
   td.t{font-size:15px}
 }
 }
+.outgrp{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center}.outgrp>b{font-size:13px}
+@media (max-width:600px){.outgrp{flex:1 1 100%}.outgrp>b{flex:1 1 100%}.toolbar .outgrp .btn{flex:1 1 30%;padding:9px 6px;font-size:13.5px}}
+#docView{position:fixed;inset:0;z-index:1000;background:#e9edf3;display:flex;flex-direction:column}#docView[hidden]{display:none}
+.docbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 10px;background:#1f3a68;color:#fff}.docbar b{flex:1 1 auto}.docbar .btn{min-height:44px}
+#docFrame{flex:1 1 auto;width:100%;border:0;background:#fff}
+#pdfHint{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:1100;background:#ffe9a8;color:#3a2c00;font-weight:700;padding:10px 14px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.25);max-width:92vw}
+@media print{#docView,#pdfHint{display:none!important}}
 #printTime,#recSheet{display:none}
 @media print{
   @page{size:A4 portrait;margin:9mm 9mm 13mm 9mm;
@@ -399,14 +406,6 @@ footer a{color:var(--navy)}
 .changelog .cl-h{font-size:13px;color:#6b778c}.changelog .cl-h b{color:#1f3a68;font-size:14px;margin-right:6px}
 .changelog .cl-b{font-size:13.5px;line-height:1.6}
 .pv-forget{display:block;margin:10px auto 0;background:none;border:1px solid #e3b4ae;color:#b3261e;border-radius:10px;padding:8px 14px;font-size:13px}
-@media screen{
-  .aff{margin:14px 0 4px;max-width:520px}
-  .aff-card{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border:1px solid var(--line,#ddd);border-radius:12px;background:#fff;color:var(--navy,#14213d);font-weight:700;font-size:14px;text-decoration:none;box-shadow:0 1px 2px rgba(0,0,0,.05)}
-  .aff-card:hover,.aff-card:focus-visible{border-color:var(--track,#c8553d);box-shadow:0 2px 8px rgba(0,0,0,.08)}
-  .aff-go{color:var(--muted,#888);font-weight:400}
-  .aff-disc{margin:4px 2px 0;font-size:11px;line-height:1.5;color:var(--muted,#777)}
-}
-@media print{.aff{display:none!important}}
 @media screen{
   .mcards{display:none}
   .mc-g{background:#fff;border:1px solid var(--line);border-radius:14px;margin:10px 0;overflow:hidden;box-shadow:0 1px 2px rgba(20,33,61,.05)}
@@ -672,6 +671,7 @@ body.ath-open #rbLegend{display:none}
 .rb-manual .edit-banner{background:#e4572e;color:#fff;border-radius:8px;padding:6px 10px;font-size:13px;font-weight:700;margin:6px 0}
 .url-note{font-size:12px;color:#7a5a00;background:#fff7dc;border:1px solid #f0d58a;border-radius:8px;padding:5px 9px;margin:6px 0}
 .rb-guest{border:2px solid #e4572e;background:#fff8f4;border-radius:12px;padding:10px 12px;margin:10px 0}
+label.btn,.filebtn{display:inline-flex;align-items:center;justify-content:center;text-align:center;box-sizing:border-box;vertical-align:middle}
 .rb-guest .btn{margin:4px 6px 0 0;white-space:normal;max-width:100%;text-align:center}
 .danger-t{color:#b3261e!important;border-color:#e3b4ae!important}
 .c-ops{white-space:nowrap}.c-ops button{font-size:12px;padding:3px 8px;min-height:30px;margin:0 2px;border-radius:8px;border:1px solid #c9d2e0;background:#fff;cursor:pointer}
@@ -682,12 +682,45 @@ tr.rc.editing td{background:#fff3ec!important}
   #rbView .rbt tr.rc td.c-ops{order:11;flex:0 0 100%;display:flex!important;gap:8px;margin-top:4px}
   #rbView .rbt tr.rc td.c-ops button{flex:1;min-height:40px;font-size:13px}
 }
+
+/* v0.9.0：PDFにまとめる（印刷レイアウト） */
+#rbPrint{position:fixed;inset:0;z-index:1000;background:#e9edf3;overflow:auto;-webkit-overflow-scrolling:touch}
+#rbPrint[hidden]{display:none}
+.lp-bar{position:sticky;top:0;z-index:2;display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px;background:#1f3a68;color:#fff}
+.lp-bar .btn{min-height:44px}
+#rbPrintBody{padding:10px}
+.lp-page{background:#fff;color:#111;max-width:190mm;margin:0 auto 14px;padding:10mm;box-shadow:0 1px 4px rgba(0,0,0,.15);font-size:12px;display:flex;flex-direction:column}
+.lp-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;border-bottom:2px solid #1f3a68;padding-bottom:4px;margin-bottom:8px}
+.lp-title{font-size:16px}.lp-school,.lp-date{font-size:11px;color:#444}
+.lp-f{margin-top:auto;padding-top:8px;border-top:1px solid #ccc;font-size:10px;color:#666;text-align:right}
+.lp-name b{font-size:20px;margin-right:8px}.lp-info{color:#444;margin-top:2px}
+.lp-h2{font-size:13px;font-weight:700;margin:10px 0 4px;color:#1f3a68;border-left:4px solid #1f3a68;padding-left:6px}.lp-h3{font-size:12.5px;font-weight:700;margin:8px 0 3px}
+.lp-t{width:100%;border-collapse:collapse;margin-bottom:4px}.lp-t th,.lp-t td{border:1px solid #bbb;padding:2px 4px;text-align:left;font-size:11px}
+.lp-t th{background:#eef2f8}.lp-mk{font-weight:700;font-variant-numeric:tabular-nums}.lp-pb td{background:#fff3d6}
+#rbPrint .lp-t th,#rbPrint .lp-t td{color:#111!important;text-decoration:none!important;border:1px solid #bbb!important;font-size:11px!important;line-height:1.35;white-space:normal;position:static!important}
+#rbPrint .lp-t th{background:#eef2f8!important;font-weight:700!important}#rbPrint .lp-t td{background:#fff;font-weight:400}#rbPrint .lp-t td.lp-mk{font-weight:700}#rbPrint .lp-t tr.lp-pb td{background:#fff3d6!important}
+#rbPrint .lp-info{font-size:12px!important;font-weight:400!important;color:#444!important;line-height:1.4}#rbPrint .lp-name b{font-size:20px}
+.lp-ev{break-inside:avoid}.lp-chart svg{width:100%;height:70px}.lp-cond{color:#444;margin:0 0 6px}
+.lp-grp{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 8px 4px 0}.lp-grp .lp-lb{font-size:12.5px;font-weight:700;color:var(--navy,#1f3a68)}.lp-grp .btn{min-height:40px}
+#rbPrintHint{background:#ffe9a8;color:#3a2c00;padding:6px 10px;border-radius:6px;font-weight:700}
+.lp-pick{background:#fff;max-width:600px;margin:0 auto;padding:12px;border-radius:10px}
+.lp-pick .lp-ops{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}.lp-pick .lp-ops .btn{min-height:44px}
+.lp-pick ul{list-style:none;margin:0;padding:0}.lp-pick li label{display:flex;gap:10px;align-items:center;min-height:44px;border-bottom:1px solid #e3e7ee;font-size:15px}
+.lp-pick li input{width:22px;height:22px}.lp-pick .gr{color:#667;font-size:13px;margin-left:auto}
+@media print{
+  @page{size:A4;margin:10mm}
+  body.printing>*:not(#rbPrint){display:none!important}
+  body.printing #rbPrint{position:static;overflow:visible;background:#fff}
+  .lp-bar,.lp-pick{display:none!important}#rbPrintBody{padding:0}
+  .lp-page{box-shadow:none;margin:0;padding:0;max-width:none;min-height:auto;break-after:page;page-break-after:always}
+  .lp-page:last-child{break-after:auto;page-break-after:auto}
+}
 </style>
 </head>
 <body class="records">
 <header>
   <div class="hdr-meta">
-    <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／記録 v0.8.0 <span class="beta-tag">試作</span></div>
+    <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／記録 v0.9.0 <span class="beta-tag">試作</span></div>
     <div class="credit">Presented by Sakata</div>
     <div class="hdr-msg"><span class="hm-l">すべての陸上競技部顧問が、</span><span class="hm-l">少しでも楽になりますように。</span></div>
   </div>
@@ -790,7 +823,7 @@ tr.rc.editing td{background:#fff3ec!important}
   <h2><span class="no">3</span>データの持ち運び・消去</h2>
   <div class="rb-row">
     <button class="btn sub" id="rbExport" type="button">💾 ファイルに書き出す（JSON）</button>
-    <label class="btn sub" style="display:inline-block">📂 ファイルから読み込む<input type="file" id="rbImport" accept=".json,application/json" hidden></label>
+    <label class="btn sub filebtn">📂 ファイルから読み込む<input type="file" id="rbImport" accept=".json,application/json" hidden></label>
     <button class="btn sub" id="rbXlsx" type="button">📊 Excelに書き出す</button>
     <button class="btn danger" id="rbClear" type="button">🗑 記録を全部消す</button>
   </div>
@@ -807,7 +840,7 @@ tr.rc.editing td{background:#fff3ec!important}
 </main>
 <footer><details class="about"><summary><b>この記録ページについて</b>（版・対応している形式・既知の制限）</summary>
   <ul>
-    <li><b>LANE NOTE（レーンノート）記録 試作版</b>　版：<span class="appver"></span>／記録 v0.8.0（2026年10月11日 作成）／ Presented by Sakata</li>
+    <li><b>LANE NOTE（レーンノート）記録 試作版</b>　版：<span class="appver"></span>／記録 v0.9.0（2026年10月11日 作成）／ Presented by Sakata</li>
     <li>読める形式：組ごとに2列で並ぶ結果PDF（「順位・レーン・ナンバー・氏名・所属・記録」の見出しがあるもの。北区・江東区・都高体連などで確認）／ 結果サイトのHTML（表のあるもの）・その貼り付け。</li>
     <li>Excel・CSV（v0.5）：見出し（氏名・種目・記録・日付など）を自動で見つけて取り込みます。日付は必須、大会名は任意（空なら「大会名なし（日付）」）。</li>
     <li>既知の制限：リレー・混成の得点・スキャン（画像）PDFは読みません。大会名・日付が資料に無いときは手で入れてください。風が読めない記録は公認ベストに数えません。</li>
@@ -1745,12 +1778,13 @@ if (typeof module !== 'undefined') module.exports = ResultParser;
 
 </script>
 <script>
-var APP_VERSION = "v0.16", REC_VERSION = "v0.8.0";
+var APP_VERSION = "v0.17", REC_VERSION = "v0.9.0";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>
 var SHARE_BASE = "https://masarun0721.github.io/lane-note/";
 </script>
+<div id="rbPrint" hidden role="dialog" aria-label="PDFにまとめる"><div class="lp-bar"><button class="btn" type="button" id="rbPrintPdf">📄 PDF作成</button><button class="btn" type="button" id="rbPrintGo">🖨 印刷</button><button class="btn sub" type="button" id="rbPrintClose">✕ 閉じる</button><span class="small" id="rbPrintHint" role="status" hidden></span></div><div id="rbPrintBody"></div></div>
 <script>
 /* ===== v0.16：選手用の個人ページ（記録のスナップショット）と、体調メモ（このスマホにだけ保存） =====
    ・個人ページの中身は、先生が記録ページで作った「その選手1人分」の記録だけ（ほかの選手は入れない）
@@ -1913,6 +1947,52 @@ var LanePersonal = (function () {
     dayKey: dayKey, ymd: ymd, mdLabel: mdLabel, snapLabel: snapLabel, resultsOn: resultsOn, VIEW: VIEW, CKEY: CKEY, PRIV: PRIV, MAX_P: MAX_P, MAX_R: MAX_R, MAX_X: MAX_X, MAX_EV: MAX_EV };
 })();
 if (typeof module !== 'undefined') module.exports = LanePersonal;
+
+</script>
+<script>
+// v0.9.0（記録）：「🖨 PDFにまとめる」用の印刷レイアウト（A4・ブラウザの印刷→PDFで保存）。HTMLの文字列を作るだけの関数
+var LanePrint = (function () {
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function today(d) { d = d || new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function wind(R, r) { return R.shownWind(r) ? esc(r.wind) : ''; }
+  // 1ページ分：上に学校名・タイトル・出力日、下に LANE NOTE
+  function page(title, meta, body) {
+    return '<section class="lp-page"><div class="lp-h"><span class="lp-school">' + esc(meta.school || '') + '</span><b class="lp-title">' + esc(title) + '</b><span class="lp-date">出力日 ' + esc(meta.date || today()) + '</span></div>' + body + '<div class="lp-f">LANE NOTE ・ LANE LOG（記録）</div></section>';
+  }
+  // 個人表：名前・区分/学年・種目ごとの自己ベスト・記録の一覧・グラフ
+  function athleteSheet(R, all, key, o) {
+    o = o || {};
+    var mine = all.filter(function (r) { return R.athleteKey(r) === key; }), pf = R.athleteProfile(mine, key);
+    if (!pf) return '';
+    var order = [], byKey = {}; pf.events.forEach(function (e) { byKey[e.event] = e; });
+    R.groupEvents(Object.keys(byKey), mine, o.nog).forEach(function (g) { g.items.forEach(function (it) { byKey[it.key].eventLabel = it.label; order.push(byKey[it.key]); }); });
+    var dv = R.divisionOf(pf), info = [pf.team, dv ? R.divLabel(dv) : '', pf.grade ? pf.grade + (/年/.test(pf.grade) ? '' : '年') : ''].filter(Boolean).join('・');
+    var pbt = '<table class="lp-t"><tr><th>種目</th><th>自己ベスト（公認）</th><th>風</th><th>日付</th><th>大会</th><th>件数</th></tr>' + order.map(function (e) {
+      var b = e.best || e.ref || {};
+      return '<tr><td>' + esc(e.eventLabel) + '</td><td class="lp-mk">' + esc(b.mark || '—') + (e.best ? '' : b.mark ? '（参考）' : '') + '</td><td>' + wind(R, b) + '</td><td>' + esc(b.date || '') + '</td><td>' + esc(b.meet || '') + '</td><td>' + e.count + '</td></tr>';
+    }).join('') + '</table>';
+    var evs = order.map(function (e) {
+      var rs = mine.filter(function (r) { return R.eventKey(r) === e.event; }).sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+      return '<div class="lp-ev"><div class="lp-h3">' + esc(e.eventLabel) + '</div>' + (o.spark ? '<div class="lp-chart">' + o.spark(e) + '</div>' : '') +
+        '<table class="lp-t"><tr><th>日付</th><th>大会</th><th>ラウンド</th><th>記録</th><th>風</th><th>順位</th></tr>' + rs.map(function (r) {
+          return '<tr' + (e.best && e.best.id === r.id ? ' class="lp-pb"' : '') + '><td>' + esc(r.date) + '</td><td>' + esc(r.meet) + '</td><td>' + esc(r.round || '') + '</td><td class="lp-mk">' + esc(r.mark) + '</td><td>' + wind(R, r) + '</td><td>' + esc(r.rank || '') + '</td></tr>';
+        }).join('') + '</table></div>';
+    }).join('');
+    return page('個人表', o, '<div class="lp-name"><b>' + esc(pf.name) + '</b>' + (pf.kana ? '<span>' + esc(pf.kana) + '</span>' : '') + '<div class="lp-info">' + esc(info) + '・' + pf.count + '件</div></div><div class="lp-h2">種目ごとの自己ベスト</div>' + pbt + '<div class="lp-h2">記録の一覧</div>' + evs);
+  }
+  // 部内ランキング・歴代記録（evs：出す種目の順。1種目＝1つの表、ページをまたいでもよい）
+  function rankSheet(R, kind, data, evs, label, o) {
+    var title = kind === 'hist' ? '歴代記録' : '部内ランキング';
+    var body = '<p class="lp-cond">' + esc(o.cond || '') + '</p>' + evs.map(function (ev) {
+      return '<div class="lp-ev"><div class="lp-h3">' + esc(label(ev)) + '</div><table class="lp-t"><tr><th>順位</th><th>氏名</th><th>' + (kind === 'hist' ? '年度' : '学年') + '</th><th>記録</th><th>風</th><th>日付</th><th>大会</th></tr>' + (data[ev] || []).map(function (x) {
+        return '<tr><td>' + x.rank + '</td><td>' + esc(x.name) + '</td><td>' + esc(kind === 'hist' ? R.seasonLabel(x.season) : x.grade ? x.grade + '年' : '') + '</td><td class="lp-mk">' + esc(x.best.mark) + '</td><td>' + wind(R, x.best) + '</td><td>' + esc(x.best.date) + '</td><td>' + esc(x.best.meet) + '</td></tr>';
+      }).join('') + '</table></div>';
+    }).join('');
+    return page(title, o, body);
+  }
+  return { esc: esc, today: today, page: page, athleteSheet: athleteSheet, rankSheet: rankSheet };
+})();
+if (typeof module !== 'undefined') module.exports = LanePrint;
 
 </script>
 <script>
@@ -2800,6 +2880,7 @@ if (typeof module !== 'undefined') module.exports = LanePersonal;
       render(); return;
     }
     var pl = e.target.closest('[data-pplink]'); if (pl) { $('rbPPBox').open = true; makePPLinks([pl.getAttribute('data-pplink')]); $('rbPPBox').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+    var pb = e.target.closest('[data-print]'); if (pb) { startPrint(pb.getAttribute('data-print'), pb.getAttribute('data-key'), pb.getAttribute('data-act') || 'view'); return; }
     var go = e.target.closest('[data-go]'); if (go) { setTab(go.getAttribute('data-go')); render(); return; }
     var t = e.target.closest('th[data-sort]'); if (!t) return; var k = t.getAttribute('data-sort'), s = sort[view];
     sort[view] = s && s.k === k ? { k: k, d: -s.d } : { k: k, d: 1 }; render();
@@ -2869,6 +2950,7 @@ if (typeof module !== 'undefined') module.exports = LanePersonal;
     var sw = order.length > 1 ? '<div class="evsw" role="tablist" aria-label="種目の切り替え"><button type="button" data-athev=""' + (athSel.ev ? '' : ' class="on" aria-selected="true"') + '>すべて</button>' + order.map(function (e) { return '<button type="button" data-athev="' + esc(e.event) + '"' + (athSel.ev === e.event ? ' class="on" aria-selected="true"' : '') + '>' + esc(e.eventLabel) + '</button>'; }).join('') + '</div>' : '';
     var shown = order.length > 1 && !athSel.ev ? null : (athSel.ev ? [byKey[athSel.ev]] : order);
     var summary = shown ? '' : '<div class="card"><div class="card-h"><b>種目ごとの自己ベスト</b><span class="small muted">押すとグラフと記録</span></div><ul class="evsum">' + order.map(function (e) { var b = e.best || e.ref; return '<li><button type="button" class="evn" data-athev="' + esc(e.event) + '">' + esc(e.eventLabel) + '</button><b class="lmk">' + esc(b ? b.mark : '—') + (e.best ? '' : (b ? windTag(b) : '')) + '</b><span class="sub">' + (b ? (R.shownWind(b) ? '風' + esc(b.wind) + '・' : '') + esc(b.date) + ' ' + esc(b.meet) + ' ' + weatherTag(b.date + '|' + b.meet) : '') + '・' + e.count + '件</span></li>'; }).join('') + '</ul></div>';
+    back += ppBtns('ath', key, '個人表');
     return back + '<div class="card ath-h"><b class="nm">' + esc(pf.name) + '</b>' + '<button class="btn sub" type="button" data-pplink="' + esc(key) + '" style="float:right">📱 個人ページのリンク</button>' + (pf.kana ? '<span class="small muted">' + esc(pf.kana) + '</span>' : '') + '<div class="small muted">' + esc(((mineRows.filter(function (r) { return R.rawDivisionOf(r); }).sort(function (x, y) { return cmp(x.date, y.date); }).pop()) || pf).team) + (pf.grade ? '・' + esc(pf.grade) : '') + (R.divisionOf(pf) ? '・' + R.divLabel(R.divisionOf(pf)) : '') + '・' + pf.events.length + '種目・' + pf.count + '件</div></div>' + sw + summary +
       (shown || []).map(function (e) {
         var b = e.best;
@@ -2898,7 +2980,7 @@ if (typeof module !== 'undefined') module.exports = LanePersonal;
     var rk = R.ranking(rows, opt), evs = evOrder(Object.keys(rk), rows);
     if (evs.length && evs.indexOf(rankOpt.ev) < 0) rankOpt.ev = evs[0];
     var ctl = '<div class="rb-row ropt"><label>期間 <select data-ropt="season"><option value="now"' + (rankOpt.season === 'now' ? ' selected' : '') + '>今シーズン（' + R.seasonLabel(ns) + '）</option><option value="all"' + (rankOpt.season === 'all' ? ' selected' : '') + '>全期間</option></select></label>' +
-      '<label>学年 <select data-ropt="grade">' + [['', '全学年'], ['1', '1年'], ['2', '2年'], ['3', '3年']].map(function (o) { return '<option value="' + o[0] + '"' + (rankOpt.grade === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></label>' + (evs.length ? evSelect('ropt', evs, rankOpt.ev, rows) : '') + '</div>';
+      '<label>学年 <select data-ropt="grade">' + [['', '全学年'], ['1', '1年'], ['2', '2年'], ['3', '3年']].map(function (o) { return '<option value="' + o[0] + '"' + (rankOpt.grade === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></label>' + (evs.length ? evSelect('ropt', evs, rankOpt.ev, rows) : '') + (evs.length ? ppBtns('rank', '', 'この種目') + ppBtns('rank-all', '', '全種目') : '') + '</div>';
     if (!evs.length) return ctl + '<p class="muted small">この条件の公認記録がありません。期間や学年を変えてみてください。</p>';
     return ctl + [rankOpt.ev].map(function (ev) {
       return '<div class="card"><div class="card-h"><b>' + esc(evLabel(rows, ev)) + '</b><span class="small muted">' + rk[ev].length + '人</span></div><ol class="rank">' + rk[ev].map(function (x) {
@@ -2910,12 +2992,72 @@ if (typeof module !== 'undefined') module.exports = LanePersonal;
     var at = R.allTimeTop(rows, 10), evs = evOrder(Object.keys(at), rows);
     if (!evs.length) return '<p class="muted small">公認記録がまだありません。</p>';
     if (evs.indexOf(histOpt.ev) < 0) histOpt.ev = evs[0];
-    return '<div class="rb-row ropt">' + evSelect('hopt', evs, histOpt.ev, rows) + '</div><p class="small muted">卒業生も含めた歴代の上位10人（ひとり1記録・公認のみ）です。</p>' + [histOpt.ev].map(function (ev) {
+    return '<div class="rb-row ropt">' + evSelect('hopt', evs, histOpt.ev, rows) + ppBtns('hist', '', 'この種目') + ppBtns('hist-all', '', '全種目') + '</div><p class="small muted">卒業生も含めた歴代の上位10人（ひとり1記録・公認のみ）です。</p>' + [histOpt.ev].map(function (ev) {
       return '<div class="card"><div class="card-h"><b>' + esc(evLabel(rows, ev)) + '</b><span class="small muted">歴代 ' + at[ev].length + '人</span></div><ol class="rank">' + at[ev].map(function (x) {
         return '<li><span class="no n' + x.rank + '">' + x.rank + '</span>' + athLink(x.key, x.name) + '<span class="gr">' + esc(R.seasonLabel(x.season)) + '</span><b class="lmk">' + esc(x.best.mark) + '</b><span class="sub">' + (R.shownWind(x.best) ? '風' + esc(x.best.wind) + '・' : '') + esc(x.best.date) + ' ' + esc(x.best.meet) + '</span></li>';
       }).join('') + '</ol></div>';
     }).join('');
   }
+  // v0.9.0：PDFにまとめる（印刷用の画面を重ねて出し、ブラウザの印刷→「PDFに保存」）
+  // v0.9.0：出力は3つのボタンに分ける（👀 画面で見る／📄 PDF作成／🖨 印刷）
+  function ppBtns(kind, key, label) {
+    var a = ' type="button" data-print="' + kind + '"' + (key ? ' data-key="' + esc(key) + '"' : '');
+    return '<span class="lp-grp" role="group" aria-label="' + esc(label) + 'の出力"><span class="lp-lb">' + esc(label) + '</span><button class="btn sub lp-btn"' + a + ' data-act="view">👀 画面で見る</button><button class="btn sub lp-btn"' + a + ' data-act="pdf">📄 PDF作成</button><button class="btn sub lp-btn"' + a + ' data-act="print">🖨 印刷</button></span>';
+  }
+  var PDF_HINT = '保存先で『PDFに保存』を選んでください';
+  function doPrint(pdf) {
+    var h = $('rbPrintHint'); h.textContent = pdf ? '📄 ' + PDF_HINT : ''; h.hidden = !pdf;
+    setTimeout(function () { window.print(); }, pdf ? 400 : 0);
+  }
+  function printMeta(extra) {
+    var o = { school: MODE.personal ? (MODE.team || MODE.name || '') : school(), date: LanePrint.today(), nog: NOG, spark: function (e) { return spark(e.allPoints, e.lower, false, e.noMarks, true); } };
+    for (var k in extra || {}) o[k] = extra[k]; return o;
+  }
+  function filterCond() { return [DIV === 'all' ? '' : R.divLabel(DIV), NOG ? '' : SEX].filter(Boolean).join('・'); }
+  function openPrint(html, pick) {
+    $('rbPrintBody').innerHTML = html; $('rbPrintGo').hidden = $('rbPrintPdf').hidden = !!pick; $('rbPrintHint').hidden = true; $('rbPrint').hidden = false; $('rbPrint').scrollTop = 0; document.body.classList.add('printing');
+  }
+  function closePrint() { $('rbPrint').hidden = true; $('rbPrintBody').innerHTML = ''; document.body.classList.remove('printing'); }
+  function pickList() {
+    var seen = {}, out = []; R.sortAthletes(R.computeBests(filtered()).bests).forEach(function (b) { if (!seen[b.key]) { seen[b.key] = 1; out.push(b); } });
+    return out;
+  }
+  function athSheets(keys) { var o = printMeta(); return keys.map(function (k) { return LanePrint.athleteSheet(R, ALL, k, o); }).join(''); }
+  function startPrint(kind, key, act) {
+    act = act || 'view'; PICK_ACT = act;
+    if (kind !== 'pick') { buildPrint(kind, key); if (act !== 'view') doPrint(act === 'pdf'); return; }
+    buildPrint(kind, key);
+  }
+  var PICK_ACT = 'view';
+  function buildPrint(kind, key) {
+    var rows = filtered();
+    if (kind === 'ath') { openPrint(athSheets([key])); return; }
+    if (kind === 'pick') {
+      var ls = pickList(), c = filterCond();
+      openPrint('<div class="lp-pick"><b>個人表をPDFにする選手を選ぶ</b><p class="small muted">' + (c ? 'いまの絞り込み（' + esc(c) + '）の' : '') + '選手 ' + ls.length + '人・1人1ページ</p><div class="lp-ops"><button class="btn sub" type="button" data-ppall="1">全員選択</button><button class="btn sub" type="button" data-ppnone="1">全解除</button><button class="btn" type="button" data-ppmake="1">🖨 PDFにまとめる（<span id="rbPPn">' + ls.length + '</span>人）</button></div><ul>' +
+        ls.map(function (b) { return '<li><label><input type="checkbox" data-ppk="' + esc(b.key) + '" checked><b>' + esc(b.name) + '</b><span class="gr">' + esc((b.best || b.ref || {}).grade ? (b.best || b.ref).grade + '年' : '') + ' ' + esc(b.team || '') + '</span></label></li>'; }).join('') + '</ul></div>', true);
+      return;
+    }
+    var hist = kind.indexOf('hist') === 0, all = /-all$/.test(kind), ns = nowSeason();
+    var data = hist ? R.allTimeTop(rows, 10) : R.ranking(rows, { season: rankOpt.season === 'now' ? ns : null, grade: rankOpt.grade ? +rankOpt.grade : null });
+    var evs = evOrder(Object.keys(data), rows); if (!all) evs = evs.filter(function (e) { return e === (hist ? histOpt.ev : rankOpt.ev); });
+    var cond = (hist ? '歴代の上位10人（公認のみ）' : (rankOpt.season === 'now' ? '今シーズン（' + R.seasonLabel(ns) + '）' : '全期間') + '・' + (rankOpt.grade ? rankOpt.grade + '年' : '全学年')) + (filterCond() ? '・' + filterCond() : '');
+    openPrint(LanePrint.rankSheet(R, hist ? 'hist' : 'rank', data, evs, function (ev) { return evLabel(rows, ev); }, printMeta({ cond: cond })));
+  }
+  $('rbPrintClose').addEventListener('click', closePrint);
+  $('rbPrintGo').addEventListener('click', function () { doPrint(false); });
+  $('rbPrintPdf').addEventListener('click', function () { doPrint(true); });
+  $('rbPrintBody').addEventListener('click', function (e) {
+    var t = e.target, boxes = $('rbPrintBody').querySelectorAll('[data-ppk]');
+    if (t.closest('[data-ppall]') || t.closest('[data-ppnone]')) { var on = !!t.closest('[data-ppall]'); boxes.forEach(function (b) { b.checked = on; }); }
+    if (t.closest('[data-ppmake]')) {
+      var keys = []; boxes.forEach(function (b) { if (b.checked) keys.push(b.getAttribute('data-ppk')); });
+      if (!keys.length) { alert('選手を1人以上選んでください。'); return; }
+      openPrint(athSheets(keys)); if (PICK_ACT !== 'view') doPrint(PICK_ACT === 'pdf'); return;
+    }
+    var n = $('rbPPn'); if (n) n.textContent = Array.prototype.filter.call(boxes, function (b) { return b.checked; }).length;
+  });
+  $('rbPrintBody').addEventListener('change', function () { var n = $('rbPPn'); if (n) n.textContent = $('rbPrintBody').querySelectorAll('[data-ppk]:checked').length; });
   function renderMeetList() {
     var m = {}; ALL.forEach(function (r) { var k = r.date + '|' + r.meet; m[k] = (m[k] || 0) + 1; });
     var ks = Object.keys(m).sort().reverse();
@@ -2944,7 +3086,7 @@ if (typeof module !== 'undefined') module.exports = LanePersonal;
       var ord = {}; R.sortAthletes(bs).forEach(function (b) { if (!(b.key in ord)) ord[b.key] = Object.keys(ord).length; });
       bs.sort(function (a, b) { return ord[a.key] - ord[b.key] || cmp(a.eventLabel, b.eventLabel); });
       bs = sortRows(bs, view, defs);
-      html = '<table class="rbt"><tr class="hd">' + th(view, 'name', '氏名') + th(view, 'team', '所属') + th(view, 'event', '種目') + th(view, 'best', '自己ベスト（公認）') + '<th>風</th>' + th(view, 'date', '日付') + '<th>大会</th><th>参考記録（追い風・風不明）</th>' + th(view, 'count', '記録数') + '</tr>' + bs.map(function (b) {
+      html = '<div class="rb-row">' + ppBtns('pick', '', '個人表（選手を選ぶ）') + '</div><table class="rbt"><tr class="hd">' + th(view, 'name', '氏名') + th(view, 'team', '所属') + th(view, 'event', '種目') + th(view, 'best', '自己ベスト（公認）') + '<th>風</th>' + th(view, 'date', '日付') + '<th>大会</th><th>参考記録（追い風・風不明）</th>' + th(view, 'count', '記録数') + '</tr>' + bs.map(function (b) {
         var r = b.best || {}, f = b.ref;
         return '<tr class="rc"><td class="c-name">' + athLink(b.key, b.name) + '</td><td class="c-team">' + esc(b.team) + '</td><td class="c-ev">' + esc(NOG && (b.best || b.ref) ? R.eventKeyLabel(b.best || b.ref, true) : b.eventLabel) + '</td><td class="rn c-mark"><b>' + esc(r.mark || '—') + '</b></td><td class="rn c-wind" data-l="風">' + esc(R.shownWind(r)) + '</td><td class="c-date">' + esc(r.date) + '</td><td class="c-meet">' + esc(r.meet) + '</td><td class="c-ref" data-l="参考">' + (f ? esc(f.mark) + windTag(f) + ' <small class="muted">' + esc(R.shownWind(f)) + ' ' + esc(f.date) + '</small>' : '') + '</td><td class="rn c-cnt" data-l="記録数">' + b.count + '</td></tr>';
       }).join('') + '</table>';
