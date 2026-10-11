@@ -63,11 +63,12 @@ __BASE_CSS__
 <main>
 <section class="box">
   <h2><span class="no">1</span>ファイルを2つ入れる</h2>
-  <p class="ck-priv">🔒 ファイルはこの端末の中だけで読み取ります。どこにも送らず、画面を閉じると消えます。</p>
+  <p class="ck-priv">🔒 ファイルはこの端末の中だけで読み取ります。どこにも送らず、画面を閉じると消えます（「URLから読み込む」を使ったときだけ、URLと中身が LANE NOTE の中継を通ります。保存はしません）。</p>
   <div class="ck-drops">
     <div class="drop" id="ckEntDrop" tabindex="0"><div class="big">📝 エントリーファイル</div><div class="muted small">大会に出したExcel（.xlsx／.xls）・CSV<br>ここにドラッグ／クリックして選ぶ</div><input type="file" id="ckEntFile" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"><div class="status" id="ckEntStatus"></div></div>
     <div class="drop" id="ckSlDrop" tabindex="0"><div class="big">📄 スタートリスト</div><div class="muted small">大会から届いたPDF（プログラムでもOK）<br>ここにドラッグ／クリックして選ぶ</div><input type="file" id="ckSlFile" accept="application/pdf,.pdf"><div class="status" id="ckSlStatus"></div></div>
   </div>
+  <div id="ckUrlLoad"></div>
   <details class="ck-map" id="ckMap" hidden><summary>🔧 列の割り当て（自動で読めなかったときに直す）</summary><p class="small muted">大会ごとにエントリーファイルの形が違うので、氏名・種目などの列を自動で探しています。違っていたらここで選び直してください。</p><div id="ckMapBody"></div></details>
 </section>
 <section class="box">
@@ -85,7 +86,7 @@ __BASE_CSS__
 </section>
 </main>
 <div id="ckPrint" hidden><div class="cp-bar"><button class="btn sub" type="button" id="ckPrintClose">✕ 閉じる</button><button class="btn" type="button" id="ckPrintPdf">📄 PDF作成</button><button class="btn" type="button" id="ckPrintGo">🖨 印刷</button><span id="ckPrintHint" hidden></span></div><div id="ckPrintBody"></div></div>
-<footer><div class="f-disc">ⓘ 本ツールはファイルの文字を読み取って自動で突き合わせているだけです。内容は必ず元のエントリーファイル・スタートリストと照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div><div><b class="f-brand">LANE NOTE</b>（レーンノート）試作版 ／ <span class="f-credit">Presented by Sakata</span></div>🔒 エントリーファイル・PDFはこの端末の中だけで読み、どこにも送りません（部品取得のため外部CDNへ通信します）。 <a href="./">大会準備のページへ</a><br><button type="button" class="fb-btn" data-feedback="1">📮 不具合・要望を送る</button></footer>
+<footer><div class="f-disc">ⓘ 本ツールはファイルの文字を読み取って自動で突き合わせているだけです。内容は必ず元のエントリーファイル・スタートリストと照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div><div><b class="f-brand">LANE NOTE</b>（レーンノート）試作版 ／ <span class="f-credit">Presented by Sakata</span></div>🔒 エントリーファイル・PDFはこの端末の中だけで読み、どこにも送りません（部品取得のため外部CDNへ通信します。「URLから読み込む」のときだけ、URLと取ってきた中身が LANE NOTE の Cloudflare 中継を通ります・保存しません）。 <a href="./">大会準備のページへ</a><br><button type="button" class="fb-btn" data-feedback="1">📮 不具合・要望を送る</button></footer>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
 <script src="firebase-config.js"></script>
 <script>
@@ -106,6 +107,9 @@ __FEEDBACK__
 <script>
 var APP_VERSION = "__VERSION__";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
+</script>
+<script>
+__URLLOAD__
 </script>
 <script>
 __CHECKAPP__

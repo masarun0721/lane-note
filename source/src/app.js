@@ -576,7 +576,7 @@
     inp.addEventListener('change', function () { var f = inp.files[0]; inp.value = ''; handleFile(kind, f); });   // value を空に → 同じファイルを選び直せる
     ['dragenter', 'dragover'].forEach(function (ev) { z.addEventListener(ev, function (e) { e.preventDefault(); z.classList.add('drag'); }); });
     ['dragleave', 'drop'].forEach(function (ev) { z.addEventListener(ev, function (e) { e.preventDefault(); z.classList.remove('drag'); }); });
-    z.addEventListener('drop', function (e) { var f = e.dataTransfer.files[0]; if (f) { handleFile(kind, f); return; } var u = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain') || ''; if (isUrlOnly(u)) showUrlNote(); });
+    z.addEventListener('drop', function (e) { var f = e.dataTransfer.files[0]; if (f) { handleFile(kind, f); return; } var u = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain') || ''; if (isUrlOnly(u)) showUrlNote(u, kind); });
   }
   function settings() {
     // 整数・0〜999 の範囲だけ受け付ける。おかしな値は初期値を使い、入力欄を赤くする
@@ -885,6 +885,7 @@
     setupDrop('ttDrop', 'ttFile', 'tt');
     setupDrop('noteDrop', 'noteFile', 'note');
     setupDrop('yokoDrop', 'yokoFile', 'yoko');
+    setupUrlLoad();
     $('meetDate').addEventListener('input', function () { $('meetDate').dataset.manual = $('meetDate').value ? '1' : ''; if (!$('meetDate').value) updateDate(); else renderDateMark(); });
     document.querySelectorAll('#athHead th[data-sort]').forEach(function (th) { th.addEventListener('click', function () {
       var k = th.dataset.sort, s = state.athSort;
@@ -990,13 +991,23 @@
     try { o = JSON.parse(new TextDecoder().decode(await inflateLimited(unb64u(m[1]), MAX_INFLATE))); } catch (e) { throw new Error(/大きすぎ/.test(e.message) ? e.message : 'リンクの中身を読めませんでした（途中で切れている可能性があります）'); }
     return validatePayload(o);
   }
-  // v0.14：URLだけを貼り付けた・落としたときの案内
-  var URL_NOTE = '今はまだURLからの読み込みには対応していません。後日実装予定です。PDFをダウンロードして、枠に入れてください。';
-  function isUrlOnly(t) { return /^\s*(https?:\/\/\S+\s*)+$/i.test(String(t || '')); }
-  function showUrlNote() { var el = $('urlNoteMsg'); if (!el) return; el.className = 'status ng'; el.textContent = 'ⓘ ' + URL_NOTE; el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  // v0.20：URLから読み込む（LANE NOTE の Cloudflare 中継を通して取り、ファイルを入れたときと同じ handleFile に渡す）
+  var URL_TARGETS = [
+    { k: 'sl', label: '📄 スタートリスト', re: /スタート|start|プログラム|program|ｽﾀｰﾄ/i },
+    { k: 'tt', label: '🕘 タイムテーブル', re: /タイム\s*テーブル|timetable|競技日程|日程|ﾀｲﾑﾃｰﾌﾞﾙ/i },
+    { k: 'note', label: '📋 競技注意事項', re: /注意事項|注意/ },
+    { k: 'yoko', label: '📑 大会要項', re: /要項|要綱/ }];
+  var urlUi = null;
+  function isUrlOnly(t) { return window.LaneUrl ? LaneUrl.isUrlOnly(t) : /^\s*https?:\/\/\S+\s*$/i.test(String(t || '')); }
+  function showUrlNote(u, kind) { if (urlUi) urlUi.offer(u, kind); }
+  function setupUrlLoad() {
+    var el = $('urlLoad'); if (!el || !window.LaneUrl) return;
+    urlUi = LaneUrl.mount(el, { id: 'pu', targets: URL_TARGETS, accept: ['pdf'], multiple: false,
+      onFiles: function (files, k) { return handleFile(k, files[0]); } });
+  }
   document.addEventListener('paste', function (e) {
     var t = e.target, tag = t && t.tagName; if (tag === 'INPUT' || tag === 'TEXTAREA' || (t && t.isContentEditable)) return;
-    var s = (e.clipboardData && e.clipboardData.getData('text')) || ''; if (isUrlOnly(s)) showUrlNote();
+    var s = (e.clipboardData && e.clipboardData.getData('text')) || ''; if (isUrlOnly(s)) showUrlNote(s);
   });
   function shareBase() { return /^https?:$/.test(location.protocol) ? location.origin + location.pathname : SHARE_BASE; }
   /* カード表示（スマホ・閲覧モード共通）。中身はすべて esc() で文字として出す */

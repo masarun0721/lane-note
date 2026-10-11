@@ -394,6 +394,13 @@ footer a{color:var(--navy)}
 .fb-login{border-radius:10px;padding:8px 10px;margin:6px 0;font-size:13px;background:#f3f6fb}
 .fb-login.need{background:#fff6e5;border:1px solid #f0c36d}.fb-login.ok{background:#e9f5ee;color:#137333}
 .fb-login .btn{margin-top:6px;min-height:44px}
+.url-load{margin:8px 0;padding:8px 10px;border:1px dashed #b9c6dc;border-radius:10px;background:#f7f9fd}
+.url-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.url-row input[type=url]{flex:1 1 240px;min-width:0;min-height:38px;font-size:15px;padding:4px 8px;border:1px solid #b9c6dc;border-radius:8px}
+.url-row select{min-height:38px}.url-lab{font-weight:700;font-size:14px}
+.url-links{margin-top:8px}.url-list{list-style:none;margin:6px 0;padding:0;max-height:360px;overflow:auto;border:1px solid #dde4ef;border-radius:8px;background:#fff}
+.url-list li{display:flex;justify-content:space-between;gap:6px;padding:5px 8px;border-bottom:1px solid #eef1f6;font-size:13px}.url-list li label{flex:1;min-width:0;overflow-wrap:anywhere}
+.url-k{display:inline-block;font-size:11px;padding:0 5px;border-radius:5px;color:#fff;background:#6b7a90}.url-k.pdf{background:#c0392b}.url-k.self{background:#1f3a68}
+.url-acts{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.status.warn{color:#7a5a00}
 .url-note{font-size:12px;color:#7a5a00;background:#fff7dc;border:1px solid #f0d58a;border-radius:8px;padding:5px 9px;margin:8px 0}
 .myshares{list-style:none;margin:6px 0;padding:0}.myshares li{display:flex;gap:8px;align-items:center;justify-content:space-between;border-bottom:1px solid #e3e8f0;padding:6px 0}
 .myshares li span{display:flex;flex-direction:column;font-size:13px}.myshares small{color:#6b778c}
@@ -566,7 +573,7 @@ body.fb-open{overflow:hidden}
 <body class="check">
 <header>
   <div class="hdr-meta">
-    <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／記録 v0.9.5</div>
+    <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／記録 v0.10.0</div>
     <div class="credit">Presented by Sakata</div>
     <div class="hdr-msg"><span class="hm-l">すべての陸上競技部顧問が、</span><span class="hm-l">少しでも楽になりますように。</span></div>
   </div>
@@ -580,16 +587,17 @@ body.fb-open{overflow:hidden}
   <p class="tagline">エントリー照合：出したエントリーと、届いたスタートリストを突き合わせる</p>
   <nav class="pagenav" aria-label="ページ"><a href="./">🏁 大会準備</a><a href="records.html">📒 記録</a><a href="check.html" class="on" aria-current="page">✅ 照合</a></nav>
 </header>
-<div class="topbar"><details class="changelog" id="changelog"><summary><b>📰 更新情報</b>　<span class="small muted">最新：v0.19（2026/10/11）</span><span class="cl-new">NEW</span></summary><ol><li><div class="cl-h"><b>v0.19</b>2026/10/11</div><div class="cl-b">新しいページ「✅ 照合」（エントリー照合）を作りました。大会に出したエントリーファイル（Excel・CSV）と届いたスタートリストのPDFを入れると、選手×種目ごとに「✅ 両方ある」「⚠️ エントリーしたのにスタートリストにない」「❓ スタートリストにだけある」を、確かめてほしいものから順に出します。中1_100 と 男子中学1年 100m のような種目の書き方の違いや、澤/沢・邊/辺・髙/高・﨑/崎、全角/半角などの名前の表記ゆれもそろえて比べます（表記ゆれで一致したものには印）。リレーはチームごとにメンバーを比べて別に出します。結果は画面で見る・PDF作成・印刷ができます。ファイルはこの端末の中だけで読み、どこにも送りません。</div></li><li><div class="cl-h"><b>v0.18.3</b>2026/10/11</div><div class="cl-b">上のナビは「大会準備」「記録」の2つだけにしました。「🔰 はじめての人はこちら」は更新情報・不具合・要望を送ると同じ白い控えめなボタンにして、今開いているページと間違えないようにしました。記録ページの「個人で使う」はチェックではなく「👤 個人で使う方はこちら／🏫 学校で使う方はこちら」のリンクで切り替えます。「📱 選手の個人ページを作る」は別の画面で選手を選んでからリンクを作るようにしました（中学/高校・男女でしぼれる・全員選択/全解除・1人ずつコピー・まとめてコピー）。</div></li><li><div class="cl-h"><b>記録 v0.9.5</b>2026/10/11</div><div class="cl-b">大会まとめの形を変えました。種目ごとに枠で囲み（紺の見出し＋氏名・学年・記録・風・順位）、A4やパソコンでは左右2列、スマホでは1列に並べます。枠はページの途中で切れません。PBを出した人だけ記録の横に赤い「PB −0.21」（前のPBとの差）、初めての記録は「初」の印が付きます。ラウンド/組と前回差の列はなくしました。</div></li><li><div class="cl-h"><b>記録 v0.9.4</b>2026/10/11</div><div class="cl-b">大会まとめを見やすい表にしました。種目・氏名・学年・ラウンド/組・記録・風・順位・PB/初・前回差の格子の表で、種目ごとにくくって（種目の欄はまとめて1つ）、種目の間は太い線で区切ります。PB更新の行は色付き、DNSなどは薄く表示します。「1枚にまとめる（縮小）」でも同じ表を使い、人数が多いときは左右2つの表に分けてA4の1枚に収めます（PB更新の一覧は表のPB印で分かるので、1枚のときは省きます）。</div></li><li><div class="cl-h"><b>記録 v0.9.3</b>2026/10/11</div><div class="cl-b">大会まとめから天気・気温を外しました（1日の中でばらつくため）。「1枚にまとめる（縮小）」を付けました。オンにすると2段組みの小さめの文字でA4の1枚に収め、入りきらないときは自動で縮めます（人数が多くて文字が小さくなったときは画面にお知らせが出ます）。あわせて、個人表・ランキングなどを印刷・PDFにしたとき、上の紺の見出しの帯と下の帯が消えていたのを直しました。</div></li><li><div class="cl-h"><b>記録 v0.9.2</b>2026/10/11</div><div class="cl-b">記録ページの「大会別」に「大会まとめ」を追加しました（👀 画面で見る／📄 PDF作成／🖨 印刷）。その大会に出たチーム全員の結果を種目ごとに、出場人数・記録数・PB更新数・初記録数、PB更新の一覧（どれだけ伸びたか）、PB・初記録の印、前回との差と一緒にまとめます。中学・高校・男女の絞り込みに合わせて出ます。</div></li><li><div class="cl-h"><b>v0.18.2</b>2026/10/11</div><div class="cl-b">記録用紙のマスを見ただけで分かるようにしました（「2年」「PB 12.10」「前回 11.98（参考）」＋小さく日付・大会名、DNSは「前回 DNS」を薄く）。見出しを「組／レーン／No.」と短くしてスマホで折り返さないようにし、凡例も書き直しました。</div></li><li><div class="cl-h"><b>v0.18.1</b>2026/10/11</div><div class="cl-b">大会準備の記録用紙で、スマホの画面だと「氏名」の列がつぶれて見えなかったのを直しました（列の幅を割合にして、氏名をいちばん広く）。「自己ベスト」の欄を「PB（これまでの公認ベスト）」と「前回大会（この種目のいちばん新しい記録）」の2列に分け、記録がないときは「―」と出します。印刷の見出しのアイコンが出ないときに壊れた画像が出ないようにしました。</div></li><li><div class="cl-h"><b>v0.18／記録 v0.9.1</b>2026/10/11</div><div class="cl-b">個人表・部内ランキング・歴代記録の書類を作り直しました（紺と赤のレーン帯の見出し、自己ベストのカード、目盛り付きの大きいグラフ、しま模様の表、PBの行に印、DNSなどは薄く表示）。新しいページ「🔰 はじめての人はこちら」に使い方とデータの取り扱いの全文をまとめ、大会準備と記録のページの長い説明は短い1行にしました。大会準備と記録のページの上の部分（版・ナビ・更新情報・はじめての人はこちら・不具合・要望を送る）を同じ形にそろえ、記録のページにも更新情報を出しました。大会準備の記録用紙（画面・印刷・PDF・Excel）に「自己ベスト」の欄を足しました（記録のページにためた公認の自己ベスト。参考記録のほうが良ければ小さく表示）。</div></li><li><div class="cl-h"><b>v0.17</b>2026/10/11</div><div class="cl-b">「ナンバーカード」タブの通販サイトへのおすすめ用品リンクと、その説明文を取りやめました。</div></li><li><div class="cl-h"><b>v0.17</b>2026/10/11</div><div class="cl-b">大会準備の「時間順」「記録用紙」の出力を「👀 画面で見る」「📄 PDF作成」「🖨 印刷」の3つのボタンに分けました。画面で見るは印刷画面を出さずにそのまま確認できます。PDF作成では「保存先で『PDFに保存』を選んでください」と案内します。</div></li><li><div class="cl-h"><b>記録 v0.9.0</b>2026/10/11</div><div class="cl-b">記録をPDF・印刷にできるようにしました（どれも「👀 画面で見る」「📄 PDF作成」「🖨 印刷」から選べます）。選手の個人表（自己ベスト・記録の一覧・グラフ）、選手を選んで1人1ページの個人表、部内ランキング・歴代記録（この種目／全種目）を、A4の印刷画面から「PDFに保存」できます。「ファイルから読み込む」ボタンの文字も真ん中にそろえました。</div></li><li><div class="cl-h"><b>v0.16／記録 v0.8.0</b>2026/10/11</div><div class="cl-b">準決勝・決勝など「通過したら」出るラウンドを、タイムテーブルから時間順・選手別・記録用紙・Excelに入れました（名前はカッコ付き・点線）。選手用リンクでは「通過！」「敗退」を押せます。記録ページで、選手ごとの「個人ページ」のリンク（自己ベスト・推移グラフ・最近の記録）を作れるようにしました。選手のページに、このスマホにだけ保存する体調メモ（体調・睡眠時間・ひとこと）を付けました。記録ページに、選手本人や保護者向けの「個人で使う」を付けました。</div></li><li><div class="cl-h"><b>v0.15／記録 v0.7.0</b>2026/10/11</div><div class="cl-b">選手のグラフに、DNS・失格などの記録なしの出場を × で出すようにしました（「DNS・失格なども表示」で切り替え）。「取り込み済みの大会」から大会ごとに削除できます。スマホのヘッダーで、右上の文字が背景のレーンの線に重ならないようにしました。外部の再監査の指摘8件（読み込み中にアカウントを切り替えたときの混入、ログアウト後に共有リンクの一覧が戻る件、ナンバー違い・種目の区分違いの記録が重複扱いで消える件、端末データを消したあとに控えが戻る件、電波がないときの控え、ログインの方式、保存した大会の期限、試験の設定）に対応しました。</div></li><li><div class="cl-h"><b>v0.14／記録 v0.6.0</b>2026/10/11</div><div class="cl-b">記録を1件ずつ入力・直す・消すことができるようになりました。共用のパソコンでも記録がほかの先生に移らないよう、ログイン・ログアウトまわりを直しました（外部の監査の指摘15件に対応）。不具合・要望を送るにはGoogleでのログインが必要になり、短いリンクは一覧から止められるようになりました。</div></li><li><div class="cl-h"><b>v0.13／記録 v0.5.0</b>2026/10/11</div><div class="cl-b">種目のプルダウンを区分ごと・陸上の種目順に並べました。Excel・CSVの取り込み、大会ごとの天気・気温、「不具合・要望を送る」フォームを付けました。</div></li><li><div class="cl-h"><b>v0.12／記録 v0.4.0</b>2026/10/11</div><div class="cl-b">本郷中と本郷高の記録が混ざらないように、中学・高校を分けてランキングや自己ベストを出すようにしました。「LANE LOG」の名前を「記録」に変えました。</div></li><li><div class="cl-h"><b>v0.11</b>2026/10/11</div><div class="cl-b">選手用リンクを作れるようにしました。選手は自分の出場だけが入ったページで、大会当日の予定を見られます（自分の予定も足せます）。</div></li><li><div class="cl-h"><b>v0.10</b>2026/10/11</div><div class="cl-b">Googleでログインしているときは、共有リンクを短く（QRも小さく）できるようにしました。</div></li><li><div class="cl-h"><b>記録 v0.3.0</b>2026/10/11</div><div class="cl-b">ホーム（最新の大会の自己ベスト更新）、選手のページと記録の推移グラフ、部内ランキング、歴代記録を付けました。</div></li><li><div class="cl-h"><b>記録 v0.2.1〜v0.2.4</b>2026/10/11</div><div class="cl-b">ファイル名や資料の見出しから大会名と日付を推測します。スマホでは一覧をカードの形にしました。試作中のお知らせを付け、名前を「LANE LOG」にしました。</div></li><li><div class="cl-h"><b>記録 v0.1.1〜v0.2</b>2026/10/10</div><div class="cl-b">大会ごとの削除と「今読み込んだ分の取り消し」を付けました。Googleでログインすると、記録をクラウドに保存して、どの端末からでも見られるようにしました。</div></li><li><div class="cl-h"><b>記録 v0.1</b>2026/10/10</div><div class="cl-b">記録のページ（当時の名前は「記録帳」）を作りました。結果のPDF・Webページから自校の記録を読み取ってため、自己ベストを出します。</div></li><li><div class="cl-h"><b>v0.9</b>2026/10/09</div><div class="cl-b">版の表示を整え、備考の「〃」・大会名・プログラム代に対応しました。ナンバーカードを全日程分まとめて出せるようにしました。</div></li></ol></details><a href="guide.html#g10" class="tb-btn tb-guide">🔰 はじめての人はこちら</a><button type="button" class="tb-btn fb-link" data-feedback="1">🚨 不具合・要望を送る</button></div>
+<div class="topbar"><details class="changelog" id="changelog"><summary><b>📰 更新情報</b>　<span class="small muted">最新：v0.20（2026/10/12）</span><span class="cl-new">NEW</span></summary><ol><li><div class="cl-h"><b>v0.20</b>2026/10/12</div><div class="cl-b">「🔗 URLから読み込む」ができるようになりました。大会準備（スタートリスト・タイムテーブル・競技注意事項・大会要項）、記録（結果のPDF・Webページ）、照合（スタートリストのPDF）で、アドレスを入れて「読み込む」を押すと、ファイルを入れたときと同じように読み取ります。大会のページのようにPDFや種目ごとのページへのリンクがたくさんあるときは、一覧から読み込むものを選べます。URLだけを貼り付けたときも、そのまま読み込めるようにしました。URLと取ってきた中身は LANE NOTE の中継（Cloudflare）を通りますが、保存はしません。記録のページは v0.10.0 です。</div></li><li><div class="cl-h"><b>v0.19</b>2026/10/11</div><div class="cl-b">新しいページ「✅ 照合」（エントリー照合）を作りました。大会に出したエントリーファイル（Excel・CSV）と届いたスタートリストのPDFを入れると、選手×種目ごとに「✅ 両方ある」「⚠️ エントリーしたのにスタートリストにない」「❓ スタートリストにだけある」を、確かめてほしいものから順に出します。中1_100 と 男子中学1年 100m のような種目の書き方の違いや、澤/沢・邊/辺・髙/高・﨑/崎、全角/半角などの名前の表記ゆれもそろえて比べます（表記ゆれで一致したものには印）。リレーはチームごとにメンバーを比べて別に出します。結果は画面で見る・PDF作成・印刷ができます。ファイルはこの端末の中だけで読み、どこにも送りません。</div></li><li><div class="cl-h"><b>v0.18.3</b>2026/10/11</div><div class="cl-b">上のナビは「大会準備」「記録」の2つだけにしました。「🔰 はじめての人はこちら」は更新情報・不具合・要望を送ると同じ白い控えめなボタンにして、今開いているページと間違えないようにしました。記録ページの「個人で使う」はチェックではなく「👤 個人で使う方はこちら／🏫 学校で使う方はこちら」のリンクで切り替えます。「📱 選手の個人ページを作る」は別の画面で選手を選んでからリンクを作るようにしました（中学/高校・男女でしぼれる・全員選択/全解除・1人ずつコピー・まとめてコピー）。</div></li><li><div class="cl-h"><b>記録 v0.9.5</b>2026/10/11</div><div class="cl-b">大会まとめの形を変えました。種目ごとに枠で囲み（紺の見出し＋氏名・学年・記録・風・順位）、A4やパソコンでは左右2列、スマホでは1列に並べます。枠はページの途中で切れません。PBを出した人だけ記録の横に赤い「PB −0.21」（前のPBとの差）、初めての記録は「初」の印が付きます。ラウンド/組と前回差の列はなくしました。</div></li><li><div class="cl-h"><b>記録 v0.9.4</b>2026/10/11</div><div class="cl-b">大会まとめを見やすい表にしました。種目・氏名・学年・ラウンド/組・記録・風・順位・PB/初・前回差の格子の表で、種目ごとにくくって（種目の欄はまとめて1つ）、種目の間は太い線で区切ります。PB更新の行は色付き、DNSなどは薄く表示します。「1枚にまとめる（縮小）」でも同じ表を使い、人数が多いときは左右2つの表に分けてA4の1枚に収めます（PB更新の一覧は表のPB印で分かるので、1枚のときは省きます）。</div></li><li><div class="cl-h"><b>記録 v0.9.3</b>2026/10/11</div><div class="cl-b">大会まとめから天気・気温を外しました（1日の中でばらつくため）。「1枚にまとめる（縮小）」を付けました。オンにすると2段組みの小さめの文字でA4の1枚に収め、入りきらないときは自動で縮めます（人数が多くて文字が小さくなったときは画面にお知らせが出ます）。あわせて、個人表・ランキングなどを印刷・PDFにしたとき、上の紺の見出しの帯と下の帯が消えていたのを直しました。</div></li><li><div class="cl-h"><b>記録 v0.9.2</b>2026/10/11</div><div class="cl-b">記録ページの「大会別」に「大会まとめ」を追加しました（👀 画面で見る／📄 PDF作成／🖨 印刷）。その大会に出たチーム全員の結果を種目ごとに、出場人数・記録数・PB更新数・初記録数、PB更新の一覧（どれだけ伸びたか）、PB・初記録の印、前回との差と一緒にまとめます。中学・高校・男女の絞り込みに合わせて出ます。</div></li><li><div class="cl-h"><b>v0.18.2</b>2026/10/11</div><div class="cl-b">記録用紙のマスを見ただけで分かるようにしました（「2年」「PB 12.10」「前回 11.98（参考）」＋小さく日付・大会名、DNSは「前回 DNS」を薄く）。見出しを「組／レーン／No.」と短くしてスマホで折り返さないようにし、凡例も書き直しました。</div></li><li><div class="cl-h"><b>v0.18.1</b>2026/10/11</div><div class="cl-b">大会準備の記録用紙で、スマホの画面だと「氏名」の列がつぶれて見えなかったのを直しました（列の幅を割合にして、氏名をいちばん広く）。「自己ベスト」の欄を「PB（これまでの公認ベスト）」と「前回大会（この種目のいちばん新しい記録）」の2列に分け、記録がないときは「―」と出します。印刷の見出しのアイコンが出ないときに壊れた画像が出ないようにしました。</div></li><li><div class="cl-h"><b>v0.18／記録 v0.9.1</b>2026/10/11</div><div class="cl-b">個人表・部内ランキング・歴代記録の書類を作り直しました（紺と赤のレーン帯の見出し、自己ベストのカード、目盛り付きの大きいグラフ、しま模様の表、PBの行に印、DNSなどは薄く表示）。新しいページ「🔰 はじめての人はこちら」に使い方とデータの取り扱いの全文をまとめ、大会準備と記録のページの長い説明は短い1行にしました。大会準備と記録のページの上の部分（版・ナビ・更新情報・はじめての人はこちら・不具合・要望を送る）を同じ形にそろえ、記録のページにも更新情報を出しました。大会準備の記録用紙（画面・印刷・PDF・Excel）に「自己ベスト」の欄を足しました（記録のページにためた公認の自己ベスト。参考記録のほうが良ければ小さく表示）。</div></li><li><div class="cl-h"><b>v0.17</b>2026/10/11</div><div class="cl-b">「ナンバーカード」タブの通販サイトへのおすすめ用品リンクと、その説明文を取りやめました。</div></li><li><div class="cl-h"><b>v0.17</b>2026/10/11</div><div class="cl-b">大会準備の「時間順」「記録用紙」の出力を「👀 画面で見る」「📄 PDF作成」「🖨 印刷」の3つのボタンに分けました。画面で見るは印刷画面を出さずにそのまま確認できます。PDF作成では「保存先で『PDFに保存』を選んでください」と案内します。</div></li><li><div class="cl-h"><b>記録 v0.9.0</b>2026/10/11</div><div class="cl-b">記録をPDF・印刷にできるようにしました（どれも「👀 画面で見る」「📄 PDF作成」「🖨 印刷」から選べます）。選手の個人表（自己ベスト・記録の一覧・グラフ）、選手を選んで1人1ページの個人表、部内ランキング・歴代記録（この種目／全種目）を、A4の印刷画面から「PDFに保存」できます。「ファイルから読み込む」ボタンの文字も真ん中にそろえました。</div></li><li><div class="cl-h"><b>v0.16／記録 v0.8.0</b>2026/10/11</div><div class="cl-b">準決勝・決勝など「通過したら」出るラウンドを、タイムテーブルから時間順・選手別・記録用紙・Excelに入れました（名前はカッコ付き・点線）。選手用リンクでは「通過！」「敗退」を押せます。記録ページで、選手ごとの「個人ページ」のリンク（自己ベスト・推移グラフ・最近の記録）を作れるようにしました。選手のページに、このスマホにだけ保存する体調メモ（体調・睡眠時間・ひとこと）を付けました。記録ページに、選手本人や保護者向けの「個人で使う」を付けました。</div></li><li><div class="cl-h"><b>v0.15／記録 v0.7.0</b>2026/10/11</div><div class="cl-b">選手のグラフに、DNS・失格などの記録なしの出場を × で出すようにしました（「DNS・失格なども表示」で切り替え）。「取り込み済みの大会」から大会ごとに削除できます。スマホのヘッダーで、右上の文字が背景のレーンの線に重ならないようにしました。外部の再監査の指摘8件（読み込み中にアカウントを切り替えたときの混入、ログアウト後に共有リンクの一覧が戻る件、ナンバー違い・種目の区分違いの記録が重複扱いで消える件、端末データを消したあとに控えが戻る件、電波がないときの控え、ログインの方式、保存した大会の期限、試験の設定）に対応しました。</div></li><li><div class="cl-h"><b>v0.14／記録 v0.6.0</b>2026/10/11</div><div class="cl-b">記録を1件ずつ入力・直す・消すことができるようになりました。共用のパソコンでも記録がほかの先生に移らないよう、ログイン・ログアウトまわりを直しました（外部の監査の指摘15件に対応）。不具合・要望を送るにはGoogleでのログインが必要になり、短いリンクは一覧から止められるようになりました。</div></li><li><div class="cl-h"><b>v0.13／記録 v0.5.0</b>2026/10/11</div><div class="cl-b">種目のプルダウンを区分ごと・陸上の種目順に並べました。Excel・CSVの取り込み、大会ごとの天気・気温、「不具合・要望を送る」フォームを付けました。</div></li><li><div class="cl-h"><b>v0.12／記録 v0.4.0</b>2026/10/11</div><div class="cl-b">本郷中と本郷高の記録が混ざらないように、中学・高校を分けてランキングや自己ベストを出すようにしました。「LANE LOG」の名前を「記録」に変えました。</div></li><li><div class="cl-h"><b>v0.11</b>2026/10/11</div><div class="cl-b">選手用リンクを作れるようにしました。選手は自分の出場だけが入ったページで、大会当日の予定を見られます（自分の予定も足せます）。</div></li><li><div class="cl-h"><b>v0.10</b>2026/10/11</div><div class="cl-b">Googleでログインしているときは、共有リンクを短く（QRも小さく）できるようにしました。</div></li><li><div class="cl-h"><b>記録 v0.3.0</b>2026/10/11</div><div class="cl-b">ホーム（最新の大会の自己ベスト更新）、選手のページと記録の推移グラフ、部内ランキング、歴代記録を付けました。</div></li><li><div class="cl-h"><b>記録 v0.2.1〜v0.2.4</b>2026/10/11</div><div class="cl-b">ファイル名や資料の見出しから大会名と日付を推測します。スマホでは一覧をカードの形にしました。試作中のお知らせを付け、名前を「LANE LOG」にしました。</div></li><li><div class="cl-h"><b>記録 v0.1.1〜v0.2</b>2026/10/10</div><div class="cl-b">大会ごとの削除と「今読み込んだ分の取り消し」を付けました。Googleでログインすると、記録をクラウドに保存して、どの端末からでも見られるようにしました。</div></li><li><div class="cl-h"><b>記録 v0.1</b>2026/10/10</div><div class="cl-b">記録のページ（当時の名前は「記録帳」）を作りました。結果のPDF・Webページから自校の記録を読み取ってため、自己ベストを出します。</div></li><li><div class="cl-h"><b>v0.9</b>2026/10/09</div><div class="cl-b">版の表示を整え、備考の「〃」・大会名・プログラム代に対応しました。ナンバーカードを全日程分まとめて出せるようにしました。</div></li></ol></details><a href="guide.html#g10" class="tb-btn tb-guide">🔰 はじめての人はこちら</a><button type="button" class="tb-btn fb-link" data-feedback="1">🚨 不具合・要望を送る</button></div>
 <p class="beta-line">⚠️ 試作版です。内容は元資料でも確認してください</p>
 <main>
 <section class="box">
   <h2><span class="no">1</span>ファイルを2つ入れる</h2>
-  <p class="ck-priv">🔒 ファイルはこの端末の中だけで読み取ります。どこにも送らず、画面を閉じると消えます。</p>
+  <p class="ck-priv">🔒 ファイルはこの端末の中だけで読み取ります。どこにも送らず、画面を閉じると消えます（「URLから読み込む」を使ったときだけ、URLと中身が LANE NOTE の中継を通ります。保存はしません）。</p>
   <div class="ck-drops">
     <div class="drop" id="ckEntDrop" tabindex="0"><div class="big">📝 エントリーファイル</div><div class="muted small">大会に出したExcel（.xlsx／.xls）・CSV<br>ここにドラッグ／クリックして選ぶ</div><input type="file" id="ckEntFile" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"><div class="status" id="ckEntStatus"></div></div>
     <div class="drop" id="ckSlDrop" tabindex="0"><div class="big">📄 スタートリスト</div><div class="muted small">大会から届いたPDF（プログラムでもOK）<br>ここにドラッグ／クリックして選ぶ</div><input type="file" id="ckSlFile" accept="application/pdf,.pdf"><div class="status" id="ckSlStatus"></div></div>
   </div>
+  <div id="ckUrlLoad"></div>
   <details class="ck-map" id="ckMap" hidden><summary>🔧 列の割り当て（自動で読めなかったときに直す）</summary><p class="small muted">大会ごとにエントリーファイルの形が違うので、氏名・種目などの列を自動で探しています。違っていたらここで選び直してください。</p><div id="ckMapBody"></div></details>
 </section>
 <section class="box">
@@ -607,7 +615,7 @@ body.fb-open{overflow:hidden}
 </section>
 </main>
 <div id="ckPrint" hidden><div class="cp-bar"><button class="btn sub" type="button" id="ckPrintClose">✕ 閉じる</button><button class="btn" type="button" id="ckPrintPdf">📄 PDF作成</button><button class="btn" type="button" id="ckPrintGo">🖨 印刷</button><span id="ckPrintHint" hidden></span></div><div id="ckPrintBody"></div></div>
-<footer><div class="f-disc">ⓘ 本ツールはファイルの文字を読み取って自動で突き合わせているだけです。内容は必ず元のエントリーファイル・スタートリストと照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div><div><b class="f-brand">LANE NOTE</b>（レーンノート）試作版 ／ <span class="f-credit">Presented by Sakata</span></div>🔒 エントリーファイル・PDFはこの端末の中だけで読み、どこにも送りません（部品取得のため外部CDNへ通信します）。 <a href="./">大会準備のページへ</a><br><button type="button" class="fb-btn" data-feedback="1">📮 不具合・要望を送る</button></footer>
+<footer><div class="f-disc">ⓘ 本ツールはファイルの文字を読み取って自動で突き合わせているだけです。内容は必ず元のエントリーファイル・スタートリストと照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div><div><b class="f-brand">LANE NOTE</b>（レーンノート）試作版 ／ <span class="f-credit">Presented by Sakata</span></div>🔒 エントリーファイル・PDFはこの端末の中だけで読み、どこにも送りません（部品取得のため外部CDNへ通信します。「URLから読み込む」のときだけ、URLと取ってきた中身が LANE NOTE の Cloudflare 中継を通ります・保存しません）。 <a href="./">大会準備のページへ</a><br><button type="button" class="fb-btn" data-feedback="1">📮 不具合・要望を送る</button></footer>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
 <script src="firebase-config.js"></script>
 <script>
@@ -2099,8 +2107,223 @@ if (typeof module !== 'undefined') module.exports = LaneAuth;
 
 </script>
 <script>
-var APP_VERSION = "v0.19";
+var APP_VERSION = "v0.20";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
+</script>
+<script>
+/* v0.20 URLから読み込む（大会準備・記録・照合で共通）
+   ・ブラウザから直接ほかのサイトのファイルは取れない（CORS）ので、LANE NOTE の Cloudflare 中継（worker/worker.js）を通して取る。
+   ・中継はURLと取ってきた中身をそのまま返すだけで、保存しない。取ってきたものは「ファイルを入れたとき」と同じ処理に File として渡す。
+   ・Webページの中に PDF や別ページへのリンクがたくさんあるとき（大会のページなど）は、一覧を出して選んでもらう。 */
+(function (root) {
+  'use strict';
+  var PROXY = 'https://lane-note-fetch.masashi-sakata1007.workers.dev/';
+  var MAX = 20 * 1048576;
+  var MSG = {
+    bad: 'URLの形が正しくありません（https:// から始まるアドレスを入れてください）',
+    net: '読み込めませんでした。URLが正しいか、インターネットにつながっているかを確かめてください',
+    notfound: '読み込めませんでした（ページが見つかりません。URLが正しいか確かめてください）',
+    big: '大きすぎるので読み込めませんでした（20MBまで）。PDFをダウンロードして、枠に入れてください',
+    type: '対応していない形式です（読み込めるのはPDFとWebページだけです）',
+    login: 'ログインが必要なページのようです。そのページを開いてPDFをダウンロードし、枠に入れてください',
+    blocked: 'このアドレスは読み込めません'
+  };
+  function isUrlOnly(t) { return /^\s*https?:\/\/\S+\s*$/i.test(String(t || '')); }
+  function normUrl(s) {
+    s = String(s || '').trim(); if (!s) return null;
+    if (!/^https?:\/\//i.test(s) && /^[\w-]+(\.[\w-]+)+(\/|$)/.test(s)) s = 'https://' + s;
+    try { var u = new URL(s); return /^https?:$/.test(u.protocol) ? u.href : null; } catch (e) { return null; }
+  }
+  function err(code) { var e = new Error(MSG[code] || code); e.code = code; return e; }
+  function sniff(bytes, type) {
+    var h = ''; for (var i = 0; i < Math.min(bytes.length, 1024); i++) h += String.fromCharCode(bytes[i]);
+    if (/^\s*%PDF-/.test(h.slice(0, 16)) || h.indexOf('%PDF-') >= 0 && h.indexOf('%PDF-') < 1024) return 'pdf';
+    if (/<(!doctype html|html|head|body|table|meta|title|!--)/i.test(h)) return 'html';
+    if (/pdf/i.test(type)) return 'pdf';
+    if (/html/i.test(type)) return 'html';
+    if (/^text\//i.test(type)) return 'text';
+    return 'other';
+  }
+  function decodeHtml(bytes, type) {
+    var head = ''; for (var i = 0; i < Math.min(bytes.length, 4096); i++) head += String.fromCharCode(bytes[i]);
+    var cs = (String(type || '').match(/charset\s*=\s*["']?([\w-]+)/i) || head.match(/charset\s*=\s*["']?([\w-]+)/i) || [])[1] || 'utf-8';
+    if (/shift_jis|sjis|x-sjis|windows-31j|cp932/i.test(cs)) cs = 'shift_jis';
+    var t; try { t = new TextDecoder(cs).decode(bytes); } catch (e) { t = new TextDecoder('utf-8').decode(bytes); }
+    if ((t.match(/\ufffd/g) || []).length > 20 && cs !== 'shift_jis') { try { t = new TextDecoder('shift_jis').decode(bytes); } catch (e) { } }
+    return t;
+  }
+  function looksLogin(html) { return /<input[^>]+type\s*=\s*["']?password/i.test(html) || /<title>[^<]*(ログイン|サインイン|log\s*in|sign\s*in)[^<]*<\/title>/i.test(html); }
+  function fileName(url, kind) {
+    var n = ''; try { var u = new URL(url); n = decodeURIComponent(u.pathname.split('/').filter(Boolean).pop() || u.hostname); } catch (e) { n = 'download'; }
+    n = n.replace(/[\\/:*?"<>|]/g, '_').slice(0, 120);
+    if (kind === 'pdf' && !/\.pdf$/i.test(n)) n += '.pdf';
+    if (kind === 'html' && !/\.html?$/i.test(n)) n += '.html';
+    return n;
+  }
+  // 中継を通して1つのURLを取る → { url, kind:'pdf'|'html', bytes, type, name, html? }
+  async function fetchUrl(url, opt) {
+    opt = opt || {};
+    var u = normUrl(url); if (!u) throw err('bad');
+    var res;
+    try { res = await (opt.fetch || root.fetch).call(root, PROXY + '?url=' + encodeURIComponent(u), { method: 'GET', credentials: 'omit', signal: opt.signal }); }
+    catch (e) { if (e && e.name === 'AbortError') throw e; throw err('net'); }
+    if (res.status === 413) throw err('big');
+    if (res.status === 415) throw err('type');
+    if (res.status === 401 || res.status === 407) throw err('login');
+    if (res.status === 403) throw err(/forbidden/.test(await safeText(res)) ? 'net' : 'login');
+    if (res.status === 404 || res.status === 410) throw err('notfound');
+    if (res.status === 400) { var bt = await safeText(res); throw err(/blocked/.test(bt) ? 'blocked' : 'bad'); }
+    if (!res.ok) throw err('net');
+    var len = +(res.headers.get('Content-Length') || 0); if (len > MAX) throw err('big');
+    var buf; try { buf = new Uint8Array(await res.arrayBuffer()); } catch (e) { if (e && e.name === 'AbortError') throw e; throw err('net'); }
+    if (buf.length > MAX) throw err('big');
+    var type = res.headers.get('Content-Type') || '', kind = sniff(buf, type);
+    if (kind === 'text') kind = 'html';
+    if (kind !== 'pdf' && kind !== 'html') throw err('type');
+    var out = { url: u, kind: kind, bytes: buf, type: type, name: fileName(u, kind) };
+    if (kind === 'html') {
+      out.html = decodeHtml(buf, type);
+      if (looksLogin(out.html)) throw err('login');
+      var t = (out.html.match(/<title[^>]*>([^<]*)<\/title>/i) || [])[1]; out.title = t ? t.trim() : '';
+      // 転送だけのページ（meta refresh・location.href=）は1回だけついていく
+      var rd = out.html.length < 4000 && (out.html.match(/http-equiv\s*=\s*["']?refresh["']?[^>]*url\s*=\s*['"]?([^"'>\s]+)/i) || out.html.match(/location\.href\s*=\s*["']([^"']+)["']/i));
+      if (rd && !opt.noRedirect) { try { return await fetchUrl(new URL(rd[1], u).href, Object.assign({}, opt, { noRedirect: true })); } catch (e) { if (e && e.name === 'AbortError') throw e; } }
+    }
+    return out;
+  }
+  async function safeText(res) { try { return await res.text(); } catch (e) { return ''; } }
+  function toFile(r) {
+    var type = r.kind === 'pdf' ? 'application/pdf' : 'text/html';
+    try { return new File([r.bytes], r.name, { type: type }); }
+    catch (e) { var b = new Blob([r.bytes], { type: type }); b.name = r.name; b.lastModified = Date.now(); return b; }
+  }
+  // Webページの中のリンク（PDFと、同じサイトの別ページ）を集める。相対URLは解決する
+  function findLinks(html, base) {
+    var doc = new DOMParser().parseFromString(html, 'text/html'), seen = {}, out = [], bu;
+    try { bu = new URL(base); } catch (e) { return out; }
+    var b = doc.querySelector('base[href]'); var baseHref = base; if (b) { try { baseHref = new URL(b.getAttribute('href'), base).href; } catch (e) { } }
+    Array.prototype.forEach.call(doc.querySelectorAll('a[href], area[href], frame[src], iframe[src]'), function (a) {
+      var raw = a.getAttribute('href') || a.getAttribute('src') || ''; if (!raw || /^\s*(#|javascript:|mailto:|tel:)/i.test(raw)) return;
+      var u; try { u = new URL(raw.trim(), baseHref); } catch (e) { return; }
+      if (!/^https?:$/.test(u.protocol)) return;
+      u.hash = ''; var href = u.href; if (href === bu.href.replace(/#.*$/, '') || seen[href]) return;
+      var isPdf = /\.pdf$/i.test(u.pathname);
+      var isPage = !isPdf && u.host === bu.host && /(\/|\.s?html?|\.php|\.aspx?|\/[^.\/]+)$/i.test(u.pathname) && !/\.(css|js|png|jpe?g|gif|svg|ico|zip|xlsx?|docx?|csv|txt|mp4)$/i.test(u.pathname);
+      if (!isPdf && !isPage) return;
+      seen[href] = 1;
+      var label = (a.textContent || a.getAttribute('title') || '').replace(/\s+/g, ' ').trim();
+      // 表の中のリンクは、行の見出し（左のセル）も付けておくと何のリンクか分かりやすい
+      var tr = a.closest && a.closest('tr'); var rowh = '';
+      if (tr) { var c0 = tr.querySelector('th,td'); if (c0 && !c0.contains(a)) rowh = c0.textContent.replace(/\s+/g, ' ').trim().slice(0, 40); }
+      out.push({ url: href, kind: isPdf ? 'pdf' : 'page', label: (rowh && rowh !== label ? rowh + '　' : '') + (label || decodeURIComponent(u.pathname.split('/').pop() || href)) });
+    });
+    return out.slice(0, 500);
+  }
+  function guessTarget(label, targets) {
+    for (var i = 0; i < targets.length; i++) if (targets[i].re && targets[i].re.test(label)) return targets[i].k;
+    return '';
+  }
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  /* 画面の部品
+     mount(el, { id, targets:[{k,label,re}], accept:['pdf'] or ['pdf','html'], multiple, onFiles(filesByTarget, ctx) , begin() → ctx })
+     targets が2つ以上のときは、リンクごとに「どこに入れるか」を選ぶ */
+  function mount(el, o) {
+    var id = o.id, multi = o.targets.length > 1, acceptHtml = o.accept.indexOf('html') >= 0;
+    el.classList.add('url-load');
+    el.innerHTML = '<div class="url-row"><label for="' + id + 'Url" class="url-lab">🔗 URLから読み込む</label>' +
+      (multi ? '<select id="' + id + 'Tgt" aria-label="入れる先">' + o.targets.map(function (t) { return '<option value="' + t.k + '">' + esc(t.label) + '</option>'; }).join('') + '</select>' : '') +
+      '<input type="url" id="' + id + 'Url" inputmode="url" autocomplete="off" placeholder="https://… （PDFや大会のページのアドレス）">' +
+      '<button class="btn" type="button" id="' + id + 'Go">読み込む</button></div>' +
+      '<div class="status" id="' + id + 'St" aria-live="polite"></div><div class="url-links" id="' + id + 'Links" hidden></div>';
+    var $ = function (s) { return document.getElementById(id + s); };
+    var busy = false, ctrl = null;
+    function st(msg, cls) { var s = $('St'); s.textContent = msg; s.className = 'status ' + (cls || ''); }
+    function tgtOf(k) { return o.targets.filter(function (t) { return t.k === k; })[0] || o.targets[0]; }
+    async function deliver(list, ctx) {   // list: [{ r, k }]
+      var by = {}; list.forEach(function (x) { (by[x.k] = by[x.k] || []).push(toFile(x.r)); });
+      for (var k in by) await o.onFiles(by[k], k, ctx);
+    }
+    async function go(url) {
+      if (busy) return; url = url != null ? url : $('Url').value;
+      var u = normUrl(url); if (!u) { st('✖ ' + MSG.bad, 'ng'); return; }
+      $('Url').value = u; $('Links').hidden = true; $('Links').innerHTML = '';
+      var ctx = o.begin ? o.begin() : null;   // 記録：押した時点の scope を最後まで持ち回る（A01）
+      busy = true; $('Go').disabled = true; ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      st('読み込み中…（LANE NOTE の中継を通して取りに行っています）', 'busy');
+      try {
+        var r = await fetchUrl(u, { signal: ctrl && ctrl.signal });
+        var k0 = multi ? $('Tgt').value : o.targets[0].k;
+        if (r.kind === 'pdf') { st('✔ PDFを取ってきました：' + r.name, 'ok'); await deliver([{ r: r, k: k0 }], ctx); return; }
+        var links = findLinks(r.html, r.url).filter(function (l) { return acceptHtml || l.kind === 'pdf'; });
+        if (!links.length) {
+          if (acceptHtml) { st('✔ Webページを取ってきました：' + (r.title || r.name), 'ok'); await deliver([{ r: r, k: k0 }], ctx); return; }
+          throw err('このページにはPDFへのリンクが見つかりませんでした。PDFそのもののアドレスを入れてください');
+        }
+        showLinks(r, links, ctx);
+      } catch (e) {
+        if (e && e.name === 'AbortError') return;
+        st('✖ ' + (e && e.message || e), 'ng');
+      } finally { busy = false; $('Go').disabled = false; }
+    }
+    function showLinks(page, links, ctx) {
+      var box = $('Links'), k0 = multi ? $('Tgt').value : o.targets[0].k;
+      var rows = (acceptHtml ? [{ url: page.url, kind: 'self', label: 'このページ自体（' + (page.title || page.name) + '）' }] : []).concat(links);
+      var opt = function (sel) { return '<option value="">読み込まない</option>' + o.targets.map(function (t) { return '<option value="' + t.k + '"' + (t.k === sel ? ' selected' : '') + '>' + esc(t.label) + '</option>'; }).join(''); };
+      box.innerHTML = '<p class="small"><b>このページから ' + links.length + ' 件のリンクが見つかりました。</b>' + (multi ? 'それぞれ「どこに入れるか」を選んでください（名前から見当をつけてあります）。' : '読み込むものにチェックを入れてください。') + '</p>' +
+        (!multi && o.multiple ? '<div class="url-acts"><button type="button" class="btn sub" data-all="1">全部選ぶ</button><button type="button" class="btn sub" data-all="0">全部はずす</button><label class="small"><input type="checkbox" data-onlypdf> PDFだけ表示</label></div>' : '') +
+        '<ul class="url-list">' + rows.map(function (l, i) {
+          var tag = l.kind === 'pdf' ? '<span class="url-k pdf">PDF</span>' : l.kind === 'self' ? '<span class="url-k self">ページ</span>' : '<span class="url-k pg">ページ</span>';
+          var ctl = multi ? '<select data-i="' + i + '">' + opt(guessTarget(l.label, o.targets)) + '</select>'
+            : '<input type="' + (o.multiple ? 'checkbox' : 'radio') + '" name="' + id + 'Pick" data-i="' + i + '"' + (l.kind === 'self' && links.length < 2 ? ' checked' : '') + '>';
+          return '<li data-kind="' + l.kind + '"><label>' + ctl + ' ' + tag + ' <span class="url-t">' + esc(l.label) + '</span></label> <a href="' + esc(l.url) + '" target="_blank" rel="noopener noreferrer" class="small muted url-a">開く</a></li>';
+        }).join('') + '</ul><div class="url-acts"><button type="button" class="btn" data-load>選んだものを読み込む</button><button type="button" class="btn sub" data-cancel>やめる</button></div>';
+      box.hidden = false;
+      st('リンクを ' + links.length + ' 件見つけました。読み込むものを選んでください。', '');
+      box.onclick = function (e) {
+        var t = e.target;
+        if (t.hasAttribute('data-all')) { box.querySelectorAll('li:not([hidden]) input[data-i]').forEach(function (c) { c.checked = t.getAttribute('data-all') === '1'; }); }
+        else if (t.hasAttribute('data-onlypdf')) { box.querySelectorAll('li').forEach(function (li) { li.hidden = t.checked && li.getAttribute('data-kind') !== 'pdf'; }); }
+        else if (t.hasAttribute('data-cancel')) { box.hidden = true; box.innerHTML = ''; st('', ''); }
+        else if (t.hasAttribute('data-load')) {
+          var pick = [];
+          box.querySelectorAll('[data-i]').forEach(function (c) { var i = +c.getAttribute('data-i'); if (multi ? c.value : c.checked) pick.push({ l: rows[i], k: multi ? c.value : k0 }); });
+          if (!pick.length) { st('✖ 読み込むものを選んでください', 'ng'); return; }
+          if (pick.length > 60) { st('✖ 一度に読み込めるのは60件までです', 'ng'); return; }
+          loadPicked(page, pick, ctx);
+        }
+      };
+    }
+    async function loadPicked(page, pick, ctx) {
+      busy = true; $('Go').disabled = true; var got = [], ng = [];
+      try {
+        for (var i = 0; i < pick.length; i++) {
+          st('読み込み中…（' + (i + 1) + '／' + pick.length + '）' + pick[i].l.label.slice(0, 40), 'busy');
+          try {
+            var r = pick[i].l.kind === 'self' ? page : await fetchUrl(pick[i].l.url, { noRedirect: true });
+            if (r.kind === 'html' && !acceptHtml) throw err('type');
+            got.push({ r: r, k: pick[i].k });
+          } catch (e) { if (e && e.name === 'AbortError') return; ng.push(pick[i].l.label.slice(0, 30) + '：' + e.message); }
+        }
+        $('Links').hidden = true; $('Links').innerHTML = '';
+        st((got.length ? '✔ ' + got.length + '件を取ってきました。' : '') + (ng.length ? '　✖ 読み込めなかったもの：' + ng.join('／') : ''), ng.length && !got.length ? 'ng' : ng.length ? 'warn' : 'ok');
+        if (got.length) await deliver(got, ctx);
+      } finally { busy = false; $('Go').disabled = false; }
+    }
+    $('Go').addEventListener('click', function () { go(); });
+    $('Url').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); go(); } });
+    // URLだけを貼った・落としたとき：入れておいて「読み込む」を押せるようにする
+    function offer(url, k) {
+      $('Url').value = String(url).trim(); if (multi && k) $('Tgt').value = k;
+      st('ⓘ URLを入れました。「読み込む」を押すと、このアドレスから読み込みます。', '');
+      el.scrollIntoView && el.scrollIntoView({ behavior: 'smooth', block: 'center' }); $('Go').focus();
+    }
+    return { go: go, offer: offer, setTarget: function (k) { if (multi) $('Tgt').value = k; } };
+  }
+  var api = { PROXY: PROXY, MAX: MAX, MSG: MSG, isUrlOnly: isUrlOnly, normUrl: normUrl, sniff: sniff, decodeHtml: decodeHtml, fetchUrl: fetchUrl, toFile: toFile, findLinks: findLinks, guessTarget: guessTarget, fileName: fileName, mount: mount };
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  root.LaneUrl = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
 </script>
 <script>
 /* ===== v0.19 エントリー照合（check.html）の画面。ファイルはすべてこの端末の中で読み、どこにも送らない ===== */
@@ -2312,6 +2535,7 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
     if (act !== 'view') setTimeout(function () { window.print(); }, act === 'pdf' ? 400 : 0);
   }
   function closePrint() { $('ckPrint').hidden = true; $('ckPrintBody').innerHTML = ''; document.body.classList.remove('printing'); }
+  var urlUi = null;
   function bindDrop(id, input, fn) {
     var z = $(id), f = $(input);
     z.addEventListener('click', function (e) { if (e.target !== f && !e.target.closest('label')) f.click(); });
@@ -2319,10 +2543,13 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
     f.addEventListener('change', function () { if (f.files[0]) fn(f.files[0]); f.value = ''; });
     ['dragenter', 'dragover'].forEach(function (ev) { z.addEventListener(ev, function (e) { e.preventDefault(); z.classList.add('drag'); }); });
     ['dragleave', 'drop'].forEach(function (ev) { z.addEventListener(ev, function (e) { e.preventDefault(); z.classList.remove('drag'); }); });
-    z.addEventListener('drop', function (e) { var x = e.dataTransfer.files[0]; if (x) fn(x); });
+    z.addEventListener('drop', function (e) { var x = e.dataTransfer.files[0]; if (x) { fn(x); return; } var u = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain') || ''; if (urlUi && window.LaneUrl && LaneUrl.isUrlOnly(u)) urlUi.offer(u); });
   }
   function init() {
     bindDrop('ckEntDrop', 'ckEntFile', loadEntry); bindDrop('ckSlDrop', 'ckSlFile', loadSl);
+    // v0.20：スタートリストのPDFをURLから読み込む（ファイルを入れたときと同じ loadSl に渡す）
+    if (window.LaneUrl && $('ckUrlLoad')) urlUi = LaneUrl.mount($('ckUrlLoad'), { id: 'cu', targets: [{ k: 'sl', label: '📄 スタートリスト' }], accept: ['pdf'], multiple: false, onFiles: function (files) { return loadSl(files[0]); } });
+    document.addEventListener('paste', function (e) { var t = e.target, tag = t && t.tagName; if (tag === 'INPUT' || tag === 'TEXTAREA') return; var s = (e.clipboardData && e.clipboardData.getData('text')) || ''; if (urlUi && LaneUrl.isUrlOnly(s)) urlUi.offer(s); });
     $('ckMapBody').addEventListener('change', onMap);
     $('ckSchool').addEventListener('input', function () { teamUi(); render(); });
     $('ckTeams').addEventListener('change', function () { st.teams = Array.from($('ckTeams').querySelectorAll('input:checked')).map(function (c) { return c.value; }); render(); });

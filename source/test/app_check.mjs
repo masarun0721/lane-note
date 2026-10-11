@@ -35,7 +35,7 @@ function fakeFirebase({ read = async () => [], commit = async () => {}, getDoc =
 }
 async function recordHarness() {
   const w = await makeDom('records_template.html', 'http://127.0.0.1:9090/records.html');
-  w.eval(src('auth_common.js')); w.eval(src('results.js'));
+  w.eval(src('auth_common.js')); w.eval(src('results.js')); w.eval(src('urlload.js'));
   let js = src('records_app.js'); const tail = 'if (CLOUD_READY) initCloud(); else { renderAuth(); reload(); }';
   assert(js.includes(tail));
   js = js.replace(tail, `window.__t={getAll,cloudPut,clearAll,lgetAll,ltx,db,reload,putMany,onAuth,scope,recRow,
@@ -185,10 +185,11 @@ await check('記録を直す（IDが変わるときは古いほうを消す）�
   del.click(); await delay(80);
   assert.equal(t.all().length, 1); assert(!t.all().some(r => r.name === '架空 三郎'));
 });
-await check('URLだけを貼ったら「今はまだURLからの読み込みには対応していません」', async () => {
+await check('URLだけを貼ったら「URLから読み込む」の欄に入る（v0.20）', async () => {
   const w = await recordHarness(), d = w.document;
   d.getElementById('rbPaste').value = 'https://example.jp/result/100m.html'; d.getElementById('rbPasteGo').click(); await delay();
-  assert.match(text(w, 'rbStatus'), /今はまだURLからの読み込みには対応していません。後日実装予定です。/);
+  assert.equal(d.getElementById('ruUrl').value, 'https://example.jp/result/100m.html');
+  assert.match(text(w, 'ruSt'), /「読み込む」を押すと/);
   assert.equal(d.getElementById('rbBatches').children.length, 0);
 });
 

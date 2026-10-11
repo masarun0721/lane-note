@@ -102,8 +102,8 @@ await check('ビルド結果：check.html・3ページのナビに「✅ 照合�
   assert.match(C, /<a href="check.html" class="on" aria-current="page">✅ 照合/); assert.match(C, /<p class="tagline">エントリー照合：/); assert.match(C, /class="topbar"><details class="changelog"/); assert.match(C, /どこにも送らず/);
   assert.ok(!/__[A-Z_]+__/.test(C.replace(/__check|__fitScale/g, '')), 'プレースホルダが残っていない');
   assert.match(G, /id="g10"/); assert.match(G, /表記ゆれで一致/); assert.match(G, /check\.html/);
-  assert.match(SW, /\.\/check\.html/); assert.match(SW, /getPage\(CHECK\)/); assert.match(SW, /lanenote-page-v0\.19-/);
-  assert.match(I, /v0\.19/);
+  assert.match(SW, /\.\/check\.html/); assert.match(SW, /getPage\(CHECK\)/); assert.match(SW, /lanenote-page-v0\.(19|[2-9]\d)-/);
+  assert.match(I, /v0\.(19|[2-9]\d)/);
 });
 // 画面（jsdom・実際のソース）
 const tpl = src('check_template.html').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '').replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '').replace(/__[A-Z_]+__/g, '');

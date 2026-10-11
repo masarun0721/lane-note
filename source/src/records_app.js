@@ -569,14 +569,16 @@
   ['dragleave', 'drop'].forEach(function (t) { drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.remove('drag'); }); });
   drop.addEventListener('drop', function (e) {
     var dt = e.dataTransfer; if (dt.files && dt.files.length) { handleFiles(dt.files, scope()); return; }
-    var u = dt.getData('text/uri-list') || dt.getData('text/plain') || ''; if (isUrlOnly(u)) status('rbStatus', 'ⓘ ' + URL_NOTE, 'ng');
+    var u = dt.getData('text/uri-list') || dt.getData('text/plain') || ''; if (isUrlOnly(u) && urlUi) urlUi.offer(u);
   });
-  // v0.14：URLだけを貼ったとき・落としたとき
-  var URL_NOTE = '今はまだURLからの読み込みには対応していません。後日実装予定です。結果のページを開いて、ページを保存（HTML）するか、全部選んでコピーした文章を貼り付けてください。';
-  function isUrlOnly(t) { return /^\s*(https?:\/\/\S+\s*)+$/i.test(String(t || '')); }
+  // v0.20：URLから読み込む。押した時点の scope（A01）を持ち回り、ファイルを入れたときと同じ handleFiles に渡す
+  function isUrlOnly(t) { return window.LaneUrl ? LaneUrl.isUrlOnly(t) : false; }
+  var urlUi = window.LaneUrl && $('rbUrlLoad') ? LaneUrl.mount($('rbUrlLoad'), { id: 'ru', targets: [{ k: 'res', label: '結果' }], accept: ['pdf', 'html'], multiple: true,
+    begin: function () { return scope(); },
+    onFiles: function (files, k, sc) { return handleFiles(files, sc); } }) : null;
   $('rbPasteGo').addEventListener('click', function () {
     var t = $('rbPaste').value; if (!t.trim()) return;
-    if (isUrlOnly(t)) { status('rbStatus', 'ⓘ ' + URL_NOTE, 'ng'); return; }
+    if (isUrlOnly(t)) { if (urlUi) { urlUi.offer(t); $('rbPaste').value = ''; } return; }
     if (t.length > LIMITS.paste) { status('rbStatus', '✖ 貼り付けた文章が長すぎます（約200万文字まで）。種目ごとに分けて貼り付けてください。', 'ng'); return; }
     var res = R.parsePlain(t, {});
     addBatchIn({ src: '貼り付け', kind: '貼り付け', all: res, meta: { name: res.meet.name, date: res.meet.date } }, scope());

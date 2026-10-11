@@ -207,6 +207,7 @@
     if (act !== 'view') setTimeout(function () { window.print(); }, act === 'pdf' ? 400 : 0);
   }
   function closePrint() { $('ckPrint').hidden = true; $('ckPrintBody').innerHTML = ''; document.body.classList.remove('printing'); }
+  var urlUi = null;
   function bindDrop(id, input, fn) {
     var z = $(id), f = $(input);
     z.addEventListener('click', function (e) { if (e.target !== f && !e.target.closest('label')) f.click(); });
@@ -214,10 +215,13 @@
     f.addEventListener('change', function () { if (f.files[0]) fn(f.files[0]); f.value = ''; });
     ['dragenter', 'dragover'].forEach(function (ev) { z.addEventListener(ev, function (e) { e.preventDefault(); z.classList.add('drag'); }); });
     ['dragleave', 'drop'].forEach(function (ev) { z.addEventListener(ev, function (e) { e.preventDefault(); z.classList.remove('drag'); }); });
-    z.addEventListener('drop', function (e) { var x = e.dataTransfer.files[0]; if (x) fn(x); });
+    z.addEventListener('drop', function (e) { var x = e.dataTransfer.files[0]; if (x) { fn(x); return; } var u = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain') || ''; if (urlUi && window.LaneUrl && LaneUrl.isUrlOnly(u)) urlUi.offer(u); });
   }
   function init() {
     bindDrop('ckEntDrop', 'ckEntFile', loadEntry); bindDrop('ckSlDrop', 'ckSlFile', loadSl);
+    // v0.20：スタートリストのPDFをURLから読み込む（ファイルを入れたときと同じ loadSl に渡す）
+    if (window.LaneUrl && $('ckUrlLoad')) urlUi = LaneUrl.mount($('ckUrlLoad'), { id: 'cu', targets: [{ k: 'sl', label: '📄 スタートリスト' }], accept: ['pdf'], multiple: false, onFiles: function (files) { return loadSl(files[0]); } });
+    document.addEventListener('paste', function (e) { var t = e.target, tag = t && t.tagName; if (tag === 'INPUT' || tag === 'TEXTAREA') return; var s = (e.clipboardData && e.clipboardData.getData('text')) || ''; if (urlUi && LaneUrl.isUrlOnly(s)) urlUi.offer(s); });
     $('ckMapBody').addEventListener('change', onMap);
     $('ckSchool').addEventListener('input', function () { teamUi(); render(); });
     $('ckTeams').addEventListener('change', function () { st.teams = Array.from($('ckTeams').querySelectorAll('input:checked')).map(function (c) { return c.value; }); render(); });

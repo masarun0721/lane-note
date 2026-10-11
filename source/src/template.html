@@ -393,6 +393,13 @@ footer a{color:var(--navy)}
 .fb-login{border-radius:10px;padding:8px 10px;margin:6px 0;font-size:13px;background:#f3f6fb}
 .fb-login.need{background:#fff6e5;border:1px solid #f0c36d}.fb-login.ok{background:#e9f5ee;color:#137333}
 .fb-login .btn{margin-top:6px;min-height:44px}
+.url-load{margin:8px 0;padding:8px 10px;border:1px dashed #b9c6dc;border-radius:10px;background:#f7f9fd}
+.url-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.url-row input[type=url]{flex:1 1 240px;min-width:0;min-height:38px;font-size:15px;padding:4px 8px;border:1px solid #b9c6dc;border-radius:8px}
+.url-row select{min-height:38px}.url-lab{font-weight:700;font-size:14px}
+.url-links{margin-top:8px}.url-list{list-style:none;margin:6px 0;padding:0;max-height:360px;overflow:auto;border:1px solid #dde4ef;border-radius:8px;background:#fff}
+.url-list li{display:flex;justify-content:space-between;gap:6px;padding:5px 8px;border-bottom:1px solid #eef1f6;font-size:13px}.url-list li label{flex:1;min-width:0;overflow-wrap:anywhere}
+.url-k{display:inline-block;font-size:11px;padding:0 5px;border-radius:5px;color:#fff;background:#6b7a90}.url-k.pdf{background:#c0392b}.url-k.self{background:#1f3a68}
+.url-acts{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.status.warn{color:#7a5a00}
 .url-note{font-size:12px;color:#7a5a00;background:#fff7dc;border:1px solid #f0d58a;border-radius:8px;padding:5px 9px;margin:8px 0}
 .myshares{list-style:none;margin:6px 0;padding:0}.myshares li{display:flex;gap:8px;align-items:center;justify-content:space-between;border-bottom:1px solid #e3e8f0;padding:6px 0}
 .myshares li span{display:flex;flex-direction:column;font-size:13px}.myshares small{color:#6b778c}
@@ -606,7 +613,7 @@ body.fb-open{overflow:hidden}
 </div>
 <section class="box howto">
   <div class="quick"><b>使い方</b>：①スタートリストとタイムテーブルのPDFを入れる → ②学校名を入れる → ③時間順・選手別・記録用紙ができる</div>
-  <p class="privacy-line" id="dataPolicy">🔒 PDF本文はサーバーへ送りません。共有リンクを作ったときだけ、その中身を保存します。詳しくは <a href="guide.html#data">はじめての人はこちら（データの取り扱い）</a></p>
+  <p class="privacy-line" id="dataPolicy">🔒 PDF本文はサーバーへ送りません。共有リンクを作ったときだけ、その中身を保存します。「URLから読み込む」のときは、URLと中身が LANE NOTE の中継を通ります（保存しません）。詳しくは <a href="guide.html#data">はじめての人はこちら（データの取り扱い）</a></p>
 </section>
 
 <section class="box" id="inputs">
@@ -617,8 +624,7 @@ body.fb-open{overflow:hidden}
     <div class="drop" id="yokoDrop" tabindex="0"><div class="big">📑 大会要項<span class="opt">任意</span></div><div class="muted small">大会の日付・参加料を読み取ります</div><input type="file" id="yokoFile" accept="application/pdf,.pdf"><div class="status" id="yokoStatus"></div></div>
     <div class="drop" id="noteDrop" tabindex="0"><div class="big">📋 競技注意事項<span class="opt">任意</span></div><div class="muted small">招集時刻のルールを自動で読み取ります<br>（要項をここに入れてもOK）</div><input type="file" id="noteFile" accept="application/pdf,.pdf"><div class="status" id="noteStatus"></div></div>
   </div>
-  <p class="url-note">ⓘ 今はまだURLからの読み込みには対応していません。後日実装予定です。</p>
-  <div class="status" id="urlNoteMsg" aria-live="polite"></div>
+  <div id="urlLoad"></div>
   <div id="rulesBox" class="rules"></div>
   <h2 style="margin-top:16px"><span class="no">2</span>学校名を入れる</h2>
   <div class="row"><input type="text" id="school" placeholder="例：本郷" autocomplete="off"></div>
@@ -749,6 +755,9 @@ var ZEKKEN_TEMPLATES = { koshi: "__KOSHI_B64__", mune: "__MUNE_B64__" };
 var PRINT_ICON = "__PRINT_ICON__";
 var APP_VERSION = "__VERSION__";   // 版はここ1か所（build.py の VERSION）
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
+</script>
+<script>
+__URLLOAD__
 </script>
 <script>
 __APP__

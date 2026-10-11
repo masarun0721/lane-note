@@ -285,7 +285,7 @@ tr.rc.editing td{background:#fff3ec!important}
 <main>
 <section class="box">
   <h2><span class="no">1</span>学校名と結果の資料</h2>
-  <p class="privacy-line">🔒 ログインすると自分専用のクラウドに保存（ほかの人には見えません）。ログインなしはこの端末だけ。詳しくは <a href="guide.html#data">はじめての人はこちら</a></p>
+  <p class="privacy-line">🔒 ログインすると自分専用のクラウドに保存（ほかの人には見えません）。ログインなしはこの端末だけ。「URLから読み込む」のときは、URLと中身が LANE NOTE の中継を通ります（保存しません）。詳しくは <a href="guide.html#data">はじめての人はこちら</a></p>
   <div class="rb-row" id="rbAuth" style="margin:10px 0;align-items:center">
     <span id="rbAuthInfo" class="small"></span>
     <button class="btn" id="rbSignIn" type="button" hidden>Googleでログイン</button>
@@ -311,9 +311,10 @@ tr.rc.editing td{background:#fff3ec!important}
     <input type="file" id="rbFile" multiple accept=".pdf,.html,.htm,.txt,.xlsx,.xls,.csv,application/pdf,text/html">
     <div class="status" id="rbStatus"></div>
   </div>
+  <div id="rbUrlLoad"></div>
   <details style="margin-top:10px"><summary><b>Webページの結果を貼り付ける</b>（ファイルにできないとき）</summary>
     <p class="small muted">結果のページを開き、Ctrl+A（全部選ぶ）→ Ctrl+C（コピー）して、ここに貼り付けます。種目ごとにページが分かれているときは、続けて貼り付けてかまいません。</p>
-    <p class="url-note">ⓘ 今はまだURLからの読み込みには対応していません。後日実装予定です。</p>
+    <p class="small muted">URLだけを貼ったときは、上の「URLから読み込む」に入れます。</p>
     <textarea id="rbPaste" placeholder="ここに貼り付け"></textarea>
     <button class="btn sub" id="rbPasteGo" type="button">貼り付けた文章を読み取る</button>
   </details>
@@ -423,6 +424,9 @@ __PERSONAL__
 </script>
 <script>
 __PRINT__
+</script>
+<script>
+__URLLOAD__
 </script>
 <script>
 __RECAPP__
