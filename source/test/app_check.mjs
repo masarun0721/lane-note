@@ -215,7 +215,7 @@ await check('ログインしていなければ送らずにログインの案内�
 console.log('[7] 大会準備：共有リンク（F07〜F09）');
 async function meetHarness(url, before) {
   const w = await makeDom('template.html', url || 'http://127.0.0.1:9090/index.html', before);
-  w.eval(src('parser.js')); w.eval(src('logic.js')); w.eval(src('player.js')); w.eval(src('auth_common.js'));
+  w.eval(src('parser.js')); w.eval(src('logic.js')); w.eval(src('player.js')); w.eval(src('personal.js')); w.eval(src('auth_common.js'));
   let app = src('app.js').replace('if (FB) return FB;', 'if (window.__fakeFB) FB = window.__fakeFB; if (FB) return FB;');
   const end = 'window.__meetApp = {'; assert(app.includes(end));
   app = app.replace(end, 'window.__t={openViewerStr,fetchShare,makeShortUrl,validatePayload,pvLoad};\n  ' + end);

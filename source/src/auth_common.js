@@ -8,7 +8,7 @@
 var LaneAuth = (function () {
   'use strict';
   var REDIRECT_KEY = 'lanenote-login-redirect';
-  function userKeys(uid) { return ['lanenote-rec-meets-' + uid, 'lanenote-rec-divov-' + uid, 'lanenote-migrated-' + uid]; }
+  function userKeys(uid) { return ['lanenote-rec-meets-' + uid, 'lanenote-rec-divov-' + uid, 'lanenote-migrated-' + uid, 'lanenote-rec-mode-' + uid]; }
   function cacheName(uid) { return 'lanenote-cache-' + uid; }
   // IndexedDB を消す。ほかのタブが開いたままなら少し待ち、それでも消えなければ失敗として返す（何度やり直しても安全）
   function eraseDatabase(name, waitMs) {

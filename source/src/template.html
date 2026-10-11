@@ -455,6 +455,40 @@ footer a{color:var(--navy)}
   .pl-link{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.pl-link input{flex:1 1 100%;font-size:11px;font-family:monospace;padding:4px;border:1px solid var(--line);border-radius:6px}.pl-link small{color:var(--muted);flex:1}
   body.player-mode>header,body.player-mode main>:not(#player),body.player-mode>footer{display:none!important}
   body.player-mode{background:#fff7f2}
+  /* v0.16：通過したら出るラウンド（薄い色・点線・名前はカッコ） */
+  tr.tent td{color:#7a8496;background:repeating-linear-gradient(135deg,#fff,#fff 6px,#f6f8fb 6px,#f6f8fb 12px)!important;border-top:1px dashed #b8c2d3!important}
+  .tentlab,.mc-tent,.g-tent{display:inline-block;font-size:11px;font-weight:800;color:border:1px dashed #8a96ad;border-radius:6px;padding:0 5px;margin-left:4px;color:#5a6b85;background:#fff}
+  .tentnm{color:#5a6b85}
+  .mc-g.tent,.mc-r.tent{opacity:.75;border-style:dashed!important}
+  tbody.pg.tent td,tbody.pg.tent th{color:#555}tbody.pg.tent tr td{border-top-style:dashed!important}
+  .pv-tent{border-style:dashed!important;background:#fbfbfd!important;opacity:.85}.pv-tent.pv-ok{opacity:1;border-style:solid!important}
+  .pv-tag.tent{background:#fff;color:#5a6b85;border:1.5px dashed #8a96ad}.pv-tag.ok{background:#1e8e3e;color:#fff}
+  .pv-tops{grid-column:1/-1;display:flex;gap:8px}.pv-tops button{flex:1;min-height:44px;border-radius:12px;font-size:16px;font-weight:800;border:2px solid var(--line);background:#fff}.pv-tops .pv-pass{border-color:#1e8e3e;color:#1e8e3e}.pv-tops .pv-out{color:#8a5a00}
+  /* 体調メモ */
+  .cd-box{background:#fff;border:2px solid var(--line);border-radius:18px;padding:12px 14px;margin-top:14px}.cd-box h3{margin:0 0 6px;font-size:18px}
+  .cd-priv{font-size:13px;color:#1e6b3a;background:#eef8f0;border-radius:10px;padding:6px 8px;margin-bottom:8px}
+  .cd-lab{font-size:14px;font-weight:700;margin:4px 0}.cd-faces{display:flex;gap:6px}.cd-f{flex:1;min-height:56px;border:2px solid var(--line);border-radius:12px;background:#fff;font-size:22px;line-height:1.1}.cd-f small{display:block;font-size:11px;color:var(--muted)}.cd-f.on{border-color:var(--track);background:#fff1ea}
+  .cd-row{display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap}.cd-row input{min-height:44px;font-size:16px;border:2px solid var(--line);border-radius:10px;padding:0 8px}.cd-sl{width:5em}.cd-m{flex:1;min-width:0;width:100%}
+  .cd-save{flex:1;min-height:48px;border:0;border-radius:12px;background:var(--navy);color:#fff;font-size:17px;font-weight:800}.cd-del{min-height:48px;border:1px solid #e3b4ae;color:#b3261e;background:#fff;border-radius:12px;padding:0 10px}
+  .cd-msg{font-size:13px;color:#1e6b3a;margin-top:4px;min-height:1em}.cd-badge{font-size:13px;color:#33415c;background:#f1f4fa;border-radius:8px;padding:1px 6px}
+  /* 選手の個人ページ */
+  body.personal-mode>header,body.personal-mode main>:not(#personal),body.personal-mode>footer{display:none!important}
+  body.personal-mode{background:#f3f6fb}
+  #personal{max-width:520px;margin:0 auto;padding:6px 2px 30px;font-size:16px}
+  .pp-head{background:var(--navy);color:#fff;border-radius:18px;padding:14px 16px}.pp-ttl{font-size:13px;opacity:.85}.pp-name{font-size:24px;font-weight:800}.pp-sub{font-size:14px;opacity:.9}
+  .pp-snap{margin:10px 0;background:#fff8e1;border:1px solid #f4d27a;border-radius:12px;padding:8px 10px;font-size:14px}
+  .pp-links{display:flex;flex-direction:column;gap:8px;margin:8px 0}.pp-go{display:block;background:var(--track);color:#fff;text-decoration:none;font-weight:800;border-radius:14px;padding:12px 14px;font-size:17px}.pp-go small{display:block;font-weight:600;font-size:13px;opacity:.9}.pp-go.sub{background:#fff;color:var(--navy);border:2px solid var(--navy)}
+  .pp-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin:10px 0}.pp-h{font-size:17px;font-weight:800;color:var(--navy);margin-bottom:4px}.pp-h small{font-weight:600;color:var(--muted);font-size:12px}
+  .pp-pbs{list-style:none;margin:0;padding:0}.pp-pbs li{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;padding:6px 0;border-top:1px solid var(--line)}.pp-pbs li b{font-size:20px;margin-left:auto}.pp-pbs li small{flex:1 1 100%;color:var(--muted);font-size:12px}
+  .pp-ev{border:0;background:none;color:var(--navy);font-weight:700;font-size:15px;padding:4px 0;text-decoration:underline dotted}
+  .pp-best b{display:block;font-size:30px;line-height:1.2}.pp-best small{color:var(--muted);font-size:12px}.pp-sh{font-size:13px;font-weight:800;color:var(--muted);margin:10px 0 2px}
+  .pp-sw{display:flex;gap:6px;overflow-x:auto;padding:2px 0}.pp-sw button{white-space:nowrap;min-height:38px;border:1.5px solid var(--navy);background:#fff;color:var(--navy);border-radius:20px;padding:0 12px;font-weight:700}.pp-sw button.on{background:var(--navy);color:#fff}
+  #personal .spark{display:block;width:100%;height:70px;background:#f7f9fc;border-radius:8px}#personal .spark.hasnm{height:88px}#personal .chartopt{font-size:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}#personal .chartopt label{min-height:32px;display:inline-flex;align-items:center;gap:4px}
+  #personal .recent{list-style:none;margin:0;padding:0}#personal .recent li{display:flex;flex-wrap:wrap;gap:2px 10px;align-items:baseline;padding:6px 0;border-top:1px solid var(--line)}#personal .recent .d{font-size:12.5px;color:var(--muted)}#personal .recent b{font-size:17px}#personal .recent .m{flex:1 1 100%;font-size:12px;color:var(--muted)}
+  #personal .pb{background:#e4572e;color:#fff;font-size:11px;font-weight:800;border-radius:6px;padding:0 5px}#personal .pb.first{background:#5a6b85}#personal .ref{font-size:11px;color:#8a96ad;border:1px solid #8a96ad;border-radius:5px;padding:0 4px;margin-left:4px}
+  .pp-cdlist{list-style:none;margin:0;padding:0}.pp-cdlist li{padding:6px 0;border-top:1px solid var(--line)}.pp-cdres{display:block;color:var(--muted);font-size:12.5px}
+  @media print{#personal{display:none!important}}
+
   #player{max-width:520px;margin:0 auto;padding:6px 2px 30px;font-size:17px}
   .pv-head{background:var(--navy);color:#fff;border-radius:18px;padding:14px 16px}.pv-ttl{font-size:13px;opacity:.85}.pv-name{font-size:24px;font-weight:800;margin:2px 0 4px}.pv-meet{font-size:14px;line-height:1.5;opacity:.95}
   .pv-next{margin:12px 0;background:var(--track);color:#fff;border-radius:18px;padding:14px 16px;box-shadow:0 3px 0 var(--track-d)}.pv-nl{font-size:14px}.pv-nt{font-size:40px;font-weight:800;line-height:1.1}.pv-nn{font-size:19px;font-weight:700}.pv-nc{margin-top:4px;font-size:16px}.pv-nc b{font-size:22px}
@@ -514,8 +548,13 @@ body.fb-open{overflow:hidden}
     <div class="pv-row"><button class="pv-add" id="pvAdd" type="button">＋ 追加</button><button class="pv-cancel" id="pvCancel" type="button" hidden>キャンセル</button></div>
     <div class="pv-msg" id="pvMsg"></div>
   </div>
+  <div id="pvCond"></div>
   <button type="button" class="pv-forget" id="pvForget">🗑 この予定を端末から削除</button>
   <p class="pv-foot">🔒 マークは先生が入れた予定（招集・試合）なので削除できません。自分で追加した予定は、このスマホにだけ保存されます。<br>時刻が変わることもあるので、最後は会場の発表や先生の指示を確認してください。</p>
+</section>
+<section id="personal" hidden aria-live="polite"><div id="ppBody"></div>
+  <button type="button" class="pv-forget" id="ppForget">🗑 このページをスマホから削除</button>
+  <p class="pv-foot">このページは、先生が作った「あなた1人分」の記録のコピーです（ログインは要りません）。リンクを知っている人は誰でも開けるので、ほかの人には送らないでください。体調メモはこのスマホにだけ保存され、先生には見えません。</p>
 </section>
 <section class="box" id="viewer" hidden>
   <div class="v-top"><span class="v-badge">閲覧モード（読み取り専用）</span><button class="btn sub" id="vClose" type="button">通常の画面へ</button></div>
@@ -578,6 +617,9 @@ __CHANGELOG__
       <li><b>ログインしていないとき</b>（または通信できないとき）は長いリンクになり、結果はリンクの「#」より後ろに入ります。この部分はサーバーへ送られず、どこにも保存されませんが、リンクを渡した相手は中身を見られます。</li>
       <li>このページ（大会準備）の説明です。別ページの「記録」は、Googleでログインしたときだけ記録を LANE NOTE の Firebase（Google）に本人だけが読める形で保存します（ログインしないときはそのブラウザの中だけ）。</li>
       <li><b>選手用リンク</b>（v0.11）：1人分の出場（大会名・日付・会場・種目・組・レーン・レースと招集の時刻・招集場所・その子の名前／学年／学校／ナンバー）だけを入れます。ほかの選手の名前・ナンバー（リレーの仲間も）は入れません。ログイン中は上と同じく Firebase に保存し、作ってから119日まで見られます（1人1件・止められます）、ログインなしは長いリンクの「#」より後ろに入ります。選手が自分で足した予定（起床など）と、開いたリンクの中身は、その選手の端末のブラウザにだけ保存し、どこにも送りません（選手のページの「この予定を端末から削除」で消せます。期限切れ・止めたリンクを開くと、端末の控えも消します）。</li>
+      <li><b>通過したら出るラウンド</b>（v0.16）：タイムテーブルにある準決勝・決勝などの時刻を、選手用リンクにも「通過したら」として入れます（その子の分だけ）。選手が押した「通過！」「敗退」は、その選手の端末のブラウザにだけ保存し、どこにも送りません。</li>
+      <li><b>選手の個人ページ</b>（v0.16）：「記録」ページで作るリンクです。その選手1人分の記録（種目ごとの自己ベスト・最近の記録・グラフの点・記録なしの大会）と名前・学校・学年だけを入れます（ほかの選手は入れません）。ログイン中は上と同じく Firebase の shares に保存し、作ってから119日まで見られます（止められます）。ログインなしは長いリンクの「#」より後ろに入ります。作った時点のコピーなので、あとで記録が増えても自動では変わりません。</li>
+      <li><b>体調メモ</b>（v0.16）：選手のページ（予定・個人ページ）で書く体調・睡眠時間・ひとことメモは、<b>その選手のスマホのブラウザにだけ保存し、どこにも送りません。先生にも見えません</b>（「この日のメモを削除」「体調メモを全部削除」で消せます）。</li>
       <li><b>不具合・要望を送る</b>（v0.13・v0.14からGoogleでのログインが必要）：フォームから送った内容は LANE NOTE の Firebase（Google）の feedback に保存し、作成者だけが確認します（送った人を含め、ほかの人は読めません）。送るのは 種類・内容・連絡先（書いたときだけ）・ページ名・版・ブラウザの種類・画面の大きさ・開いていたタブとURLのパス（「#」「?」より後ろは送りません）・ログインしているアカウントのID です（メールアドレスは送りません）。PDFの中身・選手名・記録は自動では送りません（内容に書いたものは送られます）。</li>
       <li>「ナンバーカード」タブのAmazonへのリンクは、押したときだけAmazonのページを開きます。自動で何かを送ったり、Amazonから画像などを読み込んだりはしません。</li>
     </ul></details>
@@ -699,6 +741,9 @@ __LOGIC__
 </script>
 <script>
 __PLAYER__
+</script>
+<script>
+__PERSONAL__
 </script>
 <script>
 __ZEKKEN__

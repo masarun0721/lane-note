@@ -50,7 +50,7 @@ const rec = (id = 'r1', extra = {}) => ({ id, name: '架空 一郎', team: '架�
 const text = (w, id) => w.document.getElementById(id).textContent;
 async function meetHarness(url, before) {
   const w = await makeDom('template.html', url || 'http://127.0.0.1:9090/index.html', before);
-  w.eval(src('parser.js')); w.eval(src('logic.js')); w.eval(src('player.js')); w.eval(src('auth_common.js'));
+  w.eval(src('parser.js')); w.eval(src('logic.js')); w.eval(src('player.js')); w.eval(src('personal.js')); w.eval(src('auth_common.js'));
   // 模擬 Firebase を差し込む口だけを足す（読み込み部分の import の代わり。テスト対象の処理は変えない）
   let app = src('app.js').replace('if (FB) return FB;', 'if (window.__fakeFB && !FB) { FB = window.__fakeFB; if (FB.A.onAuthStateChanged) FB.A.onAuthStateChanged(FB.auth, onShareAuth); } if (FB) return FB;');
   const end = 'window.__meetApp = {'; assert(app.includes(end));

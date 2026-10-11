@@ -179,6 +179,60 @@ var MeetLogic = (function () {
     var ord = R.filter(function (r) { return r.typ === 'long'; }).map(function (r) { return r.pos; }).sort(function (a, b) { return a - b; });
     return { team: team, bibs: Array.from(bibs).sort(num), koshi: koshi, koshiList: koshiList, ord: ord };
   }
-  return { UNKNOWN: UNKNOWN, fees: fees, feeCat: feeCat, CATS: CATS, build: build, byAthlete: byAthlete, byTime: byTime, cards: cards, findTeams: findTeams, allTeams: allTeams, fmt: fmt, toMin: toMin };
+
+  /* v0.16：通過したら出るラウンド（準々決勝・準決勝・決勝）。スタートリストにはふつう最初のラウンドしか載らないので、
+     タイムテーブルにある「後のラウンド」を、自校の選手が出る種目ごとに「通過したら」の行として作る（名前はカッコ付きで表示）。
+     そのラウンドのスタートリストがすでに読み込まれていれば（誰か1人でも載っていれば）作らない＝本物の行に置き換わる */
+  var RORD = { h: 0, qf: 1, sf: 2, f: 3 }, RLABEL = { qf: '準々決勝', sf: '準決勝', f: '決勝' };
+  function tentative(rows, ttSegs, sl, settings) {
+    settings = settings || {};
+    if (!ttSegs || !ttSegs.length || !rows || !rows.length) return [];
+    var cT = settings.callTrack || [30, 20], cF = settings.callField || [40, 30];
+    var loaded = {}, maxLoaded = {};   // 種目|ラウンド種別 → スタートリストに載っている／種目 → 載っているいちばん後のラウンド
+    if (sl) (sl.entries || []).concat(sl.relays || []).forEach(function (e) { var k = P.roundKind(e.round); if (k) { loaded[nk(e.event) + '|' + k] = 1; var ev = nk(e.event); maxLoaded[ev] = Math.max(maxLoaded[ev] == null ? -1 : maxLoaded[ev], RORD[k]); } });
+    var groups = {}, order = [];
+    rows.forEach(function (r) {
+      if (r.tent) return;
+      var who = r.typ === 'relay' ? 'R|' + r.team + '|' + nk(r.relayTeam) : 'I|' + r.team + '|' + (nk(r.bib) || '名:' + nk(r.name));
+      var k = who + '|' + nk(r.event);
+      if (!groups[k]) { groups[k] = { r: r, cur: -1, rounds: [] }; order.push(k); }
+      var rk = P.roundKind(r.round), o = rk ? RORD[rk] : -1;
+      if (o > groups[k].cur) { groups[k].cur = o; groups[k].r = r; }
+    });
+    var out = [];
+    order.forEach(function (k) {
+      var g = groups[k], r = g.r;
+      var segs = P.matchSegs(r.event, '', ttSegs, r.date || '').filter(function (s) { return s.time && P.roundKind(s.round); });
+      if (!segs.length) return;
+      var cur = g.cur;
+      // ラウンドが書かれていないスタートリスト：タイムテーブルでいちばん早いラウンドに出ているとみなす
+      if (cur < 0) cur = Math.min.apply(null, segs.map(function (s) { return RORD[P.roundKind(s.round)]; }));
+      // 後のラウンドのスタートリストが出ていて、この子が載っていない → 通過しなかったので作らない
+      if (maxLoaded[nk(r.event)] != null && cur < maxLoaded[nk(r.event)]) return;
+      var byKind = {};
+      segs.forEach(function (s) { var kk = P.roundKind(s.round); if (RORD[kk] > cur) (byKind[kk] = byKind[kk] || []).push(s); });
+      var prevLabel = r.round || '前のラウンド';
+      ['qf', 'sf', 'f'].forEach(function (kk) {
+        var L = byKind[kk]; if (!L) return;
+        if (loaded[nk(r.event) + '|' + kk]) return;
+        L.sort(function (a, b) { return (toMin(a.time) || 0) - (toMin(b.time) || 0); });
+        var s = L[0], times = L.map(function (x) { return x.time; }).filter(function (t, i, a) { return a.indexOf(t) === i; });
+        var t = { tent: true, team: r.team, event: r.event, round: RLABEL[kk], heat: '', pos: '', posLabel: '', typ: r.typ, ttHit: true,
+          bib: r.bib, name: r.name, kana: r.kana || '', grade: r.grade || '', relayTeam: r.relayTeam, members: r.members, page: r.page,
+          start: s.time, date: s.date || r.date || '', conflict: false,
+          note: '通過したら（' + prevLabel + 'の結果しだい）' + (times.length > 1 ? '／タイムテーブルに複数の時刻：' + times.join('・') : '') };
+        var st = toMin(s.time);
+        if (s.callStart && s.callEnd && settings.ttCall !== false) { t.callStart = s.callStart; t.callEnd = s.callEnd; t.callSrc = 'tt'; }
+        else { var c = r.typ === 'field' ? cF : (r.typ === 'relay' && settings.callRelay) ? settings.callRelay : ((r.typ === 'long' || r.typ === 'dist') && settings.callDist) ? settings.callDist : cT;
+          t.callStart = fmt(st - c[0]); t.callEnd = fmt(st - c[1]); t.callSrc = 'rule'; }
+        t.call = t.callStart + '〜' + t.callEnd; t.startMin = st;
+        out.push(t);
+        prevLabel = RLABEL[kk];
+      });
+    });
+    return out;
+  }
+  function tentName(r) { return '（' + (r.typ === 'relay' ? r.relayTeam : r.name) + '）'; }
+  return { tentative: tentative, tentName: tentName, UNKNOWN: UNKNOWN, fees: fees, feeCat: feeCat, CATS: CATS, build: build, byAthlete: byAthlete, byTime: byTime, cards: cards, findTeams: findTeams, allTeams: allTeams, fmt: fmt, toMin: toMin };
 })();
 if (typeof module !== 'undefined') module.exports = MeetLogic;

@@ -287,6 +287,7 @@
     var b = FB.F.writeBatch(FB.fs);
     keys.forEach(function (k) { b.delete(FB.F.doc(FB.fs, 'users', sc.uid, 'meets', k)); });
     b.delete(FB.F.doc(FB.fs, 'users', sc.uid, 'settings', 'divOverrides'));
+    b.delete(FB.F.doc(FB.fs, 'users', sc.uid, 'settings', 'mode'));
     await b.commit(); check(sc);
     METS = {}; DIV_OV = {}; lsSet(metsKey(sc.uid), {}); lsSet(ovKey(sc.uid), {});
   }
@@ -354,7 +355,7 @@
   }
   // アカウントが変わったら、前の人の画面の中身（記録・読み込み途中の資料・入力欄）をすべて消す
   function resetView() {
-    ALL = []; batches = []; DONE = []; METS = {}; DIV_OV = {}; REVIEW = []; OFFLINE = false;
+    ALL = []; batches = []; DONE = []; METS = {}; DIV_OV = {}; REVIEW = []; OFFLINE = false; MODE = { personal: false, name: '', team: '' }; PPL.links = {}; PPL.gen++; try { applyModeUi(); $('rbPPList').innerHTML = ''; status('rbPPMsg', '', ''); } catch (e) { }
     try { $('rbPaste').value = ''; $('rbFile').value = ''; status('rbStatus', '', ''); var d = $('rbDone'); d.innerHTML = ''; d.className = 'status'; status('rbDataStatus', '', ''); } catch (e) { }
     if (typeof manualReset === 'function') manualReset();
     renderBatches(); applyInference(); render();
@@ -407,7 +408,44 @@
   var schoolKey = 'lanenote-rec-school';
   try { $('rbSchool').value = localStorage.getItem(schoolKey) || ''; } catch (e) { }
   $('rbSchool').addEventListener('input', function () { try { localStorage.setItem(schoolKey, this.value.trim()); } catch (e) { } renderBatches(); render(); });
-  function school() { return $('rbSchool').value.trim(); }
+  function school() { return MODE.personal ? '' : $('rbSchool').value.trim(); }
+  /* ---------- v0.8：個人で使う（選手本人・保護者・クラブ）。学校名のかわりに自分の名前（と任意で所属）で記録を拾う。
+     設定は記録と同じ場所：ログイン中は users/{uid}/settings/mode（本人だけ）、ログインなしはこのブラウザ（localStorage） ---------- */
+  var MODE = { personal: false, name: '', team: '' };
+  function modeKey(uid) { return uid ? 'lanenote-rec-mode-' + uid : 'lanenote-rec-mode'; }
+  function personOn() { return MODE.personal && !!R.nameKey(MODE.name); }
+  function isMe(r) { return R.nameKey(r.name || r.kana || '') === R.nameKey(MODE.name) && (!MODE.team || R.matchSchool(r.team, MODE.team)); }
+  function wantRec(r) { if (MODE.personal) return personOn() && isMe(r); var q = school(); return !q || R.matchSchool(r.team, q); }
+  function applyModeUi() {
+    $('rbPersonal').checked = MODE.personal; $('rbPName').value = MODE.name; $('rbPTeam').value = MODE.team;
+    $('rbSchoolRow').hidden = MODE.personal; $('rbPersonRow').hidden = !MODE.personal;
+    document.body.classList.toggle('personal-on', MODE.personal);
+    var ml = $('rbMine').parentNode; if (ml && ml.lastChild) ml.lastChild.textContent = MODE.personal ? ' 自分の記録だけ' : ' 学校名の選手だけ';
+    if (MODE.personal && (view === 'rank' || view === 'hist')) setTab('home');
+  }
+  function cleanMode(o) { o = o && typeof o === 'object' ? o : {}; return { personal: !!o.personal, name: String(o.name || '').slice(0, 40), team: String(o.team || '').slice(0, 60) }; }
+  async function loadMode(sc) {
+    var m = cleanMode(lsGet(modeKey(sc.uid), {}));
+    if (sc.uid && !OFFLINE && FB) {
+      try { var d = await (FB.F.getDocFromServer || FB.F.getDoc)(FB.F.doc(FB.fs, 'users', sc.uid, 'settings', 'mode')); check(sc); if (d.exists()) { m = cleanMode(d.data()); if (!noCache(sc)) lsSet(modeKey(sc.uid), m); } }
+      catch (e) { if (isAbort(e)) throw e; }
+    }
+    return m;
+  }
+  var modeTimer = null;
+  async function saveMode(sc) {
+    need(sc);
+    var m = cleanMode(MODE);
+    if (!sc.uid || !noCache(sc)) lsSet(modeKey(sc.uid), m);
+    if (sc.uid) { await FB.F.setDoc(FB.F.doc(FB.fs, 'users', sc.uid, 'settings', 'mode'), { personal: m.personal, name: m.name, team: m.team, updatedAt: new Date().toISOString() }); check(sc); }
+  }
+  function modeChanged() {
+    MODE = cleanMode({ personal: $('rbPersonal').checked, name: $('rbPName').value.trim(), team: $('rbPTeam').value.trim() });
+    applyModeUi(); renderBatches(); render();
+    var sc = scope(); clearTimeout(modeTimer);
+    modeTimer = setTimeout(function () { saveMode(sc).catch(function (e) { if (!isAbort(e)) status('rbDataStatus', '✖ 「個人で使う」の設定を保存できませんでした：' + esc(e.message), 'ng'); }); }, 600);
+  }
+  ['rbPersonal', 'rbPName', 'rbPTeam'].forEach(function (id) { $(id).addEventListener(id === 'rbPersonal' ? 'change' : 'input', modeChanged); });
   function status(id, html, cls) { var el = $(id); el.innerHTML = html; el.className = 'status ' + (cls || ''); }
   function guessMetaFromPages(pages) {
     var flat = [];
@@ -492,7 +530,7 @@
     b.xl.map = R.mapHeaders(b.xl.txt[b.xl.hr] || []);
     xlRun(b);
   }
-  function xlRun(b) { b.xl.res = R.importRows(b.xl.aoa, b.xl.map, { text: b.xl.txt, headerRow: b.xl.hr, school: school() }); }
+  function xlRun(b) { b.xl.res = R.importRows(b.xl.aoa, b.xl.map, { text: b.xl.txt, headerRow: b.xl.hr, school: school() }); if (MODE.personal) b.xl.res.recs = b.xl.res.recs.filter(wantRec); }
   function colName(i) { var s = ''; i++; while (i) { var m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; }
   var XL_FIELDS = ['name', 'event', 'mark', 'date', 'meet', 'kana', 'grade', 'team', 'wind', 'rank', 'round', 'sex'], XL_REQ = { name: 1, event: 1, mark: 1, date: 1 };
   function renderXl(b) {
@@ -556,7 +594,7 @@
   function batchRecs(b) {
     if (!b.all) return [];
     var q = school();
-    return b.all.recs.filter(function (r) { return !q || R.matchSchool(r.team, q); });
+    return b.all.recs.filter(wantRec);
   }
   function batchWarns(b) {
     var q = school(), ws = b.all.warns.filter(function (w) { return !/：/.test(w); });
@@ -564,8 +602,9 @@
     if (!b.meta.name) ws.unshift('大会名が資料から読み取れませんでした。手で入れてください。');
     else if (b.meta.guessed && !b.meta.typedName) ws.unshift('大会名は' + (b.meta.guessed === 'file' ? 'ファイル名' : '資料の見出し') + 'から推測しました。正しいか確かめて、違えば直してください。');
     if (!b.meta.date) ws.unshift('日付が資料から読み取れませんでした' + (b.meta.md ? '（「' + b.meta.md + '」はありますが年がわかりません）' : '') + '。手で入れてください。');
-    if (q && b.all.recs.length && !batchRecs(b).length) ws.unshift('「' + q + '」の選手が見つかりませんでした。学校名の書き方（例：本郷高・本郷中）を確かめてください。');
-    if (!q) ws.unshift('学校名が空なので、全校の記録を表示しています。');
+    if (MODE.personal) { if (!personOn()) ws.unshift('「個人で使う」の名前が空です。名前を入れると、その人の記録だけを拾います。'); else if (b.all.recs.length && !batchRecs(b).length) ws.unshift('「' + MODE.name + '」' + (MODE.team ? '（' + MODE.team + '）' : '') + 'の記録が見つかりませんでした。名前・所属の書き方を確かめてください。'); }
+    else if (q && b.all.recs.length && !batchRecs(b).length) ws.unshift('「' + q + '」の選手が見つかりませんでした。学校名の書き方（例：本郷高・本郷中）を確かめてください。');
+    if (!q && !MODE.personal) ws.unshift('学校名が空なので、全校の記録を表示しています。');
     return ws;
   }
   function recRow(r, extra) {
@@ -774,14 +813,16 @@
     var list, side;
     try { list = await getAll(sc); } catch (e) { if (isAbort(e)) return; list = []; status('rbDataStatus', '✖ ' + esc(e.message), 'ng'); }
     try { side = await loadSide(sc); } catch (e) { if (isAbort(e)) return; side = { mets: {}, ov: {} }; }
+    var md; try { md = await loadMode(sc); } catch (e) { if (isAbort(e)) return; md = MODE; }
     if (sc.epoch !== authEpoch) return;
-    ALL = list; METS = side.mets; DIV_OV = side.ov;
+    ALL = list; METS = side.mets; DIV_OV = side.ov; MODE = md; applyModeUi();
     applyInference(); render(); if (CLOUD_READY) renderAuth();
   }
   function filtered() {
     var q = R.nk($('rbQ').value).replace(/\s/g, ''), s = school(), mine = $('rbMine').checked;
     var base = ALL.filter(function (r) {
-      if (mine && s && !R.matchSchool(r.team, s)) return false;
+      if (MODE.personal) { if (mine && personOn() && !isMe(r)) return false; }
+      else if (mine && s && !R.matchSchool(r.team, s)) return false;
       if (DIV !== 'all' && R.divisionOf(r) !== DIV) return false;
       return true;
     });
@@ -840,6 +881,7 @@
       try { await saveMeet(ws.getAttribute('data-wsave'), w, scope()); meetEdit = ''; status('rbDataStatus', '✔ 天気を保存しました。', 'ok'); } catch (x) { status('rbDataStatus', '✖ 天気を保存できませんでした：' + esc(x.message), 'ng'); }
       render(); return;
     }
+    var pl = e.target.closest('[data-pplink]'); if (pl) { $('rbPPBox').open = true; makePPLinks([pl.getAttribute('data-pplink')]); $('rbPPBox').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     var go = e.target.closest('[data-go]'); if (go) { setTab(go.getAttribute('data-go')); render(); return; }
     var t = e.target.closest('th[data-sort]'); if (!t) return; var k = t.getAttribute('data-sort'), s = sort[view];
     sort[view] = s && s.k === k ? { k: k, d: -s.d } : { k: k, d: 1 }; render();
@@ -909,7 +951,7 @@
     var sw = order.length > 1 ? '<div class="evsw" role="tablist" aria-label="種目の切り替え"><button type="button" data-athev=""' + (athSel.ev ? '' : ' class="on" aria-selected="true"') + '>すべて</button>' + order.map(function (e) { return '<button type="button" data-athev="' + esc(e.event) + '"' + (athSel.ev === e.event ? ' class="on" aria-selected="true"' : '') + '>' + esc(e.eventLabel) + '</button>'; }).join('') + '</div>' : '';
     var shown = order.length > 1 && !athSel.ev ? null : (athSel.ev ? [byKey[athSel.ev]] : order);
     var summary = shown ? '' : '<div class="card"><div class="card-h"><b>種目ごとの自己ベスト</b><span class="small muted">押すとグラフと記録</span></div><ul class="evsum">' + order.map(function (e) { var b = e.best || e.ref; return '<li><button type="button" class="evn" data-athev="' + esc(e.event) + '">' + esc(e.eventLabel) + '</button><b class="lmk">' + esc(b ? b.mark : '—') + (e.best ? '' : (b ? windTag(b) : '')) + '</b><span class="sub">' + (b ? (R.shownWind(b) ? '風' + esc(b.wind) + '・' : '') + esc(b.date) + ' ' + esc(b.meet) + ' ' + weatherTag(b.date + '|' + b.meet) : '') + '・' + e.count + '件</span></li>'; }).join('') + '</ul></div>';
-    return back + '<div class="card ath-h"><b class="nm">' + esc(pf.name) + '</b>' + (pf.kana ? '<span class="small muted">' + esc(pf.kana) + '</span>' : '') + '<div class="small muted">' + esc(((mineRows.filter(function (r) { return R.rawDivisionOf(r); }).sort(function (x, y) { return cmp(x.date, y.date); }).pop()) || pf).team) + (pf.grade ? '・' + esc(pf.grade) : '') + (R.divisionOf(pf) ? '・' + R.divLabel(R.divisionOf(pf)) : '') + '・' + pf.events.length + '種目・' + pf.count + '件</div></div>' + sw + summary +
+    return back + '<div class="card ath-h"><b class="nm">' + esc(pf.name) + '</b>' + '<button class="btn sub" type="button" data-pplink="' + esc(key) + '" style="float:right">📱 個人ページのリンク</button>' + (pf.kana ? '<span class="small muted">' + esc(pf.kana) + '</span>' : '') + '<div class="small muted">' + esc(((mineRows.filter(function (r) { return R.rawDivisionOf(r); }).sort(function (x, y) { return cmp(x.date, y.date); }).pop()) || pf).team) + (pf.grade ? '・' + esc(pf.grade) : '') + (R.divisionOf(pf) ? '・' + R.divLabel(R.divisionOf(pf)) : '') + '・' + pf.events.length + '種目・' + pf.count + '件</div></div>' + sw + summary +
       (shown || []).map(function (e) {
         var b = e.best;
         return '<div class="card evc"><div class="card-h"><b>' + esc(e.eventLabel) + '</b><span class="small muted">' + e.count + '件</span></div>' +
@@ -919,6 +961,19 @@
           (chartNm && (e.noMarks || []).length ? '<ul class="nmlist small muted">' + e.noMarks.map(function (p) { return '<li>× ' + esc(p.date) + ' ' + esc(p.meet) + (p.round ? '・' + esc(p.round) : '') + '：<b>' + esc(p.mark) + '</b></li>'; }).join('') + '</ul>' : '') + '</div>' +
           '<ul class="recent">' + e.recent.map(function (r) { return '<li><span class="d">' + esc(r.date) + '</span><b>' + esc(r.mark) + '</b>' + pbFlag(pd[r.id] && pd[r.id].flag) + windTag(r) + '<span class="m">' + (R.shownWind(r) ? '風' + esc(r.wind) + '・' : '') + esc(r.meet) + (r.round ? '・' + esc(r.round) : '') + ' ' + weatherTag(r.date + '|' + r.meet) + '</span></li>'; }).join('') + '</ul></div>';
       }).join('');
+  }
+  // v0.8：個人で使うときのホーム＝自分の種目ごとの自己ベスト
+  function renderPersonalHome(rows) {
+    if (!personOn()) return '<div class="card empty"><b>👤 個人で使う</b><p>上の「名前」に自分（またはお子さん）の名前を入れてください。結果の資料から、その人の記録だけを拾います。</p></div>';
+    var mine = rows.filter(isMe);
+    if (!mine.length) return '<div class="card empty"><b>' + esc(MODE.name) + ' さんの記録はまだありません</b><p>上の「1」で結果の資料を入れて「記録に保存」を押すか、「1件ずつ入力」で入れてください。</p></div>';
+    var cb = R.computeBests(mine), keys = {}, last = mine.slice().sort(function (a, b) { return cmp(b.date, a.date); })[0];
+    cb.bests.forEach(function (b) { keys[b.key] = 1; });
+    var grp = R.groupEvents(cb.bests.map(function (b) { return b.event; }).filter(function (v, i, a) { return a.indexOf(v) === i; }), mine, NOG), order = [];
+    grp.forEach(function (g) { g.items.forEach(function (it) { cb.bests.filter(function (b) { return b.event === it.key; }).forEach(function (b) { b.eventLabel = it.label; order.push(b); }); }); });
+    return '<div class="card pmhome"><div class="card-h"><span class="tag">個人</span><b>' + esc(MODE.name) + ' さんの自己ベスト</b><span class="small muted">' + esc(MODE.team || last.team || '') + '・' + mine.length + '件</span></div><ul class="evsum">' +
+      order.map(function (b) { var x = b.best || b.ref; return '<li>' + athLink(b.key, b.eventLabel) + '<b class="lmk">' + esc(x ? x.mark : '—') + (b.best ? '' : x ? windTag(x) : '') + '</b><span class="sub small muted">' + (x ? (R.shownWind(x) ? '風' + esc(x.wind) + '・' : '') + esc(x.date) + ' ' + esc(x.meet) : '') + '・' + b.count + '件</span></li>'; }).join('') + '</ul>' +
+      '<p class="small muted">種目名を押すと、推移グラフと記録が出ます。最新：' + esc(last.date + ' ' + last.meet) + '</p></div>';
   }
   function renderRank(rows) {
     var ns = nowSeason(), opt = { season: rankOpt.season === 'now' ? ns : null, grade: rankOpt.grade ? +rankOpt.grade : null };
@@ -959,7 +1014,8 @@
     document.body.classList.toggle('ath-open', !!ak);
     v.className = 'tblwrap view-' + (ak ? 'athlete' : view);
     if (ak) { v.innerHTML = renderAthlete(rows, ak); return; }
-    if (view === 'home') { v.innerHTML = renderHome(rows); return; }
+    if (view === 'home') { v.innerHTML = MODE.personal ? renderPersonalHome(rows) : renderHome(rows); return; }
+    if (MODE.personal && (view === 'rank' || view === 'hist')) setTab('home');
     if (!rows.length) { v.innerHTML = '<p class="muted small">表示する記録がありません。</p>'; return; }
     if (view === 'rank') { v.innerHTML = renderRank(rows); return; }
     if (view === 'hist') { v.innerHTML = renderAllTime(rows); return; }
@@ -1042,7 +1098,7 @@
   $('rbWipeDevice').addEventListener('click', async function () {
     if (!confirm('このブラウザに残っている LANE NOTE の記録（ログインしていないときの記録' + (USER ? '・ログイン中の控え' : '') + '）と、天気・中学/高校の選択を消します。' + (USER ? 'クラウドの記録は消えません。' : '元に戻せません。') + '\n\nよろしいですか？')) return;
     authEpoch++; var errs = [];
-    try { localStorage.removeItem(metsKey(null)); localStorage.removeItem(ovKey(null)); } catch (e) { }
+    try { localStorage.removeItem(metsKey(null)); localStorage.removeItem(ovKey(null)); localStorage.removeItem(modeKey(null)); } catch (e) { }
     await closeDb(LOCAL_DB);
     try { await LaneAuth.eraseDatabase(LOCAL_DB); } catch (e) { errs.push(e.message); }
     // v0.7（再監査A04）：ログイン中は「控えを置かない」状態にしてから消す。このあとの読み直しはクラウドから表示するだけで、端末には書かない
@@ -1072,5 +1128,92 @@
     XLSX.writeFile(wb, 'LANE_NOTE_kiroku_' + stamp() + '.xlsx');
     status('rbDataStatus', '✔ Excelに書き出しました（表示中の ' + rows.length + '件）。', 'ok');
   });
+  /* ---------- v0.8：選手の個人ページ（その子1人分の記録だけを入れたリンク。大会準備のページ（index）で開く） ---------- */
+  var PPL = { links: {}, gen: 0 }, SHARE_DAYS = 119;
+  function siteBase() { return /^https?:$/.test(location.protocol) ? location.origin + location.pathname.replace(/[^\/]*$/, '') : SHARE_BASE; }
+  function ppPayload(key) {
+    var mine = ALL.filter(function (r) { return R.athleteKey(r) === key; });
+    var pf = R.athleteProfile(mine, key); if (!pf) return null;
+    var pd = R.pbDetails(mine), byKey = {};
+    pf.events.forEach(function (e) { byKey[e.event] = e; });
+    var order = []; R.groupEvents(Object.keys(byKey), mine, NOG).forEach(function (g) { g.items.forEach(function (it) { byKey[it.key].eventLabel = it.label; order.push(byKey[it.key]); }); });
+    var b4 = function (r) { return r ? [r.mark || '', R.shownWind(r), r.date || '', r.meet || ''] : null; };
+    var last = mine.filter(function (r) { return R.rawDivisionOf(r); }).sort(function (x, y) { return cmp(x.date, y.date); }).pop() || pf;
+    return { v: 1, k: 'pp', g: new Date().toISOString(), a: { name: pf.name || '', team: last.team || pf.team || '', grade: pf.grade || '' },
+      e: order.slice(0, LanePersonal.MAX_EV).map(function (e) {
+        return { l: e.eventLabel, lw: e.lower ? 1 : 0, n: e.count, b: b4(e.best), rf: b4(e.ref),
+          p: e.allPoints.slice(-LanePersonal.MAX_P).map(function (p) { return [p.date, Math.round(p.v * 1000) / 1000, p.mark, p.wind || '', p.ref ? 1 : 0]; }),
+          x: (e.noMarks || []).slice(-LanePersonal.MAX_X).map(function (p) { return [p.date, p.mark, p.meet, p.round]; }),
+          r: e.recent.slice(0, LanePersonal.MAX_R).map(function (r) { return [r.date, r.mark, R.shownWind(r), r.meet, r.round || '', (pd[r.id] && pd[r.id].flag) || '']; }) };
+      }) };
+  }
+  async function encodePP(obj) {
+    if (typeof CompressionStream === 'undefined') throw new Error('このブラウザは圧縮に対応していません（新しいChrome／Safari／Edgeを使ってください）');
+    var bytes = new Uint8Array(await new Response(new Blob([new TextEncoder().encode(JSON.stringify(obj))]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer());
+    var t = ''; for (var i = 0; i < bytes.length; i += 0x8000) t += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return '1.' + btoa(t).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  function newShareId() { var A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789', out = '', b = new Uint8Array(1); while (out.length < 10) { crypto.getRandomValues(b); if (b[0] < 248) out += A[b[0] % 62]; } return out; }
+  // 短いリンク：大会準備のページと同じ shares/{id}（同じ4項目）と、自分の一覧 users/{uid}/shareIndex/{id}。始めたときのアカウント（uid＋世代）に固定
+  async function ppShort(str, label, sc) {
+    need(sc); if (!sc.uid) return null;
+    if (str.length > 190000) throw new Error('中身が大きすぎて短いリンクにできません');
+    var id = newShareId(), exp = FB.F.Timestamp.fromMillis(Date.now() + SHARE_DAYS * 864e5), b = FB.F.writeBatch(FB.fs);
+    b.set(FB.F.doc(FB.fs, 'shares', id), { data: str, ownerUid: sc.uid, createdAt: FB.F.serverTimestamp(), expiresAt: exp });
+    b.set(FB.F.doc(FB.fs, 'users', sc.uid, 'shareIndex', id), { createdAt: FB.F.serverTimestamp(), expiresAt: exp, label: String(label).slice(0, 80) });
+    await b.commit(); check(sc);
+    return siteBase() + '?s=' + id;
+  }
+  // 大会準備のページで作った、同じ名前の選手用リンク（期限内でいちばん新しいもの）→「大会当日の予定」へのリンクに使う
+  async function ppSchedules(sc) {
+    need(sc); if (!sc.uid) return [];
+    var snap = await FB.F.getDocs(FB.F.collection(FB.fs, 'users', sc.uid, 'shareIndex')); check(sc);
+    var out = [], now = Date.now();
+    snap.forEach(function (d) { var x = d.data() || {}, m = /^選手：(.*)（(.*)）$/.exec(x.label || ''), e = x.expiresAt && x.expiresAt.toMillis ? x.expiresAt.toMillis() : 0;
+      if (m && e > now) out.push({ id: d.id, name: m[1], meet: m[2], at: x.createdAt && x.createdAt.toMillis ? x.createdAt.toMillis() : 0 }); });
+    return out.sort(function (a, b) { return b.at - a.at; });
+  }
+  function renderPPList() {
+    var ks = Object.keys(PPL.links);
+    $('rbPPList').innerHTML = ks.map(function (k) { var L = PPL.links[k];
+      return '<div class="pp-row"><b>' + esc(L.name) + '</b><small>' + (L.short ? '短いリンク' : '長いリンク') + '・' + L.url.length + '文字' + (L.nx ? '・予定へのリンクあり' : '') + '</small><input readonly value="' + esc(L.url) + '" aria-label="' + esc(L.name) + 'さんの個人ページのリンク"><button class="btn sub" type="button" data-ppcopy="' + esc(k) + '">コピー</button></div>'; }).join('');
+    $('rbPPCopy').disabled = !ks.length;
+  }
+  function copyT(t, btn, label) { var done = function () { btn.textContent = '✔ コピーしました'; setTimeout(function () { btn.textContent = label; }, 1800); };
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(t).then(done, function () { alert(t); }); else { var ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); done(); } }
+  async function makePPLinks(keys) {
+    var btn = $('rbPPMake'), sc = scope(), gen = ++PPL.gen;
+    var alive = function () { return gen === PPL.gen && sc.epoch === authEpoch && sc.uid === (USER ? USER.uid : null); };
+    if (!keys.length) { status('rbPPMsg', '表示中の選手がいません。', 'ng'); return; }
+    btn.disabled = true; PPL.links = {}; renderPPList();
+    var sch = [], errs = 0;
+    try { if (sc.uid && !OFFLINE) sch = await ppSchedules(sc); } catch (e) { if (isAbort(e) || !alive()) { btn.disabled = false; return; } }
+    for (var i = 0; i < keys.length; i++) {
+      if (!alive()) break;
+      status('rbPPMsg', '作っています… ' + (i + 1) + '／' + keys.length, '');
+      var o = ppPayload(keys[i]); if (!o) continue;
+      var nx = sch.filter(function (x) { return R.nameKey(x.name) === R.nameKey(o.a.name); })[0];
+      if (nx) o.nx = { s: nx.id, n: nx.meet };
+      var str = await encodePP(o), url = siteBase() + '#p=' + str, short = false;
+      if (!alive()) break;
+      if (sc.uid && !OFFLINE) { try { var u = await ppShort(str, '個人ページ：' + o.a.name, sc); if (u) { url = u; short = true; } } catch (e) { if (isAbort(e) || !alive()) break; errs++; } }
+      PPL.links[keys[i]] = { url: url, short: short, name: o.a.name, nx: !!nx }; renderPPList();
+    }
+    btn.disabled = false;
+    if (!alive()) { if (gen === PPL.gen) { PPL.links = {}; renderPPList(); status('rbPPMsg', 'ログインしているアカウントが変わったので、作るのを止めました。もう一度押してください。', 'ng'); } return; }
+    status('rbPPMsg', '✔ ' + Object.keys(PPL.links).length + '人分のリンクを作りました。' + (errs ? errs + '人分は短いリンクを作れなかったので、長いリンクにしました。' : '') + (sc.uid ? '' : '（ログインしていないので長いリンクです）'), errs ? 'ng' : 'ok');
+  }
+  $('rbPPMake').addEventListener('click', function () {
+    var keys = []; filtered().forEach(function (r) { var k = R.athleteKey(r); if (keys.indexOf(k) < 0 && (!MODE.personal || isMe(r))) keys.push(k); });
+    if (keys.length > 60 && !confirm(keys.length + '人分のリンクを作ります。時間がかかります。よろしいですか？')) return;
+    makePPLinks(keys).catch(function (e) { $('rbPPMake').disabled = false; status('rbPPMsg', '✖ ' + esc(e.message), 'ng'); });
+  });
+  $('rbPPList').addEventListener('click', function (e) { var b = e.target.closest('[data-ppcopy]'); if (b) copyT(PPL.links[b.getAttribute('data-ppcopy')].url, b, 'コピー'); });
+  $('rbPPCopy').addEventListener('click', function () {
+    var t = '自分の記録のページです。自分の名前のリンクを開いてください（ほかの人のリンクは開かないこと）\n※リンクを知っている人は誰でも開けます。グループの外には送らないでください。\n※作った日の記録のコピーです。新しい記録は、先生が作り直したリンクで見られます。\n\n' +
+      Object.keys(PPL.links).map(function (k) { return PPL.links[k].name + '：' + PPL.links[k].url; }).join('\n');
+    copyT(t, $('rbPPCopy'), '📋 まとめてコピー（LINE用）');
+  });
+  window.__recApp = { ppPayload: ppPayload, encodePP: encodePP, makePPLinks: makePPLinks, getMode: function () { return MODE; }, isMe: isMe };
   if (CLOUD_READY) initCloud(); else { renderAuth(); reload(); }
 })();

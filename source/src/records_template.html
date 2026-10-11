@@ -41,6 +41,10 @@ __BASE_CSS__
 .rb-meetlist{margin:6px 0 0;padding-left:18px;font-size:13px}.rb-meetlist li{margin:2px 0}
 .rb-done{font-size:15px}
 .meetsel{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 8px}.meetsel select{max-width:100%;font-size:15px;padding:6px}
+.rb-pp{margin:8px 0;border:1px solid var(--line);border-radius:12px;padding:8px 10px;background:#fbfcfe}.rb-pp summary{cursor:pointer;min-height:32px}
+.pp-row{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;border-top:1px solid var(--line);padding:8px 0}.pp-row b{min-width:7em}.pp-row input{flex:1 1 240px;font-size:11px;font-family:monospace;padding:4px;border:1px solid var(--line);border-radius:6px}.pp-row small{color:var(--muted)}
+body.personal-on .tabs button[data-v="rank"],body.personal-on .tabs button[data-v="hist"]{display:none}
+.pmhome .evsum li{display:flex;flex-wrap:wrap;gap:2px 10px;align-items:baseline;padding:6px 0;border-top:1px solid var(--line)}
 .chartbox{display:flex;flex-direction:column;gap:4px}.chartopt{font-size:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .chartopt .lg-ref,.chartopt .lg-nm{display:inline-flex;align-items:center;gap:3px}.spark.hasnm{height:72px}.nmlist{margin:2px 0 0;padding-left:1.1em;list-style:none}.nmlist li{margin:1px 0}
 .ev-only select{font-size:15px}
@@ -184,7 +188,7 @@ tr.rc.editing td{background:#fff3ec!important}
 <main>
 <section class="box">
   <h2><span class="no">1</span>学校名と結果の資料</h2>
-  <div class="privacy">🔒 <b>Googleでログインすると、記録はあなた専用のクラウド（Firebase）に保存され、どの端末からでも見られます。</b>ほかの人の記録は見えず、ほかの人からもあなたの記録は見えません。ログイン中も、電波がないときに見られるよう、この端末（IndexedDB）に控えを置きます（ログアウトすると控えを消します）。ログインしないときは、このブラウザの中（IndexedDB）にだけ保存します。<b>ログインしていないときにためた記録は、ログインしても自動ではクラウドへ移しません</b>（移すかどうかを件数を見て選べます）。結果資料・Excelの読み取りはすべてこの端末の中で行います。大会ごとの天気・気温と、中学/高校を選んだ選手の情報も、記録と同じ場所に保存します。「不具合・要望を送る」は Google でログインしたときだけ送れて、送った内容だけが作成者に届きます（記録や選手名は自動では送りません）。共用のパソコンでは、使い終わったら必ずログアウトしてください。</div>
+  <div class="privacy">🔒 <b>Googleでログインすると、記録はあなた専用のクラウド（Firebase）に保存され、どの端末からでも見られます。</b>ほかの人の記録は見えず、ほかの人からもあなたの記録は見えません。ログイン中も、電波がないときに見られるよう、この端末（IndexedDB）に控えを置きます（ログアウトすると控えを消します）。ログインしないときは、このブラウザの中（IndexedDB）にだけ保存します。<b>ログインしていないときにためた記録は、ログインしても自動ではクラウドへ移しません</b>（移すかどうかを件数を見て選べます）。結果資料・Excelの読み取りはすべてこの端末の中で行います。大会ごとの天気・気温と、中学/高校を選んだ選手の情報も、記録と同じ場所に保存します。「不具合・要望を送る」は Google でログインしたときだけ送れて、送った内容だけが作成者に届きます（記録や選手名は自動では送りません）。<b>「個人で使う」</b>（v0.8）の名前・所属は、記録と同じ場所（ログイン中は本人だけが読めるクラウドの設定、ログインなしはこのブラウザ）に保存します。<b>「選手の個人ページ」</b>のリンクには、その選手1人分の記録（自己ベスト・最近の記録・グラフの点）と名前・所属・学年だけを入れます。ログイン中は短いリンクとして LANE NOTE の Firebase（shares）に置き、リンクを知っている人なら誰でも作ってから119日まで見られます（大会準備のページの「作った短いリンク」から止められます）。ログインなしは長いリンクの「#」より後ろに入り、サーバーには送りません。選手がそのページで書く体調メモは、選手のスマホにだけ保存され、先生には見えません。共用のパソコンでは、使い終わったら必ずログアウトしてください。</div>
   <div class="rb-row" id="rbAuth" style="margin:10px 0;align-items:center">
     <span id="rbAuthInfo" class="small"></span>
     <button class="btn" id="rbSignIn" type="button" hidden>Googleでログイン</button>
@@ -193,9 +197,18 @@ tr.rc.editing td{background:#fff3ec!important}
   <div class="status" id="rbAuthStatus"></div>
   <div class="rb-guest" id="rbGuest" hidden aria-live="polite"></div>
   <div class="disclaimer sm" style="margin-top:8px">ⓘ 結果の資料の文字を読み取って整理しているだけです。<b>記録は必ず元の結果資料と照らし合わせて確認してください。</b>読めなかったところは空欄にして警告を出します（推測で埋めません）。</div>
-  <div class="rb-row" style="margin:10px 0">
+  <div class="rb-row rb-mode" style="margin:10px 0 0">
+    <label class="chip"><input type="checkbox" id="rbPersonal"> 👤 個人で使う</label>
+    <span class="small muted">選手本人・保護者・クラブの人向け。学校のかわりに自分の名前を入れると、その人の記録だけを取り込みます。</span>
+  </div>
+  <div class="rb-row" style="margin:10px 0" id="rbSchoolRow">
     <label>学校名 <input type="text" id="rbSchool" placeholder="例：本郷" autocomplete="off"></label>
     <span class="small muted">「本郷」と打つと「本郷」「本郷高」「本郷中」を拾います。</span>
+  </div>
+  <div class="rb-row" style="margin:10px 0" id="rbPersonRow" hidden>
+    <label>名前 <input type="text" id="rbPName" placeholder="例：山田 太郎" autocomplete="off" maxlength="40"></label>
+    <label>所属（任意） <input type="text" id="rbPTeam" placeholder="例：本郷中・〇〇AC" autocomplete="off" maxlength="60"></label>
+    <span class="small muted">結果の資料から、この名前（所属を入れたらその所属も）の記録だけを拾います。同じ名前の別の人が混ざらないよう、所属も入れるのがおすすめです。</span>
   </div>
   <div class="drop" id="rbDrop" tabindex="0" role="button" aria-label="結果のファイルを選ぶ">
     <div class="big">📄 結果のPDF・保存したWebページ（HTML）・Excel（.xlsx/.xls/.csv）をここへ</div>
@@ -243,6 +256,11 @@ tr.rc.editing td{background:#fff3ec!important}
   <div class="divsw sexsw" role="radiogroup" aria-label="男子・女子の切り替え" id="rbSex" hidden><button type="button" data-sex="m">男子</button><button type="button" data-sex="f">女子</button></div>
   <div id="rbReview"></div>
   <div class="rb-stats" id="rbStats"></div>
+  <details class="rb-pp" id="rbPPBox"><summary><b>📱 選手の個人ページ（リンク）</b>　<span class="small muted">選手が自分の自己ベスト・グラフを見られるリンクを作ります</span></summary>
+    <p class="small">選手ごとに、その子の記録だけを入れたリンクを作ります（ほかの選手の記録は入りません）。選手はログインなしで、自己ベスト・推移グラフ・最近の記録を見られます。<b>作った時点のコピー</b>なので、記録が増えたら作り直して送ってください。Googleでログイン中は短いリンク（作ってから119日まで・大会準備のページの「作った短いリンク」から止められます）、ログインなしは長いリンクになります。大会準備のページで同じ名前の選手用リンク（短いリンク）を作ってあれば、「大会当日の予定」へのリンクも入れます。</p>
+    <div class="rb-row"><button class="btn" type="button" id="rbPPMake">🔗 表示中の選手全員のリンクを作る</button><button class="btn sub" type="button" id="rbPPCopy" disabled>📋 まとめてコピー（LINE用）</button></div>
+    <div class="status" id="rbPPMsg"></div><div id="rbPPList"></div>
+  </details>
   <div class="tabbar"><div class="tabs" role="tablist">
     <button class="on" data-v="home" type="button">ホーム</button><button data-v="ath" type="button">選手別</button><button data-v="rank" type="button">部内ランキング</button><button data-v="meet" type="button">大会別</button><button data-v="hist" type="button">歴代記録</button><button data-v="all" type="button">全記録</button>
   </div></div>
@@ -294,6 +312,12 @@ __RESULTS__
 <script>
 var APP_VERSION = "__VERSION__", REC_VERSION = "__REC_VERSION__";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
+</script>
+<script>
+var SHARE_BASE = "__SHARE_BASE__";
+</script>
+<script>
+__PERSONAL__
 </script>
 <script>
 __RECAPP__
