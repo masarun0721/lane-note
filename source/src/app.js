@@ -921,11 +921,12 @@
       inp('dismiss', '解散予定', '', T.dismiss.on ? timeNote(T.dismiss, 'dismiss') : '「学校の設定」で表示を切っています') + inp('docDate', '文書の日付', '', '今日の日付（直せます）') +
       '<button type="button" class="btn sub nt-small" id="ntReauto">↻ 資料から入れ直す</button></section>';
     h += '<details class="nt-box" id="ntSchool"' + (T.school ? '' : ' open') + '><summary><h3>⚙ 学校の設定（毎回同じ）</h3></summary>' +
-      '<div class="nt-lay" role="radiogroup" aria-label="レイアウト">' + [['std', '標準'], ['table', '表中心'], ['clean', 'すっきり']].map(function (l) { return '<button type="button" role="radio" aria-checked="' + (T.layout === l[0]) + '" class="nt-th' + (T.layout === l[0] ? ' on' : '') + '" data-layout="' + l[0] + '">' + LaneNotice.THUMB[l[0]] + '<span>' + l[1] + '</span></button>'; }).join('') + '</div>' +
+      '<div class="nt-lay" role="radiogroup" aria-label="レイアウト">' + [['std', 'スタンダード'], ['table', 'カード'], ['clean', 'ミニマル']].map(function (l) { return '<button type="button" role="radio" aria-checked="' + (T.layout === l[0]) + '" class="nt-th' + (T.layout === l[0] ? ' on' : '') + '" style="color:' + LaneNotice.colors(T).a + '" data-layout="' + l[0] + '">' + LaneNotice.THUMB[l[0]] + '<span>' + l[1] + '</span></button>'; }).join('') + '</div>' +
+      '<div class="nt-f"><span>アクセントの色</span><div class="nt-acc" role="radiogroup" aria-label="アクセントの色">' + Object.keys(LaneNotice.ACCENT).map(function (k) { return '<button type="button" role="radio" aria-checked="' + (T.accent === k) + '" class="nt-sw' + (T.accent === k ? ' on' : '') + '" data-accent="' + k + '" style="--c:' + LaneNotice.ACCENT[k] + '" title="' + LaneNotice.ACCENT_NAME[k] + '"><i></i>' + LaneNotice.ACCENT_NAME[k] + '</button>'; }).join('') + '</div><label class="nt-c"><input type="checkbox" data-t="mono"' + (T.mono ? ' checked' : '') + '> 白黒印刷向け（色を使わず、黒と灰色だけにする）</label></div>' +
       ['school:学校名', 'club:部活名', 'to:宛先', 'title:タイトル（{大会名} が入ります）', 'place:ふだんの集合場所'].map(function (p) { var k = p.split(':'); return '<label class="nt-f"><span>' + k[1] + '</span><input data-t="' + k[0] + '" value="' + e(T[k[0]]) + '"></label>'; }).join('') +
       '<div class="nt-f"><span>顧問名</span>' + list('advisors', T.advisors) + '</div>' +
       '<label class="nt-f"><span>日付の書き方</span><select data-t="era"><option value="wareki"' + (T.era === 'wareki' ? ' selected' : '') + '>和暦（令和）</option><option value="seireki"' + (T.era === 'seireki' ? ' selected' : '') + '>西暦</option></select></label>' +
-      '<label class="nt-f"><span>フォント</span><select data-t="font"><option value="mincho"' + (T.font === 'mincho' ? ' selected' : '') + '>明朝</option><option value="gothic"' + (T.font === 'gothic' ? ' selected' : '') + '>ゴシック</option></select></label>' +
+      '<label class="nt-f"><span>フォント</span><select data-t="font"><option value="gothic"' + (T.font === 'gothic' ? ' selected' : '') + '>ゴシック（おすすめ）</option><option value="mincho"' + (T.font === 'mincho' ? ' selected' : '') + '>明朝</option></select></label>' +
       '<label class="nt-f"><span>文字の大きさ</span><select data-t="size" data-num="1">' + [9, 9.5, 10, 10.5, 11, 12].map(function (n) { return '<option value="' + n + '"' + (T.size === n ? ' selected' : '') + '>' + n + 'pt</option>'; }).join('') + '</select></label>' +
       '<label class="nt-c"><input type="checkbox" data-t="fit"' + (T.fit ? ' checked' : '') + '> A4 1枚に収める（文字・余白を自動で小さくする）</label>' +
       '<div class="nt-f"><span>集合時刻の決め方</span><div class="nt-rule"><select data-t="call.base">' + Object.keys(NT_BASE).map(function (k) { return '<option value="' + k + '"' + (T.call.base === k ? ' selected' : '') + '>' + NT_BASE[k] + '</option>'; }).join('') + '</select> の <input type="number" min="0" max="6" data-t="call.h" data-num="1" value="' + T.call.h + '">時間 <input type="number" min="0" max="59" step="5" data-t="call.m" data-num="1" value="' + T.call.m + '">分前</div></div>' +
@@ -983,6 +984,7 @@
   function ntClick(ev) {
     var b = ev.target.closest('button'); if (!b) return; var d = b.dataset, mv = function (a, i, j) { if (j < 0 || j >= a.length) return; var x = a[i]; a[i] = a[j]; a[j] = x; };
     if (d.layout) NT.layout = d.layout;
+    else if (d.accent) { NT.accent = d.accent; NT.mono = false; }
     else if (d.la) {
       var a = ntGetPath(b.closest('[data-list]').dataset.list), i = +d.i;
       if (d.la === 'add') a.push(''); else if (d.la === 'del') a.splice(i, 1); else mv(a, i, d.la === 'up' ? i - 1 : i + 1);

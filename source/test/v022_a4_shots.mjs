@@ -39,6 +39,10 @@ for (const L of ['std', 'table', 'clean']) {
   fs.writeFileSync(`/tmp/nt/out/${L}.docx`, Buffer.from(b64, 'base64')); const dx = true;
   res[L] = { size: info.size, warn: info.warn, docx: !!dx };
 }
+await p.evaluate(() => { const m = document.querySelector('[data-t="mono"]'); m.checked = true; m.dispatchEvent(new Event('change', { bubbles: true })); }); await new Promise(r => setTimeout(r, 1200));
+{ const html = await p.evaluate(() => '<!doctype html>' + document.getElementById('pvFrame').contentDocument.documentElement.outerHTML); const q = await b.newPage(); await q.setContent(html, { waitUntil: 'load' }); fs.writeFileSync('/tmp/nt/out/mono.pdf', await q.pdf({ format: 'A4', preferCSSPageSize: true, printBackground: true })); await q.close(); }
+await p.evaluate(() => { const m = document.querySelector('[data-t="mono"]'); m.checked = false; m.dispatchEvent(new Event('change', { bubbles: true })); document.querySelector('[data-accent="red"]').click(); }); await new Promise(r => setTimeout(r, 1200));
+await p.evaluate(() => { document.getElementById('ntSchool').open = true; document.querySelector('.nt-acc').scrollIntoView({ block: 'center' }); }); await p.screenshot({ path: '/tmp/nt/out/editor.png' });
 // phone
 await p.setViewport({ width: 390, height: 844 }); await new Promise(r => setTimeout(r, 600)); await p.evaluate(() => { document.getElementById('ntEdit').scrollTop = 0; }); await p.screenshot({ path: '/tmp/nt/out/phone.png' }); await p.evaluate(() => document.querySelector('.nt-prev').scrollIntoView()); await new Promise(r => setTimeout(r, 400)); await p.screenshot({ path: '/tmp/nt/out/phone2.png' });
 console.log(JSON.stringify(res)); await b.close(); srv.close();

@@ -97,7 +97,7 @@ await check('集合時刻：自校の最初の種目の2時間前（ルールを
   const first = Math.min(...app.state.rows.filter(r => r.start).map(r => LN.toMin(r.start)));
   assert.equal(q('[data-m="gather"]').value, LN.fmtMin(first - 120));
   const sel = q('[data-t="call.base"]'); sel.value = 'gate'; sel.dispatchEvent(new w.Event('change', { bubbles: true })); await delay();
-  assert.equal(q('[data-m="gather"]').value, '6:00'); assert.match(doc(), /6:00　競技場 正門前/);
+  assert.equal(q('[data-m="gather"]').value, '6:00'); assert.match(doc(), /6:00<\/div><div class="cs">競技場 正門前/);
   await setv('[data-m="gather"]', '7:15'); assert.match(doc(), /7:15/);
 });
 await check('学校の設定：学校名・顧問・タイトル・持ち物（追加・削除）・自由欄・レイアウト3つ', async () => {
@@ -106,7 +106,9 @@ await check('学校の設定：学校名・顧問・タイトル・持ち物（�
   await setv('[data-t="title"]', '{大会名}の出場について'); assert.match(doc(), /第1回架空区大会の出場について/);
   q('[data-list="belongings.items"] [data-la="del"][data-i="0"]').click(); await delay(); assert.doesNotMatch(doc(), /ユニフォーム・/);
   $('ntEdit').querySelector('#ntFree').click(); await delay(); await setv('.nt-sec:last-of-type [data-sk="text"]', '応援よろしくお願いします{集合時刻}'); assert.match(doc(), /応援よろしくお願いします7:15/);
-  for (const [l, re] of [['table', /class="L-table"[\s\S]*class="nt-pt"/], ['clean', /class="L-clean"[\s\S]*class="duo"/], ['std', /<p class="ki">記<\/p>[\s\S]*以上/]]) { q(`[data-layout="${l}"]`).click(); await delay(); assert.match(doc(), re, l); assert.equal(q(`[data-layout="${l}"]`).getAttribute('aria-checked'), 'true'); }
+  for (const [l, re] of [['table', /class="L-table"[\s\S]*class="cards/], ['clean', /class="L-clean"[\s\S]*class="nt-dl"/], ['std', /class="L-std"[\s\S]*class="band"[\s\S]*class="chk"[\s\S]*LANE NOTE/]]) { q(`[data-layout="${l}"]`).click(); await delay(); assert.match(doc(), re, l); assert.equal(q(`[data-layout="${l}"]`).getAttribute('aria-checked'), 'true'); }
+  q('[data-accent="red"]').click(); await delay(); assert.match(doc(), /--a:#c8452b/);
+  const mo = q('[data-t="mono"]'); mo.checked = true; mo.dispatchEvent(new w.Event('change', { bubbles: true })); await delay(); assert.match(doc(), /--a:#000000/); assert.match(doc(), /class="L-std mono"/);
   const s = q('[data-son="1"]'); s.checked = false; s.dispatchEvent(new w.Event('change', { bubbles: true })); await delay(); assert.doesNotMatch(doc(), /<h1>/);
   s && (q('[data-son="1"]').checked = true, q('[data-son="1"]').dispatchEvent(new w.Event('change', { bubbles: true }))); await delay();
   q('[data-sa="down"][data-i="0"]').click(); await delay(); assert.ok(doc().indexOf('<h1>') < doc().indexOf('保護者各位'), '↓で順番が変わる');
