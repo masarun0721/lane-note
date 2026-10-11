@@ -373,6 +373,29 @@ footer a{color:var(--navy)}
   .hdr-meta .hdr-msg{font-size:10px}
   header{padding-top:0}
 }
+.sp-br{display:none}
+/* v0.14：スマホでは右上のひとことを2行にして、白い文字で読みやすく */
+@media screen and (max-width:720px){
+  .sp-br{display:inline}
+  .hdr-meta>div.hdr-msg{height:auto;line-height:1.45;white-space:normal;overflow:visible;padding:2px 0 4px}
+  .hdr-meta .hdr-msg{font-size:11.5px;font-weight:700;letter-spacing:.03em;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.55)}
+}
+/* v0.14：不具合・要望のログイン案内・URLの案内・短いリンクの一覧・更新情報 */
+.fb-login{border-radius:10px;padding:8px 10px;margin:6px 0;font-size:13px;background:#f3f6fb}
+.fb-login.need{background:#fff6e5;border:1px solid #f0c36d}.fb-login.ok{background:#e9f5ee;color:#137333}
+.fb-login .btn{margin-top:6px;min-height:44px}
+.url-note{font-size:12px;color:#7a5a00;background:#fff7dc;border:1px solid #f0d58a;border-radius:8px;padding:5px 9px;margin:8px 0}
+.myshares{list-style:none;margin:6px 0;padding:0}.myshares li{display:flex;gap:8px;align-items:center;justify-content:space-between;border-bottom:1px solid #e3e8f0;padding:6px 0}
+.myshares li span{display:flex;flex-direction:column;font-size:13px}.myshares small{color:#6b778c}
+.danger-t{color:#b3261e!important;border-color:#e3b4ae!important}
+.changelog summary{cursor:pointer;font-size:15px}
+.changelog .cl-new{display:inline-block;background:#e4572e;color:#fff;border-radius:999px;font-size:11px;padding:1px 8px;margin-left:6px;vertical-align:middle}
+.changelog ol{list-style:none;margin:8px 0 0;padding:0}
+.changelog li{border-left:3px solid #c9d2e0;padding:4px 0 6px 10px;margin:0 0 8px}
+.changelog li:first-child{border-left-color:#e4572e}
+.changelog .cl-h{font-size:13px;color:#6b778c}.changelog .cl-h b{color:#1f3a68;font-size:14px;margin-right:6px}
+.changelog .cl-b{font-size:13.5px;line-height:1.6}
+.pv-forget{display:block;margin:10px auto 0;background:none;border:1px solid #e3b4ae;color:#b3261e;border-radius:10px;padding:8px 14px;font-size:13px}
 @media screen{
   .aff{margin:14px 0 4px;max-width:520px}
   .aff-card{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border:1px solid var(--line,#ddd);border-radius:12px;background:#fff;color:var(--navy,#14213d);font-weight:700;font-size:14px;text-decoration:none;box-shadow:0 1px 2px rgba(0,0,0,.05)}
@@ -400,7 +423,7 @@ footer a{color:var(--navy)}
   .mc-note{font-size:11px!important}
   .mc-s{padding:8px 12px;border-top:1px solid var(--line);font-size:14px}.mc-s small{color:var(--muted)}
   #viewer .mcards{display:block}#viewer .mcards[hidden]{display:none}
-  body.viewer-mode .howto,body.viewer-mode #inputs,body.viewer-mode #results,body.viewer-mode #savedHome{display:none!important}
+  body.viewer-mode .changelog,body.viewer-mode .howto,body.viewer-mode #inputs,body.viewer-mode #results,body.viewer-mode #savedHome{display:none!important}
   #viewer{max-width:720px;margin-left:auto;margin-right:auto}
   .v-top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
   .v-badge{font-size:12px;font-weight:700;background:var(--track-l);color:var(--track-d);border-radius:999px;padding:3px 10px}
@@ -468,7 +491,7 @@ body.fb-open{overflow:hidden}
   <div class="hdr-meta">
     <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span></div>
     <div class="credit">Presented by Sakata</div>
-    <div class="hdr-msg">すべての陸上競技部顧問が、少しでも楽になりますように。</div>
+    <div class="hdr-msg">すべての陸上競技部顧問が、<br class="sp-br">少しでも楽になりますように。</div>
   </div>
   <div class="brand">
     <h1 class="logo">__LOGO_DARK__<span class="vh">LANE NOTE（レーンノート）</span></h1>
@@ -489,6 +512,7 @@ body.fb-open{overflow:hidden}
     <div class="pv-row"><button class="pv-add" id="pvAdd" type="button">＋ 追加</button><button class="pv-cancel" id="pvCancel" type="button" hidden>キャンセル</button></div>
     <div class="pv-msg" id="pvMsg"></div>
   </div>
+  <button type="button" class="pv-forget" id="pvForget">🗑 この予定を端末から削除</button>
   <p class="pv-foot">🔒 マークは先生が入れた予定（招集・試合）なので削除できません。自分で追加した予定は、このスマホにだけ保存されます。<br>時刻が変わることもあるので、最後は会場の発表や先生の指示を確認してください。</p>
 </section>
 <section class="box" id="viewer" hidden>
@@ -515,6 +539,7 @@ body.fb-open{overflow:hidden}
     <input id="shareUrl" readonly aria-label="共有リンク">
     <div class="dlg-btns"><button class="btn" id="shareCopy" type="button">🔗 リンクをコピー</button><button class="btn sub" id="shareClose" type="button">閉じる</button></div>
     <p class="small muted" id="shareHow"></p>
+    <details class="small"><summary><b>作った短いリンク</b>（一覧・共有を止める）</summary><div class="myShares" id="shareMine"></div></details>
   </div>
 </div>
 <div id="playerDlg" class="dlg" hidden role="dialog" aria-modal="true" aria-labelledby="plTtl">
@@ -526,10 +551,12 @@ body.fb-open{overflow:hidden}
     <div class="dlg-btns"><button class="btn" id="plMake" type="button">🔗 全員分のリンクを作る</button><button class="btn sub" id="plCopyAll" type="button" disabled>📋 全員分をまとめてコピー（LINE用）</button></div>
     <div id="plMsg" class="small"></div>
     <div id="plList" class="pl-list"></div>
-    <p class="warn small">⚠ リンクを知っている人なら誰でも、その子の名前と出場が見られます。LINEのグループに貼るときは、自分のリンクだけ開くよう伝えてください。</p>
+    <p class="warn small">⚠ リンクを知っている人なら誰でも、その子の名前と出場が見られます（パスワードのような鍵ではありません）。LINEのグループに貼るときは、自分のリンクだけ開くよう伝え、グループの外には送らないでください。短いリンクは作ってから119日で開けなくなり、下の一覧からいつでも止められます。</p>
+    <details class="small"><summary><b>作った短いリンク</b>（一覧・共有を止める）</summary><div class="myShares" id="plMine"></div></details>
     <div class="dlg-btns"><button class="btn sub" id="plClose" type="button">閉じる</button></div>
   </div>
 </div>
+__CHANGELOG__
 <section class="box howto">
   <h2>使い方</h2>
   <ol>
@@ -541,14 +568,15 @@ body.fb-open{overflow:hidden}
   <details class="privacy" id="dataPolicy"><summary>🔒 <b>データの取り扱いについて</b>（押すと開きます）</summary>
     <ul>
       <li>PDF本文はどこにも送りません。選手情報も、下の「短いリンク」を作ったときを除いてサーバーへ送信・保存しません。</li>
-      <li>部品取得のため外部CDN（jsDelivr・SheetJS）へ通信します。プログラム部品（pdf.js・JSZip・SheetJS）は決まった版をハッシュ（SRI）で確認してから使い、確認できないブラウザでは読み込みません。pdf.jsが必要に応じて取りに行く文字の対応表（CMap）・標準フォントのデータはハッシュ確認の対象外です（プログラムではなくデータです）。短いリンクを作る・開くときだけ、Googleのサーバー（gstatic.com）から Firebase の部品を読み込みます。</li>
+      <li>部品取得のため外部CDN（jsDelivr・SheetJS）へ通信します。プログラム部品（pdf.js・JSZip・SheetJS）は決まった版をハッシュ（SRI）で確認してから使い、確認できないブラウザでは読み込みません。pdf.jsが必要に応じて取りに行く文字の対応表（CMap）・標準フォントのデータはハッシュ確認の対象外です（プログラムではなくデータです）。短いリンクを作る・開くとき・ログインするとき・不具合を送るときは、Googleのサーバー（gstatic.com）から Firebase の部品を読み込みます。<b>Firebase の部品は版を固定していますが、ハッシュ確認はしていません</b>（読み込み方の都合。今後、同じサイトから配る形に変える予定です）。</li>
+      <li><b>ログアウト</b>（v0.14）：このページでログアウトすると、この端末に残っている「記録」ページの控え（ログイン中の記録のコピー）も消します。</li>
       <li>保存したファイル・印刷物は残ります。保存先のクラウド同期は各学校の設定によります。</li>
       <li>画面を閉じると、読み込んだ内容は消えます（「この端末に保存」を押したものだけ、その端末のブラウザに残ります。削除ボタンで消せます）。</li>
-      <li>「スマホで見る／共有」で<b>Googleでログインしているとき</b>は短いリンク（…/?s=英数字10文字）を作ります。このとき、選んだ学校の結果（大会名・日付・時刻・選手名など）を LANE NOTE の Firebase（Google）に120日間保存し、リンクを知っている人なら誰でも見られます（一覧で探すことはできません）。</li>
+      <li>「スマホで見る／共有」で<b>Googleでログインしているとき</b>は短いリンク（…/?s=英数字10文字）を作ります。このとき、選んだ学校の結果（大会名・日付・時刻・選手名など）を LANE NOTE の Firebase（Google）に保存し、リンクを知っている人なら誰でも見られます（一覧で探すことはできません）。<b>見られるのは作ってから119日まで</b>（サーバーのルールで最長120日に制限。期限を過ぎると開けなくなりますが、データの自動削除はまだしていません）。「作った短いリンク」からいつでも共有を止められ、止めると中身も消えます。リンクには作った人を区別する番号（アカウントID）も入っています。</li>
       <li><b>ログインしていないとき</b>（または通信できないとき）は長いリンクになり、結果はリンクの「#」より後ろに入ります。この部分はサーバーへ送られず、どこにも保存されませんが、リンクを渡した相手は中身を見られます。</li>
       <li>このページ（大会準備）の説明です。別ページの「記録」は、Googleでログインしたときだけ記録を LANE NOTE の Firebase（Google）に本人だけが読める形で保存します（ログインしないときはそのブラウザの中だけ）。</li>
-      <li><b>選手用リンク</b>（v0.11）：1人分の出場（大会名・日付・会場・種目・組・レーン・レースと招集の時刻・招集場所・その子の名前／学年／学校／ナンバー）だけを入れます。ほかの選手の名前・ナンバー（リレーの仲間も）は入れません。ログイン中は上と同じく Firebase に120日間保存（1人1件）、ログインなしは長いリンクの「#」より後ろに入ります。選手が自分で足した予定（起床など）と、開いたリンクの中身は、その選手の端末のブラウザにだけ保存し、どこにも送りません。</li>
-      <li><b>不具合・要望を送る</b>（v0.13）：フォームから送った内容は LANE NOTE の Firebase（Google）の feedback に保存し、作成者だけが確認します（送った人を含め、ほかの人は読めません）。送るのは 種類・内容・連絡先（書いたときだけ）・ページ名・版・ブラウザの種類・画面の大きさ・開いていたタブとURLのパス（「#」「?」より後ろは送りません）・ログイン中ならそのアカウントのID です。PDFの中身・選手名・記録は自動では送りません（内容に書いたものは送られます）。</li>
+      <li><b>選手用リンク</b>（v0.11）：1人分の出場（大会名・日付・会場・種目・組・レーン・レースと招集の時刻・招集場所・その子の名前／学年／学校／ナンバー）だけを入れます。ほかの選手の名前・ナンバー（リレーの仲間も）は入れません。ログイン中は上と同じく Firebase に保存し、作ってから119日まで見られます（1人1件・止められます）、ログインなしは長いリンクの「#」より後ろに入ります。選手が自分で足した予定（起床など）と、開いたリンクの中身は、その選手の端末のブラウザにだけ保存し、どこにも送りません（選手のページの「この予定を端末から削除」で消せます。期限切れ・止めたリンクを開くと、端末の控えも消します）。</li>
+      <li><b>不具合・要望を送る</b>（v0.13・v0.14からGoogleでのログインが必要）：フォームから送った内容は LANE NOTE の Firebase（Google）の feedback に保存し、作成者だけが確認します（送った人を含め、ほかの人は読めません）。送るのは 種類・内容・連絡先（書いたときだけ）・ページ名・版・ブラウザの種類・画面の大きさ・開いていたタブとURLのパス（「#」「?」より後ろは送りません）・ログインしているアカウントのID です（メールアドレスは送りません）。PDFの中身・選手名・記録は自動では送りません（内容に書いたものは送られます）。</li>
       <li>「ナンバーカード」タブのAmazonへのリンクは、押したときだけAmazonのページを開きます。自動で何かを送ったり、Amazonから画像などを読み込んだりはしません。</li>
     </ul></details>
 </section>
@@ -561,6 +589,8 @@ body.fb-open{overflow:hidden}
     <div class="drop" id="yokoDrop" tabindex="0"><div class="big">📑 大会要項<span class="opt">任意</span></div><div class="muted small">大会の日付・参加料を読み取ります</div><input type="file" id="yokoFile" accept="application/pdf,.pdf"><div class="status" id="yokoStatus"></div></div>
     <div class="drop" id="noteDrop" tabindex="0"><div class="big">📋 競技注意事項<span class="opt">任意</span></div><div class="muted small">招集時刻のルールを自動で読み取ります<br>（要項をここに入れてもOK）</div><input type="file" id="noteFile" accept="application/pdf,.pdf"><div class="status" id="noteStatus"></div></div>
   </div>
+  <p class="url-note">ⓘ 今はまだURLからの読み込みには対応していません。後日実装予定です。</p>
+  <div class="status" id="urlNoteMsg" aria-live="polite"></div>
   <div id="rulesBox" class="rules"></div>
   <h2 style="margin-top:16px"><span class="no">2</span>学校名を入れる</h2>
   <div class="row"><input type="text" id="school" placeholder="例：本郷" autocomplete="off"></div>
@@ -651,7 +681,7 @@ body.fb-open{overflow:hidden}
     <li>利用条件：<span class="draft">【案・作者確認中】校内での利用は自由。再配布・改変版の配布は作者に相談してください。</span></li>
     <li>「ナンバーカード」タブの「おすすめゼッケン布（Amazon）」：Amazonのアソシエイトとして、LANE NOTEは適格販売により収入を得ています。リンクは押したときだけ開き、広告用のスクリプトや画像は読み込みません。</li>
     <li>大会公式資料（スタートリスト・タイムテーブル・競技注意事項・要項）を優先してください。本ツールの表示と違うときは公式資料が正しいものとします。</li>
-    <li>使っている部品（外部CDNから読み込み。プログラム部品はハッシュで確認し、確認できないときは読み込まない。pdf.jsの文字対応表・標準フォントのデータは確認の対象外）：pdf.js 4.10.38（Apache-2.0, Mozilla）／ JSZip 3.10.1（MIT）／ SheetJS Community Edition 0.20.3（Apache-2.0）。同梱：QR Code Generator（Kazuhiko Arase, MIT。QRコードは株式会社デンソーウェーブの登録商標）</li>
+    <li>使っている部品（外部CDNから読み込み。プログラム部品はハッシュで確認し、確認できないときは読み込まない。pdf.jsの文字対応表・標準フォントのデータは確認の対象外）：pdf.js 4.10.38（Apache-2.0, Mozilla）／ JSZip 3.10.1（MIT）／ SheetJS Community Edition 0.20.3（Apache-2.0）。ハッシュ確認なし：Firebase JS SDK 10.14.1（Apache-2.0, Google・ログイン・短いリンク・不具合の送信）。同梱：QR Code Generator（Kazuhiko Arase, MIT。QRコードは株式会社デンソーウェーブの登録商標）</li>
     <li>Wordのナンバーカードは「HGP創英角ｺﾞｼｯｸUB」「ＭＳ ゴシック」を使います。フォントは同梱していません（各パソコンに入っているものを使います。無い場合は別のフォントで表示されます）。</li>
     <li>既知の制限：対応を確認した形式は北区型スタートリスト＋タイムテーブル／江東区型プログラムのみ。スキャン（画像）PDFは読めません。複数日の大会は対象日を選んで1日分ずつ出します（日付が書かれていない資料は日付を区別できません）。タイムテーブルの時刻は「組のまとまり」の開始時刻で、後ろの組は遅くなります。参加料は「1種目あたり」の単価だけ自動計算します。</li>
   </ul></details>
@@ -676,6 +706,9 @@ __ZEKKEN__
 __QRCODE__
 </script>
 <script src="firebase-config.js"></script>
+<script>
+__AUTHCOMMON__
+</script>
 <script>
 __FEEDBACK__
 </script>

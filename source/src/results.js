@@ -346,7 +346,8 @@ var ResultParser = (function () {
   }
   function dedupe(recs) {
     var seen = {}, out = [];
-    recs.forEach(function (r) { var k = [normEvent(r.event) + '#' + eventCat(r.event), r.round, r.heat, nameKey(r.name || r.kana), r.mark].join('|'); if (!seen[k]) { seen[k] = 1; out.push(r); } });
+    // v0.6（監査F06）：所属（完全な形）・中学/高校・ナンバーもキーに入れる（別の学校の同じ名前・同じ記録の選手を1人にまとめない）
+    recs.forEach(function (r) { var k = JSON.stringify([normSchool(r.team || ''), rawDivisionOf(r), normEvent(r.event) + '#' + eventCat(r.event), String(r.bib == null ? '' : r.bib), String(r.round == null ? '' : r.round), String(r.heat == null ? '' : r.heat), nameKey(r.name || r.kana), String(r.mark == null ? '' : r.mark)]); if (!seen[k]) { seen[k] = 1; out.push(r); } });
     return out;
   }
 
@@ -674,9 +675,66 @@ var ResultParser = (function () {
     }
     return { recs: recs, bad: bad };
   }
-  function recId(meetName, date, r) { return [nk(meetName).replace(/\s/g, ''), date, normEvent(r.event), r.round, r.heat, nameKey(r.name || r.kana), schoolBase(r.team), r.mark].join('|'); }
+  // v0.5 までのID（中学と高校がぶつかる）。保存済みの記録との重なりを調べるときだけ使う
+  function recIdLegacy(meetName, date, r) { return [nk(meetName).replace(/\s/g, ''), date, normEvent(r.event), r.round, r.heat, nameKey(r.name || r.kana), schoolBase(r.team), r.mark].join('|'); }
+  // v0.6（監査F06）：中学/高校の区分を足して、本郷中と本郷高の同じ名前・同じ記録を別のIDにする
+  function recId(meetName, date, r) { var d = rawDivisionOf(r); return recIdLegacy(meetName, date, r) + (d ? '|' + d : ''); }
+  /* ---------- v0.6（監査F09）：JSONの読み込みは、決まった項目・決まった型だけで作り直す（ほかの項目は持ち込まない） ---------- */
+  var REC_STR = ['id', 'name', 'kana', 'grade', 'team', 'event', 'round', 'mark', 'wind', 'comment', 'meet', 'date', 'src', 'savedAt', 'updatedAt', 'lane', 'bib', 'sex'];
+  var REC_NUM = ['heat', 'rank', 'overall', 'order'];
+  function sanitizeRecord(r) {
+    if (!r || typeof r !== 'object' || Array.isArray(r)) return null;
+    var o = {};
+    for (var i = 0; i < REC_STR.length; i++) {
+      var k = REC_STR[i], v = r[k];
+      if (v == null) continue;
+      if (typeof v === 'number' && isFinite(v) && k !== 'date' && k !== 'id') v = String(v);
+      if (typeof v !== 'string' || v.length > (k === 'id' ? 400 : k === 'comment' || k === 'src' ? 300 : 120)) return null;
+      o[k] = v;
+    }
+    for (var j = 0; j < REC_NUM.length; j++) {
+      var n = REC_NUM[j], x = r[n];
+      if (x == null || x === '') { if (x === '') o[n] = ''; continue; }
+      if (typeof x === 'number' && isFinite(x)) o[n] = x;
+      else if (typeof x === 'string' && x.length <= 20) o[n] = x;
+      else return null;
+    }
+    if (r.manual === true) o.manual = true;
+    if (!o.id || !o.meet || !validDate(o.date) || o.name == null || o.mark == null || !o.event) return null;
+    return o;
+  }
+  /* ---------- v0.6：1件ずつ入力（記録ページ）。入力を結果資料と同じ形にそろえ、まちがいを返す ---------- */
+  function validDate(s) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ''); if (!m) return false; var d = new Date(+m[1], m[2] - 1, +m[3]); return d.getFullYear() === +m[1] && d.getMonth() === m[2] - 1 && d.getDate() === +m[3]; }
+  function normManualWind(w) {
+    var t = nk(String(w == null ? '' : w)).replace(/[\s()（）]/g, '').replace(/^±/, '+').replace(/[mｍ]\/?s?$/i, '');
+    if (!t) return { v: '' };
+    if (/^0(\.0)?$/.test(t)) return { v: '+0.0' };
+    var m = /^([+-]?)(\d{1,2})(?:\.(\d))?$/.exec(t);
+    if (!m) return { v: t, err: '風は「+1.2」「-0.5」のように入れてください' };
+    return { v: (m[1] || '+') + (+m[2]) + '.' + (m[3] || '0') };
+  }
+  function manualRecord(f) {
+    f = f || {}; var errs = [], g = function (k) { return nk(String(f[k] == null ? '' : f[k])).replace(/\s+/g, ' ').trim(); };
+    var r = { name: g('name'), kana: g('kana'), grade: g('grade').replace(/年生?$/, ''), team: g('team'), event: g('event'), round: g('round'), heat: '', lane: '', bib: '', rank: '', comment: '', date: g('date'), meet: g('meet') };
+    if (!r.name) errs.push('氏名を入れてください');
+    if (!r.event) errs.push('種目を入れてください');
+    if (!validDate(r.date)) errs.push('日付を選んでください（必須）');
+    var rk = g('rank'); if (rk) { if (/^\d{1,3}$/.test(rk)) r.rank = +rk; else errs.push('順位は数字で入れてください'); }
+    var mk = g('mark'); if (/^[a-z]+$/i.test(mk)) mk = mk.toUpperCase(); mk = mk.replace(/^(\d+)"(\d{1,2})$/, '$1.$2');
+    r.mark = normImportMark(mk, r.event, mk);
+    if (!r.mark) errs.push('記録を入れてください');
+    else if (!markValue(r.mark) && !STATUS.test(r.mark)) errs.push('記録の形がわかりません（例：11.85、4:31.15、5m74、DNS）');
+    else if (markValue(r.mark) && isFieldEvent(r.event) !== !markValue(r.mark).lower) errs.push(isFieldEvent(r.event) ? 'この種目は距離（例：5m74）で入れてください' : 'この種目はタイム（例：11.85）で入れてください');
+    var w = normManualWind(f.wind);
+    if (w.err) errs.push(w.err);
+    r.wind = hasMark(r) && windApplies(r.event) ? w.v : '';
+    if (r.grade && !/^(小|中|高|大)?[1-6]$/.test(r.grade)) errs.push('学年は「2」「中2」「高1」のように入れてください');
+    if (r.name.length > 60 || r.kana.length > 60 || r.team.length > 60 || r.event.length > 60 || r.meet.length > 100 || r.round.length > 30) errs.push('長すぎる項目があります');
+    if (!r.meet && r.date) r.meet = '大会名なし（' + r.date + '）';
+    return { rec: r, errors: errs };
+  }
   return { parsePdf: parsePdf, parseCells: parseCells, parsePlain: parsePlain, textToStream: textToStream, normEvent: normEvent, markValue: markValue, windApplies: windApplies, windClass: windClass, windNum: windNum,
-    computeBests: computeBests, athleteKey: athleteKey, matchSchool: matchSchool, recId: recId, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
+    computeBests: computeBests, athleteKey: athleteKey, matchSchool: matchSchool, recId: recId, recIdLegacy: recIdLegacy, manualRecord: manualRecord, sanitizeRecord: sanitizeRecord, validDate: validDate, normManualWind: normManualWind, dedupe: dedupe, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
     guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText,
     eventCat: eventCat, divisionOf: divisionOf, divLabel: divLabel, eventKey: eventKey, eventKeyLabel: eventKeyLabel, shownWind: shownWind, hasMark: hasMark, sortAthletes: sortAthletes, kanaKey: kanaKey,
     setDivisionHints: setDivisionHints, rawDivisionOf: rawDivisionOf, genderOf: genderOf, divGroup: divGroup, disciplineOrder: disciplineOrder, groupEvents: groupEvents, gendersIn: gendersIn, GROUPS: GROUPS,

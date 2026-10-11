@@ -38,6 +38,18 @@ jobs:
       - name: Check committed files match the build
         run: python3 source/build.py --check .
 
+      # v0.14（監査F15）：架空データの回帰テスト（ネットワーク・本番の Firebase は使わない）。落ちたら公開しない
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Tests
+        working-directory: source/test
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm test
+
       - name: Assemble site
         run: cp .nojekyll _site/
 

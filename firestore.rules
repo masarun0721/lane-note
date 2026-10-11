@@ -1,43 +1,89 @@
 rules_version = '2';
-// LANE LOG：ログインした本人だけが自分の users/{uid} 以下を読み書きできる
-// LANE NOTE 記録 v0.5：大会ごとの天気 users/{uid}/meets/{大会}・中学/高校の選択 users/{uid}/settings/divOverrides も上の users ルールの中（本人だけ）
-// LANE NOTE 不具合・要望：feedback/{id} は誰でも1件作れる（ログイン不要・形と大きさを確認）。読む・直す・消すはアプリからは誰もできない（作成者は Firebase コンソールで見る）
-// LANE NOTE 短いリンク：shares/{id} は IDを知っていれば誰でも1件読める（一覧は不可）。作れるのはログインした本人のみ、変更不可、削除は作った本人だけ
+// LANE NOTE firestore.rules（v0.14／記録 v0.6.0 と同時に貼り替える版。2026-10-11）：Astra 監査版をベースに、リポジトリ d489257 の現行ルールと統合
+// ※アプリ v0.14 より前の版は、ログインなしの不具合送信がこのルールで断られる。v0.14 を公開してから（または同時に）Firebase コンソールに貼り替えること
+// ・users/{uid}/**（records・meets・settings/divOverrides・将来の shareIndex）：本人だけ読み書き（現行と同じ）
+// ・shares/{id}：IDを知っていれば期限内だけ読める（expiresAt と createdAt+120日の早い方）。作成はGoogleログイン本人・形式/サイズ/期限を検査。変更不可・一覧不可・削除は本人（期限後も可）
+// ・feedback/{id}：Googleログイン必須（匿名送信は停止）。読む・直す・消すはアプリから不可
+// ※回数制限ではない。App Check／受付サーバーは別途。
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+    function googleUser() {
+      return signedIn()
+        && request.auth.token.firebase.sign_in_provider == 'google.com';
+    }
+    function owner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+    function validShareId(id) {
+      return id.matches('^[A-Za-z0-9]{10}$');
+    }
+    function shareKeys(d) {
+      return d.keys().hasAll(['data', 'ownerUid', 'createdAt', 'expiresAt'])
+        && d.keys().hasOnly(['data', 'ownerUid', 'createdAt', 'expiresAt']);
+    }
+    function shareReadable(d) {
+      return d.createdAt is timestamp
+        && d.expiresAt is timestamp
+        && request.time < d.expiresAt
+        && request.time < d.createdAt + duration.value(120, 'd');
+    }
+    function validShare(d) {
+      return shareKeys(d)
+        && d.ownerUid is string
+        && d.ownerUid == request.auth.uid
+        && d.data is string
+        && d.data.size() >= 3
+        && d.data.size() <= 190000
+        && d.data.matches('^1[.][A-Za-z0-9_-]+$')
+        && d.createdAt == request.time
+        && d.expiresAt is timestamp
+        && d.expiresAt > request.time
+        // Existing clients calculate expiry with Date.now(). Permit up to 5 min
+        // positive clock skew, while shareReadable enforces the 120-day ceiling.
+        && d.expiresAt <= request.time + duration.value(120, 'd') + duration.value(5, 'm');
+    }
+    function optionalText(d, key, maxSize) {
+      return !(key in d) || (d[key] is string && d[key].size() <= maxSize);
+    }
+    function validFeedback(d) {
+      return d.keys().hasAll(['kind', 'body', 'createdAt', 'uid'])
+        && d.keys().hasOnly(['kind', 'body', 'contact', 'page', 'version', 'ua', 'screen', 'path', 'createdAt', 'uid'])
+        && d.kind in ['不具合', '要望', 'その他']
+        && d.body is string
+        && d.body.size() >= 1
+        && d.body.size() <= 5000
+        && optionalText(d, 'contact', 200)
+        && optionalText(d, 'page', 40)
+        && optionalText(d, 'version', 60)
+        && optionalText(d, 'ua', 500)
+        && optionalText(d, 'screen', 80)
+        && optionalText(d, 'path', 300)
+        && d.createdAt == request.time
+        && d.uid is string
+        && d.uid == request.auth.uid;
+    }
+
+    // Preserve the existing owner-only users subtree for compatibility with
+    // records, weather, division settings, and existing user-owned data.
+    // This rule does not validate record schemas or enforce storage quotas.
     match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if owner(userId);
     }
     match /shares/{shareId} {
-      allow get: if true;
+      allow get: if validShareId(shareId) && shareReadable(resource.data);
       allow list: if false;
-      allow create: if request.auth != null
-        && shareId.matches('^[A-Za-z0-9]{10}$')
-        && request.resource.data.keys().hasOnly(['data', 'ownerUid', 'createdAt', 'expiresAt'])
-        && request.resource.data.ownerUid == request.auth.uid
-        && request.resource.data.data is string
-        && request.resource.data.data.size() < 200000
-        && request.resource.data.createdAt == request.time
-        && request.resource.data.expiresAt is timestamp
-        && request.resource.data.expiresAt < request.time + duration.value(200, 'd');
+      allow create: if googleUser() && validShareId(shareId)
+        && validShare(request.resource.data);
       allow update: if false;
-      allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
+      // Owners can delete even after expiry. No client may change ownership.
+      allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
     }
     match /feedback/{id} {
-      allow create: if request.resource.data.keys().hasOnly(['kind', 'body', 'contact', 'page', 'version', 'ua', 'screen', 'path', 'createdAt', 'uid'])
-        && request.resource.data.keys().hasAll(['kind', 'body', 'createdAt', 'uid'])
-        && request.resource.data.kind in ['不具合', '要望', 'その他']
-        && request.resource.data.body is string
-        && request.resource.data.body.size() >= 1
-        && request.resource.data.body.size() <= 5000
-        && (!('contact' in request.resource.data) || (request.resource.data.contact is string && request.resource.data.contact.size() <= 200))
-        && (!('page' in request.resource.data) || (request.resource.data.page is string && request.resource.data.page.size() <= 40))
-        && (!('version' in request.resource.data) || (request.resource.data.version is string && request.resource.data.version.size() <= 60))
-        && (!('ua' in request.resource.data) || (request.resource.data.ua is string && request.resource.data.ua.size() <= 500))
-        && (!('screen' in request.resource.data) || (request.resource.data.screen is string && request.resource.data.screen.size() <= 80))
-        && (!('path' in request.resource.data) || (request.resource.data.path is string && request.resource.data.path.size() <= 300))
-        && request.resource.data.createdAt == request.time
-        && (request.resource.data.uid == null || (request.auth != null && request.resource.data.uid == request.auth.uid));
+      // Behaviour change: signed-out and Firebase-anonymous users cannot submit.
+      allow create: if googleUser() && validFeedback(request.resource.data);
       allow read, update, delete: if false;
     }
     match /{document=**} {

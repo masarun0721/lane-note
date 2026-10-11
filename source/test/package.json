@@ -1,0 +1,16 @@
+{
+  "name": "lane-note-tests",
+  "private": true,
+  "description": "LANE NOTE のテスト（架空データのみ・本番の Firebase には接続しない）",
+  "type": "module",
+  "devDependencies": {
+    "fake-indexeddb": "6.2.4",
+    "jsdom": "26.1.0",
+    "jszip": "3.10.1",
+    "pdfjs-dist": "4.10.38",
+    "puppeteer-core": "23.11.1"
+  },
+  "scripts": {
+    "test": "node records_check.mjs && node player_check.mjs && node tt_callcols_check.mjs && node quality_check.mjs && node rules_static_check.mjs && node app_check.mjs"
+  }
+}

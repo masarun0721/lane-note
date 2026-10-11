@@ -8,15 +8,15 @@
 パスはこのファイルの場所からの相対で決める（どこに置いても・どこから実行しても同じ結果）。
 外部ライブラリは使わない（Python 3 の標準ライブラリだけ）。
 """
-import base64, pathlib, re, sys
+import base64, hashlib, html as htmlmod, json, pathlib, re, sys
 
 ROOT = pathlib.Path(__file__).resolve().parent
 S = ROOT / 'src'
 SHARE_BASE = 'https://masarun0721.github.io/lane-note/'   # 共有リンク・QRの公開アドレス（file:// で開いたとき用）
-VERSION = 'v0.13'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
+VERSION = 'v0.14'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
 # 作成日は版番号から取れないので固定（ビルドした日で変わると、公開時の一致検査ができないため）
 BUILD_DATE = '2026年10月11日'
-REC_VERSION = 'v0.5.0'   # LANE LOG（records.html）だけの版
+REC_VERSION = 'v0.6.0'   # LANE LOG（records.html）だけの版
 REC_BUILD_DATE = '2026年10月11日'
 
 
@@ -36,11 +36,22 @@ def logo_inline(p):
     return s.strip()
 
 
+def changelog_html():
+    """更新情報（src/changelog.json に古い順で1件ずつ足していく）→ 大会準備のページの上に、新しい順で出す"""
+    items = json.loads(text('src/changelog.json'))
+    e = htmlmod.escape
+    lis = ''.join('<li><div class="cl-h"><b>%s</b>%s</div><div class="cl-b">%s</div></li>' % (e(x['ver']), e(x['date'].replace('-', '/')), e(x['text'])) for x in reversed(items))
+    new = items[-1]
+    return ('<section class="box changelog" id="changelog"><details><summary><b>📰 更新情報</b>　<span class="small muted">最新：%s（%s）</span><span class="cl-new">NEW</span></summary><ol>%s</ol></details></section>'
+            % (e(new['ver']), e(new['date'].replace('-', '/')), lis))
+
+
 def build():
     html = text('src/template.html')
     rep = {
         '__PARSER__': text('src/parser.js'), '__LOGIC__': text('src/logic.js'), '__PLAYER__': text('src/player.js'),
         '__ZEKKEN__': text('src/zekken.js'), '__APP__': text('src/app.js'), '__FEEDBACK__': text('src/feedback.js'),
+        '__AUTHCOMMON__': text('src/auth_common.js'), '__CHANGELOG__': changelog_html(),
         '__KOSHI_B64__': b64('templates/koshi_template.docx'), '__MUNE_B64__': b64('templates/mune_template.docx'),
         '__LOGO_DARK__': logo_inline('logo/option_A_dark.svg'),
         '__FAVICON__': 'data:image/svg+xml;base64,' + b64('logo/option_A_icon.svg'),
@@ -52,7 +63,13 @@ def build():
     for k, v in rep.items():
         assert k in html, k
         html = html.replace(k, v)
-    return html, text('src/sw.js'), build_records(html), text('src/firebase-config.js')
+    rec = build_records(html)
+    # v0.14（監査F13）：Service Worker のキャッシュ名に版とページの中身のハッシュを入れる（公開のたびに古いページが入れ替わる）
+    h = hashlib.sha256((html + rec).encode('utf-8')).hexdigest()[:10]
+    sw = text('src/sw.js')
+    assert '__CACHE__' in sw
+    sw = sw.replace('__CACHE__', 'lanenote-page-%s-r%s-%s' % (VERSION, REC_VERSION, h))
+    return html, sw, rec, text('src/firebase-config.js')
 
 
 def build_records(index_html):
@@ -61,7 +78,7 @@ def build_records(index_html):
     css = base[base.index('<style>') + 7:base.index('</style>')]
     rec = text('src/records_template.html')
     rep = {
-        '__BASE_CSS__': css, '__RESULTS__': text('src/results.js'), '__RECAPP__': text('src/records_app.js'), '__FEEDBACK__': text('src/feedback.js'),
+        '__BASE_CSS__': css, '__RESULTS__': text('src/results.js'), '__RECAPP__': text('src/records_app.js'), '__FEEDBACK__': text('src/feedback.js'), '__AUTHCOMMON__': text('src/auth_common.js'),
         '__LOGO_DARK__': logo_inline('logo/option_A_dark.svg'),
         '__FAVICON__': 'data:image/svg+xml;base64,' + b64('logo/option_A_icon.svg'),
         '__APPLE_ICON__': 'data:image/png;base64,' + b64('logo/png/option_A_icon_180.png'),

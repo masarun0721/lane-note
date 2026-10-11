@@ -77,19 +77,31 @@
   /* ---------- 保存先：IndexedDB（未ログイン時の保存先・ログイン時はオフライン用の控え） ---------- */
   var dbps = {};
   function db(name) {
-    name = name || curDbName();
-    if (!dbps[name]) dbps[name] = new Promise(function (ok, ng) {
-      if (!window.indexedDB) { ng(new Error('このブラウザでは保存（IndexedDB）が使えません')); return; }
-      var q = indexedDB.open(name, 1);
-      q.onupgradeneeded = function () { var d = q.result; if (!d.objectStoreNames.contains('records')) d.createObjectStore('records', { keyPath: 'id' }); };
-      q.onsuccess = function () { ok(q.result); }; q.onerror = function () { ng(q.error); };
-    });
+    if (!name) return Promise.reject(new Error('保存先が決まっていません'));
+    if (!dbps[name]) {
+      var p = new Promise(function (ok, ng) {
+        if (!window.indexedDB) { ng(new Error('このブラウザでは保存（IndexedDB）が使えません')); return; }
+        var q = indexedDB.open(name, 1);
+        q.onupgradeneeded = function () { var d = q.result; if (!d.objectStoreNames.contains('records')) d.createObjectStore('records', { keyPath: 'id' }); };
+        // v0.14（監査F04）：ほかのタブ・ログアウトが消そうとしたら、すぐ接続を閉じる（消去が止まらないように）
+        q.onsuccess = function () { var d = q.result; d.onversionchange = function () { d.close(); if (dbps[name] === p) delete dbps[name]; }; ok(d); };
+        q.onerror = function () { if (dbps[name] === p) delete dbps[name]; ng(q.error); };
+      });
+      dbps[name] = p;
+    }
     return dbps[name];
   }
-  var LOCAL_DB = 'lanenote-records';            // v0.1 からの「この端末だけ」の保存先
-  function curDbName() { return USER ? 'lanenote-cache-' + USER.uid : LOCAL_DB; }   // ログイン中は人ごとの控え
-  function ltx(mode, fn, name) { return db(name).then(function (d) { return new Promise(function (ok, ng) { var t = d.transaction('records', mode), s = t.objectStore('records'), r = fn(s); t.oncomplete = function () { ok(r && r.result !== undefined ? r.result : r); }; t.onerror = function () { ng(t.error); }; }); }); }
-  function lgetAll(name) { return db(name).then(function (d) { return new Promise(function (ok, ng) { var q = d.transaction('records').objectStore('records').getAll(); q.onsuccess = function () { ok(q.result || []); }; q.onerror = function () { ng(q.error); }; }); }); }
+  function closeDb(name) { var p = dbps[name]; delete dbps[name]; return p ? p.then(function (d) { d.close(); }, function () { }) : Promise.resolve(); }
+  var LOCAL_DB = 'lanenote-records';            // v0.1 からの「この端末だけ」の保存先（ログインしていないとき）
+  // sc を渡すと、DBを開く直前にアカウントが変わっていないか確かめる（変わっていたら開かない）
+  function ltx(mode, fn, name, sc) {
+    if (sc) check(sc);
+    return db(name).then(function (d) { if (sc) check(sc); return new Promise(function (ok, ng) { var t = d.transaction('records', mode), s = t.objectStore('records'), r = fn(s); t.oncomplete = function () { ok(r && r.result !== undefined ? r.result : r); }; t.onerror = function () { ng(t.error); }; t.onabort = function () { ng(t.error || new Error('保存を中止しました')); }; }); });
+  }
+  function lgetAll(name, sc) {
+    if (sc) check(sc);
+    return db(name).then(function (d) { if (sc) check(sc); return new Promise(function (ok, ng) { var q = d.transaction('records').objectStore('records').getAll(); q.onsuccess = function () { ok(q.result || []); }; q.onerror = function () { ng(q.error); }; }); });
+  }
 
   /* ---------- 保存先：Firebase（ログインすると users/{uid}/records に保存し、どの端末からでも同じ記録が見える） ---------- */
   var FB_VER = '10.14.1', FB = null, USER = null, OFFLINE = false;
@@ -101,23 +113,36 @@
     if (FB) return FB;
     var base = 'https://www.gstatic.com/firebasejs/' + FB_VER + '/';
     var m = await Promise.all([import(base + 'firebase-app.js'), import(base + 'firebase-auth.js'), import(base + 'firebase-firestore.js')]);
-    var app = m[0].initializeApp(CFG);
+    var app = m[0].getApps().length ? m[0].getApp() : m[0].initializeApp(CFG);   // 不具合・要望フォームが先に初期化していても大丈夫なように
     FB = { A: m[1], F: m[2], auth: m[1].getAuth(app), fs: m[2].getFirestore(app) };
     return FB;
   }
-  function col() { return FB.F.collection(FB.fs, 'users', USER.uid, 'records'); }
-  async function cloudPut(list) {
+  /* v0.14（監査F03）：読み書きは「始めたときのアカウント（uid）と認証の世代」に固定する。途中でログアウト・切り替えがあったら、続きをやめる */
+  var authEpoch = 0;
+  function scope() { var uid = USER ? USER.uid : null; return { uid: uid, epoch: authEpoch, dbName: uid ? 'lanenote-cache-' + uid : LOCAL_DB }; }
+  function check(sc) {
+    if (sc.epoch !== authEpoch || sc.uid !== (USER ? USER.uid : null)) { var e = new Error('ログインしているアカウントが変わったため、処理を中止しました'); e.code = 'auth-context-changed'; throw e; }
+  }
+  function isAbort(e) { return e && e.code === 'auth-context-changed'; }
+  function colFor(uid, name) { if (!uid) throw new Error('ログインが必要です'); return FB.F.collection(FB.fs, 'users', uid, name || 'records'); }
+  async function cloudPut(list, sc) {
+    sc = sc || scope(); var c = colFor(sc.uid);
     for (var i = 0; i < list.length; i += 400) {             // 1回のまとめ書きは500件まで
+      check(sc);
       var b = FB.F.writeBatch(FB.fs);
-      list.slice(i, i + 400).forEach(function (r) { b.set(FB.F.doc(col(), docId(r.id)), clean(r)); });
+      list.slice(i, i + 400).forEach(function (r) { b.set(FB.F.doc(c, docId(r.id)), clean(r)); });
       await b.commit();
+      check(sc);
     }
   }
-  async function cloudDel(ids) {
+  async function cloudDel(ids, sc) {
+    sc = sc || scope(); var c = colFor(sc.uid);
     for (var i = 0; i < ids.length; i += 400) {
+      check(sc);
       var b = FB.F.writeBatch(FB.fs);
-      ids.slice(i, i + 400).forEach(function (id) { b.delete(FB.F.doc(col(), docId(id))); });
+      ids.slice(i, i + 400).forEach(function (id) { b.delete(FB.F.doc(c, docId(id))); });
       await b.commit();
+      check(sc);
     }
   }
 
@@ -125,25 +150,32 @@
   var METS = {}, DIV_OV = {}, REVIEW = [];
   function lsGet(k, d) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
   function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } }
-  function metsKey() { return USER ? 'lanenote-rec-meets-' + USER.uid : 'lanenote-rec-meets'; }
-  function ovKey() { return USER ? 'lanenote-rec-divov-' + USER.uid : 'lanenote-rec-divov'; }
-  async function loadSide() {
-    METS = lsGet(metsKey(), {}); DIV_OV = lsGet(ovKey(), {});
-    if (!USER || OFFLINE) return;
+  function metsKey(uid) { return uid ? 'lanenote-rec-meets-' + uid : 'lanenote-rec-meets'; }
+  function ovKey(uid) { return uid ? 'lanenote-rec-divov-' + uid : 'lanenote-rec-divov'; }
+  async function loadSide(sc) {
+    check(sc);
+    var m0 = lsGet(metsKey(sc.uid), {}), o0 = lsGet(ovKey(sc.uid), {});
+    if (!sc.uid || OFFLINE) return { mets: m0, ov: o0 };
     try {
-      var snap = await FB.F.getDocs(FB.F.collection(FB.fs, 'users', USER.uid, 'meets')), m = {};
+      var snap = await FB.F.getDocs(colFor(sc.uid, 'meets')), m = {}; check(sc);
       snap.forEach(function (d) { var x = d.data(); if (x && x.key) m[x.key] = x; });
-      METS = m; lsSet(metsKey(), m);
-      var ov = await FB.F.getDoc(FB.F.doc(FB.fs, 'users', USER.uid, 'settings', 'divOverrides'));
-      DIV_OV = ov.exists() && ov.data().map || {}; lsSet(ovKey(), DIV_OV);
-    } catch (e) { }
+      var ov = await FB.F.getDoc(FB.F.doc(FB.fs, 'users', sc.uid, 'settings', 'divOverrides')); check(sc);
+      var o = ov.exists() && ov.data().map || {};
+      lsSet(metsKey(sc.uid), m); lsSet(ovKey(sc.uid), o);
+      return { mets: m, ov: o };
+    } catch (e) { if (isAbort(e)) throw e; return { mets: m0, ov: o0 }; }
   }
-  async function saveMeet(key, w) {
+  async function saveMeet(key, w, sc) {
+    sc = sc || scope(); check(sc);
     var p = key.split('|'), o = { key: key, date: p[0], meet: p.slice(1).join('|'), weather: w.weather || '', temp: w.temp === '' || w.temp == null || isNaN(+w.temp) ? null : +w.temp, humidity: w.humidity === '' || w.humidity == null || isNaN(+w.humidity) ? null : +w.humidity, updatedAt: new Date().toISOString() };
-    METS[key] = o; lsSet(metsKey(), METS);
-    if (USER) await FB.F.setDoc(FB.F.doc(FB.fs, 'users', USER.uid, 'meets', docId(key)), o);
+    METS[key] = o; lsSet(metsKey(sc.uid), METS);
+    if (sc.uid) { await FB.F.setDoc(FB.F.doc(FB.fs, 'users', sc.uid, 'meets', docId(key)), o); check(sc); }
   }
-  async function saveOverrides() { lsSet(ovKey(), DIV_OV); if (USER) await FB.F.setDoc(FB.F.doc(FB.fs, 'users', USER.uid, 'settings', 'divOverrides'), { map: DIV_OV, updatedAt: new Date().toISOString() }); }
+  async function saveOverrides(sc) {
+    sc = sc || scope(); check(sc);
+    lsSet(ovKey(sc.uid), DIV_OV);
+    if (sc.uid) { await FB.F.setDoc(FB.F.doc(FB.fs, 'users', sc.uid, 'settings', 'divOverrides'), { map: DIV_OV, updatedAt: new Date().toISOString() }); check(sc); }
+  }
   function applyInference() { var inf = R.inferDivisions(ALL, DIV_OV); R.setDivisionHints(inf.hints); REVIEW = inf.review; }
   var WEATHERS = [['晴', '☀️'], ['晴時々曇', '🌤'], ['曇', '⛅'], ['小雨', '🌦'], ['雨', '🌧'], ['雪', '❄'], ['強風', '🌬']];
   function wIcon(w) { for (var i = 0; i < WEATHERS.length; i++) if (WEATHERS[i][0] === w) return WEATHERS[i][1]; return ''; }
@@ -156,84 +188,187 @@
       '<label>湿度 <input type="number" step="1" min="0" max="100" inputmode="numeric" ' + attr + '="humidity" value="' + esc(w.humidity == null ? '' : w.humidity) + '" style="width:4.5em">%</label>';
   }
 
-  // 一覧を読む：ログイン中はクラウドから読み、控え（IndexedDB）を入れ替える。つながらないときは控えを出す
-  async function getAll() {
-    if (!USER) return lgetAll();
-    try {
-      var snap = await FB.F.getDocs(col()), list = [];
-      snap.forEach(function (d) { list.push(d.data()); });
-      OFFLINE = false;
-      try { await ltx('readwrite', function (s) { s.clear(); list.forEach(function (r) { s.put(r); }); }); } catch (e) { }
-      return list;
-    } catch (e) {
+  // 一覧を読む：ログイン中はクラウドから読み、控え（IndexedDB）を入れ替える。通信できないときだけ控えを出す（権限エラーは控えで隠さない）
+  async function getAll(sc) {
+    sc = sc || scope(); check(sc);
+    if (!sc.uid) return lgetAll(sc.dbName, sc);
+    var snap;
+    try { snap = await FB.F.getDocs(colFor(sc.uid)); }
+    catch (e) {
+      check(sc);
+      if (e && /permission-denied|unauthenticated/.test(e.code || '')) throw new Error('クラウドの記録を読む権限がありません。ログインし直してください');
       OFFLINE = true;
-      return lgetAll();
+      return lgetAll(sc.dbName, sc);
     }
+    check(sc);
+    var list = []; snap.forEach(function (d) { list.push(d.data()); });
+    OFFLINE = false;
+    try { await ltx('readwrite', function (s) { s.clear(); list.forEach(function (r) { s.put(r); }); }, sc.dbName, sc); } catch (e) { if (isAbort(e)) throw e; }
+    check(sc);
+    return list;
   }
-  async function putMany(list) {
-    var have = {}; ALL.forEach(function (r) { have[r.id] = 1; });
-    if (!USER) (await lgetAll()).forEach(function (r) { have[r.id] = 1; });
-    var add = list.filter(function (r) { return !have[r.id]; });
+  // 保存済みと重なる記録は入れない（v0.5 までのIDで保存した記録とも、区分が同じなら重ねない）
+  async function putMany(list, sc) {
+    sc = sc || scope(); check(sc);
+    var existing = ALL.slice();
+    if (!sc.uid) existing = existing.concat(await lgetAll(sc.dbName, sc));
+    var have = {}, legacy = {};
+    existing.forEach(function (r) { have[r.id] = 1; legacy[r.id] = R.rawDivisionOf(r) || ''; });
+    var add = list.filter(function (r) {
+      if (have[r.id]) return false;
+      var old = R.recIdLegacy(r.meet, r.date, r);
+      if (Object.prototype.hasOwnProperty.call(legacy, old) && legacy[old] === (R.rawDivisionOf(r) || '')) return false;
+      have[r.id] = 1; return true;
+    });
     if (add.length) {
-      if (USER) await cloudPut(add);
-      await ltx('readwrite', function (s) { add.forEach(function (r) { s.put(r); }); });
+      if (sc.uid) await cloudPut(add, sc);
+      await ltx('readwrite', function (s) { add.forEach(function (r) { s.put(r); }); }, sc.dbName, sc);
     }
     return { added: add.length, dup: list.length - add.length, ids: add.map(function (r) { return r.id; }) };
   }
-  async function delIds(ids) {
-    if (USER) await cloudDel(ids);
-    await ltx('readwrite', function (s) { ids.forEach(function (id) { s.delete(id); }); });
+  async function delIds(ids, sc) {
+    sc = sc || scope(); check(sc);
+    if (sc.uid) await cloudDel(ids, sc);
+    await ltx('readwrite', function (s) { ids.forEach(function (id) { s.delete(id); }); }, sc.dbName, sc);
   }
-  async function clearAll() {
-    if (USER) await cloudDel(ALL.map(function (r) { return r.id; }));
-    await ltx('readwrite', function (s) { s.clear(); });
+  // v0.6：1件を直す（IDが変わるときは、古いほうを消して新しいほうを入れる）
+  async function replaceRecord(oldId, rec, sc) {
+    sc = sc || scope(); check(sc);
+    if (sc.uid) {
+      var b = FB.F.writeBatch(FB.fs), c = colFor(sc.uid);
+      if (oldId !== rec.id) b.delete(FB.F.doc(c, docId(oldId)));
+      b.set(FB.F.doc(c, docId(rec.id)), clean(rec));
+      await b.commit(); check(sc);
+    }
+    await ltx('readwrite', function (s) { if (oldId !== rec.id) s.delete(oldId); s.put(rec); }, sc.dbName, sc);
+  }
+  async function clearAll(sc) {
+    sc = sc || scope(); check(sc);
+    if (sc.uid) {
+      var ids = []; (await FB.F.getDocs(colFor(sc.uid))).forEach(function (d) { var x = d.data(); ids.push(x && x.id != null ? String(x.id) : d.id); }); check(sc);
+      await cloudDel(ids, sc);
+    }
+    await ltx('readwrite', function (s) { s.clear(); }, sc.dbName, sc);
+  }
+  // v0.14（監査F07）：クラウドに置いたものを全部消す（記録・天気・中学/高校の選択）
+  async function clearCloudSide(sc) {
+    check(sc); if (!sc.uid) return;
+    var keys = []; (await FB.F.getDocs(colFor(sc.uid, 'meets'))).forEach(function (d) { keys.push(d.id); }); check(sc);
+    var b = FB.F.writeBatch(FB.fs);
+    keys.forEach(function (k) { b.delete(FB.F.doc(FB.fs, 'users', sc.uid, 'meets', k)); });
+    b.delete(FB.F.doc(FB.fs, 'users', sc.uid, 'settings', 'divOverrides'));
+    await b.commit(); check(sc);
+    METS = {}; DIV_OV = {}; lsSet(metsKey(sc.uid), {}); lsSet(ovKey(sc.uid), {});
   }
 
-  // 初めてログインしたとき、この端末に v0.1 でためた記録をクラウドへ1回だけ上げる（端末の記録は消さない）
-  async function migrateLocal() {
-    var key = 'lanenote-migrated-' + USER.uid;
-    try { if (localStorage.getItem(key)) return; } catch (e) { }
-    var local = []; try { local = await lgetAll(LOCAL_DB); } catch (e) { }
-    if (local.length) {
-      status('rbAuthStatus', 'この端末の記録 ' + local.length + '件をクラウドへ移しています…', 'busy');
-      var have = {}; (await getAll()).forEach(function (r) { have[r.id] = 1; });
-      var add = local.filter(function (r) { return !have[r.id]; });
-      await cloudPut(add);
-      status('rbAuthStatus', '✔ この端末にあった記録 ' + add.length + '件をクラウドへ移しました' + (local.length - add.length ? '（' + (local.length - add.length) + '件はすでにあったので重ねませんでした）' : '') + '。', 'ok');
-    }
-    try { localStorage.setItem(key, new Date().toISOString()); } catch (e) { }
+  /* ---------- v0.14（監査F02）：ログインしていないときにこの端末へ保存した記録は、ログインしても自動では移さない。
+     件数と移し先を見せて、「移す（端末からは消す）」「移さずに端末に残す」「端末から消す」を選んでもらう ---------- */
+  var GUEST_N = 0, GUEST_SKIP = {};
+  async function checkGuest(sc) {
+    check(sc); GUEST_N = 0;
+    if (sc.uid && !GUEST_SKIP[sc.uid]) { var l = []; try { l = await lgetAll(LOCAL_DB, sc); } catch (e) { if (isAbort(e)) throw e; } check(sc); GUEST_N = l.length; }
+    renderGuest();
   }
+  function renderGuest() {
+    var box = $('rbGuest'); if (!box) return;
+    if (!USER || !GUEST_N) { box.hidden = true; box.innerHTML = ''; return; }
+    box.hidden = false;
+    box.innerHTML = '<b>📦 この端末に、ログインしていないときに保存した記録が ' + GUEST_N + '件あります。</b>' +
+      '<p class="small">いまログインしている <b>' + esc(USER.email || USER.displayName || 'このアカウント') + '</b> へ移しますか？<br>共用のパソコンでは、ほかの先生がログインせずに入れた記録かもしれません。<b>自分の記録のときだけ</b>移してください（自動では移しません）。</p>' +
+      '<div class="rb-row"><button class="btn" type="button" data-guest="move">このアカウントへ移す（' + GUEST_N + '件・端末からは消す）</button><button class="btn sub" type="button" data-guest="keep">移さない（端末に残す）</button><button class="btn sub danger-t" type="button" data-guest="discard">移さずに端末から消す</button></div>';
+  }
+  async function migrateGuest(mode, sc) {
+    sc = sc || scope(); check(sc);
+    if (!sc.uid) throw new Error('ログインが必要です');
+    var local = await lgetAll(LOCAL_DB, sc);
+    if (mode === 'discard') {
+      await ltx('readwrite', function (s) { s.clear(); }, LOCAL_DB, sc);
+      try { localStorage.removeItem(metsKey(null)); localStorage.removeItem(ovKey(null)); } catch (e) { }
+      return { discarded: local.length };
+    }
+    var have = {}; (await getAll(sc)).forEach(function (r) { have[r.id] = 1; });
+    var add = local.filter(function (r) { return r && r.id && !have[r.id]; });
+    if (add.length) { await cloudPut(add, sc); await ltx('readwrite', function (s) { add.forEach(function (r) { s.put(r); }); }, sc.dbName, sc); }
+    // 天気・中学/高校の選択も、このアカウントに無いものだけ移す
+    var gm = lsGet(metsKey(null), {}), go = lsGet(ovKey(null), {}), side = await loadSide(sc);
+    METS = side.mets; DIV_OV = side.ov;
+    var mk = Object.keys(gm).filter(function (k) { return !METS[k]; });
+    for (var i = 0; i < mk.length; i++) await saveMeet(mk[i], gm[mk[i]], sc);
+    var ok = Object.keys(go).filter(function (k) { return !(k in DIV_OV); });
+    if (ok.length) { ok.forEach(function (k) { DIV_OV[k] = go[k]; }); await saveOverrides(sc); }
+    check(sc);
+    await ltx('readwrite', function (s) { s.clear(); }, LOCAL_DB, sc);   // 移し終えたら、端末の「ログインしていないとき」の分は消す（次の人に移らないように）
+    try { localStorage.removeItem(metsKey(null)); localStorage.removeItem(ovKey(null)); } catch (e) { }
+    return { moved: add.length, dup: local.length - add.length };
+  }
+  $('rbGuest').addEventListener('click', async function (e) {
+    var b = e.target.closest('[data-guest]'); if (!b || !USER) return;
+    var mode = b.getAttribute('data-guest'), sc = scope(), n = GUEST_N;
+    if (mode === 'keep') { GUEST_SKIP[sc.uid] = 1; GUEST_N = 0; renderGuest(); status('rbAuthStatus', 'この端末の記録（' + n + '件）は移さずに残しました。ログアウトすると、また「この端末だけ」の記録として見られます。', ''); return; }
+    if (mode === 'discard' && !confirm('この端末に保存されている（ログインしていないときの）記録 ' + n + '件を消します。元に戻せません。よろしいですか？')) return;
+    if (mode === 'move' && !confirm(n + '件を ' + (USER.email || 'このアカウント') + ' のクラウドへ移し、この端末からは消します。よろしいですか？')) return;
+    b.disabled = true;
+    try {
+      var r = await migrateGuest(mode, sc); GUEST_N = 0; renderGuest();
+      status('rbAuthStatus', mode === 'discard' ? '✔ この端末の記録 ' + r.discarded + '件を消しました。' : '✔ ' + r.moved + '件をこのアカウントへ移し、この端末からは消しました' + (r.dup ? '（' + r.dup + '件はすでにあったので重ねませんでした）' : '') + '。', 'ok');
+      await reload(sc);
+    } catch (x) { if (isAbort(x)) return; b.disabled = false; status('rbAuthStatus', '✖ できませんでした：' + esc(x.message), 'ng'); }
+  });
 
   function renderAuth() {
     var info = $('rbAuthInfo'), inB = $('rbSignIn'), outB = $('rbSignOut');
     if (!CLOUD_READY) { info.innerHTML = '💻 <b>この端末だけに保存中</b>（クラウド保存はまだ準備中です）'; inB.hidden = true; outB.hidden = true; return; }
+    $('rbClearCloud').hidden = !USER;
     if (USER) { info.innerHTML = '☁ <b>' + esc(USER.email || USER.displayName || 'ログイン中') + '</b> でログイン中：記録はクラウドに保存し、どの端末からでも見られます' + (OFFLINE ? '<br><span class="ng">⚠ いまクラウドにつながらないので、この端末の控えを表示しています</span>' : ''); inB.hidden = true; outB.hidden = false; }
     else { info.innerHTML = '💻 <b>ログインしていません</b>：記録はこの端末だけに保存されます。Googleでログインすると、どの端末からでも同じ記録が見られます。'; inB.hidden = false; outB.hidden = true; }
+  }
+  // アカウントが変わったら、前の人の画面の中身（記録・読み込み途中の資料・入力欄）をすべて消す
+  function resetView() {
+    ALL = []; batches = []; DONE = []; METS = {}; DIV_OV = {}; REVIEW = []; OFFLINE = false;
+    try { $('rbPaste').value = ''; $('rbFile').value = ''; status('rbStatus', '', ''); var d = $('rbDone'); d.innerHTML = ''; d.className = 'status'; status('rbDataStatus', '', ''); } catch (e) { }
+    if (typeof manualReset === 'function') manualReset();
+    renderBatches(); applyInference(); render();
+  }
+  async function onAuth(u) {
+    var prev = USER ? USER.uid : null;
+    authEpoch++; USER = u || null;
+    if (prev !== (USER ? USER.uid : null)) resetView();
+    GUEST_N = 0; renderAuth(); renderGuest();
+    var sc = scope();
+    try { if (sc.uid) await checkGuest(sc); await reload(sc); }
+    catch (e) { if (!isAbort(e)) status('rbAuthStatus', '✖ ' + esc(e.message), 'ng'); }
+    if (sc.epoch === authEpoch) renderAuth();
   }
   async function initCloud() {
     renderAuth();
     if (!CLOUD_READY) return;
-    try { await loadFirebase(); } catch (e) { status('rbAuthStatus', '✖ ログインの部品を読み込めませんでした（' + esc(e.message) + '）。この端末だけに保存します。', 'ng'); return; }
-    FB.A.onAuthStateChanged(FB.auth, async function (u) {
-      USER = u || null; renderAuth();
-      if (USER) { try { await migrateLocal(); } catch (e) { status('rbAuthStatus', '✖ この端末の記録をクラウドへ移せませんでした：' + esc(e.message) + '（次にページを開いたときにもう一度試します）', 'ng'); } }
-      await reload(); renderAuth();
-    });
+    try { await loadFirebase(); } catch (e) { status('rbAuthStatus', '✖ ログインの部品を読み込めませんでした（' + esc(e.message) + '）。この端末だけに保存します。', 'ng'); reload(); return; }
+    LaneAuth.redirectResult(FB).then(function (e) { if (e) status('rbAuthStatus', '✖ ログインできませんでした：' + esc(LaneAuth.errorText(e)), 'ng'); });   // 監査F10
+    FB.A.onAuthStateChanged(FB.auth, onAuth);
   }
   $('rbSignIn').addEventListener('click', async function () {
-    try { await loadFirebase(); await FB.A.signInWithPopup(FB.auth, new FB.A.GoogleAuthProvider()); }
-    catch (e) {
-      if (e && /popup-blocked|operation-not-supported/.test(e.code || '')) { try { await FB.A.signInWithRedirect(FB.auth, new FB.A.GoogleAuthProvider()); return; } catch (e2) { e = e2; } }
-      if (e && /popup-closed|cancelled-popup/.test(e.code || '')) return;
-      status('rbAuthStatus', '✖ ログインできませんでした：' + esc(e.message), 'ng');
-    }
+    try { await loadFirebase(); await LaneAuth.signIn(FB); }
+    catch (e) { status('rbAuthStatus', '✖ ログインできませんでした：' + esc(LaneAuth.errorText(e)), 'ng'); }
   });
-  $('rbSignOut').addEventListener('click', async function () {
-    if (!confirm('ログアウトします。クラウドの記録は消えません（もう一度ログインすれば見られます）。')) return;
+  var WIPE_UID = null;
+  async function doSignOut() {
     var uid = USER && USER.uid;
-    await FB.A.signOut(FB.auth);
-    if (uid) try { indexedDB.deleteDatabase('lanenote-cache-' + uid); delete dbps['lanenote-cache-' + uid]; } catch (e) { }   // 共用の端末に控えを残さない
-    status('rbAuthStatus', '✔ ログアウトしました。', 'ok');
+    authEpoch++;   // 進行中の読み書きを止める（このあと前の人のDB・クラウドには書かない）
+    var r = await LaneAuth.signOutAndWipe(FB, uid, closeDb);
+    if (!r.signedOut) { status('rbAuthStatus', '✖ ログアウトできませんでした：' + esc(LaneAuth.errorText(r.error)) + '（もう一度押してください）', 'ng'); return r; }
+    resetView();
+    if (r.wiped) { WIPE_UID = null; status('rbAuthStatus', '✔ ログアウトし、この端末に残っていた控え（記録・天気・中学/高校の選択）も消しました。', 'ok'); }
+    else { WIPE_UID = uid; status('rbAuthStatus', '⚠ ログアウトはしましたが、<b>この端末の控えはまだ消えていません</b>：' + esc(r.error && r.error.message) + ' <button class="btn sub" type="button" id="rbWipeRetry">端末の控えを消す</button>', 'ng'); }
+    return r;
+  }
+  $('rbSignOut').addEventListener('click', async function () {
+    if (!confirm('ログアウトして、この端末に残っているあなたの記録の控えを消します。クラウドの記録は消えません（もう一度ログインすれば見られます）。')) return;
+    await doSignOut();
+  });
+  $('rbAuthStatus').addEventListener('click', async function (e) {
+    if (!e.target.closest('#rbWipeRetry') || !WIPE_UID) return;
+    try { await LaneAuth.wipeUser(WIPE_UID, closeDb); WIPE_UID = null; status('rbAuthStatus', '✔ この端末の控えを消しました。', 'ok'); }
+    catch (x) { status('rbAuthStatus', '⚠ まだ消せません：' + esc(x.message) + ' <button class="btn sub" type="button" id="rbWipeRetry">端末の控えを消す</button>', 'ng'); }
   });
 
   /* ---------- 読み込み ---------- */
@@ -264,6 +399,11 @@
     var txts = files.filter(function (f) { return /\.txt$/i.test(f.name); });
     var xls = files.filter(function (f) { return /\.(xlsx|xls|csv)$/i.test(f.name); });
     var other = files.filter(function (f) { return html.indexOf(f) < 0 && pdfs.indexOf(f) < 0 && txts.indexOf(f) < 0 && xls.indexOf(f) < 0; });
+    // v0.14（監査F09）：大きすぎるファイルは読まない（端末が固まらないように）
+    var big = files.filter(function (f) { return f.size > (pdfs.indexOf(f) >= 0 ? LIMITS.pdf : LIMITS.file); });
+    if (big.length) { big.forEach(function (f) { addBatch({ src: f.name, kind: 'ファイル', error: '大きすぎるので読みませんでした（' + Math.round(f.size / 1048576) + 'MB。PDFは' + Math.round(LIMITS.pdf / 1048576) + 'MB、ほかは' + Math.round(LIMITS.file / 1048576) + 'MBまで）' }); }); }
+    var keep = function (f) { return big.indexOf(f) < 0; };
+    html = html.filter(keep); pdfs = pdfs.filter(keep); txts = txts.filter(keep); xls = xls.filter(keep);
     for (var xi = 0; xi < xls.length; xi++) { try { await readSheet(xls[xi]); } catch (e) { addBatch({ src: xls[xi].name, kind: 'Excel', error: e.message }); } }
     if (other.length) status('rbStatus', '✖ 読めない種類のファイルです：' + esc(other.map(function (f) { return f.name; }).join('、')), 'ng');
     for (var i = 0; i < pdfs.length; i++) {
@@ -287,6 +427,7 @@
     }
     status('rbStatus', '読み取りました。下の内容を確かめて「記録に保存」を押してください。', 'ok');
   }
+  var LIMITS = { pdf: 50 * 1048576, file: 20 * 1048576, json: 20 * 1048576, rows: 50000, paste: 2 * 1048576 };
   /* ---------- v0.5：Excel・CSV（今まで先生がまとめてきた記録）を取り込む ---------- */
   async function readSheet(f) {
     if (!window.XLSX) throw new Error('Excelを読む部品を読み込めませんでした（インターネット接続を確認してください）');
@@ -302,6 +443,7 @@
   function loadXlSheet(b) {
     var ws = b.xl.wb.Sheets[b.xl.sheet];
     b.xl.aoa = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' });
+    if (b.xl.aoa.length > LIMITS.rows) throw new Error('行が多すぎます（' + LIMITS.rows + '行まで）');
     b.xl.txt = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' });
     b.xl.hr = Math.max(0, R.findHeaderRow(b.xl.txt));
     b.xl.map = R.mapHeaders(b.xl.txt[b.xl.hr] || []);
@@ -343,9 +485,17 @@
   drop.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('rbFile').click(); } });
   ['dragenter', 'dragover'].forEach(function (t) { drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.add('drag'); }); });
   ['dragleave', 'drop'].forEach(function (t) { drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.remove('drag'); }); });
-  drop.addEventListener('drop', function (e) { handleFiles(e.dataTransfer.files); });
+  drop.addEventListener('drop', function (e) {
+    var dt = e.dataTransfer; if (dt.files && dt.files.length) { handleFiles(dt.files); return; }
+    var u = dt.getData('text/uri-list') || dt.getData('text/plain') || ''; if (isUrlOnly(u)) status('rbStatus', 'ⓘ ' + URL_NOTE, 'ng');
+  });
+  // v0.14：URLだけを貼ったとき・落としたとき
+  var URL_NOTE = '今はまだURLからの読み込みには対応していません。後日実装予定です。結果のページを開いて、ページを保存（HTML）するか、全部選んでコピーした文章を貼り付けてください。';
+  function isUrlOnly(t) { return /^\s*(https?:\/\/\S+\s*)+$/i.test(String(t || '')); }
   $('rbPasteGo').addEventListener('click', function () {
     var t = $('rbPaste').value; if (!t.trim()) return;
+    if (isUrlOnly(t)) { status('rbStatus', 'ⓘ ' + URL_NOTE, 'ng'); return; }
+    if (t.length > LIMITS.paste) { status('rbStatus', '✖ 貼り付けた文章が長すぎます（約200万文字まで）。種目ごとに分けて貼り付けてください。', 'ng'); return; }
     var res = R.parsePlain(t, {});
     addBatch({ src: '貼り付け', kind: '貼り付け', all: res, meta: { name: res.meet.name, date: res.meet.date } });
   });
@@ -411,13 +561,13 @@
     var b = batches.filter(function (x) { return x.id === +sv; })[0], st = document.querySelector('[data-st="' + sv + '"]');
     if (b.xl) return saveXl(b, st);
     if (!b.meta.name || !/^\d{4}-\d{2}-\d{2}$/.test(b.meta.date || '')) { st.className = 'status ng'; st.textContent = '✖ 大会名と日付を入れてから保存してください。'; return; }
-    var rs = batchRecs(b).map(function (r, i) {
+    var sc = scope(), rs = batchRecs(b).map(function (r, i) {
       var o = Object.assign({}, r); o.meet = b.meta.name; o.date = b.meta.date; o.src = b.src; o.order = i; o.savedAt = new Date().toISOString();
       o.id = R.recId(o.meet, o.date, o); return o;
     });
     try {
-      var res = await putMany(rs);
-      await saveBatchWeather(b, [b.meta.date + '|' + b.meta.name]);
+      var res = await putMany(rs, sc);
+      await saveBatchWeather(b, [b.meta.date + '|' + b.meta.name], sc);
       b.addedIds = (b.addedIds || []).concat(res.ids);
       // 完了：入力欄（ファイル・貼り付け・大会名）を空にして、次の大会をそのまま入れられるようにする
       DONE.push(b); batches = batches.filter(function (x) { return x !== b; }); renderBatches();
@@ -426,24 +576,99 @@
       done.innerHTML = '✔ <b>' + esc(b.meta.name) + ' 完了（' + res.added + '件保存）</b>' + (res.dup ? '<br><small>' + res.dup + '件はすでに保存済みなので重ねませんでした</small>' : '') +
         '<br><small>続けて次の大会の資料を入れられます。</small>' + (b.addedIds.length ? ' <button class="btn sub" type="button" data-undo="' + b.id + '">今の分を取り消す（' + b.addedIds.length + '件）</button>' : '');
       await reload();
-    } catch (err) { st.className = 'status ng'; st.textContent = '✖ 保存できませんでした：' + err.message; }
+    } catch (err) { if (isAbort(err)) return; st.className = 'status ng'; st.textContent = '✖ 保存できませんでした：' + err.message; }
   }
   function hasW(m) { return !!(m.weather || (m.temp !== undefined && m.temp !== '') || (m.humidity !== undefined && m.humidity !== '')); }
-  async function saveBatchWeather(b, keys) { if (!hasW(b.meta)) return; for (var i = 0; i < keys.length; i++) { try { await saveMeet(keys[i], b.meta); } catch (e) { } } }
+  async function saveBatchWeather(b, keys, sc) { if (!hasW(b.meta)) return; for (var i = 0; i < keys.length; i++) { try { await saveMeet(keys[i], b.meta, sc); } catch (e) { if (isAbort(e)) throw e; } } }
   async function saveXl(b, st) {
-    var now = new Date().toISOString(), rs = b.xl.res.recs.map(function (r, i) { var o = Object.assign({}, r); delete o.warn; delete o.row; o.src = b.src; o.order = i; o.savedAt = now; o.id = R.recId(o.meet, o.date, o); return o; });
+    var sc = scope(), now = new Date().toISOString(), rs = b.xl.res.recs.map(function (r, i) { var o = Object.assign({}, r); delete o.warn; delete o.row; o.src = b.src; o.order = i; o.savedAt = now; o.id = R.recId(o.meet, o.date, o); return o; });
     try {
-      var res = await putMany(rs), keys = {}; rs.forEach(function (r) { keys[r.date + '|' + r.meet] = 1; });
-      await saveBatchWeather(b, Object.keys(keys));
+      var res = await putMany(rs, sc), keys = {}; rs.forEach(function (r) { keys[r.date + '|' + r.meet] = 1; });
+      await saveBatchWeather(b, Object.keys(keys), sc);
       b.addedIds = (b.addedIds || []).concat(res.ids); b.meta.name = b.src;
       DONE.push(b); batches = batches.filter(function (x) { return x !== b; }); renderBatches();
       var done = $('rbDone'); done.className = 'status ok rb-done';
       done.innerHTML = '✔ <b>' + esc(b.src) + ' 完了（' + res.added + '件保存・' + Object.keys(keys).length + '大会）</b>' + (res.dup ? '<br><small>' + res.dup + '件はすでに保存済みなので重ねませんでした</small>' : '') + (b.xl.res.bad.length ? '<br><small>日付などが足りない ' + b.xl.res.bad.length + '行は入れていません</small>' : '') + (b.addedIds.length ? ' <button class="btn sub" type="button" data-undo="' + b.id + '">今の分を取り消す（' + b.addedIds.length + '件）</button>' : '');
       await reload();
-    } catch (err) { st.className = 'status ng'; st.textContent = '✖ 保存できませんでした：' + err.message; }
+    } catch (err) { if (isAbort(err)) return; st.className = 'status ng'; st.textContent = '✖ 保存できませんでした：' + err.message; }
   }
   $('rbBatches').addEventListener('click', onBatchClick); $('rbDone').addEventListener('click', onBatchClick);
 
+  /* ---------- v0.6：1件ずつ入力・記録を直す・1件だけ消す ---------- */
+  var EDIT_ID = '', MF = ['date', 'meet', 'name', 'kana', 'grade', 'team', 'event', 'mark', 'wind', 'round', 'rank'];
+  function mEl(k) { return $('rm' + k.charAt(0).toUpperCase() + k.slice(1)); }
+  function manualValues() { var o = {}; MF.forEach(function (k) { o[k] = mEl(k).value; }); return o; }
+  function manualFill(r) { MF.forEach(function (k) { mEl(k).value = r[k] == null ? '' : String(r[k]); mEl(k).classList.remove('bad'); }); }
+  function manualReset(keepMeet) {
+    var d = mEl('date').value, m = mEl('meet').value;
+    EDIT_ID = ''; manualFill({});
+    if (keepMeet) { mEl('date').value = d; mEl('meet').value = m; }
+    $('rbManualBox').classList.remove('editing'); $('rmEditing').hidden = true; $('rmCancel').hidden = true; $('rmDelete').hidden = true; $('rmSave').textContent = '記録に保存';
+    document.querySelectorAll('tr.rc.editing').forEach(function (t) { t.classList.remove('editing'); });
+  }
+  function opts(list) { return list.map(function (v) { return '<option value="' + esc(v) + '"></option>'; }).join(''); }
+  function fillDatalists() {
+    var names = {}, teams = {}, evs = {}, meets = {};
+    ALL.forEach(function (r) { if (r.name) names[r.name] = 1; if (r.team) teams[r.team] = 1; if (r.event) evs[r.event] = 1; if (r.meet && !/^大会名なし/.test(r.meet)) meets[r.meet] = 1; });
+    var srt = function (o) { return Object.keys(o).sort(function (a, b) { return a.localeCompare(b, 'ja'); }).slice(0, 800); };
+    $('rmNames').innerHTML = opts(srt(names)); $('rmTeams').innerHTML = opts(srt(teams)); $('rmEvents').innerHTML = opts(srt(evs)); $('rmMeets').innerHTML = opts(srt(meets));
+  }
+  // 氏名を選んだら、いちばん新しい記録からフリガナ・学年・所属を入れる（入っている欄は変えない）
+  mEl('name').addEventListener('change', function () {
+    var n = R.nk(this.value).replace(/\s+/g, ' ').trim(); if (!n) return;
+    var last = ALL.filter(function (r) { return r.name === n; }).sort(function (a, b) { return cmp(a.date, b.date); }).pop(); if (!last) return;
+    ['kana', 'grade', 'team'].forEach(function (k) { if (!mEl(k).value && last[k]) mEl(k).value = last[k]; });
+  });
+  function manualStatus(html, cls) { status('rmStatus', html, cls); }
+  function startEdit(id) {
+    var r = ALL.filter(function (x) { return x.id === id; })[0]; if (!r) return;
+    EDIT_ID = id; manualFill(r);
+    var box = $('rbManualBox'); box.open = true; box.classList.add('editing');
+    $('rmEditing').hidden = false; $('rmEditing').textContent = '✏️ 記録を直しています：' + (r.name || '') + '・' + (r.event || '') + '・' + (r.mark || '') + '（' + r.date + ' ' + r.meet + '）';
+    $('rmCancel').hidden = false; $('rmDelete').hidden = false; $('rmSave').textContent = '✔ 直して保存';
+    manualStatus('', '');
+    box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  $('rbManual').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var res = R.manualRecord(manualValues());
+    MF.forEach(function (k) { mEl(k).classList.remove('bad'); });
+    if (res.errors.length) {
+      var bad = { '氏名': 'name', '種目': 'event', '日付': 'date', '順位': 'rank', '記録': 'mark', 'この種目': 'mark', '風': 'wind', '学年': 'grade' };
+      res.errors.forEach(function (m) { Object.keys(bad).forEach(function (k) { if (m.indexOf(k) === 0) mEl(bad[k]).classList.add('bad'); }); });
+      manualStatus('✖ ' + res.errors.map(esc).join('<br>✖ '), 'ng'); return;
+    }
+    var sc = scope(), r = res.rec, now = new Date().toISOString();
+    try {
+      if (EDIT_ID) {
+        var old = ALL.filter(function (x) { return x.id === EDIT_ID; })[0];
+        if (!old) { manualStatus('✖ 直す記録が見つかりません（ほかの端末で消された可能性があります）', 'ng'); manualReset(); return; }
+        var o = Object.assign({}, old, r, { heat: old.heat == null ? '' : old.heat, lane: old.lane || '', bib: old.bib || '', comment: old.comment || '', updatedAt: now });
+        if (old.overall != null) o.overall = old.overall;
+        o.id = R.recId(o.meet, o.date, o);
+        if (o.id !== old.id && ALL.some(function (x) { return x.id === o.id; })) { manualStatus('✖ 直したあとの内容と同じ記録が、すでにあります。', 'ng'); return; }
+        await replaceRecord(old.id, o, sc);
+        manualStatus('✔ 直しました：' + esc(o.name) + '・' + esc(o.event) + '・<b>' + esc(o.mark) + '</b>', 'ok');
+        manualReset(true);
+      } else {
+        r.src = '手入力'; r.manual = true; r.order = 0; r.savedAt = now; r.id = R.recId(r.meet, r.date, r);
+        var put = await putMany([r], sc);
+        if (!put.added) { manualStatus('ⓘ 同じ記録がすでに保存されているので、重ねませんでした。', ''); return; }
+        manualStatus('✔ 保存しました：' + esc(r.name) + '・' + esc(r.event) + '・<b>' + esc(r.mark) + '</b>（' + esc(r.meet) + '）<br><small>続けて次の記録を入れられます（日付と大会名はそのままです）。</small>', 'ok');
+        manualReset(true);
+      }
+      await reload(sc);
+    } catch (x) { if (isAbort(x)) return; manualStatus('✖ 保存できませんでした：' + esc(x.message), 'ng'); }
+  });
+  $('rmCancel').addEventListener('click', function () { manualReset(); manualStatus('', ''); });
+  async function deleteOne(id) {
+    var r = ALL.filter(function (x) { return x.id === id; })[0]; if (!r) return;
+    if (!confirm('この記録を1件消します。元に戻せません。\n\n' + r.date + ' ' + r.meet + '\n' + (r.name || '') + '　' + (r.event || '') + '　' + (r.mark || '') + '\n\nよろしいですか？')) return;
+    var sc = scope();
+    try { await delIds([id], sc); if (EDIT_ID === id) manualReset(); status('rbDataStatus', '✔ ' + esc(r.name) + ' の ' + esc(r.event) + '（' + esc(r.mark) + '）を消しました。', 'ok'); manualStatus('', ''); await reload(sc); }
+    catch (x) { if (isAbort(x)) return; status('rbDataStatus', '✖ 消せませんでした：' + esc(x.message), 'ng'); }
+  }
+  $('rmDelete').addEventListener('click', function () { if (EDIT_ID) deleteOne(EDIT_ID); });
   /* ---------- 一覧（v0.3：ホーム・選手・部内ランキング・大会別・歴代・全記録。選手のページは #athlete=… で開く） ---------- */
   var view = 'home', sort = { ath: null, meet: null, all: null }, rankOpt = { season: 'now', grade: '', ev: '' }, histOpt = { ev: '' }, meetSel = '', chartOfficial = false;
   var DIVKEY = 'lanenote-rec-div', DIV = 'all';
@@ -485,7 +710,16 @@
   window.addEventListener('hashchange', function () { render(); if (curAthlete()) window.scrollTo(0, $('rbView').getBoundingClientRect().top + window.scrollY - document.querySelector('.tabbar').offsetHeight - 8); });
   window.addEventListener('popstate', function () { render(); });
   $('rbQ').addEventListener('input', render); $('rbMine').addEventListener('change', render);
-  async function reload() { try { ALL = await getAll(); } catch (e) { ALL = []; status('rbDataStatus', '✖ ' + esc(e.message), 'ng'); } await loadSide(); applyInference(); render(); if (CLOUD_READY) renderAuth(); }
+  // 読み直す：始めたときのアカウントの記録だけを画面に出す（途中で切り替わったら、何も反映しない）
+  async function reload(sc) {
+    sc = sc || scope();
+    var list, side;
+    try { list = await getAll(sc); } catch (e) { if (isAbort(e)) return; list = []; status('rbDataStatus', '✖ ' + esc(e.message), 'ng'); }
+    try { side = await loadSide(sc); } catch (e) { if (isAbort(e)) return; side = { mets: {}, ov: {} }; }
+    if (sc.epoch !== authEpoch) return;
+    ALL = list; METS = side.mets; DIV_OV = side.ov;
+    applyInference(); render(); if (CLOUD_READY) renderAuth();
+  }
   function filtered() {
     var q = R.nk($('rbQ').value).replace(/\s/g, ''), s = school(), mine = $('rbMine').checked;
     var base = ALL.filter(function (r) {
@@ -532,6 +766,8 @@
       await delIds(ids); status('rbDataStatus', '✔ 「' + esc(dm.replace('|', ' ')) + '」の記録 ' + ids.length + '件を消しました。自己ベストを計算し直しました。', 'ok');
       await reload(); return;
     }
+    var ed = e.target.closest('[data-edit]'); if (ed) { startEdit(ed.getAttribute('data-edit')); var tr = ed.closest('tr'); if (tr) tr.classList.add('editing'); return; }
+    var dr = e.target.closest('[data-delrec]'); if (dr) { await deleteOne(dr.getAttribute('data-delrec')); return; }
     var ae = e.target.closest('[data-athev]'); if (ae) { athSel.ev = ae.getAttribute('data-athev'); render(); return; }
     var we = e.target.closest('[data-wedit]'); if (we) { meetEdit = meetEdit === we.getAttribute('data-wedit') ? '' : we.getAttribute('data-wedit'); render(); return; }
     var ws = e.target.closest('[data-wsave]');
@@ -642,7 +878,7 @@
     var meets = {}; rows.forEach(function (r) { var k = r.date + '|' + r.meet; meets[k] = (meets[k] || 0) + 1; });
     var aths = {}; rows.forEach(function (r) { aths[R.athleteKey(r)] = 1; });
     $('rbStats').textContent = ALL.length ? '保存している記録：' + ALL.length + '件（表示 ' + rows.length + '件・選手 ' + Object.keys(aths).length + '人・大会 ' + Object.keys(meets).length + '件）' : 'まだ記録がありません。上で結果の資料を入れて「記録に保存」を押してください。';
-    renderMeetList(); renderSex(); renderReview();
+    renderMeetList(); renderSex(); renderReview(); fillDatalists();
     var ak = curAthlete(), v = $('rbView');
     document.body.classList.toggle('ath-open', !!ak);
     v.className = 'tblwrap view-' + (ak ? 'athlete' : view);
@@ -674,16 +910,16 @@
       }
       rs = sortRows(rs, view, d2);
       var grouped = view === 'meet' && !sort.meet, lastMeet = '';   // 大会別は見出しに大会名と日付を出すので、カードの中では繰り返さない
-      html = meetCtl + '<table class="rbt"><tr class="hd">' + (grouped ? '' : th(view, 'date', '日付') + th(view, 'meet', '大会')) + th(view, 'event', '種目') + '<th>ラウンド</th><th>組</th>' + th(view, 'name', '氏名') + th(view, 'grade', '学年') + '<th>所属</th>' + th(view, 'mark', '記録') + '<th>風</th>' + th(view, 'rank', '順位') + '<th>備考</th></tr>' + rs.map(function (r) {
+      html = meetCtl + '<table class="rbt"><tr class="hd">' + (grouped ? '' : th(view, 'date', '日付') + th(view, 'meet', '大会')) + th(view, 'event', '種目') + '<th>ラウンド</th><th>組</th>' + th(view, 'name', '氏名') + th(view, 'grade', '学年') + '<th>所属</th>' + th(view, 'mark', '記録') + '<th>風</th>' + th(view, 'rank', '順位') + '<th>備考</th><th>直す</th></tr>' + rs.map(function (r) {
         var head = '', key = r.date + '|' + r.meet;
         if (grouped && key !== lastMeet) {
           var cnt = meets[key] || 0;
           var mw = METS[key] || {};
-          head = '<tr class="gsep rb-meet"><td colspan="12"><b>' + esc(r.date) + '　' + esc(r.meet) + '</b>　<span class="small muted">' + cnt + '件</span> ' + weatherTag(key) + ' <button class="btn sub rb-wedit" type="button" data-wedit="' + esc(key) + '">' + (weatherText(key) ? '天気を直す' : '☀️ 天気・気温を入れる') + '</button> <button class="btn sub rb-delmeet" type="button" data-delmeet="' + esc(key) + '">この大会を消す</button>' +
+          head = '<tr class="gsep rb-meet"><td colspan="13"><b>' + esc(r.date) + '　' + esc(r.meet) + '</b>　<span class="small muted">' + cnt + '件</span> ' + weatherTag(key) + ' <button class="btn sub rb-wedit" type="button" data-wedit="' + esc(key) + '">' + (weatherText(key) ? '天気を直す' : '☀️ 天気・気温を入れる') + '</button> <button class="btn sub rb-delmeet" type="button" data-delmeet="' + esc(key) + '">この大会を消す</button>' +
             (meetEdit === key ? '<div class="rb-row wxedit">' + weatherInputs(mw, 'data-w') + '<button class="btn" type="button" data-wsave="' + esc(key) + '">保存</button></div>' : '') + '</td></tr>';
         }
         lastMeet = key;
-        return head + '<tr class="rc">' + (grouped ? '' : '<td class="c-date">' + esc(r.date) + '</td><td class="c-meet">' + esc(r.meet) + '</td>') + '<td class="c-ev">' + esc(evName(r)) + '</td><td class="c-round">' + esc(r.round) + '</td><td class="rn c-heat" data-l="組">' + esc(r.heat) + '</td><td class="c-name">' + athLink(R.athleteKey(r), r.name || r.kana) + '</td><td class="rn c-grade" data-l="学年">' + esc(r.grade) + '</td><td class="c-team">' + esc(r.team) + '</td><td class="rn c-mark"><b>' + esc(r.mark) + '</b>' + pbFlag(flags[r.id]) + windTag(r) + '</td><td class="rn c-wind" data-l="風">' + esc(R.shownWind(r)) + '</td><td class="rn c-rank" data-l="順位">' + esc(r.rank) + '</td><td class="c-cmt"><small>' + esc(r.comment) + '</small></td></tr>';
+        return head + '<tr class="rc">' + (grouped ? '' : '<td class="c-date">' + esc(r.date) + '</td><td class="c-meet">' + esc(r.meet) + '</td>') + '<td class="c-ev">' + esc(evName(r)) + '</td><td class="c-round">' + esc(r.round) + '</td><td class="rn c-heat" data-l="組">' + esc(r.heat) + '</td><td class="c-name">' + athLink(R.athleteKey(r), r.name || r.kana) + '</td><td class="rn c-grade" data-l="学年">' + esc(r.grade) + '</td><td class="c-team">' + esc(r.team) + '</td><td class="rn c-mark"><b>' + esc(r.mark) + '</b>' + pbFlag(flags[r.id]) + windTag(r) + '</td><td class="rn c-wind" data-l="風">' + esc(R.shownWind(r)) + '</td><td class="rn c-rank" data-l="順位">' + esc(r.rank) + '</td><td class="c-cmt"><small>' + esc(r.comment) + '</small>' + (r.manual ? '<small class="muted">手入力</small>' : '') + '</td><td class="c-ops"><button type="button" data-edit="' + esc(r.id) + '" aria-label="この記録を直す">✏️ 直す</button><button type="button" class="rdel" data-delrec="' + esc(r.id) + '" aria-label="この記録を消す">🗑 消す</button></td></tr>';
       }).join('') + '</table>';
     }
     v.innerHTML = html;
@@ -700,19 +936,39 @@
   $('rbImport').addEventListener('change', async function () {
     var f = this.files[0]; this.value = ''; if (!f) return;
     try {
-      var j = JSON.parse(await f.text()), list = Array.isArray(j) ? j : j.records;
+      if (f.size > LIMITS.json) throw new Error('ファイルが大きすぎます（' + Math.round(LIMITS.json / 1048576) + 'MBまで）');
+      var j = JSON.parse(await f.text()), list = Array.isArray(j) ? j : j && j.records;
       if (!Array.isArray(list)) throw new Error('記録のファイル（LANE NOTE 記録・旧 LANE LOG）ではないようです');
-      list = list.filter(function (r) { return r && r.id && r.name !== undefined && r.mark !== undefined && r.meet && r.date; });
-      var res = await putMany(list);
-      status('rbDataStatus', '✔ ' + res.added + '件を読み込みました' + (res.dup ? '（' + res.dup + '件はすでにあるので重ねませんでした）' : '') + '。', 'ok');
+      if (list.length > LIMITS.rows) throw new Error('記録が多すぎます（' + LIMITS.rows + '件まで）');
+      var good = [], bad = 0; list.forEach(function (r) { var o = R.sanitizeRecord(r); if (o) good.push(o); else bad++; });
+      var res = await putMany(good);
+      status('rbDataStatus', '✔ ' + res.added + '件を読み込みました' + (res.dup ? '（' + res.dup + '件はすでにあるので重ねませんでした）' : '') + (bad ? '。<br>⚠ 形が正しくない ' + bad + '件（日付が無い・項目の型が違うなど）は読み込みませんでした' : '') + '。', bad ? '' : 'ok');
       await reload();
-    } catch (e) { status('rbDataStatus', '✖ 読み込めませんでした：' + esc(e.message), 'ng'); }
+    } catch (e) { if (isAbort(e)) return; status('rbDataStatus', '✖ 読み込めませんでした：' + esc(e.message), 'ng'); }
   });
   $('rbClear').addEventListener('click', async function () {
     if (!ALL.length) { status('rbDataStatus', '消す記録はありません。', ''); return; }
+    var sc = scope();
     if (!confirm('' + (USER ? 'クラウドに保存した' : 'このブラウザに保存した') + '記録 ' + ALL.length + '件をすべて消します。元に戻せません。\n（必要なら先に「ファイルに書き出す」をしてください）\n\n本当に消しますか？')) return;
-    try { await clearAll(); } catch (e) { status('rbDataStatus', '✖ 消せませんでした：' + esc(e.message), 'ng'); return; }
-    status('rbDataStatus', '✔ すべて消しました。', 'ok'); await reload();
+    try { await clearAll(sc); } catch (e) { if (isAbort(e)) return; status('rbDataStatus', '✖ 消せませんでした：' + esc(e.message), 'ng'); return; }
+    status('rbDataStatus', '✔ 記録をすべて消しました。', 'ok'); await reload(sc);
+  });
+  $('rbClearCloud').addEventListener('click', async function () {
+    if (!USER) return; var sc = scope();
+    if (!confirm((USER.email || 'このアカウント') + ' のクラウドに保存した記録・大会の天気・中学/高校の選択を、すべて消します。元に戻せません。\n（短いリンクは大会準備のページから止めてください）\n\n本当に消しますか？')) return;
+    try { await clearAll(sc); await clearCloudSide(sc); } catch (e) { if (isAbort(e)) return; status('rbDataStatus', '✖ 消せませんでした：' + esc(e.message), 'ng'); return; }
+    status('rbDataStatus', '✔ クラウドのデータをすべて消しました。', 'ok'); await reload(sc);
+  });
+  $('rbWipeDevice').addEventListener('click', async function () {
+    if (!confirm('このブラウザに残っている LANE NOTE の記録（ログインしていないときの記録' + (USER ? '・ログイン中の控え' : '') + '）と、天気・中学/高校の選択を消します。' + (USER ? 'クラウドの記録は消えません。' : '元に戻せません。') + '\n\nよろしいですか？')) return;
+    authEpoch++; var errs = [];
+    try { localStorage.removeItem(metsKey(null)); localStorage.removeItem(ovKey(null)); } catch (e) { }
+    await closeDb(LOCAL_DB);
+    try { await LaneAuth.eraseDatabase(LOCAL_DB); } catch (e) { errs.push(e.message); }
+    if (USER) { try { await LaneAuth.wipeUser(USER.uid, closeDb); } catch (e) { errs.push(e.message); } }
+    GUEST_N = 0; renderGuest(); resetView();
+    status('rbDataStatus', errs.length ? '⚠ 一部を消せませんでした：' + esc(errs[0]) : '✔ この端末のデータを消しました。', errs.length ? 'ng' : 'ok');
+    await reload(scope());
   });
   $('rbXlsx').addEventListener('click', function () {
     if (!window.XLSX) { status('rbDataStatus', '✖ Excel書き出しの部品を読み込めませんでした（インターネット接続を確認してください）。', 'ng'); return; }

@@ -141,6 +141,29 @@ body.ath-open #rbLegend{display:none}
   .ropt label{flex:1 1 40%!important;display:flex;flex-direction:column;font-size:12px}
   #rbView a.ath{display:inline-flex;align-items:center;min-height:32px}
 }
+/* v0.6：1件ずつ入力・記録の直し */
+.rb-manual{margin-top:10px;border:1px solid var(--line);border-radius:12px;padding:8px 12px;background:#fbfcfe}
+.rb-manual[open]{box-shadow:var(--shadow)}
+.rb-manual.editing{border-color:#e4572e;background:#fff8f4}
+.rb-manual .mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px 10px;margin:8px 0}
+.rb-manual .mgrid label{display:block;font-size:12.5px;font-weight:700}
+.rb-manual .mgrid label b.req{color:#c8553d}
+.rb-manual .mgrid input{font:inherit;font-size:16px;font-weight:400;padding:8px;border:1px solid #c9d2e0;border-radius:8px;min-height:40px;box-sizing:border-box;width:100%;display:block;margin-top:3px}
+.rb-manual .mgrid input.bad{border-color:#d93025;background:#fff4f3}
+.rb-manual .mnote{font-size:11.5px;color:var(--muted);font-weight:400}
+.rb-manual .edit-banner{background:#e4572e;color:#fff;border-radius:8px;padding:6px 10px;font-size:13px;font-weight:700;margin:6px 0}
+.url-note{font-size:12px;color:#7a5a00;background:#fff7dc;border:1px solid #f0d58a;border-radius:8px;padding:5px 9px;margin:6px 0}
+.rb-guest{border:2px solid #e4572e;background:#fff8f4;border-radius:12px;padding:10px 12px;margin:10px 0}
+.rb-guest .btn{margin:4px 6px 0 0;white-space:normal;max-width:100%;text-align:center}
+.danger-t{color:#b3261e!important;border-color:#e3b4ae!important}
+.c-ops{white-space:nowrap}.c-ops button{font-size:12px;padding:3px 8px;min-height:30px;margin:0 2px;border-radius:8px;border:1px solid #c9d2e0;background:#fff;cursor:pointer}
+.c-ops button.rdel{color:#b3261e}
+tr.rc.editing td{background:#fff3ec!important}
+.rb-wipe{margin-top:10px}.rb-wipe summary{cursor:pointer}
+@media (max-width:600px){
+  #rbView .rbt tr.rc td.c-ops{order:11;flex:0 0 100%;display:flex!important;gap:8px;margin-top:4px}
+  #rbView .rbt tr.rc td.c-ops button{flex:1;min-height:40px;font-size:13px}
+}
 </style>
 </head>
 <body class="records">
@@ -148,7 +171,7 @@ body.ath-open #rbLegend{display:none}
   <div class="hdr-meta">
     <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／記録 __REC_VERSION__ <span class="beta-tag">試作</span></div>
     <div class="credit">Presented by Sakata</div>
-    <div class="hdr-msg">すべての陸上競技部顧問が、少しでも楽になりますように。</div>
+    <div class="hdr-msg">すべての陸上競技部顧問が、<br class="sp-br">少しでも楽になりますように。</div>
   </div>
   <div class="brand">
     <h1 class="logo">__LOGO_DARK__<span class="vh">LANE NOTE（レーンノート）記録</span></h1>
@@ -161,13 +184,14 @@ body.ath-open #rbLegend{display:none}
 <main>
 <section class="box">
   <h2><span class="no">1</span>学校名と結果の資料</h2>
-  <div class="privacy">🔒 <b>Googleでログインすると、記録はあなた専用のクラウド（Firebase）に保存され、どの端末からでも見られます。</b>ほかの人の記録は見えず、ほかの人からもあなたの記録は見えません。ログインしないときは、このブラウザの中（IndexedDB）にだけ保存します。結果資料・Excelの読み取りはすべてこの端末の中で行います。大会ごとの天気・気温と、中学/高校を選んだ選手の情報も、記録と同じ場所（ログイン中はあなた専用のクラウド）に保存します。「不具合・要望を送る」で送った内容だけは作成者に届きます（記録や選手名は自動では送りません）。共用のパソコンでは、使い終わったらログアウトしてください。</div>
+  <div class="privacy">🔒 <b>Googleでログインすると、記録はあなた専用のクラウド（Firebase）に保存され、どの端末からでも見られます。</b>ほかの人の記録は見えず、ほかの人からもあなたの記録は見えません。ログイン中も、電波がないときに見られるよう、この端末（IndexedDB）に控えを置きます（ログアウトすると控えを消します）。ログインしないときは、このブラウザの中（IndexedDB）にだけ保存します。<b>ログインしていないときにためた記録は、ログインしても自動ではクラウドへ移しません</b>（移すかどうかを件数を見て選べます）。結果資料・Excelの読み取りはすべてこの端末の中で行います。大会ごとの天気・気温と、中学/高校を選んだ選手の情報も、記録と同じ場所に保存します。「不具合・要望を送る」は Google でログインしたときだけ送れて、送った内容だけが作成者に届きます（記録や選手名は自動では送りません）。共用のパソコンでは、使い終わったら必ずログアウトしてください。</div>
   <div class="rb-row" id="rbAuth" style="margin:10px 0;align-items:center">
     <span id="rbAuthInfo" class="small"></span>
     <button class="btn" id="rbSignIn" type="button" hidden>Googleでログイン</button>
     <button class="btn sub" id="rbSignOut" type="button" hidden>ログアウト</button>
   </div>
   <div class="status" id="rbAuthStatus"></div>
+  <div class="rb-guest" id="rbGuest" hidden aria-live="polite"></div>
   <div class="disclaimer sm" style="margin-top:8px">ⓘ 結果の資料の文字を読み取って整理しているだけです。<b>記録は必ず元の結果資料と照らし合わせて確認してください。</b>読めなかったところは空欄にして警告を出します（推測で埋めません）。</div>
   <div class="rb-row" style="margin:10px 0">
     <label>学校名 <input type="text" id="rbSchool" placeholder="例：本郷" autocomplete="off"></label>
@@ -181,8 +205,32 @@ body.ath-open #rbLegend{display:none}
   </div>
   <details style="margin-top:10px"><summary><b>Webページの結果を貼り付ける</b>（ファイルにできないとき）</summary>
     <p class="small muted">結果のページを開き、Ctrl+A（全部選ぶ）→ Ctrl+C（コピー）して、ここに貼り付けます。種目ごとにページが分かれているときは、続けて貼り付けてかまいません。</p>
+    <p class="url-note">ⓘ 今はまだURLからの読み込みには対応していません。後日実装予定です。</p>
     <textarea id="rbPaste" placeholder="ここに貼り付け"></textarea>
     <button class="btn sub" id="rbPasteGo" type="button">貼り付けた文章を読み取る</button>
+  </details>
+  <details class="rb-manual" id="rbManualBox"><summary><b>✏️ 1件ずつ入力する</b>（読み取りで漏れた記録・資料のない記録）</summary>
+    <form id="rbManual" novalidate autocomplete="off">
+      <div class="edit-banner" id="rmEditing" hidden></div>
+      <p class="small muted">＊は必須です。氏名・所属・種目・大会名は、今までの記録から候補が出ます（氏名を選ぶと、フリガナ・学年・所属も入ります）。</p>
+      <div class="mgrid">
+        <label>日付 <b class="req">＊</b><input type="date" id="rmDate"></label>
+        <label>大会名 <span class="mnote">（空なら「大会名なし（日付）」）</span><input id="rmMeet" list="rmMeets" maxlength="100" placeholder="例：区民大会"></label>
+        <label>氏名 <b class="req">＊</b><input id="rmName" list="rmNames" maxlength="60" placeholder="例：本郷 太郎"></label>
+        <label>フリガナ<input id="rmKana" maxlength="60" placeholder="例：ホンゴウ タロウ"></label>
+        <label>学年<input id="rmGrade" maxlength="4" placeholder="例：2・中2・高1"></label>
+        <label>所属<input id="rmTeam" list="rmTeams" maxlength="60" placeholder="例：本郷高"></label>
+        <label>種目 <b class="req">＊</b><input id="rmEvent" list="rmEvents" maxlength="60" placeholder="例：男子100m"></label>
+        <label>記録 <b class="req">＊</b><input id="rmMark" maxlength="14" placeholder="11.85／4:31.15／5m74／DNS"></label>
+        <label>風 <span class="mnote">（100m・200m・ハードル・走幅跳・三段跳）</span><input id="rmWind" maxlength="6" placeholder="例：+1.2" inputmode="decimal"></label>
+        <label>ラウンド<input id="rmRound" list="rmRounds" maxlength="30" placeholder="例：予選・決勝"></label>
+        <label>順位<input id="rmRank" maxlength="3" inputmode="numeric" placeholder="例：3"></label>
+      </div>
+      <datalist id="rmNames"></datalist><datalist id="rmTeams"></datalist><datalist id="rmEvents"></datalist><datalist id="rmMeets"></datalist>
+      <datalist id="rmRounds"><option value="予選"></option><option value="準決勝"></option><option value="決勝"></option><option value="タイムレース"></option><option value="記録会"></option></datalist>
+      <div class="status" id="rmStatus" aria-live="polite"></div>
+      <div class="rb-row"><button class="btn" type="submit" id="rmSave">記録に保存</button><button class="btn sub" type="button" id="rmCancel" hidden>直すのをやめる</button><button class="btn sub danger-t" type="button" id="rmDelete" hidden>🗑 この記録を消す</button></div>
+    </form>
   </details>
   <div id="rbBatches"></div>
   <div class="status" id="rbDone" aria-live="polite"></div>
@@ -209,8 +257,15 @@ body.ath-open #rbLegend{display:none}
     <button class="btn sub" id="rbExport" type="button">💾 ファイルに書き出す（JSON）</button>
     <label class="btn sub" style="display:inline-block">📂 ファイルから読み込む<input type="file" id="rbImport" accept=".json,application/json" hidden></label>
     <button class="btn sub" id="rbXlsx" type="button">📊 Excelに書き出す</button>
-    <button class="btn danger" id="rbClear" type="button">🗑 全部消す</button>
+    <button class="btn danger" id="rbClear" type="button">🗑 記録を全部消す</button>
   </div>
+  <details class="rb-wipe small"><summary><b>ほかの消し方</b>（クラウドのデータすべて・この端末のデータ・共有の停止）</summary>
+    <div class="rb-row" style="margin-top:6px">
+      <button class="btn sub danger-t" id="rbClearCloud" type="button" hidden>☁ クラウドのデータをすべて消す（記録・天気・中学/高校の選択）</button>
+      <button class="btn sub danger-t" id="rbWipeDevice" type="button">💻 この端末のデータを消す</button>
+    </div>
+    <p class="small muted">「この端末のデータを消す」は、このブラウザに残っている記録（ログインしていないときの記録と、ログイン中の控え）と、天気・中学/高校の選択を消します。ログイン中のクラウドの記録は消えません。短いリンク（共有）を止めるときは、<a href="./">大会準備のページ</a>の「スマホで見る／共有」→「作った短いリンク」から止められます。Googleのアカウント自体は消えません。</p>
+  </details>
   <p class="small muted">書き出したファイルには選手の氏名と記録が入ります。学校のルールに従って保管してください。読み込むと、今ある記録に足し合わせます（同じ記録は重ねません）。</p>
   <div class="status" id="rbDataStatus"></div>
 </section>
@@ -221,11 +276,15 @@ body.ath-open #rbLegend{display:none}
     <li>読める形式：組ごとに2列で並ぶ結果PDF（「順位・レーン・ナンバー・氏名・所属・記録」の見出しがあるもの。北区・江東区・都高体連などで確認）／ 結果サイトのHTML（表のあるもの）・その貼り付け。</li>
     <li>Excel・CSV（v0.5）：見出し（氏名・種目・記録・日付など）を自動で見つけて取り込みます。日付は必須、大会名は任意（空なら「大会名なし（日付）」）。</li>
     <li>既知の制限：リレー・混成の得点・スキャン（画像）PDFは読みません。大会名・日付が資料に無いときは手で入れてください。風が読めない記録は公認ベストに数えません。</li>
-    <li>使っている部品（外部CDNから読み込み、ハッシュで確認）：pdf.js 4.10.38（Apache-2.0, Mozilla）／ SheetJS Community Edition 0.20.3（Apache-2.0）／ Firebase JS SDK 10.14.1（Apache-2.0, Google・ログインと保存）</li>
+    <li>使っている部品（外部CDNから読み込み）：pdf.js 4.10.38（Apache-2.0, Mozilla）と SheetJS Community Edition 0.20.3（Apache-2.0）は決まった版をハッシュ（SRI）で確かめてから使います。Firebase JS SDK 10.14.1（Apache-2.0, Google・ログインと保存）は Google の配信元（gstatic.com）から版を固定して読み込みますが、仕組みの都合で<b>ハッシュ確認はしていません</b>（今後、同じサイトから配る形に変える予定です）。</li>
+    <li>1件ずつ入力（v0.6）：読み取りで漏れた記録や、資料のない記録を手で入れられます。記録の「✏️ 直す」で直し、「🗑 消す」で1件だけ消せます。</li>
   </ul></details>
-<div class="f-disc">ⓘ 本ツールは結果資料の文字を読み取って自動で整理しているだけです。内容は必ず元の結果資料と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div><div><b class="f-brand">LANE NOTE</b>（レーンノート）記録 試作版 ／ <span class="f-credit">Presented by Sakata</span></div>🔒 ログイン中の記録は本人だけが読めるクラウド（Google Firebase）に保存します。ログインしないときはこのブラウザの中にだけ保存します（部品取得のため外部CDNへ通信します）。「不具合・要望を送る」の内容だけは作成者に届きます。 <a href="./">大会準備のページへ</a><br><button type="button" class="fb-btn" data-feedback="1">📮 不具合・要望を送る</button></footer>
+<div class="f-disc">ⓘ 本ツールは結果資料の文字を読み取って自動で整理しているだけです。内容は必ず元の結果資料と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div><div><b class="f-brand">LANE NOTE</b>（レーンノート）記録 試作版 ／ <span class="f-credit">Presented by Sakata</span></div>🔒 ログイン中の記録は本人だけが読めるクラウド（Google Firebase）に保存し、この端末にも控えを置きます（ログアウトで消します）。ログインしないときはこのブラウザの中にだけ保存します（部品取得のため外部CDNへ通信します）。「不具合・要望を送る」（Googleログインが必要）の内容だけは作成者に届きます。 <a href="./">大会準備のページへ</a><br><button type="button" class="fb-btn" data-feedback="1">📮 不具合・要望を送る</button></footer>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
 <script src="firebase-config.js"></script>
+<script>
+__AUTHCOMMON__
+</script>
 <script>
 __FEEDBACK__
 </script>
