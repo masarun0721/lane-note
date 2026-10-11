@@ -74,31 +74,61 @@ w.fetch = () => Promise.reject(new Error('network prohibited in tests')); w.inde
 const copied = [];
 w.ClipboardItem = function (o) { this.o = o; }; Object.defineProperty(w.navigator, 'clipboard', { value: { write: async items => { for (const it of items) copied.push({ html: await it.o['text/html'].text(), text: await it.o['text/plain'].text() }); } }, configurable: true });
 const aoas = []; w.XLSX = { utils: { book_new: () => ({ s: [] }), aoa_to_sheet: a => ({ a }), book_append_sheet: (wb, ws, n) => wb.s.push([n, ws.a]) }, writeFile: (wb, n) => aoas.push([n, wb.s]) };
-['results.js', 'parser.js', 'logic.js', 'player.js', 'personal.js', 'auth_common.js', 'parent.js', 'app.js'].forEach(f => w.eval(src(f)));
+['results.js', 'parser.js', 'logic.js', 'player.js', 'personal.js', 'auth_common.js', 'parent.js', 'notice.js', 'app.js'].forEach(f => w.eval(src(f)));
+const LN = w.LaneNotice;
 w.document.dispatchEvent(new w.Event('DOMContentLoaded')); await delay();
 const app = w.__meetApp, $ = id => w.document.getElementById(id);
 Object.assign(app.state, { sl: fakeSl(), tt: fakeTt(), teams: ['架空中'], slName: '架空.pdf', ttName: '架空TT.pdf' }); $('meetName').value = '第1回架空区大会'; app.render(); await delay();
-await check('「👪 保護者案内用の表」→ 画面に2つの表（出場選手・時間順の予定）・他校は入らない', async () => {
+const store = {}; Object.defineProperty(w, 'localStorage', { value: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } }, configurable: true });
+const JSZip = (await import('jszip')).default; w.JSZip = JSZip; const blobs = []; w.URL.createObjectURL = b => { blobs.push(b); return 'blob:x'; }; w.URL.revokeObjectURL = () => {};
+const ED = () => $('ntEdit'), q = s => ED().querySelector(s), setv = async (sel, v) => { const e = q(sel); e.value = v; e.dispatchEvent(new w.Event('input', { bubbles: true })); await delay(320); };
+const doc = () => $('pvFrame').srcdoc;
+app.state.docText = { yoko: '会場：架空区総合運動場陸上競技場\n最寄駅：架空駅 徒歩5分\n開門 8:00 競技開始 9:30' };
+$('meetDate').value = '2026年10月18日';
+await check('「👪 保護者へのお知らせ」→ タイトル・要点・2つの表（他校は入らない）', async () => {
   $('btnParent').click(); await delay();
-  assert.equal($('parentView').hidden, false); const doc = $('pvFrame').srcdoc;
-  assert.match(doc, /第1回架空区大会　出場選手・予定/); assert.match(doc, /出場選手<\/caption>/); assert.match(doc, /時間順の予定<\/caption>/);
-  assert.match(doc, /山田 太郎/); assert.match(doc, /佐藤 花子/); assert.doesNotMatch(doc, /他校 一郎/); assert.match(doc, />男子</); assert.match(doc, />女子</);
-  assert.match(doc, /（通過したら）/, '決勝（通過したら）が入る'); assert.match(doc, /A・B/);
+  assert.equal($('parentView').hidden, false);
+  assert.match(doc(), /<h1>第1回架空区大会について<\/h1>/); assert.match(doc(), /保護者各位/);
+  assert.match(doc(), /令和8年10月18日（日）/); assert.match(doc(), /架空区総合運動場陸上競技場/); assert.match(doc(), /架空駅/);
+  assert.match(doc(), /山田 太郎/); assert.match(doc(), /佐藤 花子/); assert.doesNotMatch(doc(), /他校 一郎/); assert.match(doc(), /（通過したら）/); assert.match(doc(), /A・B/);
+  assert.match(q('[data-m="venue"]').nextElementSibling.textContent, /大会要項から/);
 });
-await check('「📋 コピー」は text/html（罫線つきの表）と text/plain（タブ区切り）の両方', async () => {
+await check('集合時刻：自校の最初の種目の2時間前（ルールを変えると計算し直す・手で直したらそのまま）', async () => {
+  const first = Math.min(...app.state.rows.filter(r => r.start).map(r => LN.toMin(r.start)));
+  assert.equal(q('[data-m="gather"]').value, LN.fmtMin(first - 120));
+  const sel = q('[data-t="call.base"]'); sel.value = 'gate'; sel.dispatchEvent(new w.Event('change', { bubbles: true })); await delay();
+  assert.equal(q('[data-m="gather"]').value, '6:00'); assert.match(doc(), /6:00　競技場 正門前/);
+  await setv('[data-m="gather"]', '7:15'); assert.match(doc(), /7:15/);
+});
+await check('学校の設定：学校名・顧問・タイトル・持ち物（追加・削除）・自由欄・レイアウト3つ', async () => {
+  await setv('[data-t="school"]', '架空区立架空中学校'); assert.match(doc(), /架空区立架空中学校　陸上競技部/);
+  q('[data-list="advisors"] [data-la="add"]').click(); await delay(); await setv('[data-list="advisors"] [data-li="0"]', '坂田'); assert.match(doc(), /顧問　坂田/);
+  await setv('[data-t="title"]', '{大会名}の出場について'); assert.match(doc(), /第1回架空区大会の出場について/);
+  q('[data-list="belongings.items"] [data-la="del"][data-i="0"]').click(); await delay(); assert.doesNotMatch(doc(), /ユニフォーム・/);
+  $('ntEdit').querySelector('#ntFree').click(); await delay(); await setv('.nt-sec:last-of-type [data-sk="text"]', '応援よろしくお願いします{集合時刻}'); assert.match(doc(), /応援よろしくお願いします7:15/);
+  for (const [l, re] of [['table', /class="L-table"[\s\S]*class="nt-pt"/], ['clean', /class="L-clean"[\s\S]*class="duo"/], ['std', /<p class="ki">記<\/p>[\s\S]*以上/]]) { q(`[data-layout="${l}"]`).click(); await delay(); assert.match(doc(), re, l); assert.equal(q(`[data-layout="${l}"]`).getAttribute('aria-checked'), 'true'); }
+  const s = q('[data-son="1"]'); s.checked = false; s.dispatchEvent(new w.Event('change', { bubbles: true })); await delay(); assert.doesNotMatch(doc(), /<h1>/);
+  s && (q('[data-son="1"]').checked = true, q('[data-son="1"]').dispatchEvent(new w.Event('change', { bubbles: true }))); await delay();
+  q('[data-sa="down"][data-i="0"]').click(); await delay(); assert.ok(doc().indexOf('<h1>') < doc().indexOf('保護者各位'), '↓で順番が変わる');
+});
+await check('ひな形を保存→この端末に残る・開き直すと同じ設定（壊れたデータは初期値で補う）', async () => {
+  q('#ntSave').click(); await delay(); const k = Object.keys(store).find(x => /parent-template/.test(x)); assert.ok(k); const t = JSON.parse(store[k]);
+  assert.equal(t.school, '架空区立架空中学校'); assert.deepEqual(t.advisors, ['坂田']); assert.ok(t.sections.some(x => x.type === 'free'));
+  assert.match($('pvMsg').textContent, /保存しました/);
+  const z = LN.sanitize({ layout: 'evil', size: 99, sections: [{ type: 'x' }, { type: 'free', id: 'a', title: 1 }], cautions: [1, 'a'] }); assert.equal(z.layout, 'std'); assert.equal(z.size, 10.5); assert.deepEqual(z.cautions, ['a']); assert.equal(z.sections.length, 10);
+});
+await check('📋 コピー（text/html＋text/plain）・Excel 2枚・Word（.docx）', async () => {
   $('pvCopyAth').click(); await delay(); $('pvCopyTime').click(); await delay();
-  assert.equal(copied.length, 2); assert.match(copied[0].html, /^<table style="border-collapse:collapse/); assert.match(copied[0].text, /^男子\t/); assert.match(copied[1].text, /^時刻\t招集\t種目\t出る人/);
-  assert.match($('pvMsg').textContent, /コピーしました/);
-});
-await check('学年の列をはずすと表から消える・Excel は2枚のシート', async () => {
-  $('pvGrade').checked = false; $('pvGrade').dispatchEvent(new w.Event('change')); await delay();
-  assert.doesNotMatch($('pvFrame').srcdoc, />学年</);
-  $('pvXlsx').click(); assert.equal(aoas.length, 1); assert.deepEqual(aoas[0][1].map(s => s[0]), ['出場選手', '時間順の予定']); assert.match(aoas[0][0], /保護者案内用\.xlsx$/);
+  assert.equal(copied.length, 2); assert.match(copied[0].html, /^<table style="border-collapse:collapse/); assert.match(copied[1].text, /^時刻\t招集\t種目\t出る人/);
+  $('pvXlsx').click(); assert.equal(aoas.length, 1); assert.deepEqual(aoas[0][1].map(s => s[0]), ['出場選手', '時間順の予定']);
+  $('pvDocx').click(); await delay(300); assert.equal(blobs.length, 1);
+  const zz = await JSZip.loadAsync(blobs[0] instanceof Uint8Array ? blobs[0] : await blobs[0].arrayBuffer()); const x = await zz.file('word/document.xml').async('string');
+  assert.match(x, /第1回架空区大会の出場について/); assert.match(x, /山田 太郎/); assert.match(x, /<w:numId w:val="1"\/>/); assert.match(x, /<w:pgSz w:w="11906" w:h="16838"\/>/); assert.ok(zz.file('word/numbering.xml'));
   $('pvClose').click(); assert.equal($('parentView').hidden, true);
 });
-await check('ビルド結果：版 v0.21・ボタンに「試し版」・使い方に説明', () => {
+await check('ビルド結果：版 v0.22・試し版の印なし・使い方に説明', () => {
   const I = fs.readFileSync(path.join(OUT, 'index.html'), 'utf8'), G = fs.readFileSync(path.join(OUT, 'guide.html'), 'utf8');
-  assert.match(I, /v0\.21/); assert.match(I, /id="btnParent"[^>]*>👪 保護者案内用の表 <span class="trial">試し版/); assert.match(I, /var LaneParent/); assert.match(G, /id="g11"/);
+  assert.match(I, /v0\.22/); assert.match(I, /id="btnParent"[^>]*>👪 保護者へのお知らせ</); assert.doesNotMatch(I, /class="trial">試し版/); assert.match(I, /var LaneNotice/); assert.match(G, /id="g11"[^<]*<\/span>👪 保護者へのお知らせ/);
 });
 console.log(`${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

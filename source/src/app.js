@@ -87,6 +87,7 @@
       var pages = await readPdf(file, function (p, n) { if (tok === loadSeq[kind]) setStatus(sid, '読み取り中…「' + esc(file.name) + '」 ' + p + '／' + n + 'ページ', 'busy'); });
       if (tok !== loadSeq[kind]) return;   // もっと新しいファイルが入れられた
       try { fillMeta(pages, fname); } catch (e) { }
+      try { (state.docText = state.docText || {})[kind] = pagesText(pages); } catch (e) { }
       try { state.dateCands[kind] = MeetParser.findDates(pages, fname); updateDate(); } catch (e) { console.error(e); }
       var feeMsg = '';
       if (kind === 'yoko') state.yokoName = file.name;
@@ -855,18 +856,158 @@
   // 「=」「+」「-」「@」で始まる文字はExcelで数式として動くことがあるので、先頭に ' を付けて文字として扱う
   function safeCell(v) { return typeof v === 'string' && /^[=+\-@\t\r]/.test(v) && !/^-?\d+(\.\d+)?$/.test(v) ? "'" + v : v; }
   function safeAoa(a) { return a.map(function (r) { return r.map(safeCell); }); }
-  /* ---------- v0.21（試し版）保護者案内用の表 ---------- */
-  function parentOpt() { return { grade: $('pvGrade').checked, split: $('pvSplit').checked }; }
-  function parentMeta() { return { title: ($('meetName').value || '（大会名）') + '　出場選手・予定', sub: [$('meetDate').value, state.teams.join('・')].filter(Boolean).join('　') }; }
-  function parentParts() {
-    var o = parentOpt();
-    return { ath: LaneParent.athleteGrid(state.rows, o), time: LaneParent.timeGrid(dispRows(), MeetLogic.byTime) };
+  /* ---------- v0.22 保護者へのお知らせ（ひな形＋この大会だけの値） ---------- */
+  var NT = null, NM = { edited: {} }, ntFit = null, ntTimer = 0, ntFound = {};
+  function ntKey() { var u = curUid(); return 'lanenote-parent-template' + (u ? ':' + u : ''); }
+  function ntLoadLocal() { try { var s = localStorage.getItem(ntKey()) || localStorage.getItem('lanenote-parent-template'); return s ? LaneNotice.sanitize(JSON.parse(s)) : null; } catch (e) { return null; } }
+  async function ntLoadCloud() {
+    var sc = authScope(); if (!sc.uid || !FB) return;
+    try {
+      var d = await withTimeout(FB.F.getDoc(FB.F.doc(FB.fs, 'users', sc.uid, 'settings', 'parentTemplate')), 15000);
+      if (!authOk(sc) || !d.exists()) return;
+      var t = d.data() && d.data().t; if (!t) return;
+      NT = LaneNotice.sanitize(JSON.parse(t)); try { localStorage.setItem(ntKey(), JSON.stringify(NT)); } catch (e) { }
+      if (!$('parentView').hidden) { ntEditor(); ntRender(); }
+    } catch (e) { }
   }
-  function parentDoc() { var p = parentParts(); return LaneParent.docHtml([LaneParent.gridHtml(p.ath, '出場選手'), LaneParent.gridHtml(p.time, '時間順の予定')], parentMeta()); }
+  async function ntSave() {
+    var j = JSON.stringify(NT), msg = '';
+    try { localStorage.setItem(ntKey(), j); msg = '✔ ひな形をこの端末に保存しました。'; } catch (e) { msg = '✖ この端末に保存できませんでした。'; }
+    var sc = authScope();
+    if (sc.uid && FB) {
+      try { await withTimeout(FB.F.setDoc(FB.F.doc(FB.fs, 'users', sc.uid, 'settings', 'parentTemplate'), { t: j, updatedAt: new Date().toISOString() }), 15000); if (authOk(sc)) msg = '✔ ひな形を保存しました（ログイン中のアカウントにも保存。ほかの端末でも使えます）。'; }
+      catch (e) { msg += '（アカウントへの保存はできませんでした）'; }
+    }
+    ntMsg(msg);
+  }
+  function ntMsg(s, ng) { $('pvMsg').style.color = ng ? '#b3261e' : ''; $('pvMsg').textContent = s; }
+  function pagesText(pages) {
+    return pages.map(function (pg) { var ls = {}; (pg.items || []).forEach(function (i) { var k = Math.round(i.y / 3); ls[k] = (ls[k] ? ls[k] + ' ' : '') + i.str; }); return Object.keys(ls).sort(function (a, b) { return b - a; }).map(function (k) { return ls[k]; }).join('\n'); }).join('\n');
+  }
+  function ntTimes() {
+    var real = (state.rows || []).map(function (r) { return LaneNotice.toMin(r.start); }).filter(function (n) { return n != null; });
+    var all = (state.tt || []).map(function (s) { return LaneNotice.toMin(s.time); }).filter(function (n) { return n != null; });
+    var f = ntFound;
+    return { first: real.length ? LaneNotice.fmtMin(Math.min.apply(null, real)) : '', last: real.length ? LaneNotice.fmtMin(Math.max.apply(null, real)) : '',
+      start: all.length ? LaneNotice.fmtMin(Math.min.apply(null, all)) : f.start ? f.start.v : '', gate: NM.gate || (f.gate ? f.gate.v : '') };
+  }
+  // この大会だけの値：自分で直したもの（edited）はそのまま、ほかは毎回資料から作り直す
+  function ntAuto() {
+    ntFound = LaneNotice.extract(state.docText || {});
+    var d = LaneNotice.parseDate($('meetDate').value || state.day || ''), now = new Date();
+    var auto = { name: $('meetName').value || '', date: LaneNotice.fmtDate(d, NT.era), venue: ntFound.venue ? ntFound.venue.v : '', station: ntFound.station ? ntFound.station.v : '', gate: ntFound.gate ? ntFound.gate.v : '', docDate: LaneNotice.fmtDate({ y: now.getFullYear(), m: now.getMonth() + 1, d: now.getDate() }, NT.era, true), place: '' };
+    Object.keys(auto).forEach(function (k) { if (!NM.edited[k]) NM[k] = auto[k]; });
+    var t = ntTimes();
+    if (!NM.edited.gather) NM.gather = LaneNotice.gatherTime(NT.call, t);
+    if (!NM.edited.dismiss) NM.dismiss = LaneNotice.dismissTime(NT.dismiss, t);
+    return t;
+  }
+  function parentOpt() { return { grade: NT ? NT.table.grade : true, split: NT ? NT.table.split : true }; }
+  function parentMeta() { return { title: ($('meetName').value || '（大会名）') + '　出場選手・予定', sub: [$('meetDate').value, state.teams.join('・')].filter(Boolean).join('　') }; }
+  function parentParts() { var o = parentOpt(); return { ath: LaneParent.athleteGrid(state.rows, o), time: LaneParent.timeGrid(dispRows(), MeetLogic.byTime) }; }
+  function ntDoc(fit) { return LaneNotice.docHtml(NT, NM, parentParts(), fit); }
+  var NT_BASE = { first: '自校の最初の種目', start: '大会の競技開始', gate: '開門' };
+  function ntEditor() {
+    var e = function (s) { return esc(s == null ? '' : s); }, t = ntAuto(), T = NT, f = ntFound;
+    var inp = function (k, lab, ph, src) { return '<label class="nt-f"><span>' + lab + '</span><input data-m="' + k + '" value="' + e(NM[k]) + '" placeholder="' + e(ph || '') + '">' + (src ? '<small>' + src + '</small>' : '') + '</label>'; };
+    var srcOf = function (k) { return NM.edited[k] ? '自分で入力' : f[k] ? f[k].src + 'から' : '資料に見つからず（入力してください）'; };
+    var timeNote = function (rule, k) { var b = NT_BASE[rule.base]; return NM.edited[k] ? '自分で入力' : (k === 'gather' ? b + ' ' + (t[rule.base] || '（不明）') + ' の ' : '最後の種目 ' + (t.last || '（不明）') + ' の ') + (rule.h ? rule.h + '時間' : '') + (rule.m ? rule.m + '分' : '') + (k === 'gather' ? '前' : '後'); };
+    var list = function (path, items) { return '<div class="nt-list" data-list="' + path + '">' + items.map(function (x, i) { return '<div class="nt-li"><input data-li="' + i + '" value="' + e(x) + '"><button type="button" data-la="up" data-i="' + i + '" aria-label="上へ">↑</button><button type="button" data-la="down" data-i="' + i + '" aria-label="下へ">↓</button><button type="button" data-la="del" data-i="' + i + '" aria-label="消す">✕</button></div>'; }).join('') + '<button type="button" class="nt-add" data-la="add">＋ 行を追加</button></div>'; };
+    var h = '<section class="nt-box"><h3>📅 この大会だけ</h3>' +
+      inp('name', '大会名', '例：第○回 北区中学校陸上競技大会', NM.edited.name ? '自分で入力' : $('meetName').value ? '資料から' : '') +
+      inp('date', '日にち', '例：令和8年10月11日（日）', NM.edited.date ? '自分で入力' : NM.date ? '資料から' : '資料に見つからず') +
+      inp('venue', '競技場', '', srcOf('venue')) + inp('station', '最寄り駅', '', srcOf('station')) + inp('gate', '開門', '例：8:00', srcOf('gate')) +
+      inp('gather', '集合時刻', '例：7:30', timeNote(T.call, 'gather')) + inp('place', '集合場所', T.place, 'ふだんの場所は「学校の設定」') +
+      inp('dismiss', '解散予定', '', T.dismiss.on ? timeNote(T.dismiss, 'dismiss') : '「学校の設定」で表示を切っています') + inp('docDate', '文書の日付', '', '今日の日付（直せます）') +
+      '<button type="button" class="btn sub nt-small" id="ntReauto">↻ 資料から入れ直す</button></section>';
+    h += '<details class="nt-box" id="ntSchool"' + (T.school ? '' : ' open') + '><summary><h3>⚙ 学校の設定（毎回同じ）</h3></summary>' +
+      '<div class="nt-lay" role="radiogroup" aria-label="レイアウト">' + [['std', '標準'], ['table', '表中心'], ['clean', 'すっきり']].map(function (l) { return '<button type="button" role="radio" aria-checked="' + (T.layout === l[0]) + '" class="nt-th' + (T.layout === l[0] ? ' on' : '') + '" data-layout="' + l[0] + '">' + LaneNotice.THUMB[l[0]] + '<span>' + l[1] + '</span></button>'; }).join('') + '</div>' +
+      ['school:学校名', 'club:部活名', 'to:宛先', 'title:タイトル（{大会名} が入ります）', 'place:ふだんの集合場所'].map(function (p) { var k = p.split(':'); return '<label class="nt-f"><span>' + k[1] + '</span><input data-t="' + k[0] + '" value="' + e(T[k[0]]) + '"></label>'; }).join('') +
+      '<div class="nt-f"><span>顧問名</span>' + list('advisors', T.advisors) + '</div>' +
+      '<label class="nt-f"><span>日付の書き方</span><select data-t="era"><option value="wareki"' + (T.era === 'wareki' ? ' selected' : '') + '>和暦（令和）</option><option value="seireki"' + (T.era === 'seireki' ? ' selected' : '') + '>西暦</option></select></label>' +
+      '<label class="nt-f"><span>フォント</span><select data-t="font"><option value="mincho"' + (T.font === 'mincho' ? ' selected' : '') + '>明朝</option><option value="gothic"' + (T.font === 'gothic' ? ' selected' : '') + '>ゴシック</option></select></label>' +
+      '<label class="nt-f"><span>文字の大きさ</span><select data-t="size" data-num="1">' + [9, 9.5, 10, 10.5, 11, 12].map(function (n) { return '<option value="' + n + '"' + (T.size === n ? ' selected' : '') + '>' + n + 'pt</option>'; }).join('') + '</select></label>' +
+      '<label class="nt-c"><input type="checkbox" data-t="fit"' + (T.fit ? ' checked' : '') + '> A4 1枚に収める（文字・余白を自動で小さくする）</label>' +
+      '<div class="nt-f"><span>集合時刻の決め方</span><div class="nt-rule"><select data-t="call.base">' + Object.keys(NT_BASE).map(function (k) { return '<option value="' + k + '"' + (T.call.base === k ? ' selected' : '') + '>' + NT_BASE[k] + '</option>'; }).join('') + '</select> の <input type="number" min="0" max="6" data-t="call.h" data-num="1" value="' + T.call.h + '">時間 <input type="number" min="0" max="59" step="5" data-t="call.m" data-num="1" value="' + T.call.m + '">分前</div></div>' +
+      '<div class="nt-f"><span>解散予定</span><div class="nt-rule"><label><input type="checkbox" data-t="dismiss.on"' + (T.dismiss.on ? ' checked' : '') + '> 出す：最後の種目の</label> <input type="number" min="0" max="6" data-t="dismiss.h" data-num="1" value="' + T.dismiss.h + '">時間 <input type="number" min="0" max="59" step="5" data-t="dismiss.m" data-num="1" value="' + T.dismiss.m + '">分後</div></div>' +
+      '<div class="nt-f"><span>要点に出す項目（名前も直せます）</span>' + T.points.map(function (p, i) { return '<div class="nt-li"><input type="checkbox" data-pt-on="' + i + '"' + (p.on ? ' checked' : '') + ' aria-label="出す"><input data-pt="' + i + '" value="' + e(p.label) + '"></div>'; }).join('') + '</div>' +
+      '<div class="nt-f"><span>出場選手表</span><label class="nt-c"><input type="checkbox" data-t="table.grade"' + (T.table.grade ? ' checked' : '') + '> 学年の列</label><label class="nt-c"><input type="checkbox" data-t="table.split"' + (T.table.split ? ' checked' : '') + '> 男子・女子を左右に並べる</label><small>リレーの列は、リレーに出るときだけ自動で出ます。</small></div>' +
+      '</details>';
+    h += '<section class="nt-box"><h3>📝 文書の中身（順番・表示を選べます）</h3>' + T.sections.map(function (s, i) {
+      var body = '';
+      if (s.type === 'greeting') body = '<textarea data-t="greeting" rows="4">' + e(T.greeting) + '</textarea>';
+      else if (s.type === 'belongings') body = list('belongings.items', T.belongings.items) + '<label class="nt-f"><span>備考</span><input data-t="belongings.note" value="' + e(T.belongings.note) + '"></label>';
+      else if (s.type === 'cautions') body = list('cautions', T.cautions);
+      else if (s.type === 'contact') body = list('contact', T.contact);
+      else if (s.type === 'free') body = '<input data-s="' + i + '" data-sk="title" value="' + e(s.title) + '" placeholder="見出し（なくても可）"><textarea data-s="' + i + '" data-sk="text" rows="3" placeholder="本文">' + e(s.text) + '</textarea>';
+      return '<div class="nt-sec' + (s.on ? '' : ' off') + '" data-i="' + i + '"><div class="nt-sh"><label><input type="checkbox" data-son="' + i + '"' + (s.on ? ' checked' : '') + '> <b>' + e(s.type === 'free' ? (s.title || '自由欄') : LaneNotice.SEC_LABEL[s.type]) + '</b></label><span><button type="button" data-sa="up" data-i="' + i + '" aria-label="上へ">↑</button><button type="button" data-sa="down" data-i="' + i + '" aria-label="下へ">↓</button><button type="button" data-sa="free" data-i="' + i + '" title="この下に自由欄を追加">＋欄</button>' + (s.type === 'free' ? '<button type="button" data-sa="del" data-i="' + i + '" aria-label="この欄を消す">✕</button>' : '') + '</span></div>' + (s.on && body ? '<div class="nt-sb">' + body + '</div>' : '') + '</div>';
+    }).join('') + '<button type="button" class="btn sub nt-small" id="ntFree">＋ 自由欄を追加</button><p class="nt-tip">文の中に {大会名} {日付} {競技場} {最寄り駅} {集合時刻} {集合場所} {解散予定} {開門} {学校名} {部活名} と書くと、その値が入ります。</p></section>' +
+      '<div class="nt-save"><button type="button" class="btn" id="ntSave">💾 ひな形を保存</button><button type="button" class="btn sub" id="ntReset">↺ 初期に戻す</button></div>';
+    $('ntEdit').innerHTML = h;
+  }
+  function ntRender() {
+    clearTimeout(ntTimer); ntTimer = 0;
+    var t = ntAuto();
+    ['gather', 'dismiss'].forEach(function (k) { var el = document.querySelector('#ntEdit [data-m="' + k + '"]'); if (el && document.activeElement !== el) el.value = NM[k] || ''; });
+    var fr = $('pvFrame');
+    fr.onload = function () {
+      var d = fr.contentDocument; if (!d || !d.body) return;
+      ntFit = NT.fit ? LaneNotice.fitDoc(d, NT.size) : { fs: NT.size, sp: 1, lh: 1, fits: null };
+      var w = $('ntWarn');
+      if (ntFit.fits === false) {
+        var nm = function (id) { var s = NT.sections.filter(function (x) { return x.id === id; })[0]; return s ? (s.type === 'free' ? (s.title || '自由欄') : LaneNotice.SEC_LABEL[s.type]) : id; };
+        w.hidden = false; w.textContent = '⚠ 文字を ' + LaneNotice.MIN_FS + 'pt まで小さくしても A4 1枚に入りません（約' + Math.round(ntFit.ratio * 100) + '%）。長いのは「' + ntFit.over.map(function (o) { return nm(o.id); }).join('」「') + '」です。文を短くするか、欄を外してください。';
+      } else { w.hidden = true; w.textContent = ''; }
+      $('ntSize').textContent = NT.fit ? (ntFit.fits ? 'A4 1枚・文字 ' + ntFit.fs + 'pt' : '') : '';
+      ntZoom();
+    };
+    fr.srcdoc = ntDoc();
+    return t;
+  }
+  function ntZoom() { var fr = $('pvFrame'), d = fr.contentDocument; if (!d || !d.body) return; var w = fr.clientWidth, page = 210 * 96 / 25.4 + 20; d.documentElement.style.zoom = w && w < page ? String(Math.max(.3, w / page)) : ''; }
+  function ntSoon() { clearTimeout(ntTimer); ntTimer = setTimeout(ntRender, 250); }
+  function ntSetPath(path, v) { var ks = path.split('.'), o = NT; for (var i = 0; i < ks.length - 1; i++) o = o[ks[i]]; o[ks[ks.length - 1]] = v; }
+  function ntGetPath(path) { return path.split('.').reduce(function (o, k) { return o[k]; }, NT); }
+  function ntInput(ev) {
+    var el = ev.target, d = el.dataset, rebuild = false;
+    if (d.m) { NM[d.m] = el.value; NM.edited[d.m] = true; }
+    else if (d.t) { var v = el.type === 'checkbox' ? el.checked : d.num ? +el.value || 0 : el.value; ntSetPath(d.t, v); rebuild = el.tagName === 'SELECT' || el.type === 'checkbox' || /^(call|dismiss)\./.test(d.t); if (d.t === 'era') { NM.edited.date = NM.edited.docDate = false; } }
+    else if (d.li != null) { ntGetPath(el.closest('[data-list]').dataset.list)[+d.li] = el.value; }
+    else if (d.pt != null) NT.points[+d.pt].label = el.value;
+    else if (d.ptOn != null) { NT.points[+d.ptOn].on = el.checked; }
+    else if (d.son != null) { NT.sections[+d.son].on = el.checked; rebuild = true; }
+    else if (d.s != null) NT.sections[+d.s][d.sk] = el.value;
+    else return;
+    if (rebuild && ev.type === 'change') { ntEditor(); ntRender(); } else ntSoon();
+  }
+  function ntClick(ev) {
+    var b = ev.target.closest('button'); if (!b) return; var d = b.dataset, mv = function (a, i, j) { if (j < 0 || j >= a.length) return; var x = a[i]; a[i] = a[j]; a[j] = x; };
+    if (d.layout) NT.layout = d.layout;
+    else if (d.la) {
+      var a = ntGetPath(b.closest('[data-list]').dataset.list), i = +d.i;
+      if (d.la === 'add') a.push(''); else if (d.la === 'del') a.splice(i, 1); else mv(a, i, d.la === 'up' ? i - 1 : i + 1);
+    } else if (d.sa) {
+      var S = NT.sections, k = +d.i;
+      if (d.sa === 'free') S.splice(k + 1, 0, { id: 'f' + Date.now().toString(36), type: 'free', on: true, title: '', text: '' });
+      else if (d.sa === 'del') S.splice(k, 1); else mv(S, k, d.sa === 'up' ? k - 1 : k + 1);
+    } else if (b.id === 'ntFree') NT.sections.push({ id: 'f' + Date.now().toString(36), type: 'free', on: true, title: 'お願い', text: '' });
+    else if (b.id === 'ntReauto') NM = { edited: {} };
+    else if (b.id === 'ntSave') { ntSave(); return; }
+    else if (b.id === 'ntReset') { if (!confirm('ひな形を初めの状態に戻します（保存するまでは元に戻せます）。よろしいですか？')) return; NT = LaneNotice.defaults(); }
+    else return;
+    var open = $('ntSchool') && $('ntSchool').open, y = $('ntEdit').scrollTop;
+    ntEditor(); if ($('ntSchool')) $('ntSchool').open = open; $('ntEdit').scrollTop = y; ntRender();
+    if (d.la === 'add') { var ins = b.closest('[data-list]'); ins = document.querySelector('[data-list="' + ins.dataset.list + '"] .nt-li:last-of-type input'); if (ins) ins.focus(); }
+  }
   function openParent() {
     refreshPrint();
     if (!state.rows.length) { alert('学校を選んで結果を出してから作ってください。'); return; }
-    $('pvMsg').textContent = ''; $('pvFrame').srcdoc = parentDoc(); $('parentView').hidden = false;
+    if (!NT) NT = ntLoadLocal() || LaneNotice.defaults();
+    if (!NT.school && state.teams.length === 1) NT.school = state.teams[0];
+    NM = { edited: NM.edited && NM.key === ($('meetName').value + '|' + $('meetDate').value) ? NM.edited : {}, key: $('meetName').value + '|' + $('meetDate').value, _keep: NM };
+    if (NM._keep && NM._keep.key === NM.key) Object.keys(NM._keep).forEach(function (k) { if (NM.edited[k]) NM[k] = NM._keep[k]; }); delete NM._keep;
+    ntMsg(''); $('parentView').hidden = false; $('parentView').classList.remove('nt-full');
+    ntEditor(); ntRender(); ntLoadCloud();
   }
   async function copyTable(which) {
     var p = parentParts(), g = p[which], title = which === 'ath' ? '出場選手' : '時間順の予定';
@@ -880,14 +1021,25 @@
       d.remove();
     }
     if (!ok) { try { await navigator.clipboard.writeText(tsv); ok = true; } catch (e) { } }
-    $('pvMsg').style.color = ok ? '' : '#b3261e';
-    $('pvMsg').textContent = ok ? '✔ 「' + title + '」の表をコピーしました。Word・Excel に貼り付けてください。' : '✖ コピーできませんでした。「Excelで保存」か「PDF作成」を使ってください。';
+    ntMsg(ok ? '✔ 「' + title + '」の表をコピーしました。Word・Excel に貼り付けてください。' : '✖ コピーできませんでした。「Excelで保存」か「PDF作成」を使ってください。', !ok);
   }
   function printParent(pdf) {
+    if (ntTimer) ntRender();
     var f = $('pvFrame'); if (!f.contentWindow) return;
+    var d = f.contentDocument; if (d) d.documentElement.style.zoom = '';
     pdfHint(!!pdf);
-    var go = function () { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { } };
+    var go = function () { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { } setTimeout(ntZoom, 500); };
     if (pdf) setTimeout(go, 400); else go();
+  }
+  async function parentDocx() {
+    if (typeof JSZip === 'undefined') { alert('Word作成部品を読み込めませんでした。インターネット接続を確認して、ページを開き直してください。'); return; }
+    if (ntTimer) ntRender();
+    // Word は文字の幅・行の高さがブラウザと少し違うので、A4 1枚のときは 0.75pt 小さめにする（つめた分も反映）
+    var fs = NT.fit && ntFit ? Math.max(7, ntFit.fs - .75 - (ntFit.sp < .4 ? .25 : 0)) : NT.size;
+    var blob = await LaneNotice.toDocx(NT, NM, parentParts(), fs, JSZip);
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fileBase() + '_保護者へのお知らせ.docx'; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+    ntMsg('✔ Wordのファイルを保存しました。');
   }
   function parentXlsx() {
     if (typeof XLSX === 'undefined') { alert('Excel作成部品を読み込めませんでした。インターネット接続を確認して、ページを開き直してください。'); return; }
@@ -901,13 +1053,17 @@
   }
   function setupParent() {
     $('btnParent').addEventListener('click', openParent);
-    ['pvGrade', 'pvSplit'].forEach(function (id) { $(id).addEventListener('change', function () { $('pvFrame').srcdoc = parentDoc(); }); });
+    var ed = $('ntEdit');
+    ed.addEventListener('input', ntInput); ed.addEventListener('change', ntInput); ed.addEventListener('click', ntClick);
     $('pvCopyAth').addEventListener('click', function () { copyTable('ath'); });
     $('pvCopyTime').addEventListener('click', function () { copyTable('time'); });
+    $('pvView').addEventListener('click', function () { var v = $('parentView'); v.classList.toggle('nt-full'); this.textContent = v.classList.contains('nt-full') ? '✏ 編集にもどる' : '👀 画面で見る'; setTimeout(ntZoom, 50); });
     $('pvPdf').addEventListener('click', function () { printParent(true); });
     $('pvPrint').addEventListener('click', function () { printParent(false); });
+    $('pvDocx').addEventListener('click', parentDocx);
     $('pvXlsx').addEventListener('click', parentXlsx);
     $('pvClose').addEventListener('click', function () { $('parentView').hidden = true; });
+    window.addEventListener('resize', function () { if (!$('parentView').hidden) ntZoom(); });
   }
   function exportXlsx() {
     if (!state.rows.length) { alert('学校を選んで結果を出してから保存してください。'); return; }
