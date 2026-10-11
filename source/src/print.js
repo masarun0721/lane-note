@@ -97,23 +97,46 @@ var LanePrint = (function () {
     recs.forEach(function (r) { names[R.athleteKey(r)] = 1; var p = pbd[r.id]; if (p && p.flag === 'PB') { nPB++; hl.push({ r: r, p: p }); } else if (p) nFirst++; });
     var evs = []; recs.forEach(function (r) { var k = R.eventKey(r); if (evs.indexOf(k) < 0) evs.push(k); });
     var body = '<div class="lp-sum"><div class="lp-kpi"><b>' + Object.keys(names).length + '</b><span>出場人数</span></div><div class="lp-kpi"><b>' + recs.length + '</b><span>記録数</span></div><div class="lp-kpi lp-kpb"><b>' + nPB + '</b><span>PB更新</span></div><div class="lp-kpi"><b>' + nFirst + '</b><span>初記録</span></div></div>';
-    if (hl.length) body += '<div class="lp-hl"><div class="lp-h3"><span>🔥 PB更新</span><em>' + hl.length + '件</em></div><ul>' + hl.map(function (h) { return '<li><b>' + esc(h.r.name) + '</b> ' + esc(R.eventKeyLabel(h.r, o.nog)) + ' <span class="lp-mk">' + esc(h.r.mark) + '</span>' + (h.p.diff != null ? ' <span class="lp-up">' + esc(R.fmtImprovement(h.p.diff, h.p.lower)) + '</span>' : '') + (h.p.prev ? ' <small>（前のPB ' + esc(h.p.prev.mark) + '）</small>' : '') + '</li>'; }).join('') + '</ul></div>';
+    // v0.9.4：PB更新の一覧は通常のみ（1枚モードは表のPB印で足りる）
+    if (hl.length && !o.one) body += '<div class="lp-hl"><div class="lp-h3"><span>🔥 PB更新</span><em>' + hl.length + '件</em></div><ul>' + hl.map(function (h) { return '<li><b>' + esc(h.r.name) + '</b> ' + esc(R.eventKeyLabel(h.r, o.nog)) + ' <span class="lp-mk">' + esc(h.r.mark) + '</span>' + (h.p.diff != null ? ' <span class="lp-up">' + esc(R.fmtImprovement(h.p.diff, h.p.lower)) + '</span>' : '') + (h.p.prev ? ' <small>（前のPB ' + esc(h.p.prev.mark) + '）</small>' : '') + '</li>'; }).join('') + '</ul></div>';
     if (!recs.length) body += '<p class="lp-empty">この条件の記録はありません。</p>';
-    body += '<div class="lp-cols">';
+    // v0.9.4：種目でくくった1枚の格子の表（種目セルは縦に結合・種目の間は太線・区分は横いっぱいの行）
+    var blocks = [];   // {div, rows:[html], n}
     R.groupEvents(evs, recs, o.nog).forEach(function (g) {
-      body += '<div class="lp-div">' + esc(g.group) + '</div>';
+      var gb = { div: g.group, evs: [] };
       g.items.forEach(function (it) {
         var rs = recs.filter(function (r) { return R.eventKey(r) === it.key; }).sort(function (a, b) { var va = R.markValue(a.mark), vb = R.markValue(b.mark); if (!va !== !vb) return va ? -1 : 1; if (va && vb && va.v !== vb.v) return va.lower ? va.v - vb.v : vb.v - va.v; return (a.order || 0) - (b.order || 0); });
-        body += '<div class="lp-ev"><div class="lp-h3"><span>' + esc(it.label) + '</span><em>' + rs.length + '件</em></div><table class="lp-t lp-mt"><thead><tr><th>氏名</th><th>学年</th><th>ラウンド</th><th class="lp-r">記録</th><th class="lp-r">風</th><th class="lp-r">順位</th><th></th><th class="lp-r">前回差</th></tr></thead><tbody>' + rs.map(function (r) {
+        var html = rs.map(function (r, i) {
           var p = pbd[r.id], mv = R.markValue(r.mark), pv = mv ? prevOf(r) : null, d = pv ? R.improvement(pv.mark, r.mark) : null;
           var diff = d == null ? '' : d === 0 ? '±0' : d > 0 ? R.fmtImprovement(d, mv.lower) : (mv.lower ? '+' : '−') + Math.abs(d).toFixed(2) + (mv.lower ? '秒' : '');
           var rd = [r.round, r.heat !== '' && r.heat != null ? r.heat + '組' : ''].filter(Boolean).join(' ');
-          return '<tr class="' + (!mv ? 'lp-nm' : p && p.flag === 'PB' ? 'lp-pb' : '') + '"><td class="lp-nmn">' + esc(r.name) + '</td><td>' + esc(r.grade ? r.grade + '年' : '') + '</td><td>' + esc(rd) + '</td><td class="lp-mk lp-r">' + esc(r.mark) + '</td><td class="lp-num lp-r">' + wind(R, r) + '</td><td class="lp-num lp-r">' + esc(r.rank) + '</td><td>' + (p ? '<span class="lp-bdg' + (p.flag === 'PB' ? ' lp-bpb">PB' : ' lp-bfs">初記録') + '</span>' : '') + '</td><td class="lp-num lp-r' + (d > 0 ? ' lp-up' : '') + '">' + esc(diff) + '</td></tr>';
-        }).join('') + '</tbody></table></div>';
+          var cls = [i === 0 ? 'lp-evtop' : '', i % 2 ? 'lp-z' : '', !mv ? 'lp-nm' : p && p.flag === 'PB' ? 'lp-pb' : ''].filter(Boolean).join(' ');
+          return '<tr' + (cls ? ' class="' + cls + '"' : '') + '>' + (i === 0 ? '<th scope="rowgroup" class="lp-evc" rowspan="' + rs.length + '">' + esc(it.label) + '</th>' : '') + '<td class="lp-nmn">' + esc(r.name) + '</td><td class="lp-c">' + esc(r.grade ? r.grade + '年' : '') + '</td><td>' + esc(rd) + '</td><td class="lp-mk lp-r">' + esc(r.mark) + '</td><td class="lp-num lp-r">' + wind(R, r) + '</td><td class="lp-num lp-c">' + esc(r.rank) + '</td><td class="lp-c lp-pbc">' + (p ? '<span class="lp-bdg' + (p.flag === 'PB' ? ' lp-bpb">PB' : ' lp-bfs">初<span class="lp-wd">記録</span>') + '</span>' : '') + (diff ? '<span class="lp-dfm' + (d > 0 ? ' lp-up' : '') + '">' + esc(diff) + '</span>' : '') + '</td><td class="lp-num lp-r lp-dfc' + (d > 0 ? ' lp-up' : '') + '">' + esc(diff) + '</td></tr>';
+        }).join('');
+        gb.evs.push({ html: html, n: rs.length });
       });
+      blocks.push(gb);
     });
+    var HEAD = '<colgroup><col class="lp-cev"><col class="lp-cnm"><col><col><col><col><col><col><col></colgroup><thead><tr><th>種目</th><th>氏名</th><th class="lp-c">学年</th><th>ラウンド<span class="lp-wd">/組</span></th><th class="lp-r">記録</th><th class="lp-r">風</th><th class="lp-c">順位</th><th class="lp-c lp-pbc">PB/初<span class="lp-dfm">・前回差</span></th><th class="lp-r lp-dfc">前回差</th></tr></thead>';
+    function table(parts) {   // parts: [{div, evs}]
+      return '<table class="lp-t lp-grid">' + HEAD + parts.map(function (g) { return '<tbody class="lp-gdiv"><tr class="lp-divr"><th colspan="9">' + esc(g.div) + '</th></tr></tbody>' + g.evs.map(function (e) { return '<tbody class="lp-gev">' + e.html + '</tbody>'; }).join(''); }).join('') + '</table>';
+    }
+    var total = 0; blocks.forEach(function (g) { g.evs.forEach(function (e) { total += e.n + 0.3; }); total += 1; });
+    if (recs.length) {
+      if (o.one && total > 64) {   // 多いときは2つの表を左右に（種目の途中では分けない）
+        var L = [], Rt = [], acc = 0, half = total / 2;
+        blocks.forEach(function (g) {
+          var cur = null;
+          g.evs.forEach(function (e) {
+            var side = acc < half ? L : Rt;
+            if (!cur || cur.side !== side) { cur = { div: g.div + (side === Rt && L.length && L[L.length - 1].div.indexOf(g.div) === 0 ? '（つづき）' : ''), evs: [], side: side }; side.push(cur); acc += 1; }
+            cur.evs.push(e); acc += e.n + 0.3;
+          });
+        });
+        body += '<div class="lp-cols lp-two">' + table(L) + table(Rt) + '</div>';
+      } else body += '<div class="lp-cols">' + table(blocks) + '</div>';
+    }
     var sub = [sd(o.meetDate), o.cond].filter(Boolean).map(function (c) { return '<i>' + esc(c) + '</i>'; }).join('');
-    body += '</div>';
     // v0.9.3：天気・気温は出さない（1日の中でばらつくため）。o.one＝1枚にまとめる（縮小・2段組み）
     var out = page('大会まとめ', o, body, band('MEET REPORT', o.meet || '大会まとめ', sub, o));
     return o.one ? out.replace('<section class="lp-page">', '<section class="lp-page lp-one" data-one="1">') + '<p class="lp-fitnote" id="lpFitNote" hidden>人数が多いため文字が小さくなっています</p>' : out;

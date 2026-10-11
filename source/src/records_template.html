@@ -226,11 +226,30 @@ tr.rc.editing td{background:#fff3ec!important}
 #rbPrint .lp-one .lp-band{padding:8px 14px}#rbPrint .lp-one .lp-big{font-size:18px}
 #rbPrint .lp-one .lp-sum{gap:4px;margin:2px 0 4px}#rbPrint .lp-one .lp-kpi{padding:3px}#rbPrint .lp-one .lp-kpi b{font-size:14px}#rbPrint .lp-one .lp-kpi span{font-size:7.5pt}
 #rbPrint .lp-one .lp-hl{margin:2px 0 4px}#rbPrint .lp-one .lp-hl ul{columns:2;column-gap:10px;margin:0;padding-left:14px;font-size:7.5pt}#rbPrint .lp-one .lp-hl li{break-inside:avoid}
-#rbPrint .lp-one .lp-cols{columns:2;column-gap:5mm}
-#rbPrint .lp-one .lp-ev{break-inside:avoid;margin:0 0 3px}#rbPrint .lp-one .lp-div{break-after:avoid;margin:3px 0 1px;font-size:8pt;padding:1px 4px}
-#rbPrint .lp-one .lp-h3{font-size:8pt;margin:2px 0 1px;padding:1px 0}
-#rbPrint .lp-one .lp-t th,#rbPrint .lp-one .lp-t td{padding:1px 2px!important;font-size:7pt!important;line-height:1.25;white-space:nowrap}
-#rbPrint .lp-one .lp-t{width:100%}#rbPrint .lp-one .lp-bdg{font-size:6.5pt;padding:0 2px}
+/* v0.9.4：大会まとめは種目でくくった格子の表 */
+#rbPrint .lp-grid{border-collapse:collapse;border:1.5px solid #1f3a68;border-radius:0;overflow:visible;margin:6px 0 4px}
+#rbPrint .lp-grid th,#rbPrint .lp-grid td{border:1px solid #c9d1df!important;padding:3px 6px!important;vertical-align:middle}
+#rbPrint .lp-grid thead{display:table-header-group}#rbPrint .lp-grid tbody{break-inside:avoid;page-break-inside:avoid}
+#rbPrint .lp-grid thead th{background:#1f3a68!important;color:#fff!important;border-color:#1f3a68!important;white-space:nowrap}
+#rbPrint .lp-grid tr.lp-divr th{background:#dfe6f2!important;color:#1f3a68!important;font-weight:900!important;letter-spacing:.12em;text-align:left;border-top:2px solid #1f3a68!important}
+#rbPrint .lp-grid tbody.lp-gev{border-top:2px solid #1f3a68}
+#rbPrint .lp-grid tr.lp-evtop>*{border-top:2px solid #1f3a68!important}
+#rbPrint .lp-grid th.lp-evc{background:#f0f3f9!important;color:#1f3a68!important;font-weight:800!important;text-align:left;white-space:nowrap;font-size:11px!important}
+#rbPrint .lp-grid tbody tr:nth-child(even) td{background:#fff}#rbPrint .lp-grid tr.lp-z td{background:#f5f7fb}
+#rbPrint .lp-grid tr.lp-pb td{background:#fff1d0!important}#rbPrint .lp-grid tr.lp-pb td:first-child,#rbPrint .lp-grid tr.lp-pb td.lp-nmn{box-shadow:inset 3px 0 0 #d7263d}
+#rbPrint .lp-grid tr.lp-nm td{color:#a3abbb!important;background:#fafbfc}
+#rbPrint .lp-grid .lp-c{text-align:center}
+#rbPrint .lp-cols.lp-two{display:flex;gap:3mm;align-items:flex-start}#rbPrint .lp-cols.lp-two>.lp-grid{flex:1 1 0;width:50%!important;min-width:0;table-layout:auto}#rbPrint .lp-one .lp-two .lp-grid th,#rbPrint .lp-one .lp-two .lp-grid td{padding:1px 2px!important;font-size:6.5pt!important}#rbPrint .lp-one .lp-two .lp-grid th.lp-evc{white-space:normal;width:13mm;font-size:6.5pt!important}
+#rbPrint .lp-one .lp-grid{margin:3px 0 0}
+#rbPrint .lp-one .lp-grid th,#rbPrint .lp-one .lp-grid td{padding:1.5px 3px!important;font-size:7.5pt!important;line-height:1.25;white-space:nowrap}
+#rbPrint .lp-one .lp-grid th.lp-evc{font-size:7.5pt!important}#rbPrint .lp-one .lp-grid td.lp-mk{font-size:8pt!important}
+#rbPrint .lp-one .lp-bdg{font-size:6.5pt;padding:0 2px}
+#rbPrint .lp-grid .lp-dfm{display:none}
+@media (max-width:600px){#rbPrint .lp-grid{table-layout:auto;width:100%!important}#rbPrint .lp-grid th,#rbPrint .lp-grid td,#rbPrint .lp-one .lp-grid th,#rbPrint .lp-one .lp-grid td,#rbPrint .lp-one .lp-two .lp-grid th,#rbPrint .lp-one .lp-two .lp-grid td{padding:2px 2px!important;font-size:9px!important;white-space:nowrap;letter-spacing:0}
+#rbPrint .lp-grid td.lp-mk{font-size:10px!important}#rbPrint .lp-grid th.lp-evc{white-space:normal!important;font-size:9px!important;width:auto}
+#rbPrint .lp-grid .lp-dfc{display:none}#rbPrint .lp-grid .lp-wd{display:none}#rbPrint .lp-grid .lp-dfm{display:block;font-size:8.5px}#rbPrint .lp-grid thead .lp-dfm{display:inline;font-size:inherit}
+#rbPrint .lp-grid .lp-bdg{font-size:8px;padding:0 2px}#rbPrint .lp-grid tr.lp-divr th{letter-spacing:.04em}#rbPrint .lp-one{zoom:1!important}
+#rbPrint .lp-cols{overflow:visible}#rbPrint .lp-cols.lp-two{flex-direction:column}#rbPrint .lp-cols.lp-two>.lp-grid{width:100%}}
 #rbPrint .lp-one .lp-f{margin-top:2px;font-size:7pt}
 @media print{#rbPrint .lp-one{break-after:auto;page-break-after:auto}.lp-fitnote{display:none!important}#rbPrint header.lp-band,#rbPrint footer.lp-f{display:flex!important}}
 #rbPrintHint{background:#ffe9a8;color:#3a2c00;padding:6px 10px;border-radius:6px;font-weight:700}

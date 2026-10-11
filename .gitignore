@@ -1,1 +1,4 @@
 firestore-debug.log
+source/dist/
+source/LANE_NOTE.html
+source/test/node_modules/
