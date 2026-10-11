@@ -13,7 +13,7 @@ import base64, pathlib, re, sys
 ROOT = pathlib.Path(__file__).resolve().parent
 S = ROOT / 'src'
 SHARE_BASE = 'https://masarun0721.github.io/lane-note/'   # 共有リンク・QRの公開アドレス（file:// で開いたとき用）
-VERSION = 'v0.10'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
+VERSION = 'v0.11'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
 # 作成日は版番号から取れないので固定（ビルドした日で変わると、公開時の一致検査ができないため）
 BUILD_DATE = '2026年10月11日'
 REC_VERSION = 'v0.3.0'   # LANE LOG（records.html）だけの版
@@ -39,7 +39,7 @@ def logo_inline(p):
 def build():
     html = text('src/template.html')
     rep = {
-        '__PARSER__': text('src/parser.js'), '__LOGIC__': text('src/logic.js'),
+        '__PARSER__': text('src/parser.js'), '__LOGIC__': text('src/logic.js'), '__PLAYER__': text('src/player.js'),
         '__ZEKKEN__': text('src/zekken.js'), '__APP__': text('src/app.js'),
         '__KOSHI_B64__': b64('templates/koshi_template.docx'), '__MUNE_B64__': b64('templates/mune_template.docx'),
         '__LOGO_DARK__': logo_inline('logo/option_A_dark.svg'),

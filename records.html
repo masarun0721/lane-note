@@ -425,7 +425,25 @@ footer a{color:var(--navy)}
   #paneTime .tw,#paneAth .tw,#paneTime .scrollhint,#paneAth .scrollhint{display:none}
   #timeCards,#athCards{display:block}
 }
-@media print{.mcards,#viewer,#savedHome,.dlg{display:none!important}}
+@media print{.mcards,#viewer,#savedHome,.dlg,#player{display:none!important}}
+  .pl-list{margin:8px 0}.pl-row{display:grid;grid-template-columns:1fr 84px;gap:6px 10px;align-items:center;border-top:1px solid var(--line);padding:10px 0}
+  .pl-who b{display:block;font-size:16px}.pl-who small{color:var(--muted)}.pl-qr{grid-row:span 2;width:84px}.pl-qr svg{width:84px;height:84px;display:block}
+  .pl-link{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.pl-link input{flex:1 1 100%;font-size:11px;font-family:monospace;padding:4px;border:1px solid var(--line);border-radius:6px}.pl-link small{color:var(--muted);flex:1}
+  body.player-mode>header,body.player-mode main>:not(#player),body.player-mode>footer{display:none!important}
+  body.player-mode{background:#fff7f2}
+  #player{max-width:520px;margin:0 auto;padding:6px 2px 30px;font-size:17px}
+  .pv-head{background:var(--navy);color:#fff;border-radius:18px;padding:14px 16px}.pv-ttl{font-size:13px;opacity:.85}.pv-name{font-size:24px;font-weight:800;margin:2px 0 4px}.pv-meet{font-size:14px;line-height:1.5;opacity:.95}
+  .pv-next{margin:12px 0;background:var(--track);color:#fff;border-radius:18px;padding:14px 16px;box-shadow:0 3px 0 var(--track-d)}.pv-nl{font-size:14px}.pv-nt{font-size:40px;font-weight:800;line-height:1.1}.pv-nn{font-size:19px;font-weight:700}.pv-nc{margin-top:4px;font-size:16px}.pv-nc b{font-size:22px}
+  .pv-list{list-style:none;margin:0;padding:0}.pv-i{display:grid;grid-template-columns:4.2em 1fr auto;gap:8px;align-items:center;background:#fff;border:2px solid var(--line);border-radius:14px;padding:12px;margin:8px 0;min-height:56px}
+  .pv-t{font-size:20px;font-weight:800}.pv-t small{display:block;font-size:12px;color:var(--muted);font-weight:600}.pv-b b{display:block;font-size:17px}.pv-b small{display:block;color:var(--muted);font-size:14px}
+  .pv-tag{display:inline-block;font-size:12px;font-weight:800;border-radius:8px;padding:1px 8px;margin-bottom:2px}.pv-tag.race{background:var(--track);color:#fff}.pv-tag.call{background:#f4b400;color:#3a2a00}
+  .pv-race{border-color:var(--track)}.pv-call{border-color:#f4b400;background:#fffaeb}.pv-now{outline:4px solid var(--navy);outline-offset:1px}.pv-done{opacity:.45}
+  .pv-lock{font-size:18px;opacity:.6;padding:0 6px}.pv-ops{display:flex;gap:4px}.pv-ops button{width:44px;height:44px;border:1px solid var(--line);border-radius:12px;background:#fff;font-size:18px}
+  .pv-form{background:#fff;border:2px dashed var(--track);border-radius:18px;padding:12px 14px;margin-top:16px}.pv-form h3{margin:0 0 8px;font-size:18px}
+  .pv-presets{display:flex;flex-wrap:wrap;gap:8px}.pv-pre{min-height:44px;padding:0 14px;border-radius:22px;border:2px solid var(--navy);background:#fff;color:var(--navy);font-size:15px;font-weight:700}
+  .pv-row{display:flex;gap:8px;margin-top:10px}.pv-row input{min-height:48px;font-size:17px;border:2px solid var(--line);border-radius:12px;padding:0 10px}#pvLabel{flex:1;min-width:0}#pvTime{width:7.5em}
+  .pv-add{flex:1;min-height:52px;border:0;border-radius:14px;background:var(--track);color:#fff;font-size:18px;font-weight:800}.pv-cancel{min-height:52px;padding:0 16px;border:2px solid var(--line);border-radius:14px;background:#fff;font-size:16px}
+  .pv-msg{color:var(--ng);font-weight:700;margin-top:6px}.pv-foot{font-size:13px;color:var(--muted);line-height:1.6;margin-top:14px}
 .pagenav{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .pagenav a{display:inline-block;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.45);border-radius:999px;padding:3px 12px;font-size:13px;text-decoration:none}
 .pagenav a.on{background:#fff;color:var(--navy);font-weight:700}
@@ -1079,7 +1097,7 @@ if (typeof module !== 'undefined') module.exports = ResultParser;
 
 </script>
 <script>
-var APP_VERSION = "v0.10", REC_VERSION = "v0.3.0";
+var APP_VERSION = "v0.11", REC_VERSION = "v0.3.0";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>

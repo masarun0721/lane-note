@@ -424,7 +424,25 @@ footer a{color:var(--navy)}
   #paneTime .tw,#paneAth .tw,#paneTime .scrollhint,#paneAth .scrollhint{display:none}
   #timeCards,#athCards{display:block}
 }
-@media print{.mcards,#viewer,#savedHome,.dlg{display:none!important}}
+@media print{.mcards,#viewer,#savedHome,.dlg,#player{display:none!important}}
+  .pl-list{margin:8px 0}.pl-row{display:grid;grid-template-columns:1fr 84px;gap:6px 10px;align-items:center;border-top:1px solid var(--line);padding:10px 0}
+  .pl-who b{display:block;font-size:16px}.pl-who small{color:var(--muted)}.pl-qr{grid-row:span 2;width:84px}.pl-qr svg{width:84px;height:84px;display:block}
+  .pl-link{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.pl-link input{flex:1 1 100%;font-size:11px;font-family:monospace;padding:4px;border:1px solid var(--line);border-radius:6px}.pl-link small{color:var(--muted);flex:1}
+  body.player-mode>header,body.player-mode main>:not(#player),body.player-mode>footer{display:none!important}
+  body.player-mode{background:#fff7f2}
+  #player{max-width:520px;margin:0 auto;padding:6px 2px 30px;font-size:17px}
+  .pv-head{background:var(--navy);color:#fff;border-radius:18px;padding:14px 16px}.pv-ttl{font-size:13px;opacity:.85}.pv-name{font-size:24px;font-weight:800;margin:2px 0 4px}.pv-meet{font-size:14px;line-height:1.5;opacity:.95}
+  .pv-next{margin:12px 0;background:var(--track);color:#fff;border-radius:18px;padding:14px 16px;box-shadow:0 3px 0 var(--track-d)}.pv-nl{font-size:14px}.pv-nt{font-size:40px;font-weight:800;line-height:1.1}.pv-nn{font-size:19px;font-weight:700}.pv-nc{margin-top:4px;font-size:16px}.pv-nc b{font-size:22px}
+  .pv-list{list-style:none;margin:0;padding:0}.pv-i{display:grid;grid-template-columns:4.2em 1fr auto;gap:8px;align-items:center;background:#fff;border:2px solid var(--line);border-radius:14px;padding:12px;margin:8px 0;min-height:56px}
+  .pv-t{font-size:20px;font-weight:800}.pv-t small{display:block;font-size:12px;color:var(--muted);font-weight:600}.pv-b b{display:block;font-size:17px}.pv-b small{display:block;color:var(--muted);font-size:14px}
+  .pv-tag{display:inline-block;font-size:12px;font-weight:800;border-radius:8px;padding:1px 8px;margin-bottom:2px}.pv-tag.race{background:var(--track);color:#fff}.pv-tag.call{background:#f4b400;color:#3a2a00}
+  .pv-race{border-color:var(--track)}.pv-call{border-color:#f4b400;background:#fffaeb}.pv-now{outline:4px solid var(--navy);outline-offset:1px}.pv-done{opacity:.45}
+  .pv-lock{font-size:18px;opacity:.6;padding:0 6px}.pv-ops{display:flex;gap:4px}.pv-ops button{width:44px;height:44px;border:1px solid var(--line);border-radius:12px;background:#fff;font-size:18px}
+  .pv-form{background:#fff;border:2px dashed var(--track);border-radius:18px;padding:12px 14px;margin-top:16px}.pv-form h3{margin:0 0 8px;font-size:18px}
+  .pv-presets{display:flex;flex-wrap:wrap;gap:8px}.pv-pre{min-height:44px;padding:0 14px;border-radius:22px;border:2px solid var(--navy);background:#fff;color:var(--navy);font-size:15px;font-weight:700}
+  .pv-row{display:flex;gap:8px;margin-top:10px}.pv-row input{min-height:48px;font-size:17px;border:2px solid var(--line);border-radius:12px;padding:0 10px}#pvLabel{flex:1;min-width:0}#pvTime{width:7.5em}
+  .pv-add{flex:1;min-height:52px;border:0;border-radius:14px;background:var(--track);color:#fff;font-size:18px;font-weight:800}.pv-cancel{min-height:52px;padding:0 16px;border:2px solid var(--line);border-radius:14px;background:#fff;font-size:16px}
+  .pv-msg{color:var(--ng);font-weight:700;margin-top:6px}.pv-foot{font-size:13px;color:var(--muted);line-height:1.6;margin-top:14px}
 .pagenav{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .pagenav a{display:inline-block;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.45);border-radius:999px;padding:3px 12px;font-size:13px;text-decoration:none}
 .pagenav a.on{background:#fff;color:var(--navy);font-weight:700}
@@ -446,6 +464,19 @@ footer a{color:var(--navy)}
   <nav class="pagenav" aria-label="ページ"><a href="./" class="on" aria-current="page">🏁 大会準備</a><a href="records.html">📒 LANE LOG（試作）</a></nav>
 </header>
 <main>
+<section id="player" hidden>
+  <div class="pv-head"><div class="pv-ttl">きみの大会の日の予定</div><div class="pv-name" id="pvName"></div><div class="pv-meet" id="pvMeet"></div></div>
+  <div class="pv-next" id="pvNext" aria-live="polite"></div>
+  <ol class="pv-list" id="pvList"></ol>
+  <div class="pv-form" id="pvForm">
+    <h3>＋ じぶんの予定をたす</h3>
+    <div class="pv-presets" id="pvPresets"></div>
+    <div class="pv-row"><input id="pvLabel" maxlength="40" placeholder="なにをする？（れい：おきる）" aria-label="なにをする"><input id="pvTime" type="time" aria-label="時間"></div>
+    <div class="pv-row"><button class="pv-add" id="pvAdd" type="button">＋ たす</button><button class="pv-cancel" id="pvCancel" type="button" hidden>やめる</button></div>
+    <div class="pv-msg" id="pvMsg"></div>
+  </div>
+  <p class="pv-foot">🔒 マークは先生が入れた予定（しょうしゅう・しあい）なので、けせません。じぶんで足した予定は、このスマホにだけのこります。<br>時間がかわることもあるので、さいごは会場の発表や先生の話をたしかめてね。</p>
+</section>
 <section class="box" id="viewer" hidden>
   <div class="v-top"><span class="v-badge">閲覧モード（読み取り専用）</span><button class="btn sub" id="vClose" type="button">通常の画面へ</button></div>
   <h2 id="vTitle"></h2>
@@ -472,6 +503,19 @@ footer a{color:var(--navy)}
     <p class="small muted" id="shareHow"></p>
   </div>
 </div>
+<div id="playerDlg" class="dlg" hidden role="dialog" aria-modal="true" aria-labelledby="plTtl">
+  <div class="dlg-in">
+    <h3 id="plTtl">🏃 選手用リンク（1人ずつ）</h3>
+    <p class="small">選手それぞれに、<b>その子の出場（種目・組・レーン・レースと招集の時刻）だけ</b>が入ったリンクとQRを作ります。ほかの選手の名前やリレーの仲間の名前は入りません。選手はログインなしで開けて、起きる時間などを自分で足せます（その子のスマホにだけ保存）。</p>
+    <label class="small">会場（任意）：<input id="plVenue" size="20" placeholder="例：夢の島競技場"></label>
+    <div id="plAuth" class="small" hidden><span id="plAuthInfo"></span> <button class="btn sub" id="plSignIn" type="button">Googleでログイン</button></div>
+    <div class="dlg-btns"><button class="btn" id="plMake" type="button">🔗 全員分のリンクを作る</button><button class="btn sub" id="plCopyAll" type="button" disabled>📋 全員分をまとめてコピー（LINE用）</button></div>
+    <div id="plMsg" class="small"></div>
+    <div id="plList" class="pl-list"></div>
+    <p class="warn small">⚠ リンクを知っている人なら誰でも、その子の名前と出場が見られます。LINEのグループに貼るときは、自分のリンクだけ開くよう伝えてください。</p>
+    <div class="dlg-btns"><button class="btn sub" id="plClose" type="button">閉じる</button></div>
+  </div>
+</div>
 <section class="box howto">
   <h2>使い方</h2>
   <ol>
@@ -489,6 +533,7 @@ footer a{color:var(--navy)}
       <li>「スマホで見る／共有」で<b>Googleでログインしているとき</b>は短いリンク（…/?s=英数字10文字）を作ります。このとき、選んだ学校の結果（大会名・日付・時刻・選手名など）を LANE NOTE の Firebase（Google）に120日間保存し、リンクを知っている人なら誰でも見られます（一覧で探すことはできません）。</li>
       <li><b>ログインしていないとき</b>（または通信できないとき）は長いリンクになり、結果はリンクの「#」より後ろに入ります。この部分はサーバーへ送られず、どこにも保存されませんが、リンクを渡した相手は中身を見られます。</li>
       <li>このページ（大会準備）の説明です。別ページの「LANE LOG（レーンログ）」は、Googleでログインしたときだけ記録を LANE NOTE の Firebase（Google）に本人だけが読める形で保存します（ログインしないときはそのブラウザの中だけ）。</li>
+      <li><b>選手用リンク</b>（v0.11）：1人分の出場（大会名・日付・会場・種目・組・レーン・レースと招集の時刻・招集場所・その子の名前／学年／学校／ナンバー）だけを入れます。ほかの選手の名前・ナンバー（リレーの仲間も）は入れません。ログイン中は上と同じく Firebase に120日間保存（1人1件）、ログインなしは長いリンクの「#」より後ろに入ります。選手が自分で足した予定（起床など）と、開いたリンクの中身は、その選手の端末のブラウザにだけ保存し、どこにも送りません。</li>
       <li>「ナンバーカード」タブのAmazonへのリンクは、押したときだけAmazonのページを開きます。自動で何かを送ったり、Amazonから画像などを読み込んだりはしません。</li>
     </ul></details>
 </section>
@@ -536,6 +581,7 @@ footer a{color:var(--navy)}
     <button class="btn sub" id="btnRec">📝 記録用紙を印刷</button>
     <button class="btn sub" id="btnRecXlsx">記録用紙をExcelで保存</button>
     <button class="btn sub" id="btnShare">📱 スマホで見る／共有</button>
+    <button class="btn sub" id="btnPlayers">🏃 選手用リンクを作る</button>
   </div>
   <div class="recmeta noprint">大会名 <input id="meetName" size="28" placeholder="例：第74回北区民体育大会"> <span class="rs na" id="dateMark" title="">－</span>日付 <input id="meetDate" size="18" placeholder="例：2026年10月11日（日）"> <small class="muted" id="dateSrc"></small> <select id="dateAlt" hidden title="日付の候補から選ぶ"></select><div class="warn small" id="multiDayWarn" hidden></div></div>
   <p class="small muted noprint">用紙：出場一覧・記録用紙＝A4縦／ナンバーカード＝B5。印刷の設定は「実際のサイズ（100%）」にしてください。</p>
@@ -603,6 +649,9 @@ __PARSER__
 </script>
 <script>
 __LOGIC__
+</script>
+<script>
+__PLAYER__
 </script>
 <script>
 __ZEKKEN__

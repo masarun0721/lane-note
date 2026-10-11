@@ -820,7 +820,7 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     Object.keys(SID).forEach(function (k) { INIT_STATUS[k] = $(SID[k]).innerHTML; });
-    setupShare();
+    setupShare(); setupPlayer();
     setupDrop('slDrop', 'slFile', 'sl');
     setupDrop('ttDrop', 'ttFile', 'tt');
     setupDrop('noteDrop', 'noteFile', 'note');
@@ -886,6 +886,7 @@
     var m = /^1\.([A-Za-z0-9_-]+)$/.exec(str || ''); if (!m) throw new Error('リンクの形式が違います');
     if (typeof DecompressionStream === 'undefined') throw new Error('このブラウザは展開に対応していません');
     var o = JSON.parse(new TextDecoder().decode(await pipe(unb64u(m[1]), new DecompressionStream('deflate-raw'))));
+    if (o && o.v === 1 && o.k === 'p' && Array.isArray(o.e) && o.a) return o;
     if (!o || o.v !== 1 || !Array.isArray(o.r)) throw new Error('リンクの中身を読めませんでした');
     o.ts = Array.isArray(o.ts) ? o.ts.map(String) : []; o.c = Array.isArray(o.c) ? o.c : [];
     return o;
@@ -1042,9 +1043,9 @@
   }
   function sid(str) { var h = 5381; for (var i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0; return (h >>> 0).toString(36); }
   var viewing = null;
-  async function openViewerStr(str, fromLink) {
+  async function openViewerStr(str, fromLink, shareId) {
     var o;
-    try { o = await decodePayload(str); } catch (e) { document.body.classList.add('viewer-mode'); $('viewer').hidden = false; $('vBody').innerHTML = '<p class="warn">リンクを読めませんでした：' + esc(e.message) + '（リンクが途中で切れている可能性があります）</p>'; $('vTitle').textContent = 'LANE NOTE 閲覧'; return; }
+    try { o = await decodePayload(str); if (o.k === 'p') { openPlayer(o, str, shareId || sid(str)); return; } } catch (e) { document.body.classList.add('viewer-mode'); $('viewer').hidden = false; $('vBody').innerHTML = '<p class="warn">リンクを読めませんでした：' + esc(e.message) + '（リンクが途中で切れている可能性があります）</p>'; $('vTitle').textContent = 'LANE NOTE 閲覧'; return; }
     viewing = { str: str, o: o };
     document.body.classList.add('viewer-mode'); $('viewer').hidden = false;
     $('vTitle').textContent = o.n || '（大会名なし）';
@@ -1083,19 +1084,146 @@
       document.querySelectorAll('#viewer .vtabs button').forEach(function (x) { x.classList.toggle('on', x === b); });
       ['vTime', 'vAth', 'vCards'].forEach(function (id) { $(id).hidden = id !== b.dataset.v; });
     }); });
-    var fromHash = function () { var m = /^#d=(.+)$/.exec(location.hash); if (m) openViewerStr(m[1], true); };
+    var fromHash = function () { var m = /^#[dp]=(.+)$/.exec(location.hash); if (m) openViewerStr(m[1], true); };
     window.addEventListener('hashchange', fromHash);
     var fromQuery = async function () {
       var m = /[?&]s=([A-Za-z0-9]{6,40})(?:&|$)/.exec(location.search); if (!m) return false;
       document.body.classList.add('viewer-mode'); $('viewer').hidden = false; $('vTitle').textContent = 'LANE NOTE 閲覧'; $('vTime').innerHTML = '<p class="small muted">読み込んでいます…</p>';
-      try { await openViewerStr(await fetchShare(m[1]), true); }
-      catch (e) { $('vTime').innerHTML = '<p class="warn">リンクを開けませんでした：' + esc(e.message) + '（電波の良いところでもう一度開いてください）</p>'; }
+      try { await openViewerStr(await fetchShare(m[1]), true, m[1]); }
+      catch (e) {
+        var keep = pvLoad(m[1]); if (keep && keep.p) { await openViewerStr(keep.p, true, m[1]); return true; }   // 選手用：一度開いたリンクは電波がなくても開ける
+        $('vTime').innerHTML = '<p class="warn">リンクを開けませんでした：' + esc(e.message) + '（電波の良いところでもう一度開いてください）</p>'; }
       return true;
     };
     renderSaved();
-    if (/^#d=/.test(location.hash)) fromHash(); else fromQuery();
+    if (/^#[dp]=/.test(location.hash)) fromHash(); else fromQuery();
     // 公開版（https）のときだけ、このページ自体を端末に置いておく（オフラインでも閲覧できるように）。PDFや選手データはキャッシュしない
     if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) navigator.serviceWorker.register('sw.js').catch(function () { });
+  }
+  /* ---------- 選手用リンク（v0.11）：1人分だけの出場情報を、その子専用のリンク・QRにする ---------- */
+  var PL = { list: [], links: {} };
+  function playerMeta() {
+    var cp = (settings().callPlace || '').trim();
+    return { n: $('meetName').value || '', d: $('meetDate').value || '', pl: ($('plVenue').value || '').trim(), cp: cp === '未設定' ? '' : cp };
+  }
+  function plAuth() {
+    var u = FB && FB.auth.currentUser;
+    $('plAuth').hidden = !CLOUD_OK;
+    $('plAuthInfo').innerHTML = u ? '☁ <b>' + esc(u.email || 'ログイン中') + '</b> でログイン中：短いリンク（' + SHARE_DAYS + '日間有効）を作ります' : 'Googleでログインすると、短いリンクになります（ログインなしだと長いリンク）。';
+    $('plSignIn').hidden = !!u;
+  }
+  function renderPlayerList() {
+    var A = PL.list;
+    $('plList').innerHTML = A.length ? A.map(function (a, i) {
+      var L = PL.links[a.key], n = state.rows.filter(function (r) { return PlayerLogic.payloadFor([r], a).e.length; }).length;
+      return '<div class="pl-row" data-i="' + i + '"><div class="pl-who"><b>' + esc(a.name || '（名前なし）') + '</b><small>' + esc([a.bib ? a.bib + '番' : '', a.grade, a.team, n + '種目'].filter(Boolean).join('・')) + '</small></div>' +
+        (L ? '<div class="pl-qr">' + L.qr + '</div><div class="pl-link"><input readonly value="' + esc(L.url) + '" aria-label="' + esc(a.name) + 'さんのリンク"><small>' + (L.short ? '短いリンク' : '長いリンク') + '・' + L.url.length + '文字</small><button class="btn sub pl-copy" type="button">コピー</button></div>' : '<div class="small muted">まだ作っていません</div>') + '</div>';
+    }).join('') : '<p class="warn">自校の選手が見つかりません。先にスタートリストを読み込んで学校を選んでください。</p>';
+    $('plList').querySelectorAll('.pl-copy').forEach(function (b) { b.addEventListener('click', function () { copyText(b.parentNode.querySelector('input').value, b, 'コピー'); }); });
+    $('plCopyAll').disabled = !Object.keys(PL.links).length;
+  }
+  function copyText(t, btn, label) {
+    var done = function () { btn.textContent = '✔ コピーしました'; setTimeout(function () { btn.textContent = label; }, 1800); };
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(t).then(done, function () { alert(t); });
+    else { var ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); done(); }
+  }
+  function qrSvg(url, short) {
+    if (url.length > QR_MAX || typeof qrcode !== 'function') return '<small class="warn">長すぎてQRにできません</small>';
+    try { var q = qrcode(0, short ? 'M' : 'L'); q.addData(url, 'Byte'); q.make(); return q.createSvgTag({ cellSize: 2, margin: 2, scalable: true }); } catch (e) { return '<small class="warn">QRを作れませんでした</small>'; }
+  }
+  async function makePlayerLinks() {
+    var btn = $('plMake'); btn.disabled = true; var meta = playerMeta(), signed = false, errs = 0;
+    if (CLOUD_OK) { try { await withTimeout(loadFirebase(), 8000); signed = !!FB.auth.currentUser; } catch (e) { } }   // 電波が悪くても止まらない（長いリンクで作る）
+    for (var i = 0; i < PL.list.length; i++) {
+      var a = PL.list[i]; btn.textContent = '作っています… ' + (i + 1) + '／' + PL.list.length;
+      var str = await encodePayload(PlayerLogic.payloadFor(state.rows, a, meta)), url = shareBase() + '#p=' + str, short = false;
+      if (signed) { try { var s = await makeShortUrl(str); if (s) { url = s; short = true; } } catch (e) { errs++; } }
+      PL.links[a.key] = { url: url, short: short, qr: qrSvg(url, short), name: a.name };
+      renderPlayerList();
+    }
+    btn.disabled = false; btn.textContent = '🔁 リンクを作り直す';
+    $('plMsg').innerHTML = errs ? '<span class="warn">' + errs + '人分は短いリンクを作れなかったので、長いリンクにしました。</span>' : '';
+  }
+  function openPlayers() {
+    if (!state.rows.length) { alert('先にスタートリストを読み込んで、学校を選んでください。'); return; }
+    PL.list = PlayerLogic.athletes(state.rows); PL.links = {};
+    $('plMake').textContent = '🔗 全員分のリンクを作る'; $('plMsg').innerHTML = '';
+    plAuth(); renderPlayerList(); $('playerDlg').hidden = false;
+    if (CLOUD_OK) loadFirebase().then(plAuth, function () { });
+  }
+  function copyAllPlayers() {
+    var m = playerMeta(), t = (m.n ? '【' + m.n + '】' : '') + '大会の日の予定です。自分の名前のリンクを開いてね（ほかの人のは開かないでね）\n\n' +
+      PL.list.filter(function (a) { return PL.links[a.key]; }).map(function (a) { return a.name + '：' + PL.links[a.key].url; }).join('\n');
+    copyText(t, $('plCopyAll'), '📋 全員分をまとめてコピー（LINE用）');
+  }
+  /* ---------- 選手が開くページ（ログイン不要）。自分の予定はこの端末にだけ保存 ---------- */
+  var PV = null, PKEY = 'lanenote.player.v1.';
+  function pvLoad(id) { try { var o = JSON.parse(localStorage.getItem(PKEY + id) || 'null'); return o && typeof o === 'object' ? o : null; } catch (e) { return null; } }
+  function pvStore() { try { localStorage.setItem(PKEY + PV.id, JSON.stringify({ p: PV.str, own: PV.own, at: new Date().toISOString() })); } catch (e) { $('pvMsg').textContent = 'この端末に保存できませんでした（プライベートモードかもしれません）'; } }
+  function pvNow() { var d = window.__playerNow ? new Date(window.__playerNow) : new Date(); return d; }
+  function meetDay(s) { var m = /(\d{4})\D+(\d{1,2})\D+(\d{1,2})/.exec(String(s || '').normalize('NFKC')); return m ? new Date(+m[1], m[2] - 1, +m[3]) : null; }
+  function hm(mins) { var h = Math.floor(mins / 60), m = mins % 60; return (h ? h + 'じかん' : '') + (m || !h ? m + 'ふん' : ''); }
+  function openPlayer(o, str, id) {
+    var saved = pvLoad(id);
+    PV = { o: o, str: str, id: id, own: saved && Array.isArray(saved.own) ? saved.own : [], edit: null };
+    document.body.classList.add('player-mode'); $('player').hidden = false; $('viewer').hidden = true;
+    document.title = 'きみの大会の日の予定';
+    $('pvName').textContent = (o.a && o.a.name ? o.a.name : '') + ' さん';
+    $('pvMeet').innerHTML = [o.n ? '<b>' + esc(o.n) + '</b>' : '', o.d ? '📅 ' + esc(o.d) : '', o.pl ? '📍 ' + esc(o.pl) : ''].filter(Boolean).join('<br>');
+    pvStore(); pvPresets(); pvRender(); window.scrollTo(0, 0);
+    clearInterval(PV.tm); PV.tm = setInterval(pvRender, 30000);
+  }
+  function pvItems() { return PlayerLogic.merge(PlayerLogic.autoItems(PV.o), PV.own); }
+  function pvRender() {
+    var items = pvItems(), now = pvNow(), day = meetDay(PV.o.d), nowMin = now.getHours() * 60 + now.getMinutes();
+    var today = !day || day.toDateString() === now.toDateString(), ni = today ? PlayerLogic.nextIndex(items, nowMin) : -1;
+    var nx = ni >= 0 ? items[ni] : null;
+    $('pvNext').innerHTML = nx ? '<div class="pv-nl">つぎは</div><div class="pv-nt">' + esc(nx.t) + '</div><div class="pv-nn">' + esc(nx.label) + '</div><div class="pv-nc">あと <b>' + hm(PlayerLogic.toMin(nx.t) - nowMin) + '</b></div>' :
+      (day && day > now ? '<div class="pv-nn">大会の日は ' + (day.getMonth() + 1) + 'がつ' + day.getDate() + 'にち だよ。<br>じゅんびしておこう！</div>' : '<div class="pv-nn">きょうの予定はおわり！おつかれさま 🎉</div>');
+    $('pvList').innerHTML = items.map(function (x, i) {
+      var cls = 'pv-i pv-' + x.kind + (i === ni ? ' pv-now' : '') + (today && ni >= 0 && i < ni && PlayerLogic.toMin(x.t) != null ? ' pv-done' : '');
+      var tag = x.kind === 'race' ? '<span class="pv-tag race">🏃 しあい</span>' : x.kind === 'call' ? '<span class="pv-tag call">📣 しょうしゅう</span>' : '';
+      return '<li class="' + cls + '"><div class="pv-t">' + esc(x.t || '--:--') + (x.t2 ? '<small>〜' + esc(x.t2) + '</small>' : '') + '</div><div class="pv-b">' + tag + '<b>' + esc(x.label) + '</b>' + (x.sub ? '<small>' + esc(x.sub) + '</small>' : '') + '</div>' +
+        (x.auto ? '<div class="pv-lock" title="先生が入れた予定なので消せません">🔒</div>' : '<div class="pv-ops"><button type="button" class="pv-ed" data-id="' + esc(x.id) + '" aria-label="なおす">✏️</button><button type="button" class="pv-del" data-id="' + esc(x.id) + '" aria-label="けす">🗑</button></div>') + '</li>';
+    }).join('') || '<li class="pv-i"><div class="pv-b">まだ予定がありません</div></li>';
+    $('pvList').querySelectorAll('.pv-ed').forEach(function (b) { b.addEventListener('click', function () { pvEdit(b.dataset.id); }); });
+    $('pvList').querySelectorAll('.pv-del').forEach(function (b) { b.addEventListener('click', function () {
+      var o = PV.own.filter(function (x) { return x.id === b.dataset.id; })[0]; if (!o || !confirm('「' + o.label + '」をけしますか？')) return;
+      PV.own = PV.own.filter(function (x) { return x !== o; }); pvStore(); pvRender();
+    }); });
+  }
+  function firstAuto() { var a = PlayerLogic.autoItems(PV.o).map(function (x) { return PlayerLogic.toMin(x.t); }).filter(function (m) { return m != null; }); return a.length ? Math.min.apply(null, a) : null; }
+  function pvPresets() {
+    $('pvPresets').innerHTML = PlayerLogic.PRESETS.map(function (p) { return '<button type="button" class="pv-pre" data-l="' + esc(p[0]) + '" data-o="' + (p[1] == null ? '' : p[1]) + '">＋ ' + esc(p[0]) + '</button>'; }).join('');
+    $('pvPresets').querySelectorAll('.pv-pre').forEach(function (b) { b.addEventListener('click', function () {
+      var f = firstAuto(), off = b.dataset.o;
+      $('pvLabel').value = b.dataset.l; $('pvTime').value = off !== '' && f != null ? MeetLogic.fmt(Math.max(0, f + (+off))).padStart(5, '0') : '';
+      $('pvTime').focus();
+    }); });
+  }
+  function pvEdit(id) {
+    var o = PV.own.filter(function (x) { return x.id === id; })[0]; if (!o) return;
+    PV.edit = id; $('pvLabel').value = o.label; $('pvTime').value = o.t ? o.t.padStart(5, '0') : ''; $('pvAdd').textContent = '✔ なおす'; $('pvCancel').hidden = false;
+    $('pvForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  function pvReset() { PV.edit = null; $('pvLabel').value = ''; $('pvTime').value = ''; $('pvAdd').textContent = '＋ たす'; $('pvCancel').hidden = true; }
+  function pvSubmit() {
+    var l = $('pvLabel').value.trim().slice(0, 40), t = $('pvTime').value;
+    if (!l) { $('pvMsg').textContent = 'なにをするか書いてね'; return; }
+    if (!t) { $('pvMsg').textContent = '時間をえらんでね'; return; }
+    t = t.replace(/^0(\d):/, '$1:'); $('pvMsg').textContent = '';
+    if (PV.edit) PV.own.forEach(function (x) { if (x.id === PV.edit) { x.label = l; x.t = t; } });
+    else PV.own.push({ id: 'o' + Date.now().toString(36) + Math.floor(Math.random() * 1e4), label: l, t: t });
+    pvStore(); pvReset(); pvRender();
+  }
+  function setupPlayer() {
+    $('btnPlayers').addEventListener('click', openPlayers);
+    $('plClose').addEventListener('click', function () { $('playerDlg').hidden = true; });
+    $('plMake').addEventListener('click', function () { makePlayerLinks().catch(function (e) { alert(e.message); $('plMake').disabled = false; }); });
+    $('plCopyAll').addEventListener('click', copyAllPlayers);
+    $('plSignIn').addEventListener('click', async function () { try { await loadFirebase(); await FB.A.signInWithPopup(FB.auth, new FB.A.GoogleAuthProvider()); } catch (e) { $('plAuthInfo').innerHTML = '<span class="ng">ログインできませんでした：' + esc(e.message) + '</span>'; return; } plAuth(); });
+    $('pvAdd').addEventListener('click', pvSubmit);
+    $('pvCancel').addEventListener('click', pvReset);
   }
   var INIT_STATUS = {};
   function resetAll() {
@@ -1111,5 +1239,5 @@
     $('teamList').dataset.q = ''; ruleState = {}; renderRuleMarks(); renderFeePrices(); renderDateMark(); updateTeams(); render();
     window.scrollTo(0, 0);
   }
-  window.__meetApp = { encodePayload: encodePayload, decodePayload: decodePayload, payloadFromState: payloadFromState, openShare: openShare, refreshPrint: refreshPrint, tableData: tableData, feeData: feeData, totalText: totalText, safeCell: safeCell, state: state, handleFile: handleFile, render: render, updateTeams: updateTeams };
+  window.__meetApp = { openPlayers: openPlayers, openPlayer: openPlayer, encodePayload: encodePayload, decodePayload: decodePayload, payloadFromState: payloadFromState, openShare: openShare, refreshPrint: refreshPrint, tableData: tableData, feeData: feeData, totalText: totalText, safeCell: safeCell, state: state, handleFile: handleFile, render: render, updateTeams: updateTeams };
 })();
