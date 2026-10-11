@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LANE LOG（レーンログ）試作版｜LANE NOTE</title>
+<title>記録 試作版｜LANE NOTE</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsPSJMQU5FIE5PVEUgaWNvbiI+Cjx0aXRsZT5MQU5FIE5PVEUgaWNvbjwvdGl0bGU+CjxkZWZzPjxjbGlwUGF0aCBpZD0iaUFjb2xvcmMiPjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iMTEyIi8+PC9jbGlwUGF0aD48L2RlZnM+PHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSIxMTIiIGZpbGw9IiMxNDIxM0QiLz48ZyBjbGlwLXBhdGg9InVybCgjaUFjb2xvcmMpIj48cGF0aCBkPSJNMTEwIC0xMCBWMjAwIEEyMjAgMjIwIDAgMCAwIDMzMCA0MjAgSDUzMCBWMjUwIEgzMzAgQTUwIDUwIDAgMCAxIDI4MCAyMDAgVi0xMCBaIiBmaWxsPSIjQzg0NTJCIi8+PHBhdGggZD0iTTE2Ni43IC0xMCBWMjAwIEExNjMuMyAxNjMuMyAwIDAgMCAzMzAgMzYzLjMgSDUzMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRkZGRkZGIiBzdHJva2Utd2lkdGg9IjE1Ii8+PHBhdGggZD0iTTIyMy4zIC0xMCBWMjAwIEExMDYuNyAxMDYuNyAwIDAgMCAzMzAgMzA2LjcgSDUzMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRkZGRkZGIiBzdHJva2Utd2lkdGg9IjE1Ii8+PHJlY3QgeD0iNDQwIiB5PSIyNTAiIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNzAiIGZpbGw9IiNGRkZGRkYiLz48L2c+PHBhdGggZD0iTTQxMC4zIDYzLjI1SDQ0NC4yN1E0NDUuODUgNjMuMjUgNDQ2LjY0IDY0LjE1UTQ0Ny40MyA2NS4wNSA0NDcuMiA2Ni42Mkw0MjguNTIgMjE3LjM4UTQyOC4zIDIxOC45NSA0MjcuNCAyMTkuODVRNDI2LjUgMjIwLjc1IDQyNC45MyAyMjAuNzVIMzg2UTM4My4zIDIyMC43NSAzODIuODUgMjE3LjgyTDM3NC4zIDE0OC43NVEzNzQuMyAxNDguMDcgMzczLjg1IDE0OC4wN1EzNzMuNCAxNDguMDcgMzczLjQgMTQ4Ljc1TDM2NS4zIDIxNy4zOFEzNjUuMDcgMjE4Ljk1IDM2NC4wNiAyMTkuODVRMzYzLjA1IDIyMC43NSAzNjEuNyAyMjAuNzVIMzI3LjVRMzI2LjE1IDIyMC43NSAzMjUuMzYgMjE5Ljg1UTMyNC41NyAyMTguOTUgMzI0LjggMjE3LjM4TDM0My4yNSA2Ni42MlEzNDMuNDggNjUuMDUgMzQ0LjQ5IDY0LjE1UTM0NS41IDYzLjI1IDM0Ni44NSA2My4yNUgzODUuMzJRMzg4LjAyIDYzLjI1IDM4OC40OCA2Ni4xN0wzOTcuMjUgMTM1LjdRMzk3LjI1IDEzNi4zOCAzOTcuNyAxMzYuMTVRMzk4LjE1IDEzNS45MyAzOTguMzggMTM1LjQ3TDQwNi40OCA2Ni42MlE0MDYuNyA2NS4wNSA0MDcuNzEgNjQuMTVRNDA4LjczIDYzLjI1IDQxMC4zIDYzLjI1WiIgZmlsbD0iI0ZGRkZGRiIvPgo8L3N2Zz4K">
 <link rel="apple-touch-icon" sizes="180x180" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAYAAAA9zQYyAAAABmJLR0QA/wD/AP+gvaeTAAAayElEQVR4nO2deZxUxbXHf3Vvb9PLrN2z7yLg4AKCojIzooBoFpW4JAZjjIl58WEeKpqYxOcao4lGjE/lPU3iAkYNxi0xuAdEJXEhCogiyyzMDLOvPT093X1vvT+G1hnuHWa6bt2enp76fj58PlC376nD8OviVNWpUwQTxcKFFm99eDal5CiAzAQwnQAlALIA6qp2h9N+kut3GOlCstlxwt8+1LTvXHUp+rZ/ELM9e14hZj/2sqb940u/gmBTPZOPUR5ud+KFbkN/3XjSC6CHgPZQkG6A7KSEfiQTbFMt6rb2Xe/0TZRjlnh2ljltwSxJJUtByemoU6oByUN0P0mgxNMxQaykAkilIEVDf6SVhAIqBRCSIt7yys0A+askKS+27nl3bzwdM13Q2WXzc1RquwgEl0DBHLP7E0w4FlByGoDTVEW+x1tetZWA3u9SLU/W1m4Mmt25ZJbhzGkLZnnLqtapsDWAYDUgxDwloTieUvJHP1H2+0qrfpU7rcpnZnfcBe0rPWW2r7z6WUmRtgFYjjiHNYKExUsJfhZRsCervPr6wsKTU8zohJug00sXpvvKKu+nRP6AUrqMp21BUpFKKL0jaLV85iurvpC3cS6i85ZXL7eQyGcUZAUAmYdNQdJTTEGf9pZVPu0pWJTFy6ghQftmLXR7y6rWgtJ1AMnh5ZRgKkEutNtC230lC87iYY1Z0JnFVRUIRLYAuJiHI4IpTR6VpJe85dU3A9BfyR0nTILOKq9aJMn4JwU52kjnAsEwCCi9yVtW+VR+/lwnq5GYBe0tr15OKDYA8LB2KhCMDrkwbHe9kV66MJ3l7ZgEnVVWvQKUrgVgZelMIBgPFPQkC1FeTy08OTPWd8ctaG959bcJ6H0wGOMIBONkrs1qfSN/+kJvLC+NS9C+0sozQemj4/28QMAHOjsUVv4eS0w9pkCzy6qOpYQ8AxFmCCaGE8IO1zqMczA97Idycs5wqcBTAFw8PBMIWKCULvOWVf16PJ89rKAV58AaAEdx8UogMMa13vLqb4/1oVEF7S2vXg7gO1xdEgiMQOmDuaULSw/3EV1BZ06bnwpK7zLFKYGAnbQIUZ7G3Lmjzud0BS0r1l8ByDPNLYGAnROzulyrRnuoEbSv9JTZFORH5vokELBDKL0ho7yyWO+ZRtBUkm+CSAEVJDYuC6R79R6MOE2SOW3BLCg4Oz4+CeKBw2HHXbetQl5uTBtuAABVpbjlzjX45NM9us9X/fi7OPnE42Ky2dfXj5U/vRO9ff0x+zMcSumyzLJTl3TWbHptePsIQUsR8nMQsRuYTCw+dT6+dd6ZzO/X1Tfhuv/+rabd583A9Vd/n8nm6gfXYtuOz5l9iiJDvQXACEF/Id7ssvk5IIT7kRjBxFJWWmjo/dKSAv32Yv328dDY1Mr87nAocHJWeeXi4W1fCFqltosgDrQmHYUFxg4SFRfmcrU7MBBER2e3EZdGQChuHP7nL8MLgku49SJIGIoK9AU5XgoLciBJ2ii0MJ9N0PUNzYb80UKqsssqvwjkJeDgZFDUzUhKikYZYceLzWpFTrb2DGt+XjaTvf2NvAUNKJAui/5eAgBJkdlnDYKEhnUkHY7eKF/EGHKYIWgCenFp6UIH8EXIQU/j3otgwsnMSIXbxXw87wtKirSbxqxflIbGFqPu6JHZB2UpAEhYuNACoMqMXgQTS6HB+DmKXthSwBxDHzDqji5EwpkAIHnrw7MxVE1SkGQYnRBGKS4cOUK7nClIT2M7I72f+6TwIBRnAYA0VJ9ZkIwYXbKLcugIbeSLYtYIDaDEW7ZghnSw2LggCSnK5zVCj7RTwPhFCQYH0d7Bbw1aAyHHSwBmmNeDYCIxumQXpSA/B7L85Vp0YT7rkl0LKKVcfNKDqOQYiRCUmdaDYELhFUNbLRbkZn+Z3FTAuAbdYMKS3XAowTESqJgQJiu8YmgAKB62dMe+wmGyoIESCaCipFcS4nY5kZHOb6wavtLBOvKbPUITIE0CiBB0EsK6kzeqvWHxeOLkcWhIlwCYcjWAYGIpKuR7JDS60iHLEnIZDgsAwP5G05bsongkiFp1SQn3Ebpg6AuS48uC1cKWZbzfnG3v4RBxOiVJ4bXtHSU6QrNOCEOhMFrbOnm6pIsQdJLCa8kuSn5+NiyyzLxy0tDUAlVVufqkhxB0ksJrUyWKRZaRl+dL5AkhACHopIV3DA0MLd0xJ/abl8MxAiHoJMThsMOblcHdblFhroHEftMnhACEoJOSwvwcEMJ/8aq4IJc55BAjtIAZM8INADi64kjm9e14jdCibEESwntTJcpZSyqZ3xUjtIAZs0ZoVsKRCFraOuLSlxB0EsJ7U8UojU0tUBTz16ABIeikJNFG6HitQQNC0EkJ6wj9t1fe4uzJEGanjQ5HCDrJOPR0SSy8sfGfnL0ZQozQAmby87NHnP8bL6qq4v2tO0zwyLTiMroIQScZrPFzS2sHamobTUkgMrF0gQYh6CSDNX5uaGpFKBxGSyv/5TXTisvoIASdZBQbPO/Hu5hiRFHQ3NLO1ebhEIJOMpgPsDYNxbm8J3BNTa2IKApXm4dDCDrJYA05mg4MXRPBe4ktniscgBB00sE6KYyO0LyTiOK5Bg0IQScVkiQhL8/H9G5UyLyTiMwocH44hKCTiNzsLNiso16DfVgaTYqh64WgBaywxs/9gQF09/QBGAo9eBZUjOeSHSAEnVSMdgXbWAwPCwYHQ1zLDcRzUwUQgk4qWEfoxkMmgrziXkVR0dwcvzVoQAg6qeB1gJVXmNDU3IpwJMLF1ngRgk4iWDdVGg+MvKqY10QunklJUYSgkwjW4jLRFY4ovNaO4x0/A0LQSQMhhL2yftOhMTSfkTXeKxxAAgvaxKs4khJvVjpSUhxM7x4aGvDaXIlX6YLhJKygwaFQCh0lt5foXMY+LkbLFWa1Nww7MfYNZo2fFUXVZMPVNzRzWYuOV+mC4SSsoCMcRmgaCQNUK0LJZmeypwQHdNtlp4vJ3nAyZGOJ9axLds2t7ZqViGBwEB2dxq9fEyP0MEKcDk7oiVBysF1aoPh7db8g1rRMJnvDKbAZ+wuzbqocOiGMYnQLXFXVLzL44knCCnqA8qnNpvT3a9osnjQmW1RREO7t0bRbs9gSgoYz3R6BZOCvzH5SRV/QRid0za0dCIXDhmywkLCC7lf5CDrSo93Gtaazj6ihNm1c6MgrYrYXxS1TTLezb0LwrgpqdLdwIuJnIIEF3avwcS3U2aZps2axLW8BQLChTtOWUnIEs73hVLtDzO/mZGcxvbevpkG3fffeemZfAGBvzX5D77OSsMUa/SqBAkA2aCfUph1p7DnsxQwHavdo2lzTZzHbG87pnkE83pmCIMP/Tvfc/zgWnTo/pnfa2rvwzAuv6j574aU3MXN6KVzO2OcboVAYD/7h6Zjf40HCClqlQE9EQqbF2GRpsLlJ0+bIL2a21797p6bN5s2BzZer++WJBbdM8bW0QTzTFft68t9f3Yy/v7rZUP/D6Q8M4MbbH+BmL14kbMgBAG0R4+4FG7Uhgj2viHnpzr9ru+6uT+rs2EbH0Tg/Y8DwEt5UJqEF3Ro27t5A/T5NG5FlpBSzxb2R3m4EanZr2tNPrGKydyhuieLK7IC4PJKRhBb0AR4jdEMN1NCgpt115FHMNns+fEfTln5CJSQ726h/KPNdIZyXEeRia6qR0IJuDBkP8amiILBvl6bdfdRxzDa7tmzUtMlONzJOWshs81AuyQzgdA/7qsdUJaEFXRcyusYxhP+z7Zo2z9HHM9vr++TfCHVod8F8Z53PbPNQJAJcle3H19LESB0LCS3o+pAMHjV3/J9s1bQ5Ckth8zIWBqcqOt58SdOcNuckpBSXs9nUQSLAj3wB/Fd2PxySSD8cDwkt6BAFGjiM0r3bPtBdmUibt4DZZuuGv2htEoK8Cy9jtjkaZ6QO4sGiXpziDovJ4hgktKABYE/QeBwd7urQjaMzTjqV2WawoRY9W7do2r2Lvg5HQQmz3dHItir4eW4f7i3sxemekBixRyFhN1aifDpowSJoVylipfu9zXAeMXNEW9rcBZAcKVBHSQsdiwPrH0Ha3FNGtBFZRtFlV2H3bVcz+3o4jnBEcI3DjxUqsC1oxc6ABXVhC1rCEgY5JXSZQUqKA1lebQ5NR3snBgb4zRMSX9ADfFzs2vIP5F90+Yg2ye5AxkkL0bFxA5PNnq1b4N/5MdwVI1dMMquWIHXOSej9tzlXPACAXQJOcIZxgjP+GW0sZJyyCNNv/p2m/fObV6Lr3Te49ZPwIUd9SEavYnzk8e/ajlCrNgPMu/jrhuzuf+Re3faylTdCsrMdiRKwk/CCpgA+DrDVaxtpiKJj08ua5rR5lbB52bPvej9+X3eEceQXo/jyVcx2BWwkvKAB4EMeggbQ9tqLmjYiScj+ygWG7Nat+Y1uHJ7z9W8hs2qJIduC2Jg0glY5TOoHanfD/9k2TXv2Vy6AZLUx2x1sacT+R+/TPiAE5df+Eikl05htC2JjUgi6S5Hw+SCfyWHr3/6sabNmeg3H0s3PPYHej9/TtMspLsz45QOwZho/piUYm0khaADY0s8+gg6nY+MGhLu1x7Lyvvl99vIGAEBV7P319Qj3dGke2XMKMPOOh2BJTWe3LxgXk0bQm/1W8NhKUEODaHnhT5p2R34xshYZG6VD7a3Yc/u1oDqX5DjLjsRRv/mDofOMgrGZNIJuDcv4lMOuIQC0vPgklAHtafDCS1YwJ/5H6f3oX6h78Fe6z5zlM1Cxei0c+cYP1Qr0mTSCBoA3evnkG0f6enRHaXtOPnK/8R3D9lv++jSannxY95mjoASz7nsSqXNOMtyPQMukEvRmv43pAKkeB9Y/ioi/V9Oef9HlsBk4FR5l/yO/Q/Nz63SfWVLTMfOOh1Bw8RXG4naBhkn10wyoBG/5+UwOI309uqOonOJCyX9ez6WPujV34sD6R3SfEUlC4SUrULF6LbcyCIJJJmgAeIlT2AEALc8/gWCTtn5EZtUZyDhlEZc+6h/+Ler/7y7dEmLA0MmZY9Y8g+LLV0F2urn0OZWZdILeG7RgJ6fJoRoOoW7NnbrPylbeCGtaBpd+DvzlMXx+y1VQAn7d58RiRd4F38PsxzYg78LLIKcYL/44VZl0ggaA57vZii3q0f2vTejc/Jqm3ZqRhbJVt3Ep6wsAXe++iR1Xfks3LzuKJS0DxT+4BnOeeB3Fl19rSl51siM7M0punmgnYqUxLKPKHUKqzCfJvW/HVviWLtNkx6UUlkLp98P/6cdc+on0dqP9lech2exwH3UsyChfFslmh2fWbOSeuxzp8xbA4vIg0tuNSJ+2UORkIaWoHFkLz9K0d2x8GcH9Ndz6mZSCpgCClOAkF59cYHUggFBbs24iUdrs+ejd9gFCrdoKTCxQVUHP1nfR/f5muKZXwDbGlrjNl4u0eQuQe+5yZC9dBteRs2DPzoXkSAFVFKjBwKS47iBegibesqrE/2noIANYU9KDfCuPY7RDHPGTO3RzOsLdnfjkxxdhsKWRW18AACLBt/RcFF5yJXMKK1UURHq6oAQDUPr1Y/REQHZ7dKu0Bg/sh+Lv49bPpBU0AFR7QvhJDr9/RDnFhaMfeBqOwlLNs4G6vdh59Xd0166NItntyD7rfOSdfyls2eyFJAWTNOSIUh+ScaIrhEwLn+8kjYTR+/H78C4+G9Ihl8Bb0zPhmTUHHRs3gCp8L5OkigL/Z9vR8sKfEKjdA6snDfbcfG4T0qnEpBY0ADSGLVicavwQbZRIdyeCjbXIql6qEZQ9Ow/uGUejc/OruglIhqEUA3V70f76i2h75TmE21sgOVJg8+aMOoEUjGTSC7o1IqHEpqDYxk9gA/X7QJUI0nTyLRz5RXAdOQtd77xmjqgPogSGVlfaXnkOzc+vg3/nxwi1NYNGwpBTnMz3xCQ7kzqGjpJtUfFgcQ/3WhVlK29E9lcv1H3Wu+0DfH7jlaNulpiNxZMGe24BrJk+WNMyIKU4ISewyFNKjoB38dma9vbXX8RA3V5u/SSFoAHgG+lBXOYNcLVJJAlH/Ow3yDr1TN3ngX27sOsXV+jWuROMRJQxiJEXuh3YM8inuGMUqg6dQhntB+4sn4FZ//MkXEdWcO1XwE7SCFoBsLrFjQjn6kE0EsHuX16ruz0ODF1HUXHPWniXnMO1XwEbSSNoYKj87rpO/nEkjYSx5/ZVaHvlOd3nkt2OI667HeWrbhOTtQkmqQQNAM92O7CdU/mw4VBVxb57bkTjnx4a9TO+pctwzIPrDRVTFxgj6QStUuDuFg+X8mEaKEXDo/dh712/gBrWr67vKCxFxeq1KP6P68RoPQEknaABoCNCcHeLm0txGj3aX3sBn666FKF2/VtYiSQh77zv4rjfv4jM6qXmOCHQJSkFDQBbA1as63SaZt//2TbsuOJ8dL//9qifsWXn4cgbfouK1WvhqZhtmi+CL0laQQPA+i4H3uF0BlGPcE8Xdt1wBer+99e6N21F8cyag4p712HG7WuEsE0mqQVNAdzT6sZuzuvTIzuhaH52LXasuHDMgwDpJ1Sh4t51qLjncWRWLhYnvk1g0udyjIVCgff6bah0h+HidMJFj0hPF9pffR7h7k54KuYctmCNPTsPWaeeCd+Z58HiSUWorWVSn0YZD+LECkeClODDARuq3YOwmzkoUor+XTvQ9vKzkN0eOMtnHnYUlp0upB4zD7nnLkfG/FNh8aQh4u9FRKc+3mRHCJozvQrBR0Erqt0h2EzOxFQHg+j+5yZ0bn4V1gzv0FVvY6R/2rKykXb8ycg5+yJkL10GZ9l0yG4P1NAgIr3d5jocB+Il6IS/Y4Une4MW3Nzkwa35fUiJwy1SA/X7sPu2q+Esn4GCb/8QGZVLxhU327Lz4Fu6DL6lywAAir8PgZpdGKjbh4GGGgweaECovQXhrnZE+nqgDvLLB5/sJE22XSzMdERwa34fnHG+Gs2eV4jcc5bDd8a5kN0ebnapougWn0wkiMUC2aFdRlWCAdAIvxNAU1LQADDdHsHN+X6kyvoVjcxEsjuQWX0GfEvOQepxJwBErHbwYsoKGgBKbApuye+D1xJ/UUexZWUjo3IxMhcsgufouSCWKRUFcmdKCxoAfBYVN+f3oYTjES5WZKcbqbPnI3X2iUg9Zi5SyqaLteoYmfKCBgCnRPHTHD/mcipcwwvJkQLXtAo4j5gBZ8k0OApLYM8rGjo0K5u4WTSJEYI+iESAS7MCWJYeTPgL4okkwZrhhSUtHRZPOuQUJ4jBmwfMxj3jaORd8D1N+4H1j8C/awe3fkTAdhCVAn9sd+LzoIyV2YG4LOuxQlUVoY7WSXWWkUYiyNO5DrLvk4/EmUIzedtvx1X7U7HPzPwPgWkIQevQGJZxTUMqnu92mJZTLTAHIehRiFCC37c7ccMBD1rC4sc0WRD/UmOwLWDFivo0vChG60mBEPQ4CFKCh9qduLoxFbs4XYchMAch6BjYG7TgusZUrG51oTMifnSJiPhXiRGVDl0A+sP6NKztTEE/p3sTBXwQgmYkqBI83ZmCH9Sl489dDgSEsBMCCeByJ/yUpU8heLzDictq0/F4hxPdZtQDEYwLiiFBJ+7FHJMIv0rw5y4HLq1Nx+pWF/fCkYKxCamgFgA9APhlm09xIpTgjV473ui1Y5pdwRlpQVS7QnCbeEBXMESAEmoBRQ8ICifamWRkz6CMPa0uPEScOMEVRpUrhBPdYTiIELcZhKgUsYCgFsCsiXYmmYlQgi1+G7b4bbC2UsxxRjDPGcI8VxjZE3i4INkYUBG2EEJ2UEq/OtHOTBXClOC9five67cCbUC+VcGxzggqHGFUpESQKwTOTJ+CTgsFtk+0I1OZprCMph4ZL/cM5TOnSiqmORSU2xUU2SIosqnItygiBh8HvYpcY6EKtoozmolDrypha0DC1sDIexLdEkWWRYXPoiDdQuGRVHhkihRCYSWATaKm1xsxQu7+TuBN7S0I7+/vRDOn+oM1YfltAgDesqo6AMVcrAoEEwRRyfHRsfmVCfVEIDBOT1tdzjYJAKhKN0y0NwKBQTYB6xUJADzEsgFA5wQ7JBAwQyh5EziYnFRbuzFIgScm1iWBgB0V0ivAsGw7CyEPT5w7AoEh3u+o3fgZMEzQLfve2g7QzRPnk0DABqF0XfT3I1agVci3xd8dgcAQYUlWn4r+YYSgO2s2vQZg9GudBILE46mWve9+UXFHs0eoQro1vv4IBMyoVCV3DG/QCLqzZtNrIHg+fj4JBKyQv3TUvfXp8BbdLA4FdCWAxC4JL5jqRGQCzZxP95xQsKu+JyWzVCXAYvP9Eghih4Lc31bz1mOHto+aZ9dRLN1NKd411y2BgIlmhUo36T0YPXF048aIFfJyDJ05FAgSB4qru2s36t51d9hM6ObajbWg+JE5XgkEsUMJHm2v3fzUaM/HPGsf6K7f4cwo9gDkFL6uCQQx8zmxqcsCHftDo31gXMUjAt31r7syS48FcBQ31wSC2PCrsrqkY/c7DYf70HgPX6nWYP/FAN437pdAEDMhFdI3Ove888lYHxz3acKmpg8DYYUuhRC1IL5QCnr5wbSMMYnpeGxP/dtdQ6ImH7D5JhDEhEoJVnTUvP34eF+I+bx3T/3bXREqLSHAlljfFQhiIARCL+7Yt3lNLC8xFTDort3YnSa7TyMg4/7mCAQx0E8oPad939tPxvqi4UoOvtLqlZTQeyBqTQu4QD+TQL7ZWrN5G8vbhmu+Brrr/uVKL34PhJwOUcVUYABK8Kgl4Dy3teEfh12aOxzcau2kFp6cabNaHgTwTV42BVOGA6C45nA7gOOFe/EoX1nlBRTkbohKTIKxiVBCH1DhuKlr3+tccoZMqYZWWrrQ0YfISkLIzwCkmdGHYFKjUuBZCyG3Dh3O5oep5f3ypy/0DobVqwjoDwH4zOxLMCkIA3iKquSOQ0+a8CIu9SqnTTvL3hPxX0QJWQHQefHoU5BIkA8IVdfKFvJk857Nbab2ZKZxPXJKqstUgrMp6NkgqAYgrmZNPnoAbCKUvEmJ8nJ7zTu74tXxhFYU9s1a6Fb89BiJqMdBorNByUwAGQDSD/5KnUj/BKPiH/arE6C1FPicEOlTouDTtrqcbcB6ZSIc+38ZPL+eJr2wggAAAABJRU5ErkJggg==">
 <style>
@@ -449,7 +449,17 @@ footer a{color:var(--navy)}
 .pagenav a.on{background:#fff;color:var(--navy);font-weight:700}
 @media print{.pagenav{display:none}}
 
-/* ===== LANE LOGだけの見た目 ===== */
+/* ===== 記録ページだけの見た目 ===== */
+.divsw{display:flex;gap:0;margin:4px 0 10px;border:1px solid #1f3a68;border-radius:10px;overflow:hidden;width:max-content}
+.divsw button{border:0;background:#fff;color:#1f3a68;font-size:15px;font-weight:700;padding:8px 18px;min-height:40px;cursor:pointer}
+.divsw button+button{border-left:1px solid #1f3a68}
+.divsw button.on{background:#1f3a68;color:#fff}
+.rb-meetlist{margin:6px 0 0;padding-left:18px;font-size:13px}.rb-meetlist li{margin:2px 0}
+.rb-done{font-size:15px}
+.meetsel{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 8px}.meetsel select{max-width:100%;font-size:15px;padding:6px}
+.chartbox{display:flex;flex-direction:column;gap:4px}.chartopt{font-size:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.chartopt .lg-ref{display:inline-flex;align-items:center;gap:3px}
+.ev-only select{font-size:15px}
 .rb-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .rb-row input[type=text],.rb-row input[type=date],.rb-row select{font-size:15px;padding:6px 8px;border:1px solid #c9d2e0;border-radius:8px}
 #rbPaste{width:100%;min-height:110px;font-size:13px;border:1px solid #c9d2e0;border-radius:8px;padding:8px;font-family:inherit}
@@ -552,7 +562,7 @@ body.ath-open #rbLegend{display:none}
 <body class="records">
 <header>
   <div class="hdr-meta">
-    <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／LANE LOG v0.3.0 <span class="beta-tag">試作</span></div>
+    <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／記録 v0.4.0 <span class="beta-tag">試作</span></div>
     <div class="credit">Presented by Sakata</div>
     <div class="hdr-msg">すべての陸上競技部顧問が、少しでも楽になりますように。</div>
   </div>
@@ -560,12 +570,12 @@ body.ath-open #rbLegend{display:none}
     <h1 class="logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 924 240" aria-hidden="true" focusable="false">
 
 <g transform="translate(20 20) scale(0.39062)"><defs><clipPath id="Adarkc"><rect width="512" height="512" rx="112"/></clipPath></defs><rect width="512" height="512" rx="112" fill="#14213D"/><g clip-path="url(#Adarkc)"><path d="M110 -10 V200 A220 220 0 0 0 330 420 H530 V250 H330 A50 50 0 0 1 280 200 V-10 Z" fill="#C8452B"/><path d="M166.7 -10 V200 A163.3 163.3 0 0 0 330 363.3 H530" fill="none" stroke="#FFFFFF" stroke-width="15"/><path d="M223.3 -10 V200 A106.7 106.7 0 0 0 330 306.7 H530" fill="none" stroke="#FFFFFF" stroke-width="15"/><rect x="440" y="250" width="16" height="170" fill="#FFFFFF"/></g><path d="M410.3 63.25H444.27Q445.85 63.25 446.64 64.15Q447.43 65.05 447.2 66.62L428.52 217.38Q428.3 218.95 427.4 219.85Q426.5 220.75 424.93 220.75H386Q383.3 220.75 382.85 217.82L374.3 148.75Q374.3 148.07 373.85 148.07Q373.4 148.07 373.4 148.75L365.3 217.38Q365.07 218.95 364.06 219.85Q363.05 220.75 361.7 220.75H327.5Q326.15 220.75 325.36 219.85Q324.57 218.95 324.8 217.38L343.25 66.62Q343.48 65.05 344.49 64.15Q345.5 63.25 346.85 63.25H385.32Q388.02 63.25 388.48 66.17L397.25 135.7Q397.25 136.38 397.7 136.15Q398.15 135.93 398.38 135.47L406.48 66.62Q406.7 65.05 407.71 64.15Q408.73 63.25 410.3 63.25Z" fill="#FFFFFF"/></g><path d="M261.26 145.63 274.22 39.77Q274.38 38.66 275.09 38.03Q275.8 37.4 276.75 37.4H301.08Q302.03 37.4 302.58 38.03Q303.13 38.66 302.98 39.77L293.02 121.77Q292.71 122.56 293.65 122.56H323.67Q324.78 122.56 325.33 123.19Q325.89 123.83 325.73 124.93L323.2 145.63Q322.73 148 320.51 148H263.16Q262.21 148 261.66 147.37Q261.11 146.74 261.26 145.63ZM377.5 145.79 377.18 133.78Q377.34 133.46 377.02 133.23Q376.71 132.99 376.39 132.99H362.65Q361.86 132.99 361.54 133.78L358.54 145.79Q358.06 148 355.85 148H331.84Q329.47 148 330.1 145.47L364.86 39.45Q365.49 37.4 367.7 37.4H395.67Q397.88 37.4 398.04 39.45L406.73 145.47V145.79Q406.73 148 404.36 148H379.55Q377.34 148 377.5 145.79ZM368.49 110.24H375.92Q376.39 110.24 376.71 109.45L376.08 80.22Q376.08 79.59 375.68 79.66Q375.29 79.74 375.29 80.22L368.02 109.45Q367.7 110.24 368.49 110.24ZM475.09 37.4H498.95Q500.05 37.4 500.61 38.03Q501.16 38.66 501 39.77L487.89 145.63Q487.73 146.74 487.1 147.37Q486.46 148 485.36 148H458.02Q456.13 148 455.81 145.95L449.81 97.44Q449.81 96.97 449.49 96.97Q449.18 96.97 449.18 97.44L443.49 145.63Q443.33 146.74 442.62 147.37Q441.91 148 440.96 148H416.94Q416 148 415.44 147.37Q414.89 146.74 415.05 145.63L428 39.77Q428.16 38.66 428.87 38.03Q429.58 37.4 430.53 37.4H457.55Q459.45 37.4 459.76 39.45L465.92 88.28Q465.92 88.75 466.24 88.59Q466.56 88.43 466.71 88.12L472.4 39.77Q472.56 38.66 473.27 38.03Q473.98 37.4 475.09 37.4ZM566.99 62.84H537.6Q536.81 62.84 536.81 63.63L534.92 79.11Q534.6 79.9 535.55 79.9H550.87Q551.98 79.9 552.53 80.53Q553.09 81.17 552.93 82.27L550.4 102.97Q549.93 105.34 547.71 105.34H532.39Q531.6 105.34 531.6 106.13L529.7 121.77Q529.39 122.56 530.33 122.56H559.72Q560.83 122.56 561.38 123.19Q561.93 123.83 561.78 124.93L559.25 145.63Q559.09 146.74 558.38 147.37Q557.67 148 556.56 148H499.84Q498.89 148 498.34 147.37Q497.79 146.74 497.94 145.63L510.9 39.77Q511.06 38.66 511.77 38.03Q512.48 37.4 513.43 37.4H570.15Q571.26 37.4 571.81 38.03Q572.36 38.66 572.2 39.77L569.68 60.47Q569.52 61.57 568.81 62.21Q568.1 62.84 566.99 62.84Z" fill="#FFFFFF"/><path d="M660.08 37.4H683.94Q685.05 37.4 685.6 38.03Q686.15 38.66 685.99 39.77L672.88 145.63Q672.72 146.74 672.09 147.37Q671.46 148 670.35 148H643.02Q641.12 148 640.81 145.95L634.8 97.44Q634.8 96.97 634.49 96.97Q634.17 96.97 634.17 97.44L628.48 145.63Q628.32 146.74 627.61 147.37Q626.9 148 625.95 148H601.94Q600.99 148 600.44 147.37Q599.88 146.74 600.04 145.63L613 39.77Q613.16 38.66 613.87 38.03Q614.58 37.4 615.53 37.4H642.54Q644.44 37.4 644.76 39.45L650.92 88.28Q650.92 88.75 651.23 88.59Q651.55 88.43 651.71 88.12L657.4 39.77Q657.55 38.66 658.26 38.03Q658.98 37.4 660.08 37.4ZM685.31 120.82Q685.31 119.24 685.62 115.45L691.31 69.95Q693.21 54.46 703.56 45.3Q713.91 36.14 729.39 36.14Q743.29 36.14 751.43 43.8Q759.57 51.46 759.57 64.58Q759.57 66.16 759.25 69.95L753.72 115.45Q751.83 130.94 741.4 140.1Q730.97 149.26 715.49 149.26Q701.42 149.26 693.37 141.6Q685.31 133.94 685.31 120.82ZM724.81 116.72 730.65 68.68Q730.97 65.37 729.86 63.47Q728.76 61.57 726.39 61.57Q723.86 61.57 722.2 63.47Q720.54 65.37 720.23 68.68L714.38 116.72Q714.22 117.35 714.22 118.45Q714.22 120.98 715.41 122.4Q716.59 123.83 718.65 123.83Q721.02 123.83 722.67 121.93Q724.33 120.03 724.81 116.72ZM841.67 39.77 839.15 60.47Q838.99 61.57 838.36 62.21Q837.72 62.84 836.62 62.84H818.29Q817.5 62.84 817.5 63.63L807.39 145.63Q807.23 146.74 806.6 147.37Q805.97 148 804.86 148H780.69Q779.58 148 779.03 147.37Q778.47 146.74 778.63 145.63L788.74 63.63Q788.74 62.84 787.95 62.84H770.26Q769.15 62.84 768.6 62.21Q768.05 61.57 768.2 60.47L770.73 39.77Q770.89 38.66 771.6 38.03Q772.31 37.4 773.42 37.4H839.78Q840.73 37.4 841.28 38.03Q841.83 38.66 841.67 39.77ZM906.56 62.84H877.17Q876.38 62.84 876.38 63.63L874.48 79.11Q874.17 79.9 875.12 79.9H890.44Q891.55 79.9 892.1 80.53Q892.65 81.17 892.5 82.27L889.97 102.97Q889.49 105.34 887.28 105.34H871.96Q871.17 105.34 871.17 106.13L869.27 121.77Q868.95 122.56 869.9 122.56H899.29Q900.4 122.56 900.95 123.19Q901.5 123.83 901.34 124.93L898.82 145.63Q898.66 146.74 897.95 147.37Q897.24 148 896.13 148H839.41Q838.46 148 837.91 147.37Q837.35 146.74 837.51 145.63L850.47 39.77Q850.63 38.66 851.34 38.03Q852.05 37.4 853 37.4H909.72Q910.82 37.4 911.38 38.03Q911.93 38.66 911.77 39.77L909.24 60.47Q909.09 61.57 908.38 62.21Q907.66 62.84 906.56 62.84Z" fill="#E0623F"/><path d="M273.41 206.48 277.02 209.6C277.89 209.03 278.73 208.76 279.26 208.57C288.23 205.64 296.1 201.12 301.3 194.89L298.6 190.6C293.74 196.52 285.27 201.39 279.07 203.17C279.07 200.29 279.07 187.63 279.07 183.41C279.07 181.93 279.22 180.56 279.45 179.08H273.49C273.71 180.18 273.9 181.97 273.9 183.41C273.9 187.63 273.9 201.16 273.9 204.01C273.9 204.88 273.87 205.53 273.41 206.48ZM317.5 190.41V196.37C318.9 196.3 321.45 196.18 323.61 196.18C328.06 196.18 340.6 196.18 344.02 196.18C345.62 196.18 347.55 196.33 348.47 196.37V190.41C347.48 190.48 345.81 190.63 344.02 190.63C340.6 190.63 328.1 190.63 323.61 190.63C321.64 190.63 318.86 190.52 317.5 190.41ZM371.16 179.12 367.59 182.92C370.36 184.86 375.11 189 377.09 191.13L380.96 187.18C378.76 184.86 373.82 180.91 371.16 179.12ZM366.41 204.43 369.6 209.44C374.96 208.53 379.86 206.4 383.7 204.09C389.82 200.4 394.87 195.16 397.76 190.03L394.79 184.67C392.4 189.8 387.46 195.61 380.96 199.45C377.28 201.65 372.34 203.59 366.41 204.43ZM441.69 180.18 435.76 178.66C434.74 184.1 432.23 190.67 428.58 195.08C425.2 199.18 420.07 202.95 414.14 204.96L418.47 209.41C424.33 207.05 429.65 202.41 432.88 198.39C435.95 194.55 438.42 188.81 440.02 184.44C440.48 183.22 441.01 181.55 441.69 180.18ZM461.5 190.41V196.37C462.9 196.3 465.45 196.18 467.61 196.18C472.06 196.18 484.6 196.18 488.02 196.18C489.62 196.18 491.55 196.33 492.47 196.37V190.41C491.48 190.48 489.81 190.63 488.02 190.63C484.6 190.63 472.1 190.63 467.61 190.63C465.64 190.63 462.86 190.52 461.5 190.41ZM517.93 204.35C517.93 205.87 517.78 208.15 517.55 209.67H523.48C523.33 208.11 523.14 205.45 523.14 204.35V193.6C527.24 195 532.94 197.21 536.86 199.26L539.02 194.02C535.53 192.31 528.23 189.61 523.14 188.13V182.5C523.14 180.94 523.33 179.27 523.48 177.94H517.55C517.82 179.27 517.93 181.17 517.93 182.5C517.93 185.73 517.93 201.46 517.93 204.35Z" fill="#AAB4CC"/><rect x="568.0" y="182" width="342.3" height="8" rx="4" fill="#E0623F"/>
-</svg><span class="vh">LANE NOTE（レーンノート）LANE LOG（レーンログ）</span></h1>
+</svg><span class="vh">LANE NOTE（レーンノート）記録</span></h1>
     <span class="badge">試作版</span>
   </div>
   <div class="beta-banner" role="note" aria-label="試作中のお知らせ"><b>⚠️ 試作中（β版）</b><span>機能や画面は予告なく変わることがあります。記録が消えたり読み取りを間違えたりする可能性があるので、大事な記録は元の結果資料でも確認してください。</span></div>
-  <p class="tagline">LANE LOG：大会の結果から、自校の記録と自己ベストをためていく</p>
-  <nav class="pagenav" aria-label="ページ"><a href="./">🏁 大会準備</a><a href="records.html" class="on" aria-current="page">📒 LANE LOG</a></nav>
+  <p class="tagline">記録：大会の結果から、自校の記録と自己ベストをためていく</p>
+  <nav class="pagenav" aria-label="ページ"><a href="./">🏁 大会準備</a><a href="records.html" class="on" aria-current="page">📒 記録</a></nav>
 </header>
 <main>
 <section class="box">
@@ -594,10 +604,13 @@ body.ath-open #rbLegend{display:none}
     <button class="btn sub" id="rbPasteGo" type="button">貼り付けた文章を読み取る</button>
   </details>
   <div id="rbBatches"></div>
+  <div class="status" id="rbDone" aria-live="polite"></div>
+  <details class="rb-meets" id="rbMeetsBox"><summary><b>取り込み済みの大会</b> <span class="small muted" id="rbMeetsN"></span></summary><ul class="rb-meetlist" id="rbMeets"></ul></details>
 </section>
 
 <section class="box">
-  <h2><span class="no">2</span>LANE LOG</h2>
+  <h2><span class="no">2</span>記録</h2>
+  <div class="divsw" role="radiogroup" aria-label="中学・高校の切り替え" id="rbDiv"><button type="button" data-div="all">すべて</button><button type="button" data-div="jh">中学</button><button type="button" data-div="hs">高校</button></div>
   <div class="rb-stats" id="rbStats"></div>
   <div class="tabbar"><div class="tabs" role="tablist">
     <button class="on" data-v="home" type="button">ホーム</button><button data-v="ath" type="button">選手別</button><button data-v="rank" type="button">部内ランキング</button><button data-v="meet" type="button">大会別</button><button data-v="hist" type="button">歴代記録</button><button data-v="all" type="button">全記録</button>
@@ -619,14 +632,14 @@ body.ath-open #rbLegend{display:none}
   <div class="status" id="rbDataStatus"></div>
 </section>
 </main>
-<footer><details class="about"><summary><b>このLANE LOGについて</b>（版・対応している形式・既知の制限）</summary>
+<footer><details class="about"><summary><b>この記録ページについて</b>（版・対応している形式・既知の制限）</summary>
   <ul>
-    <li><b>LANE NOTE（レーンノート）LANE LOG（レーンログ） 試作版</b>　版：<span class="appver"></span>／LANE LOG v0.3.0（2026年10月10日 作成）／ Presented by Sakata</li>
+    <li><b>LANE NOTE（レーンノート）記録 試作版</b>　版：<span class="appver"></span>／記録 v0.4.0（2026年10月11日 作成）／ Presented by Sakata</li>
     <li>読める形式：組ごとに2列で並ぶ結果PDF（「順位・レーン・ナンバー・氏名・所属・記録」の見出しがあるもの。北区・江東区・都高体連などで確認）／ 結果サイトのHTML（表のあるもの）・その貼り付け。</li>
     <li>既知の制限：リレー・混成の得点・スキャン（画像）PDFは読みません。大会名・日付が資料に無いときは手で入れてください。風が読めない記録は公認ベストに数えません。</li>
     <li>使っている部品（外部CDNから読み込み、ハッシュで確認）：pdf.js 4.10.38（Apache-2.0, Mozilla）／ SheetJS Community Edition 0.20.3（Apache-2.0）／ Firebase JS SDK 10.14.1（Apache-2.0, Google・ログインと保存）</li>
   </ul></details>
-<div class="f-disc">ⓘ 本ツールは結果資料の文字を読み取って自動で整理しているだけです。内容は必ず元の結果資料と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div><div><b class="f-brand">LANE NOTE</b>（レーンノート）LANE LOG 試作版 ／ <span class="f-credit">Presented by Sakata</span></div>🔒 ログイン中の記録は本人だけが読めるクラウド（Google Firebase）に保存します。ログインしないときはこのブラウザの中にだけ保存します（部品取得のため外部CDNへ通信します）。 <a href="./">大会準備のページへ</a></footer>
+<div class="f-disc">ⓘ 本ツールは結果資料の文字を読み取って自動で整理しているだけです。内容は必ず元の結果資料と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div><div><b class="f-brand">LANE NOTE</b>（レーンノート）記録 試作版 ／ <span class="f-credit">Presented by Sakata</span></div>🔒 ログイン中の記録は本人だけが読めるクラウド（Google Firebase）に保存します。ログインしないときはこのブラウザの中にだけ保存します（部品取得のため外部CDNへ通信します）。 <a href="./">大会準備のページへ</a></footer>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
 <script src="firebase-config.js"></script>
 <script>
@@ -660,10 +673,44 @@ var ResultParser = (function () {
   function normEvent(s) {
     s = nk(s).replace(/\s+/g, '').replace(/[（(](選|予|決)[)）]/g, '');
     var g = /女/.test(s.replace(/男女/, '')) && !/男子/.test(s) ? '女子' : (/男/.test(s) ? '男子' : '');
-    var d = s.replace(/^.*?(男子|女子|男|女)/, '').replace(/^(小学|中学|高校|一般|共通|中学共通|高校・一般|高校一般|中学・高校|[1-6１-６]年|U\d+|\d年)+/g, '').replace(/^[・]+/, '');
+    var d = s.replace(/^.*?(男子|女子|男|女)/, '').replace(/^(\d+・?\d*支部|小学|中学|高校|一般|共通|中学共通|高校・一般|高校一般|中学・高校|[1-6１-６]年|[中高][1-3]|U\d+|\d年)+/g, '').replace(/^[・]+/, '');
     d = d.replace(/^(小学|中学|高校|一般|共通)+/, '').replace(/ｍ/g, 'm').replace(/ハードル/, 'H');
     return (g + d) || s;
   }
+  // v0.4：種目の区分（学年別・共通・高校…）。normEvent は区分を落とすので、ランキング・PB は eventKey で分ける
+  function eventCat(ev) {
+    var s = nk(ev).replace(/\s+/g, '').replace(/[（(](選|予|決)[)）]/g, '');
+    var m = s.match(/(?:中学?|高校?)?([1-3](?:[・~〜\-][1-3])?)年(?!生)/) || s.match(/(?:^|[^\d])[中高]([1-3])(?=[^\d]|$)/);
+    if (/小学/.test(s)) return '小学';
+    if (m) return m[1] + '年';
+    if (/共通/.test(s)) return '共通';
+    if (/一般/.test(s) && !/高校/.test(s)) return '一般';
+    return '';
+  }
+  // 中学／高校：所属の「中・高」→ 種目見出しの「中学・高校」→ 学年の「中2・高1」の順で決める。決められなければ ''
+  function divisionOf(r) {
+    var t = normSchool(r && r.team || '');
+    if (/(中学校|中学|中等教育学校|中)$/.test(t)) return 'jh';
+    if (/(高等学校|高校|高)$/.test(t)) return 'hs';
+    var e = nk(r && r.event || '').replace(/\s+/g, '');
+    if (/中学|中[1-3](?!\d)/.test(e)) return 'jh';
+    if (/高校|高[1-3](?!\d)/.test(e)) return 'hs';
+    var g = nk(r && r.grade || '');
+    if (/^中/.test(g)) return 'jh';
+    if (/^高/.test(g)) return 'hs';
+    return '';
+  }
+  function divLabel(d) { return d === 'jh' ? '中学' : d === 'hs' ? '高校' : ''; }
+  // ランキング・PB・グラフで使う種目のキー：区分（中学/高校）＋学年別などの区分＋種目
+  function eventKey(r) { var c = eventCat(r.event), d = divisionOf(r); return (d ? d + ':' : '') + normEvent(r.event) + (c ? '#' + c : ''); }
+  function eventKeyLabel(r) {
+    var n = normEvent(r.event), g = (n.match(/^(男子|女子)/) || [''])[0], c = eventCat(r.event), d = divLabel(divisionOf(r));
+    var cat = c === '共通' ? (d || '') + '共通' : /^\d年$/.test(c) ? (d ? d.charAt(0) : '') + c.charAt(0) : /年$/.test(c) ? (d || '') + c : c;
+    if (!cat && d) cat = d;
+    return g + (cat ? ' ' + cat + ' ' : '') + n.slice(g.length);
+  }
+  function hasMark(r) { return !!markValue(r && r.mark); }
+  function shownWind(r) { return hasMark(r) && windApplies(r.event) ? (r.wind || '') : ''; }   // DNS・DNF・失格などには風を出さない
   function windApplies(ev) { var d = nk(ev).replace(/\s/g, ''); return /(^|\D)(50|60|80|100|110|200)m(H|$|\()/.test(d) || /(走幅跳|三段跳)/.test(d) && !/立/.test(d); }
   // 記録の数値化：時間は秒（小さいほど良い）、距離はm（大きいほど良い）
   function markValue(mark) {
@@ -804,6 +851,7 @@ var ResultParser = (function () {
             if (w == null && c.wind != null) { var wc = same.filter(function (x) { return WIND.test(x.n) && x.x >= c.wind - 10; })[0]; if (wc) w = wc.n; }
             if (w == null && wev && !/走幅跳|三段跳|跳|投/.test(ev)) w = wev.v;
             var g = parseGrade(kanji || '');
+            if (STATUS.test(mark) || !mark) w = null;
             var r = { event: nk(ev).replace(/\s+/g, ' ').trim(), round: round, heat: hev ? hev.v : '', rank: rank ? +rank.n : '', lane: lane ? +lane.n : '', bib: a.n, name: g.name || kanji, kana: kana, grade: g.grade, team: team, mark: mark, wind: w != null ? String(nk(w)).replace('±', '') : '', comment: cmt, page: pi + 1 };
             if (opt.school && !matchSchool(r.team, opt.school)) return;
             var probs = [];
@@ -884,6 +932,7 @@ var ResultParser = (function () {
       var badMark = mark && !isMark(mark);
       var w = mk.wind != null ? mk.wind : (map.wind != null ? get(map.wind) : wind);
       if (/跳|投/.test(ev) && map.wind == null && mk.wind == null) w = '';
+      if (!mark || STATUS.test(mark)) w = '';
       var team = get(map.team);
       var hc = map.heat != null ? (get(map.heat).match(/\d+/) || [''])[0] : ''; var r = { event: ev, round: round, heat: hc ? +hc : heat, rank: /^\d+$/.test(get(map.rank)) ? +get(map.rank) : '', lane: /^\d+$/.test(get(map.lane)) ? +get(map.lane) : '', bib: get(map.bib), name: g.name.replace(/\s+/g, ' '), kana: kana, grade: g.grade || get(map.grade), team: team, mark: mark, wind: (w || '').replace('±', '').replace(/[()（）]/g, ''), comment: cmt };
       if (opt.school && !matchSchool(team, opt.school)) return;
@@ -935,12 +984,12 @@ var ResultParser = (function () {
   }
   function dedupe(recs) {
     var seen = {}, out = [];
-    recs.forEach(function (r) { var k = [normEvent(r.event), r.round, r.heat, nameKey(r.name || r.kana), r.mark].join('|'); if (!seen[k]) { seen[k] = 1; out.push(r); } });
+    recs.forEach(function (r) { var k = [normEvent(r.event) + '#' + eventCat(r.event), r.round, r.heat, nameKey(r.name || r.kana), r.mark].join('|'); if (!seen[k]) { seen[k] = 1; out.push(r); } });
     return out;
   }
 
   /* ---------- 自己ベスト ---------- */
-  function athleteKey(r) { return nameKey(r.name || r.kana) + '@' + schoolBase(r.team); }
+  function athleteKey(r) { var d = divisionOf(r); return nameKey(r.name || r.kana) + '@' + schoolBase(r.team) + (d ? '#' + d : ''); }
   function windClass(r) {   // 'ok' 公認対象 / 'aid' 追い風参考 / 'unk' 風不明 / 'na' 風の無い種目
     if (!windApplies(r.event)) return 'na';
     var w = windNum(r.wind); if (w == null) return 'unk';
@@ -949,7 +998,7 @@ var ResultParser = (function () {
   // recs: 日付つきの記録。各記録に pb（'PB'更新／'初'）と、選手×種目のベストを返す
   function computeBests(recs) {
     var groups = {};
-    recs.forEach(function (r) { var k = athleteKey(r) + '|' + normEvent(r.event); (groups[k] = groups[k] || []).push(r); });
+    recs.forEach(function (r) { var k = athleteKey(r) + '|' + eventKey(r); (groups[k] = groups[k] || []).push(r); });
     var bests = [], flags = {};
     Object.keys(groups).forEach(function (k) {
       var g = groups[k].slice().sort(function (a, b) { return (a.date || '').localeCompare(b.date || '') || (a.order || 0) - (b.order || 0); });
@@ -963,7 +1012,7 @@ var ResultParser = (function () {
         } else if (better(bestAid)) bestAid = { r: r, mv: mv };
       });
       var any = g[0];
-      bests.push({ key: athleteKey(any), name: any.name || any.kana, team: any.team, event: normEvent(any.event), eventLabel: any.event, best: best && best.r, ref: bestAid && (!best || (bestAid.mv.lower ? bestAid.mv.v < best.mv.v : bestAid.mv.v > best.mv.v)) ? bestAid.r : null, count: g.length });
+      bests.push({ key: athleteKey(any), name: any.name || any.kana, kana: any.kana || '', grade: any.grade || '', team: any.team, div: divisionOf(any), event: eventKey(any), eventLabel: eventKeyLabel(any), best: best && best.r, ref: bestAid && (!best || (bestAid.mv.lower ? bestAid.mv.v < best.mv.v : bestAid.mv.v > best.mv.v)) ? bestAid.r : null, count: g.length });
     });
     return { bests: bests, flags: flags };
   }
@@ -986,7 +1035,7 @@ var ResultParser = (function () {
   // 各記録の PB 情報：{ flag:'PB'|'初', prev: 直前の公認ベストの記録, diff: 改善幅 }
   function pbDetails(recs) {
     var groups = {}, out = {};
-    recs.forEach(function (r) { var k = athleteKey(r) + '|' + normEvent(r.event); (groups[k] = groups[k] || []).push(r); });
+    recs.forEach(function (r) { var k = athleteKey(r) + '|' + eventKey(r); (groups[k] = groups[k] || []).push(r); });
     Object.keys(groups).forEach(function (k) {
       var best = null;
       groups[k].slice().sort(byDate).forEach(function (r) {
@@ -1004,9 +1053,9 @@ var ResultParser = (function () {
   // 学年は対象期間の中でいちばん新しい記録の学年で判定する
   function ranking(recs, opt) {
     opt = opt || {};
-    var rs = recs.filter(function (r) { return opt.season == null || seasonOf(r.date) === opt.season; });
+    var rs = recs.filter(function (r) { return (opt.season == null || seasonOf(r.date) === opt.season) && (!opt.div || divisionOf(r) === opt.div); });
     var groups = {};
-    rs.forEach(function (r) { var ev = normEvent(r.event), k = athleteKey(r); ((groups[ev] = groups[ev] || {})[k] = groups[ev][k] || []).push(r); });
+    rs.forEach(function (r) { var ev = eventKey(r), k = athleteKey(r); ((groups[ev] = groups[ev] || {})[k] = groups[ev][k] || []).push(r); });
     var out = {};
     Object.keys(groups).forEach(function (ev) {
       var list = [];
@@ -1015,7 +1064,7 @@ var ResultParser = (function () {
         var gr = null; for (var i = g.length - 1; i >= 0 && gr == null; i--) gr = gradeNum(g[i].grade);
         if (opt.grade != null && gr !== opt.grade) return;
         g.forEach(function (r) { if (isOfficial(r)) { var mv = markValue(r.mark); if (isBetter(mv, best && best.mv)) best = { r: r, mv: mv }; } });
-        if (best) list.push({ key: k, name: last.name || last.kana, team: last.team, grade: gr, best: best.r, mv: best.mv, count: g.length });
+        if (best) list.push({ key: k, label: eventKeyLabel(last), name: last.name || last.kana, team: last.team, grade: gr, best: best.r, mv: best.mv, count: g.length });
       });
       list.sort(function (a, b) { return a.mv.lower ? a.mv.v - b.mv.v : b.mv.v - a.mv.v; });
       var prev = null; list.forEach(function (x, i) { x.rank = prev && prev.mv.v === x.mv.v ? prev.rank : i + 1; prev = x; });
@@ -1024,8 +1073,8 @@ var ResultParser = (function () {
     return out;
   }
   // 歴代記録：種目ごとに、選手ひとりにつき公認ベスト1つで上位 n 人（卒業生も含む）
-  function allTimeTop(recs, n) {
-    var r = ranking(recs, {}), out = {};
+  function allTimeTop(recs, n, opt) {
+    var r = ranking(recs, { div: opt && opt.div }), out = {};
     Object.keys(r).forEach(function (ev) { out[ev] = r[ev].slice(0, n || 10).map(function (x) { return Object.assign({}, x, { season: seasonOf(x.best.date), year: String(x.best.date || '').slice(0, 4) }); }); });
     return out;
   }
@@ -1034,15 +1083,31 @@ var ResultParser = (function () {
     var mine = recs.filter(function (r) { return athleteKey(r) === key; });
     if (!mine.length) return null;
     var cb = computeBests(mine), byEv = {};
-    mine.forEach(function (r) { var ev = normEvent(r.event); (byEv[ev] = byEv[ev] || []).push(r); });
+    mine.forEach(function (r) { var ev = eventKey(r); (byEv[ev] = byEv[ev] || []).push(r); });
     var last = mine.slice().sort(byDate)[mine.length - 1];
     var events = cb.bests.map(function (b) {
       var g = byEv[b.event].slice().sort(byDate);
-      var pts = g.filter(isOfficial).map(function (r) { return { date: r.date, v: markValue(r.mark).v, mark: r.mark }; });
+      var all = g.filter(hasMark).map(function (r) { return { date: r.date, v: markValue(r.mark).v, mark: r.mark, wind: r.wind || '', ref: !isOfficial(r), wc: windClass(r) }; });
+      var pts = all.filter(function (p) { return !p.ref; });
       var any = g.map(function (r) { return markValue(r.mark); }).filter(Boolean)[0];
-      return { event: b.event, eventLabel: b.eventLabel, best: b.best, ref: b.ref, count: b.count, recent: g.slice().reverse().slice(0, 5), points: pts, lower: any ? any.lower : true };
+      return { event: b.event, eventLabel: b.eventLabel, best: b.best, ref: b.ref, count: b.count, recent: g.slice().reverse().slice(0, 5), points: pts, allPoints: all, lower: any ? any.lower : true };
     }).sort(function (a, b) { return a.event < b.event ? -1 : a.event > b.event ? 1 : 0; });
     return { key: key, name: last.name || last.kana, kana: last.kana, team: last.team, grade: last.grade, events: events, count: mine.length };
+  }
+
+  // 選手別の並び：フリガナがあれば五十音、なければ学年→氏名（日本語の照合順）
+  var COLL = (typeof Intl !== 'undefined' && Intl.Collator) ? new Intl.Collator('ja') : null;
+  function jcmp(a, b) { a = a || ''; b = b || ''; return COLL ? COLL.compare(a, b) : (a < b ? -1 : a > b ? 1 : 0); }
+  function kanaKey(k) { return nk(k || '').replace(/[\s　・]/g, '').replace(/[ぁ-ゖ]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) + 0x60); }); }
+  function sortAthletes(list, get) {
+    get = get || function (x) { return x; };
+    return list.slice().sort(function (x, y) {
+      var a = get(x), b = get(y), ka = kanaKey(a.kana), kb = kanaKey(b.kana);
+      if (ka && kb) return jcmp(ka, kb) || jcmp(nk(a.name), nk(b.name));
+      var ga = gradeNum(a.grade), gb = gradeNum(b.grade);
+      if (ga !== gb) return (ga == null ? 9 : ga) - (gb == null ? 9 : gb);
+      return jcmp(ka || nk(a.name), kb || nk(b.name));
+    });
   }
 
   /* ---------- 大会名の推測（ファイル名・資料の見出しから） ---------- */
@@ -1091,17 +1156,18 @@ var ResultParser = (function () {
   function recId(meetName, date, r) { return [nk(meetName).replace(/\s/g, ''), date, normEvent(r.event), r.round, r.heat, nameKey(r.name || r.kana), schoolBase(r.team), r.mark].join('|'); }
   return { parsePdf: parsePdf, parseCells: parseCells, parsePlain: parsePlain, textToStream: textToStream, normEvent: normEvent, markValue: markValue, windApplies: windApplies, windClass: windClass, windNum: windNum,
     computeBests: computeBests, athleteKey: athleteKey, matchSchool: matchSchool, recId: recId, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
-    guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText };
+    guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText,
+    eventCat: eventCat, divisionOf: divisionOf, divLabel: divLabel, eventKey: eventKey, eventKeyLabel: eventKeyLabel, shownWind: shownWind, hasMark: hasMark, sortAthletes: sortAthletes, kanaKey: kanaKey };
 })();
 if (typeof module !== 'undefined') module.exports = ResultParser;
 
 </script>
 <script>
-var APP_VERSION = "v0.11", REC_VERSION = "v0.3.0";
+var APP_VERSION = "v0.12", REC_VERSION = "v0.4.0";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>
-/* ===== LANE LOGの画面（ログイン時は Firebase の users/{uid} に本人だけが読める形で保存、未ログイン時はこのブラウザの IndexedDB にだけ置く） ===== */
+/* ===== 記録ページの画面（ログイン時は Firebase の users/{uid} に本人だけが読める形で保存、未ログイン時はこのブラウザの IndexedDB にだけ置く） ===== */
 (function () {
   'use strict';
   var R = ResultParser;
@@ -1305,7 +1371,7 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
   });
 
   /* ---------- 読み込み ---------- */
-  var batches = [], seq = 0, ALL = [];
+  var batches = [], seq = 0, ALL = [], DONE = [];
   var schoolKey = 'lanenote-rec-school';
   try { $('rbSchool').value = localStorage.getItem(schoolKey) || ''; } catch (e) { }
   $('rbSchool').addEventListener('input', function () { try { localStorage.setItem(schoolKey, this.value.trim()); } catch (e) { } renderBatches(); render(); });
@@ -1351,7 +1417,7 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
         addBatch({ src: names.length > 3 ? names.slice(0, 3).join('、') + ' ほか' + (names.length - 3) + '件' : names.join('、'), kind: 'HTML', all: res, meta: applyGuess({ name: res.meet.name, date: res.meet.date }, names[0]) });
       }
     }
-    status('rbStatus', '読み取りました。下の内容を確かめて「LANE LOGに保存」を押してください。', 'ok');
+    status('rbStatus', '読み取りました。下の内容を確かめて「記録に保存」を押してください。', 'ok');
   }
   $('rbFile').addEventListener('change', function () { handleFiles(this.files); this.value = ''; });
   var drop = $('rbDrop');
@@ -1391,7 +1457,7 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
     return ws;
   }
   function recRow(r, extra) {
-    return '<tr' + (r.warn ? ' class="haswarn"' : '') + '><td>' + esc(r.event) + '</td><td>' + esc(r.round) + '</td><td class="rn">' + esc(r.heat) + '</td><td>' + esc(r.name) + (r.kana ? '<br><small class="muted">' + esc(r.kana) + '</small>' : '') + '</td><td class="rn">' + esc(r.grade) + '</td><td>' + esc(r.team) + '</td><td class="rn"><b>' + esc(r.mark) + '</b>' + (extra || '') + '</td><td class="rn">' + esc(r.wind) + '</td><td class="rn">' + esc(r.rank) + (r.overall ? '<br><small class="muted">総合' + esc(r.overall) + '</small>' : '') + '</td><td><small>' + esc(r.comment) + '</small></td></tr>';
+    return '<tr' + (r.warn ? ' class="haswarn"' : '') + '><td>' + esc(r.event) + '</td><td>' + esc(r.round) + '</td><td class="rn">' + esc(r.heat) + '</td><td>' + esc(r.name) + (r.kana ? '<br><small class="muted">' + esc(r.kana) + '</small>' : '') + '</td><td class="rn">' + esc(r.grade) + '</td><td>' + esc(r.team) + '</td><td class="rn"><b>' + esc(r.mark) + '</b>' + (extra || '') + '</td><td class="rn">' + esc(R.shownWind(r)) + '</td><td class="rn">' + esc(r.rank) + (r.overall ? '<br><small class="muted">総合' + esc(r.overall) + '</small>' : '') + '</td><td><small>' + esc(r.comment) + '</small></td></tr>';
   }
   var REC_HEAD = '<tr><th>種目</th><th>ラウンド</th><th>組</th><th>氏名</th><th>学年</th><th>所属</th><th>記録</th><th>風</th><th>順位</th><th>備考</th></tr>';
   function renderBatches() {
@@ -1403,21 +1469,21 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
         '<p class="small">読み取った記録：' + rs.length + '件' + (b.all.recs.length !== rs.length ? '（全体 ' + b.all.recs.length + '件のうち）' : '') + '</p>' +
         (ws.length ? '<ul class="rb-warn">' + ws.map(function (w) { return '<li>⚠ ' + esc(w) + '</li>'; }).join('') + '</ul>' : '') +
         (rs.length ? '<div class="tblwrap"><table class="rbt">' + REC_HEAD + rs.map(function (r) { return recRow(r); }).join('') + '</table></div>' : '') +
-        '<div class="rb-row" style="margin-top:8px"><button class="btn" data-save="' + b.id + '" type="button"' + (rs.length ? '' : ' disabled') + '>LANE LOGに保存</button><button class="btn sub" data-del="' + b.id + '" type="button">取り消す</button></div><div class="status" data-st="' + b.id + '"></div></div>';
+        '<div class="rb-row" style="margin-top:8px"><button class="btn" data-save="' + b.id + '" type="button"' + (rs.length ? '' : ' disabled') + '>記録に保存</button><button class="btn sub" data-del="' + b.id + '" type="button">取り消す</button></div><div class="status" data-st="' + b.id + '"></div></div>';
     }).join('');
   }
   $('rbBatches').addEventListener('input', function (e) {
     var box = e.target.closest('[data-b]'), f = e.target.getAttribute('data-f'); if (!box || !f) return;
     var b = batches.filter(function (x) { return x.id === +box.getAttribute('data-b'); })[0]; if (b) { b.meta[f] = e.target.value.trim(); if (f === 'name') { b.meta.typedName = true; b.meta.guessed = ''; } if (f === 'date') b.meta.typedDate = true; }
   });
-  $('rbBatches').addEventListener('click', async function (e) {
+  async function onBatchClick(e) {
     var del = e.target.getAttribute('data-del'), sv = e.target.getAttribute('data-save'), un = e.target.getAttribute('data-undo');
     if (un) {
-      var ub = batches.filter(function (x) { return x.id === +un; })[0], ust = document.querySelector('[data-st="' + un + '"]');
+      var ub = batches.concat(DONE).filter(function (x) { return x.id === +un; })[0], ust = document.querySelector('[data-st="' + un + '"]') || $('rbDone');
       if (!ub || !(ub.addedIds || []).length) return;
-      if (!confirm('今読み込んで保存した ' + ub.addedIds.length + '件をLANE LOGから取り消します。よろしいですか？')) return;
+      if (!confirm('今読み込んで保存した ' + ub.addedIds.length + '件を記録から取り消します。よろしいですか？')) return;
       var n = ub.addedIds.length; await delIds(ub.addedIds); ub.addedIds = [];
-      ust.className = 'status ok'; ust.textContent = '✔ 今読み込んだ ' + n + '件を取り消しました（もう一度「LANE LOGに保存」で入れ直せます）。';
+      ust.className = 'status ok'; ust.textContent = '✔ 今読み込んだ ' + n + '件を取り消しました（もう一度資料を入れて「記録に保存」で入れ直せます）。';
       await reload(); return;
     }
     if (del) { batches = batches.filter(function (b) { return b.id !== +del; }); renderBatches(); return; }
@@ -1431,14 +1497,24 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
     try {
       var res = await putMany(rs);
       b.addedIds = (b.addedIds || []).concat(res.ids);
-      st.className = 'status ok'; st.innerHTML = '✔ ' + res.added + '件を保存しました' + (res.dup ? '（' + res.dup + '件はすでに保存済みなので重ねませんでした）' : '') + '。' +
-        (b.addedIds.length ? ' <button class="btn sub" type="button" data-undo="' + b.id + '">今読み込んだ分を取り消す（' + b.addedIds.length + '件）</button>' : '');
+      // 完了：入力欄（ファイル・貼り付け・大会名）を空にして、次の大会をそのまま入れられるようにする
+      DONE.push(b); batches = batches.filter(function (x) { return x !== b; }); renderBatches();
+      $('rbPaste').value = ''; $('rbFile').value = ''; status('rbStatus', '', '');
+      var done = $('rbDone'); done.className = 'status ok rb-done';
+      done.innerHTML = '✔ <b>' + esc(b.meta.name) + ' 完了（' + res.added + '件保存）</b>' + (res.dup ? '<br><small>' + res.dup + '件はすでに保存済みなので重ねませんでした</small>' : '') +
+        '<br><small>続けて次の大会の資料を入れられます。</small>' + (b.addedIds.length ? ' <button class="btn sub" type="button" data-undo="' + b.id + '">今の分を取り消す（' + b.addedIds.length + '件）</button>' : '');
       await reload();
     } catch (err) { st.className = 'status ng'; st.textContent = '✖ 保存できませんでした：' + err.message; }
-  });
+  }
+  $('rbBatches').addEventListener('click', onBatchClick); $('rbDone').addEventListener('click', onBatchClick);
 
   /* ---------- 一覧（v0.3：ホーム・選手・部内ランキング・大会別・歴代・全記録。選手のページは #athlete=… で開く） ---------- */
-  var view = 'home', sort = { ath: null, meet: null, all: null }, rankOpt = { season: 'now', grade: '' };
+  var view = 'home', sort = { ath: null, meet: null, all: null }, rankOpt = { season: 'now', grade: '', ev: '' }, histOpt = { ev: '' }, meetSel = '', chartOfficial = false;
+  var DIVKEY = 'lanenote-rec-div', DIV = 'all';
+  try { DIV = localStorage.getItem(DIVKEY) || 'all'; } catch (e) { }
+  function renderDiv() { document.querySelectorAll('#rbDiv button').forEach(function (b) { var on = b.getAttribute('data-div') === DIV; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); }); }
+  $('rbDiv').addEventListener('click', function (e) { var d = e.target.getAttribute('data-div'); if (!d) return; DIV = d; try { localStorage.setItem(DIVKEY, d); } catch (x) { } rankOpt.ev = ''; histOpt.ev = ''; renderDiv(); render(); });
+  renderDiv();
   function setTab(v) { view = v; document.querySelectorAll('.tabs button').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-v') === v); }); }
   document.querySelector('.tabs').addEventListener('click', function (e) {
     var v = e.target.getAttribute('data-v'); if (!v) return; setTab(v);
@@ -1454,11 +1530,12 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
     var q = R.nk($('rbQ').value).replace(/\s/g, ''), s = school(), mine = $('rbMine').checked;
     return ALL.filter(function (r) {
       if (mine && s && !R.matchSchool(r.team, s)) return false;
+      if (DIV !== 'all' && R.divisionOf(r) !== DIV) return false;
       if (!q) return true;
       return R.nk([r.name, r.kana, r.event, r.meet, r.team, r.date].join('')).replace(/\s/g, '').indexOf(q) >= 0;
     });
   }
-  function windTag(r) { var w = R.windClass(r); return w === 'aid' ? '<span class="ref">追参</span>' : w === 'unk' && !/^[A-Z棄失欠]/.test(r.mark) ? '<span class="unk">風?</span>' : ''; }
+  function windTag(r) { if (!R.hasMark(r)) return ''; var w = R.windClass(r); return w === 'aid' ? '<span class="ref">追参</span>' : w === 'unk' && !/^[A-Z棄失欠]/.test(r.mark) ? '<span class="unk">風?</span>' : ''; }
   function mv(r) { var m = r && R.markValue(r.mark); return m ? (m.lower ? m.v : -m.v) : 1e9; }
   function cmp(a, b) { return a < b ? -1 : a > b ? 1 : 0; }
   function sortRows(rows, key, defs) {
@@ -1468,7 +1545,9 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
   function th(key, k, label) { var s = sort[key], ar = s && s.k === k ? (s.d > 0 ? '▲' : '▼') : ''; return '<th data-sort="' + k + '">' + label + '<span class="ar">' + ar + '</span></th>'; }
   function athLink(key, name) { return '<a class="ath" href="#athlete=' + encodeURIComponent(key) + '">' + esc(name) + '</a>'; }
   function nowSeason() { var d = new Date(); return R.seasonOf(d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-01'); }
-  function evLabel(rows, ev) { for (var i = 0; i < rows.length; i++) if (R.normEvent(rows[i].event) === ev) return rows[i].event; return ev; }
+  function evLabel(rows, ev) { for (var i = 0; i < rows.length; i++) if (R.eventKey(rows[i]) === ev) return R.eventKeyLabel(rows[i]); return ev; }
+  function evSelect(name, evs, cur, rows) { return '<label class="ev-only">種目 <select data-' + name + '="ev">' + evs.map(function (ev) { return '<option value="' + esc(ev) + '"' + (ev === cur ? ' selected' : '') + '>' + esc(evLabel(rows, ev)) + '</option>'; }).join('') + '</select></label>'; }
+  function evOrder(evs, rows) { return evs.slice().sort(function (a, b) { var la = evLabel(rows, a), lb = evLabel(rows, b); return la.localeCompare(lb, 'ja', { numeric: true }); }); }
   $('rbView').addEventListener('click', async function (e) {
     if (e.target.closest('[data-back]')) { e.preventDefault(); if (window.__athNav) { window.__athNav = false; history.back(); } else { history.pushState(null, '', location.pathname + location.search); render(); } return; }
     if (e.target.closest('a.ath')) { window.__athNav = true; return; }
@@ -1486,20 +1565,30 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
     sort[view] = s && s.k === k ? { k: k, d: -s.d } : { k: k, d: 1 }; render();
   });
   $('rbView').addEventListener('change', function (e) {
-    var f = e.target.getAttribute('data-ropt'); if (!f) return; rankOpt[f] = e.target.value; render();
+    var f = e.target.getAttribute('data-ropt'); if (f) { rankOpt[f] = e.target.value; render(); return; }
+    if (e.target.getAttribute('data-hopt')) { histOpt.ev = e.target.value; render(); return; }
+    if (e.target.hasAttribute('data-meetsel')) { meetSel = e.target.value; render(); return; }
+    if (e.target.hasAttribute('data-official')) { chartOfficial = e.target.checked; render(); return; }
   });
   // 小さな推移グラフ（上ほど良い記録：時間は下向き、距離は上向きに描く）
-  function spark(pts, lower) {
-    if (pts.length < 2) return '<span class="small muted">記録が2つ以上たまるとグラフが出ます</span>';
-    var W = 260, H = 56, P = 6, vs = pts.map(function (p) { return p.v; }), lo = Math.min.apply(null, vs), hi = Math.max.apply(null, vs), span = hi - lo || 1;
+  // 推移グラフ（上ほど良い記録）。参考記録（追い風・風不明）は白抜き・薄い点で「参考」と分かるように描く
+  function spark(all, lower, officialOnly) {
+    var pts = officialOnly ? all.filter(function (p) { return !p.ref; }) : all;
+    if (pts.length < 2) return '<span class="small muted">' + (officialOnly && all.length >= 2 ? '公認記録が2つ以上たまるとグラフが出ます（「公認だけ」を外すと参考記録も入ります）' : '記録が2つ以上たまるとグラフが出ます') + '</span>';
+    var W = 300, H = 70, P = 14, vs = pts.map(function (p) { return p.v; }), lo = Math.min.apply(null, vs), hi = Math.max.apply(null, vs), span = hi - lo || 1;
     var xy = pts.map(function (p, i) { var x = P + i * (W - 2 * P) / (pts.length - 1), n = (p.v - lo) / span, y = lower ? P + n * (H - 2 * P) : H - P - n * (H - 2 * P); return [Math.round(x * 10) / 10, Math.round(y * 10) / 10]; });
-    var bi = 0; vs.forEach(function (v, i) { if (lower ? v < vs[bi] : v > vs[bi]) bi = i; });
-    return '<svg class="spark" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="記録の推移（上ほど良い）"><polyline fill="none" stroke="#1f3a68" stroke-width="2" points="' + xy.map(function (p) { return p.join(','); }).join(' ') + '"/>' +
-      xy.map(function (p, i) { return '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="' + (i === bi ? 4.5 : 3) + '" fill="' + (i === bi ? '#e4572e' : '#1f3a68') + '"><title>' + esc(pts[i].date + ' ' + pts[i].mark) + '</title></circle>'; }).join('') + '</svg>';
+    var bi = -1; pts.forEach(function (p, i) { if (!p.ref && (bi < 0 || (lower ? p.v < pts[bi].v : p.v > pts[bi].v))) bi = i; });
+    var off = xy.filter(function (q, i) { return !pts[i].ref; });
+    return '<svg class="spark" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="記録の推移（上ほど良い・白抜きは参考記録）">' +
+      '<polyline fill="none" stroke="#9aa8c0" stroke-width="1.2" stroke-dasharray="3 3" points="' + xy.map(function (q) { return q.join(','); }).join(' ') + '"/>' +
+      (off.length > 1 ? '<polyline fill="none" stroke="#1f3a68" stroke-width="2" points="' + off.map(function (q) { return q.join(','); }).join(' ') + '"/>' : '') +
+      xy.map(function (q, i) { var p = pts[i], t = '<title>' + esc(p.date + ' ' + p.mark + (p.wind ? '（風' + p.wind + '）' : '') + (p.ref ? '・参考' : '')) + '</title>';
+        return p.ref ? '<circle cx="' + q[0] + '" cy="' + q[1] + '" r="3.6" fill="#fff" stroke="#8a96ad" stroke-width="1.6">' + t + '</circle><text x="' + Math.min(W - 12, Math.max(12, q[0])) + '" y="' + Math.max(8, q[1] - 6) + '" font-size="8" fill="#8a96ad" text-anchor="middle">参考</text>'
+          : '<circle cx="' + q[0] + '" cy="' + q[1] + '" r="' + (i === bi ? 4.5 : 3) + '" fill="' + (i === bi ? '#e4572e' : '#1f3a68') + '">' + t + '</circle>'; }).join('') + '</svg>';
   }
   function pbFlag(f) { return f === 'PB' ? '<span class="pb">PB</span>' : f === '初' ? '<span class="pb first">初</span>' : ''; }
   function renderHome(rows) {
-    if (!rows.length) return '<div class="card empty"><b>まだ記録がありません</b><p>上の「1 学校名と結果の資料」で、大会の結果PDFや保存したWebページを入れて「LANE LOGに保存」を押すと、ここに最近の大会の自己ベストやシーズンの記録がまとまって出ます。</p><button class="btn" type="button" onclick="document.getElementById(\'rbDrop\').scrollIntoView({behavior:\'smooth\'})">結果の資料を入れる</button></div>';
+    if (!rows.length) return '<div class="card empty"><b>まだ記録がありません</b><p>上の「1 学校名と結果の資料」で、大会の結果PDFや保存したWebページを入れて「記録に保存」を押すと、ここに最近の大会の自己ベストやシーズンの記録がまとまって出ます。</p><button class="btn" type="button" onclick="document.getElementById(\'rbDrop\').scrollIntoView({behavior:\'smooth\'})">結果の資料を入れる</button></div>';
     var pd = R.pbDetails(rows), ns = nowSeason();
     var aths = {}, meets = {}, seasonPB = 0, seasonPBAth = {};
     rows.forEach(function (r) { aths[R.athleteKey(r)] = 1; var k = r.date + '|' + r.meet; (meets[k] = meets[k] || []).push(r); var p = pd[r.id]; if (p && p.flag === 'PB' && R.seasonOf(r.date) === ns) { seasonPB++; seasonPBAth[R.athleteKey(r)] = 1; } });
@@ -1519,42 +1608,51 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
     var back = '<button class="btn sub back" type="button" data-back="1">← もどる</button>';
     if (!pf) return back + '<p class="muted">この選手の記録が見つかりませんでした。</p>';
     var pd = R.pbDetails(ALL.filter(function (r) { return R.athleteKey(r) === key; }));
-    return back + '<div class="card ath-h"><b class="nm">' + esc(pf.name) + '</b>' + (pf.kana ? '<span class="small muted">' + esc(pf.kana) + '</span>' : '') + '<div class="small muted">' + esc(pf.team) + (pf.grade ? '・' + esc(pf.grade) : '') + '・' + pf.events.length + '種目・' + pf.count + '件</div></div>' +
+    return back + '<div class="card ath-h"><b class="nm">' + esc(pf.name) + '</b>' + (pf.kana ? '<span class="small muted">' + esc(pf.kana) + '</span>' : '') + '<div class="small muted">' + esc(pf.team) + (pf.grade ? '・' + esc(pf.grade) : '') + (R.divisionOf(pf) ? '・' + R.divLabel(R.divisionOf(pf)) : '') + '・' + pf.events.length + '種目・' + pf.count + '件</div></div>' +
       pf.events.map(function (e) {
         var b = e.best;
         return '<div class="card evc"><div class="card-h"><b>' + esc(e.eventLabel) + '</b><span class="small muted">' + e.count + '件</span></div>' +
-          '<div class="evbest"><span class="small muted">自己ベスト（公認）</span><b class="bigmk">' + esc(b ? b.mark : '—') + '</b>' + (b ? '<span class="small muted">' + (b.wind ? '風' + esc(b.wind) + '・' : '') + esc(b.date) + ' ' + esc(b.meet) + '</span>' : '') + '</div>' +
+          '<div class="evbest"><span class="small muted">自己ベスト（公認）</span><b class="bigmk">' + esc(b ? b.mark : '—') + '</b>' + (b ? '<span class="small muted">' + (R.shownWind(b) ? '風' + esc(b.wind) + '・' : '') + esc(b.date) + ' ' + esc(b.meet) + '</span>' : '') + '</div>' +
           (e.ref ? '<div class="small">参考 ' + esc(e.ref.mark) + windTag(e.ref) + ' <span class="muted">' + esc(e.ref.wind) + ' ' + esc(e.ref.date) + '</span></div>' : '') +
-          '<div class="sparkbox">' + spark(e.points, e.lower) + '<span class="small muted">' + (e.points.length > 1 ? '公認記録の推移（上ほど良い・赤がベスト）' : '') + '</span></div>' +
-          '<ul class="recent">' + e.recent.map(function (r) { return '<li><span class="d">' + esc(r.date) + '</span><b>' + esc(r.mark) + '</b>' + pbFlag(pd[r.id] && pd[r.id].flag) + windTag(r) + '<span class="m">' + (r.wind ? '風' + esc(r.wind) + '・' : '') + esc(r.meet) + (r.round ? '・' + esc(r.round) : '') + '</span></li>'; }).join('') + '</ul></div>';
+          '<div class="sparkbox chartbox">' + spark(e.allPoints, e.lower, chartOfficial) + (e.allPoints.length > 1 ? '<span class="chartopt"><span class="muted">推移（上ほど良い）●公認 <b style="color:#e4572e">●</b>ベスト </span>' + (e.allPoints.some(function (p) { return p.ref; }) ? '<span class="lg-ref"><svg width="10" height="10" aria-hidden="true"><circle cx="5" cy="5" r="3.5" fill="#fff" stroke="#8a96ad" stroke-width="1.5"/></svg>参考（追い風・風不明）</span>' : '') + (e.allPoints.some(function (p) { return p.ref; }) ? '<label><input type="checkbox" data-official="1"' + (chartOfficial ? ' checked' : '') + '> 公認だけ</label>' : '') + '</span>' : '') + '</div>' +
+          '<ul class="recent">' + e.recent.map(function (r) { return '<li><span class="d">' + esc(r.date) + '</span><b>' + esc(r.mark) + '</b>' + pbFlag(pd[r.id] && pd[r.id].flag) + windTag(r) + '<span class="m">' + (R.shownWind(r) ? '風' + esc(r.wind) + '・' : '') + esc(r.meet) + (r.round ? '・' + esc(r.round) : '') + '</span></li>'; }).join('') + '</ul></div>';
       }).join('');
   }
   function renderRank(rows) {
     var ns = nowSeason(), opt = { season: rankOpt.season === 'now' ? ns : null, grade: rankOpt.grade ? +rankOpt.grade : null };
-    var rk = R.ranking(rows, opt), evs = Object.keys(rk).sort();
+    var rk = R.ranking(rows, opt), evs = evOrder(Object.keys(rk), rows);
+    if (evs.length && evs.indexOf(rankOpt.ev) < 0) rankOpt.ev = evs[0];
     var ctl = '<div class="rb-row ropt"><label>期間 <select data-ropt="season"><option value="now"' + (rankOpt.season === 'now' ? ' selected' : '') + '>今シーズン（' + R.seasonLabel(ns) + '）</option><option value="all"' + (rankOpt.season === 'all' ? ' selected' : '') + '>全期間</option></select></label>' +
-      '<label>学年 <select data-ropt="grade">' + [['', '全学年'], ['1', '1年'], ['2', '2年'], ['3', '3年']].map(function (o) { return '<option value="' + o[0] + '"' + (rankOpt.grade === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></label></div>';
+      '<label>学年 <select data-ropt="grade">' + [['', '全学年'], ['1', '1年'], ['2', '2年'], ['3', '3年']].map(function (o) { return '<option value="' + o[0] + '"' + (rankOpt.grade === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></label>' + (evs.length ? evSelect('ropt', evs, rankOpt.ev, rows) : '') + '</div>';
     if (!evs.length) return ctl + '<p class="muted small">この条件の公認記録がありません。期間や学年を変えてみてください。</p>';
-    return ctl + evs.map(function (ev) {
+    return ctl + [rankOpt.ev].map(function (ev) {
       return '<div class="card"><div class="card-h"><b>' + esc(evLabel(rows, ev)) + '</b><span class="small muted">' + rk[ev].length + '人</span></div><ol class="rank">' + rk[ev].map(function (x) {
-        return '<li><span class="no n' + x.rank + '">' + x.rank + '</span>' + athLink(x.key, x.name) + '<span class="gr">' + (x.grade ? x.grade + '年' : '') + '</span><b class="lmk">' + esc(x.best.mark) + '</b><span class="sub">' + (x.best.wind ? '風' + esc(x.best.wind) + '・' : '') + esc(x.best.date) + '</span></li>';
+        return '<li><span class="no n' + x.rank + '">' + x.rank + '</span>' + athLink(x.key, x.name) + '<span class="gr">' + (x.grade ? (R.divisionOf(x.best) === 'jh' ? '中' : R.divisionOf(x.best) === 'hs' ? '高' : '') + x.grade + '年' : '') + '</span><b class="lmk">' + esc(x.best.mark) + '</b><span class="sub">' + (R.shownWind(x.best) ? '風' + esc(x.best.wind) + '・' : '') + esc(x.best.date) + '</span></li>';
       }).join('') + '</ol></div>';
     }).join('');
   }
   function renderAllTime(rows) {
-    var at = R.allTimeTop(rows, 10), evs = Object.keys(at).sort();
+    var at = R.allTimeTop(rows, 10), evs = evOrder(Object.keys(at), rows);
     if (!evs.length) return '<p class="muted small">公認記録がまだありません。</p>';
-    return '<p class="small muted">種目ごとに、卒業生も含めた歴代の上位10人（ひとり1記録・公認のみ）です。</p>' + evs.map(function (ev) {
+    if (evs.indexOf(histOpt.ev) < 0) histOpt.ev = evs[0];
+    return '<div class="rb-row ropt">' + evSelect('hopt', evs, histOpt.ev, rows) + '</div><p class="small muted">卒業生も含めた歴代の上位10人（ひとり1記録・公認のみ）です。</p>' + [histOpt.ev].map(function (ev) {
       return '<div class="card"><div class="card-h"><b>' + esc(evLabel(rows, ev)) + '</b><span class="small muted">歴代 ' + at[ev].length + '人</span></div><ol class="rank">' + at[ev].map(function (x) {
-        return '<li><span class="no n' + x.rank + '">' + x.rank + '</span>' + athLink(x.key, x.name) + '<span class="gr">' + esc(R.seasonLabel(x.season)) + '</span><b class="lmk">' + esc(x.best.mark) + '</b><span class="sub">' + (x.best.wind ? '風' + esc(x.best.wind) + '・' : '') + esc(x.best.date) + ' ' + esc(x.best.meet) + '</span></li>';
+        return '<li><span class="no n' + x.rank + '">' + x.rank + '</span>' + athLink(x.key, x.name) + '<span class="gr">' + esc(R.seasonLabel(x.season)) + '</span><b class="lmk">' + esc(x.best.mark) + '</b><span class="sub">' + (R.shownWind(x.best) ? '風' + esc(x.best.wind) + '・' : '') + esc(x.best.date) + ' ' + esc(x.best.meet) + '</span></li>';
       }).join('') + '</ol></div>';
     }).join('');
+  }
+  function renderMeetList() {
+    var m = {}; ALL.forEach(function (r) { var k = r.date + '|' + r.meet; m[k] = (m[k] || 0) + 1; });
+    var ks = Object.keys(m).sort().reverse();
+    $('rbMeetsN').textContent = ks.length ? '（' + ks.length + '大会）' : '（まだありません）';
+    $('rbMeets').innerHTML = ks.map(function (k) { var p = k.split('|'); return '<li>' + esc(p[0]) + '　<b>' + esc(p.slice(1).join('|')) + '</b>　<span class="muted">' + m[k] + '件</span></li>'; }).join('');
   }
   function render() {
     var rows = filtered(), cb = R.computeBests(rows), flags = cb.flags;
     var meets = {}; rows.forEach(function (r) { var k = r.date + '|' + r.meet; meets[k] = (meets[k] || 0) + 1; });
     var aths = {}; rows.forEach(function (r) { aths[R.athleteKey(r)] = 1; });
-    $('rbStats').textContent = ALL.length ? '保存している記録：' + ALL.length + '件（表示 ' + rows.length + '件・選手 ' + Object.keys(aths).length + '人・大会 ' + Object.keys(meets).length + '件）' : 'まだ記録がありません。上で結果の資料を入れて「LANE LOGに保存」を押してください。';
+    $('rbStats').textContent = ALL.length ? '保存している記録：' + ALL.length + '件（表示 ' + rows.length + '件・選手 ' + Object.keys(aths).length + '人・大会 ' + Object.keys(meets).length + '件）' : 'まだ記録がありません。上で結果の資料を入れて「記録に保存」を押してください。';
+    renderMeetList();
     var ak = curAthlete(), v = $('rbView');
     document.body.classList.toggle('ath-open', !!ak);
     v.className = 'tblwrap view-' + (ak ? 'athlete' : view);
@@ -1567,25 +1665,33 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
     if (view === 'ath') {
       var bs = cb.bests.slice();
       var defs = { name: function (b) { return R.nk(b.name); }, team: function (b) { return R.nk(b.team); }, event: function (b) { return b.event; }, best: function (b) { return mv(b.best || b.ref); }, date: function (b) { return (b.best || b.ref || {}).date || ''; }, count: function (b) { return -b.count; } };
-      bs.sort(function (a, b) { return cmp(R.nk(a.name), R.nk(b.name)) || cmp(a.event, b.event); });
+      var ord = {}; R.sortAthletes(bs).forEach(function (b) { if (!(b.key in ord)) ord[b.key] = Object.keys(ord).length; });
+      bs.sort(function (a, b) { return ord[a.key] - ord[b.key] || cmp(a.eventLabel, b.eventLabel); });
       bs = sortRows(bs, view, defs);
       html = '<table class="rbt"><tr class="hd">' + th(view, 'name', '氏名') + th(view, 'team', '所属') + th(view, 'event', '種目') + th(view, 'best', '自己ベスト（公認）') + '<th>風</th>' + th(view, 'date', '日付') + '<th>大会</th><th>参考記録（追い風・風不明）</th>' + th(view, 'count', '記録数') + '</tr>' + bs.map(function (b) {
         var r = b.best || {}, f = b.ref;
-        return '<tr class="rc"><td class="c-name">' + athLink(b.key, b.name) + '</td><td class="c-team">' + esc(b.team) + '</td><td class="c-ev">' + esc(b.eventLabel) + '</td><td class="rn c-mark"><b>' + esc(r.mark || '—') + '</b></td><td class="rn c-wind" data-l="風">' + esc(r.wind) + '</td><td class="c-date">' + esc(r.date) + '</td><td class="c-meet">' + esc(r.meet) + '</td><td class="c-ref" data-l="参考">' + (f ? esc(f.mark) + windTag(f) + ' <small class="muted">' + esc(f.wind) + ' ' + esc(f.date) + '</small>' : '') + '</td><td class="rn c-cnt" data-l="記録数">' + b.count + '</td></tr>';
+        return '<tr class="rc"><td class="c-name">' + athLink(b.key, b.name) + '</td><td class="c-team">' + esc(b.team) + '</td><td class="c-ev">' + esc(b.eventLabel) + '</td><td class="rn c-mark"><b>' + esc(r.mark || '—') + '</b></td><td class="rn c-wind" data-l="風">' + esc(R.shownWind(r)) + '</td><td class="c-date">' + esc(r.date) + '</td><td class="c-meet">' + esc(r.meet) + '</td><td class="c-ref" data-l="参考">' + (f ? esc(f.mark) + windTag(f) + ' <small class="muted">' + esc(R.shownWind(f)) + ' ' + esc(f.date) + '</small>' : '') + '</td><td class="rn c-cnt" data-l="記録数">' + b.count + '</td></tr>';
       }).join('') + '</table>';
     } else {
       var rs = rows.slice().sort(function (a, b) { return cmp(b.date, a.date) || cmp(a.meet, b.meet) || cmp(R.normEvent(a.event), R.normEvent(b.event)) || cmp(a.order || 0, b.order || 0); });
       var d2 = { date: function (r) { return r.date; }, meet: function (r) { return r.meet; }, event: function (r) { return R.normEvent(r.event); }, name: function (r) { return R.nk(r.name); }, grade: function (r) { return r.grade; }, mark: mv, rank: function (r) { return r.rank === '' ? 999 : +r.rank; } };
+      var meetCtl = '';
+      if (view === 'meet') {
+        var mks = Object.keys(meets).sort().reverse();
+        if (mks.indexOf(meetSel) < 0) meetSel = mks[0];
+        meetCtl = '<div class="meetsel"><label>大会 <select data-meetsel="1">' + mks.map(function (k) { var p = k.split('|'); return '<option value="' + esc(k) + '"' + (k === meetSel ? ' selected' : '') + '>' + esc(p[0] + '　' + p.slice(1).join('|') + '（' + meets[k] + '件）') + '</option>'; }).join('') + '</select></label></div>';
+        rs = rs.filter(function (r) { return r.date + '|' + r.meet === meetSel; });
+      }
       rs = sortRows(rs, view, d2);
       var grouped = view === 'meet' && !sort.meet, lastMeet = '';   // 大会別は見出しに大会名と日付を出すので、カードの中では繰り返さない
-      html = '<table class="rbt"><tr class="hd">' + (grouped ? '' : th(view, 'date', '日付') + th(view, 'meet', '大会')) + th(view, 'event', '種目') + '<th>ラウンド</th><th>組</th>' + th(view, 'name', '氏名') + th(view, 'grade', '学年') + '<th>所属</th>' + th(view, 'mark', '記録') + '<th>風</th>' + th(view, 'rank', '順位') + '<th>備考</th></tr>' + rs.map(function (r) {
+      html = meetCtl + '<table class="rbt"><tr class="hd">' + (grouped ? '' : th(view, 'date', '日付') + th(view, 'meet', '大会')) + th(view, 'event', '種目') + '<th>ラウンド</th><th>組</th>' + th(view, 'name', '氏名') + th(view, 'grade', '学年') + '<th>所属</th>' + th(view, 'mark', '記録') + '<th>風</th>' + th(view, 'rank', '順位') + '<th>備考</th></tr>' + rs.map(function (r) {
         var head = '', key = r.date + '|' + r.meet;
         if (grouped && key !== lastMeet) {
           var cnt = meets[key] || 0;
           head = '<tr class="gsep rb-meet"><td colspan="12"><b>' + esc(r.date) + '　' + esc(r.meet) + '</b>　<span class="small muted">' + cnt + '件</span> <button class="btn sub rb-delmeet" type="button" data-delmeet="' + esc(key) + '">この大会を消す</button></td></tr>';
         }
         lastMeet = key;
-        return head + '<tr class="rc">' + (grouped ? '' : '<td class="c-date">' + esc(r.date) + '</td><td class="c-meet">' + esc(r.meet) + '</td>') + '<td class="c-ev">' + esc(r.event) + '</td><td class="c-round">' + esc(r.round) + '</td><td class="rn c-heat" data-l="組">' + esc(r.heat) + '</td><td class="c-name">' + athLink(R.athleteKey(r), r.name || r.kana) + '</td><td class="rn c-grade" data-l="学年">' + esc(r.grade) + '</td><td class="c-team">' + esc(r.team) + '</td><td class="rn c-mark"><b>' + esc(r.mark) + '</b>' + pbFlag(flags[r.id]) + windTag(r) + '</td><td class="rn c-wind" data-l="風">' + esc(r.wind) + '</td><td class="rn c-rank" data-l="順位">' + esc(r.rank) + '</td><td class="c-cmt"><small>' + esc(r.comment) + '</small></td></tr>';
+        return head + '<tr class="rc">' + (grouped ? '' : '<td class="c-date">' + esc(r.date) + '</td><td class="c-meet">' + esc(r.meet) + '</td>') + '<td class="c-ev">' + esc(r.event) + '</td><td class="c-round">' + esc(r.round) + '</td><td class="rn c-heat" data-l="組">' + esc(r.heat) + '</td><td class="c-name">' + athLink(R.athleteKey(r), r.name || r.kana) + '</td><td class="rn c-grade" data-l="学年">' + esc(r.grade) + '</td><td class="c-team">' + esc(r.team) + '</td><td class="rn c-mark"><b>' + esc(r.mark) + '</b>' + pbFlag(flags[r.id]) + windTag(r) + '</td><td class="rn c-wind" data-l="風">' + esc(R.shownWind(r)) + '</td><td class="rn c-rank" data-l="順位">' + esc(r.rank) + '</td><td class="c-cmt"><small>' + esc(r.comment) + '</small></td></tr>';
       }).join('') + '</table>';
     }
     v.innerHTML = html;
@@ -1596,14 +1702,14 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
   function stamp() { var d = new Date(); return d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2); }
   $('rbExport').addEventListener('click', function () {
     if (!ALL.length) { status('rbDataStatus', '書き出す記録がありません。', 'ng'); return; }
-    download('LANE_LOG_' + stamp() + '.json', new Blob([JSON.stringify({ app: 'LANE LOG', format: 1, version: REC_VERSION, exportedAt: new Date().toISOString(), records: ALL }, null, 1)], { type: 'application/json' }));
+    download('LANE_NOTE_kiroku_' + stamp() + '.json', new Blob([JSON.stringify({ app: 'LANE NOTE 記録', format: 1, version: REC_VERSION, exportedAt: new Date().toISOString(), records: ALL }, null, 1)], { type: 'application/json' }));
     status('rbDataStatus', '✔ ' + ALL.length + '件をファイルに書き出しました。', 'ok');
   });
   $('rbImport').addEventListener('change', async function () {
     var f = this.files[0]; this.value = ''; if (!f) return;
     try {
       var j = JSON.parse(await f.text()), list = Array.isArray(j) ? j : j.records;
-      if (!Array.isArray(list)) throw new Error('LANE LOGのファイルではないようです');
+      if (!Array.isArray(list)) throw new Error('記録のファイル（LANE NOTE 記録・旧 LANE LOG）ではないようです');
       list = list.filter(function (r) { return r && r.id && r.name !== undefined && r.mark !== undefined && r.meet && r.date; });
       var res = await putMany(list);
       status('rbDataStatus', '✔ ' + res.added + '件を読み込みました' + (res.dup ? '（' + res.dup + '件はすでにあるので重ねませんでした）' : '') + '。', 'ok');
@@ -1621,13 +1727,13 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
     var rows = filtered(); if (!rows.length) { status('rbDataStatus', '書き出す記録がありません。', 'ng'); return; }
     var cb = R.computeBests(rows);
     var a = [['日付', '大会', '種目', 'ラウンド', '組', '氏名', 'フリガナ', '学年', '所属', '記録', '風', '順位', '備考', '自己ベスト', '風の扱い']].concat(rows.slice().sort(function (x, y) { return cmp(x.date, y.date) || cmp(x.order || 0, y.order || 0); }).map(function (r) {
-      var w = R.windClass(r); return [r.date, r.meet, r.event, r.round, r.heat, r.name, r.kana, r.grade, r.team, r.mark, r.wind, r.rank, r.comment, cb.flags[r.id] || '', w === 'aid' ? '追い風参考' : w === 'unk' ? '風不明' : ''];
+      var w = R.windClass(r); return [r.date, r.meet, r.event, r.round, r.heat, r.name, r.kana, r.grade, r.team, r.mark, R.shownWind(r), r.rank, r.comment, cb.flags[r.id] || '', w === 'aid' ? '追い風参考' : w === 'unk' ? '風不明' : ''];
     }));
     var b = [['氏名', '所属', '種目', '自己ベスト（公認）', '風', '日付', '大会', '参考記録', '参考の風', '参考の日付', '記録数']].concat(cb.bests.map(function (x) { var r = x.best || {}, f = x.ref || {}; return [x.name, x.team, x.eventLabel, r.mark || '', r.wind || '', r.date || '', r.meet || '', f.mark || '', f.wind || '', f.date || '', x.count]; }));
     var wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(a), '記録一覧');
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(b), '自己ベスト');
-    XLSX.writeFile(wb, 'LANE_LOG_' + stamp() + '.xlsx');
+    XLSX.writeFile(wb, 'LANE_NOTE_kiroku_' + stamp() + '.xlsx');
     status('rbDataStatus', '✔ Excelに書き出しました（表示中の ' + rows.length + '件）。', 'ok');
   });
   if (CLOUD_READY) initCloud(); else { renderAuth(); reload(); }

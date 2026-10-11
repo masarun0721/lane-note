@@ -64,28 +64,67 @@ console.log('[5] シーズン・PBの伸び・ランキング・歴代（v0.3）
  const rs=[mk('a1','2025-06-01','男子100m','架空 一郎','高1','12.00','+1.0'),mk('a2','2026-05-01','男子100m','架空 一郎','高2','11.80','+0.5'),mk('a3','2026-06-01','男子100m','架空 一郎','高2','11.60','+2.5'),
   mk('a4','2026-07-01','男子100m','架空 一郎','高2','11.70',''),mk('b1','2026-05-01','男子100m','見本 二郎','高1','11.90','+0.1'),mk('c1','2023-05-01','男子100m','先輩 太郎','高3','11.20','+1.5'),
   mk('d1','2026-05-01','男子走幅跳','架空 一郎','高2','5m50','+1.0'),mk('d2','2026-09-01','男子走幅跳','架空 一郎','高2','5m74','+1.9'),mk('e1','2026-09-01','男子走幅跳','見本 二郎','高1','5m80','+3.0')];
+ const K=ev=>'hs:'+R.normEvent(ev);
  const pd=R.pbDetails(rs);
  ok(pd.a1.flag==='初'&&pd.a2.flag==='PB'&&pd.a2.prev.id==='a1'&&pd.a2.diff===0.2,'PBの直前ベストと伸び（12.00→11.80 で 0.20）');
  ok(!pd.a3&&!pd.a4,'追い風2.0超・風不明はPBにしない');
  ok(pd.d2.flag==='PB'&&pd.d2.diff===0.24&&!pd.e1,'フィールドのPB（+0.24）・追い風参考は除く');
  const all=R.ranking(rs,{});
- ok(all['男子100m'].map(x=>x.name).join(',')==='先輩 太郎,架空 一郎,見本 二郎','全期間ランキング（時間は速い順）');
- ok(all['男子100m'][1].best.mark==='11.80','ランキングの記録は公認ベスト');
+ ok(all[K('男子100m')].map(x=>x.name).join(',')==='先輩 太郎,架空 一郎,見本 二郎','全期間ランキング（時間は速い順）');
+ ok(all[K('男子100m')][1].best.mark==='11.80','ランキングの記録は公認ベスト');
  const s26=R.ranking(rs,{season:2026});
- ok(s26['男子100m'].length===2&&s26['男子100m'][0].name==='架空 一郎','今シーズンだけ（先輩・昨年度は除く）');
+ ok(s26[K('男子100m')].length===2&&s26[K('男子100m')][0].name==='架空 一郎','今シーズンだけ（先輩・昨年度は除く）');
  const g1=R.ranking(rs,{season:2026,grade:1});
- ok(g1['男子100m'].length===1&&g1['男子100m'][0].name==='見本 二郎'&&!g1['男子走幅跳'],'学年で絞り込む（風参考だけの選手は載らない）');
- ok(R.ranking(rs,{grade:2})['男子100m'].map(x=>x.name).join()==='架空 一郎','学年は最新の記録で判定（高1→高2の選手は2年）');
- const tie=R.ranking([mk('t1','2026-05-01','男子400m','甲','高1','55.00',''),mk('t2','2026-05-01','男子400m','乙','高1','55.00',''),mk('t3','2026-05-01','男子400m','丙','高1','56.00','')],{})['男子400m'];
+ ok(g1[K('男子100m')].length===1&&g1[K('男子100m')][0].name==='見本 二郎'&&!g1[K('男子走幅跳')],'学年で絞り込む（風参考だけの選手は載らない）');
+ ok(R.ranking(rs,{grade:2})[K('男子100m')].map(x=>x.name).join()==='架空 一郎','学年は最新の記録で判定（高1→高2の選手は2年）');
+ const tie=R.ranking([mk('t1','2026-05-01','男子400m','甲','高1','55.00',''),mk('t2','2026-05-01','男子400m','乙','高1','55.00',''),mk('t3','2026-05-01','男子400m','丙','高1','56.00','')],{})[K('男子400m')];
  ok(tie.map(x=>x.rank).join()==='1,1,3','同記録は同順位');
  const at=R.allTimeTop(rs,2);
- ok(at['男子100m'].length===2&&at['男子100m'][0].year==='2023'&&at['男子100m'][0].season===2023,'歴代は上位n人・年を出す');
- ok(at['男子走幅跳'][0].best.mark==='5m74','歴代のフィールドは遠い順（参考記録は除く）');
+ ok(at[K('男子100m')].length===2&&at[K('男子100m')][0].year==='2023'&&at[K('男子100m')][0].season===2023,'歴代は上位n人・年を出す');
+ ok(at[K('男子走幅跳')][0].best.mark==='5m74','歴代のフィールドは遠い順（参考記録は除く）');
  const pf=R.athleteProfile(rs,R.athleteKey(rs[0]));
  ok(pf.events.length===2&&pf.grade==='高2','選手ページ：種目ごと');
- const e100=pf.events.find(e=>e.event===R.normEvent('男子100m'));
+ const e100=pf.events.find(e=>e.event===K('男子100m'));
  ok(e100.best.mark==='11.80'&&e100.ref.mark==='11.60'&&e100.points.length===2&&e100.lower&&e100.recent[0].id==='a4','選手ページ：公認ベスト・参考・グラフ点（公認のみ）・最近の記録');
  ok(R.athleteProfile(rs,'nobody')===null,'いない選手はnull');}
+console.log('[6] 中学・高校の区分と学年別（v0.4・本郷中／本郷高の混ざりの再発防止）');
+{const mk=(id,d,ev,n,team,g,m,w)=>({id,date:d,event:ev,name:n,team,grade:g,mark:m,wind:w});
+ ok(R.normEvent('男子中学1年 100m')===R.normEvent('男子高校 100m'),'（原因）normEvent だけでは中1と高校の100mが同じ「男子100m」になる');
+ ok(R.divisionOf({team:'架空中'})==='jh'&&R.divisionOf({team:'架空高'})==='hs'&&R.divisionOf({team:'架空中学校'})==='jh'&&R.divisionOf({team:'架空高等学校'})==='hs','所属の中・高で区分');
+ ok(R.divisionOf({team:'架空',event:'男子中学1年 100m'})==='jh'&&R.divisionOf({team:'架空',event:'男子高校 100m'})==='hs'&&R.divisionOf({team:'架空',event:'男子100m',grade:'中2'})==='jh','所属で決まらなければ種目見出し・学年で区分');
+ ok(R.eventCat('男子中学1年 100m')==='1年'&&R.eventCat('男子中学2年 100m')==='2年'&&R.eventCat('男子中学共通 100m')==='共通'&&R.eventCat('男子高校 100m')===''&&R.eventCat('男子2支部1年 100m')==='1年'&&R.eventCat('中1男子100m')==='1年'&&R.eventCat('中学2・3年男子100m')==='2・3年'&&R.eventCat('小学4~6年男子100m')==='小学','学年別・共通の区分を読む');
+ const evs=['男子中学1年 100m','男子中学2年 100m','男子中学3年 100m','男子中学共通 100m','男子高校 100m'];
+ ok(new Set(evs.map(e=>R.eventKey({event:e,team:'架空'}))).size===5,'中1・中2・中3・共通・高校の100mは別の種目');
+ const rs=[mk('j1','2026-05-30','男子中学1年 100m','中一 太郎','架空中','1','13.50','+0.5'),mk('j2','2026-05-30','男子中学2年 100m','中二 次郎','架空中','2','12.40','+0.3'),
+  mk('j3','2026-05-30','男子中学3年 100m','中三 三郎','架空中','3','11.95','+0.1'),mk('h1','2026-05-30','男子高校 100m','高一 四郎','架空高','1','11.40','+1.0'),
+  mk('h2','2026-05-30','男子高校 100m','高二 五郎','架空高','2','11.10','+1.2'),mk('o1','2026-05-30','男子中学1年 100m','他校 六郎','別の中','1','12.90','+0.5')];
+ const mine=rs.filter(r=>R.matchSchool(r.team,'架空'));
+ ok(mine.length===5,'学校名「架空」は架空中と架空高の両方に当たる（だから区分が必要）');
+ const all=R.ranking(mine,{}),k1=R.eventKey(rs[0]);
+ ok(all[k1].length===1&&all[k1][0].name==='中一 太郎','「男子 中1 100m」のランキングに中2・中3・高校の選手が入らない');
+ ok(!Object.keys(all).some(k=>all[k].some(x=>x.name==='高二 五郎')&&all[k].some(x=>x.name==='中一 太郎')),'中学と高校の記録が同じランキングに入らない');
+ ok(Object.keys(R.ranking(mine,{div:'jh'})).length===3&&Object.keys(R.ranking(mine,{div:'hs'})).length===1,'中学／高校の切り替え（中学は学年別3種目・高校は1種目）');
+ ok(R.ranking(mine,{div:'jh',grade:1})[k1].length===1&&!R.ranking(mine,{div:'hs',grade:1})[k1],'学年の絞り込みは区分の中だけ（高1が中1に混ざらない）');
+ ok(R.eventKeyLabel(rs[0])==='男子 中1 100m'&&R.eventKeyLabel(rs[3])==='男子 高校 100m'&&R.eventKeyLabel(mk('x','','男子中学共通 100m','a','架空中','','12.00',''))==='男子 中学共通 100m','種目の表示名に区分を出す');
+ const same=[mk('s1','2026-04-01','男子100m','同名 太郎','架空中','3','12.00','+0.1'),mk('s2','2026-06-01','男子100m','同名 太郎','架空高','1','11.50','+0.1')];
+ ok(R.athleteKey(same[0])!==R.athleteKey(same[1])&&R.pbDetails(same).s2.flag==='初','同じ名前でも架空中と架空高は別の選手として扱う（中学のベストを高校で更新したことにしない）');
+ const at=R.allTimeTop(mine,10,{div:'hs'});ok(Object.keys(at).length===1&&at[R.eventKey(rs[3])][0].name==='高二 五郎','歴代記録も区分ごと');
+ // HTMLの貼り付け（学年別の見出しが続く形）：見出しが変わったら種目を切り替える
+ const st=[{type:'text',v:'第1回架空支部学年別大会'},{type:'text',v:'男子中学1年 １００ｍ 決勝'},{type:'row',cells:['順位','ﾚｰﾝ','Bib','氏名','所属','記録','風']},{type:'row',cells:['1','4','11','中一 太郎(1)','架空中','13.50','+0.5']},
+  {type:'text',v:'男子中学2年 １００ｍ 決勝'},{type:'row',cells:['順位','ﾚｰﾝ','Bib','氏名','所属','記録','風']},{type:'row',cells:['1','4','12','中二 次郎(2)','架空中','12.40','+0.3']},
+  {type:'text',v:'男子高校 １００ｍ 決勝'},{type:'row',cells:['順位','ﾚｰﾝ','Bib','氏名','所属','記録','風']},{type:'row',cells:['1','4','13','高二 五郎(2)','架空高','11.10','+1.2']},{type:'row',cells:['','5','14','高一 欠場(1)','架空高','DNS','+1.2']}];
+ const pr=R.parseCells(st,{school:'架空'});
+ ok(pr.recs.map(r=>R.eventKey(r)).join()==='jh:男子100m#1年,jh:男子100m#2年,hs:男子100m,hs:男子100m','見出しごとに種目・区分が切り替わる');
+ ok(pr.recs[3].mark==='DNS'&&pr.recs[3].wind===''&&R.shownWind(pr.recs[3])===''&&R.shownWind(pr.recs[2])==='+1.2','DNSには風を入れない・出さない');
+ ok(R.shownWind({event:'男子100m',mark:'DNF',wind:'+1.0'})===''&&R.shownWind({event:'男子100m',mark:'DQ',wind:'+1.0'})===''&&R.shownWind({event:'男子400m',mark:'55.00',wind:'+1.0'})==='','DNF・失格・風のない種目は風を出さない');}
+console.log('[7] 選手別の並び・グラフの参考記録');
+{const L=[{name:'三山 太郎',kana:'ミヤマ タロウ'},{name:'中家 次郎',kana:'ナカイエ ジロウ'},{name:'三枝 三郎',kana:'サエグサ サブロウ'}];
+ ok(R.sortAthletes(L).map(x=>x.name).join()==='三枝 三郎,中家 次郎,三山 太郎','フリガナで五十音順（サ→ナ→ミ）');
+ const G=[{name:'乙',grade:'2'},{name:'甲',grade:'1'},{name:'丙',grade:'1'}];
+ ok(R.sortAthletes(G).map(x=>x.grade).join()==='1,1,2','フリガナが無ければ学年順');
+ const rs=[['2026-04-01','12.00','+1.0'],['2026-05-01','11.80','+2.5'],['2026-06-01','11.70','']].map((x,i)=>({id:'p'+i,date:x[0],mark:x[1],wind:x[2],event:'男子100m',name:'架空 一郎',team:'架空高'}));
+ const e=R.athleteProfile(rs,R.athleteKey(rs[0])).events[0];
+ ok(e.points.length===1&&e.allPoints.length===3&&e.allPoints.filter(p=>p.ref).length===2,'グラフ用：公認1点・参考（追い風・風不明）2点');}
 if(process.argv.length>2){const {loadPages}=await import('./load.mjs');
  for(const f of process.argv.slice(2)){const r=R.parsePdf(await loadPages(f),{school:process.env.SCHOOL||'本郷'});console.log('[PDF]',f,'記録',r.recs.length,'件 警告',r.warns.length,'件');r.warns.slice(0,10).forEach(w=>console.log('   ⚠',w));}}
 console.log('\n'+pass+' passed, '+fail+' failed');process.exit(fail?1:0);

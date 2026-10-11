@@ -1152,7 +1152,7 @@
     if (CLOUD_OK) loadFirebase().then(plAuth, function () { });
   }
   function copyAllPlayers() {
-    var m = playerMeta(), t = (m.n ? '【' + m.n + '】' : '') + '大会の日の予定です。自分の名前のリンクを開いてね（ほかの人のは開かないでね）\n\n' +
+    var m = playerMeta(), t = (m.n ? '【' + m.n + '】' : '') + '大会当日の予定です。自分の名前のリンクを開いてください（ほかの人のリンクは開かないこと）\n\n' +
       PL.list.filter(function (a) { return PL.links[a.key]; }).map(function (a) { return a.name + '：' + PL.links[a.key].url; }).join('\n');
     copyText(t, $('plCopyAll'), '📋 全員分をまとめてコピー（LINE用）');
   }
@@ -1162,12 +1162,12 @@
   function pvStore() { try { localStorage.setItem(PKEY + PV.id, JSON.stringify({ p: PV.str, own: PV.own, at: new Date().toISOString() })); } catch (e) { $('pvMsg').textContent = 'この端末に保存できませんでした（プライベートモードかもしれません）'; } }
   function pvNow() { var d = window.__playerNow ? new Date(window.__playerNow) : new Date(); return d; }
   function meetDay(s) { var m = /(\d{4})\D+(\d{1,2})\D+(\d{1,2})/.exec(String(s || '').normalize('NFKC')); return m ? new Date(+m[1], m[2] - 1, +m[3]) : null; }
-  function hm(mins) { var h = Math.floor(mins / 60), m = mins % 60; return (h ? h + 'じかん' : '') + (m || !h ? m + 'ふん' : ''); }
+  function hm(mins) { var h = Math.floor(mins / 60), m = mins % 60; return (h ? h + '時間' : '') + (m || !h ? m + '分' : ''); }
   function openPlayer(o, str, id) {
     var saved = pvLoad(id);
     PV = { o: o, str: str, id: id, own: saved && Array.isArray(saved.own) ? saved.own : [], edit: null };
     document.body.classList.add('player-mode'); $('player').hidden = false; $('viewer').hidden = true;
-    document.title = 'きみの大会の日の予定';
+    document.title = '大会当日の予定';
     $('pvName').textContent = (o.a && o.a.name ? o.a.name : '') + ' さん';
     $('pvMeet').innerHTML = [o.n ? '<b>' + esc(o.n) + '</b>' : '', o.d ? '📅 ' + esc(o.d) : '', o.pl ? '📍 ' + esc(o.pl) : ''].filter(Boolean).join('<br>');
     pvStore(); pvPresets(); pvRender(); window.scrollTo(0, 0);
@@ -1178,17 +1178,17 @@
     var items = pvItems(), now = pvNow(), day = meetDay(PV.o.d), nowMin = now.getHours() * 60 + now.getMinutes();
     var today = !day || day.toDateString() === now.toDateString(), ni = today ? PlayerLogic.nextIndex(items, nowMin) : -1;
     var nx = ni >= 0 ? items[ni] : null;
-    $('pvNext').innerHTML = nx ? '<div class="pv-nl">つぎは</div><div class="pv-nt">' + esc(nx.t) + '</div><div class="pv-nn">' + esc(nx.label) + '</div><div class="pv-nc">あと <b>' + hm(PlayerLogic.toMin(nx.t) - nowMin) + '</b></div>' :
-      (day && day > now ? '<div class="pv-nn">大会の日は ' + (day.getMonth() + 1) + 'がつ' + day.getDate() + 'にち だよ。<br>じゅんびしておこう！</div>' : '<div class="pv-nn">きょうの予定はおわり！おつかれさま 🎉</div>');
+    $('pvNext').innerHTML = nx ? '<div class="pv-nl">次は</div><div class="pv-nt">' + esc(nx.t) + '</div><div class="pv-nn">' + esc(nx.label) + '</div><div class="pv-nc">あと <b>' + hm(PlayerLogic.toMin(nx.t) - nowMin) + '</b></div>' :
+      (day && day > now ? '<div class="pv-nn">大会の日は ' + (day.getMonth() + 1) + '月' + day.getDate() + '日です。<br>準備しておこう。</div>' : '<div class="pv-nn">今日の予定は終わりです。お疲れさま 🎉</div>');
     $('pvList').innerHTML = items.map(function (x, i) {
       var cls = 'pv-i pv-' + x.kind + (i === ni ? ' pv-now' : '') + (today && ni >= 0 && i < ni && PlayerLogic.toMin(x.t) != null ? ' pv-done' : '');
-      var tag = x.kind === 'race' ? '<span class="pv-tag race">🏃 しあい</span>' : x.kind === 'call' ? '<span class="pv-tag call">📣 しょうしゅう</span>' : '';
+      var tag = x.kind === 'race' ? '<span class="pv-tag race">🏃 試合</span>' : x.kind === 'call' ? '<span class="pv-tag call">📣 招集</span>' : '';
       return '<li class="' + cls + '"><div class="pv-t">' + esc(x.t || '--:--') + (x.t2 ? '<small>〜' + esc(x.t2) + '</small>' : '') + '</div><div class="pv-b">' + tag + '<b>' + esc(x.label) + '</b>' + (x.sub ? '<small>' + esc(x.sub) + '</small>' : '') + '</div>' +
-        (x.auto ? '<div class="pv-lock" title="先生が入れた予定なので消せません">🔒</div>' : '<div class="pv-ops"><button type="button" class="pv-ed" data-id="' + esc(x.id) + '" aria-label="なおす">✏️</button><button type="button" class="pv-del" data-id="' + esc(x.id) + '" aria-label="けす">🗑</button></div>') + '</li>';
+        (x.auto ? '<div class="pv-lock" title="先生が入れた予定なので消せません">🔒</div>' : '<div class="pv-ops"><button type="button" class="pv-ed" data-id="' + esc(x.id) + '" aria-label="編集">✏️</button><button type="button" class="pv-del" data-id="' + esc(x.id) + '" aria-label="削除">🗑</button></div>') + '</li>';
     }).join('') || '<li class="pv-i"><div class="pv-b">まだ予定がありません</div></li>';
     $('pvList').querySelectorAll('.pv-ed').forEach(function (b) { b.addEventListener('click', function () { pvEdit(b.dataset.id); }); });
     $('pvList').querySelectorAll('.pv-del').forEach(function (b) { b.addEventListener('click', function () {
-      var o = PV.own.filter(function (x) { return x.id === b.dataset.id; })[0]; if (!o || !confirm('「' + o.label + '」をけしますか？')) return;
+      var o = PV.own.filter(function (x) { return x.id === b.dataset.id; })[0]; if (!o || !confirm('「' + o.label + '」を削除しますか？')) return;
       PV.own = PV.own.filter(function (x) { return x !== o; }); pvStore(); pvRender();
     }); });
   }
@@ -1203,14 +1203,14 @@
   }
   function pvEdit(id) {
     var o = PV.own.filter(function (x) { return x.id === id; })[0]; if (!o) return;
-    PV.edit = id; $('pvLabel').value = o.label; $('pvTime').value = o.t ? o.t.padStart(5, '0') : ''; $('pvAdd').textContent = '✔ なおす'; $('pvCancel').hidden = false;
+    PV.edit = id; $('pvLabel').value = o.label; $('pvTime').value = o.t ? o.t.padStart(5, '0') : ''; $('pvAdd').textContent = '✔ 更新'; $('pvCancel').hidden = false;
     $('pvForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
-  function pvReset() { PV.edit = null; $('pvLabel').value = ''; $('pvTime').value = ''; $('pvAdd').textContent = '＋ たす'; $('pvCancel').hidden = true; }
+  function pvReset() { PV.edit = null; $('pvLabel').value = ''; $('pvTime').value = ''; $('pvAdd').textContent = '＋ 追加'; $('pvCancel').hidden = true; }
   function pvSubmit() {
     var l = $('pvLabel').value.trim().slice(0, 40), t = $('pvTime').value;
-    if (!l) { $('pvMsg').textContent = 'なにをするか書いてね'; return; }
-    if (!t) { $('pvMsg').textContent = '時間をえらんでね'; return; }
+    if (!l) { $('pvMsg').textContent = '予定の内容を入れてください'; return; }
+    if (!t) { $('pvMsg').textContent = '時刻を選んでください'; return; }
     t = t.replace(/^0(\d):/, '$1:'); $('pvMsg').textContent = '';
     if (PV.edit) PV.own.forEach(function (x) { if (x.id === PV.edit) { x.label = l; x.t = t; } });
     else PV.own.push({ id: 'o' + Date.now().toString(36) + Math.floor(Math.random() * 1e4), label: l, t: t });

@@ -4,7 +4,7 @@
 
 公開 URL: https://masarun0721.github.io/lane-note/
 
-## LANE LOG（records.html・試作 v0.2.4）
+## 記録（records.html・旧 LANE LOG・試作 v0.4.0）
 
 大会の結果（PDF・保存したWebページのHTML・ページを貼り付けた文章）から自校の選手の記録を読み取り、ためていく別ページです（https://masarun0721.github.io/lane-note/records.html ）。選手別・種目別・大会別に一覧でき、自己ベスト（追い風2.0m超・風が読めない記録は公認ベストにしない）と自己ベスト更新の記録がわかります。Googleでログインすると、記録は LANE NOTE の Firebase（Google の Firestore）に本人のアカウントごとに保存され、本人だけが読み書きでき、どの端末からでも見られます。ログインしないときは、このブラウザの IndexedDB にだけ保存します。結果資料の読み取りはブラウザの中で行います。JSONファイルへの書き出し・読み込み、Excel（SheetJS）への書き出し、大会ごとの削除（大会別の一覧の「この大会を消す」）、読み込み直後の「今読み込んだ分を取り消す」、全消去ができます。大会準備のページ（index.html）は今までどおり何も保存しない作りのままです。
 

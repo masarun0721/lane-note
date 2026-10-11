@@ -28,10 +28,44 @@ var ResultParser = (function () {
   function normEvent(s) {
     s = nk(s).replace(/\s+/g, '').replace(/[（(](選|予|決)[)）]/g, '');
     var g = /女/.test(s.replace(/男女/, '')) && !/男子/.test(s) ? '女子' : (/男/.test(s) ? '男子' : '');
-    var d = s.replace(/^.*?(男子|女子|男|女)/, '').replace(/^(小学|中学|高校|一般|共通|中学共通|高校・一般|高校一般|中学・高校|[1-6１-６]年|U\d+|\d年)+/g, '').replace(/^[・]+/, '');
+    var d = s.replace(/^.*?(男子|女子|男|女)/, '').replace(/^(\d+・?\d*支部|小学|中学|高校|一般|共通|中学共通|高校・一般|高校一般|中学・高校|[1-6１-６]年|[中高][1-3]|U\d+|\d年)+/g, '').replace(/^[・]+/, '');
     d = d.replace(/^(小学|中学|高校|一般|共通)+/, '').replace(/ｍ/g, 'm').replace(/ハードル/, 'H');
     return (g + d) || s;
   }
+  // v0.4：種目の区分（学年別・共通・高校…）。normEvent は区分を落とすので、ランキング・PB は eventKey で分ける
+  function eventCat(ev) {
+    var s = nk(ev).replace(/\s+/g, '').replace(/[（(](選|予|決)[)）]/g, '');
+    var m = s.match(/(?:中学?|高校?)?([1-3](?:[・~〜\-][1-3])?)年(?!生)/) || s.match(/(?:^|[^\d])[中高]([1-3])(?=[^\d]|$)/);
+    if (/小学/.test(s)) return '小学';
+    if (m) return m[1] + '年';
+    if (/共通/.test(s)) return '共通';
+    if (/一般/.test(s) && !/高校/.test(s)) return '一般';
+    return '';
+  }
+  // 中学／高校：所属の「中・高」→ 種目見出しの「中学・高校」→ 学年の「中2・高1」の順で決める。決められなければ ''
+  function divisionOf(r) {
+    var t = normSchool(r && r.team || '');
+    if (/(中学校|中学|中等教育学校|中)$/.test(t)) return 'jh';
+    if (/(高等学校|高校|高)$/.test(t)) return 'hs';
+    var e = nk(r && r.event || '').replace(/\s+/g, '');
+    if (/中学|中[1-3](?!\d)/.test(e)) return 'jh';
+    if (/高校|高[1-3](?!\d)/.test(e)) return 'hs';
+    var g = nk(r && r.grade || '');
+    if (/^中/.test(g)) return 'jh';
+    if (/^高/.test(g)) return 'hs';
+    return '';
+  }
+  function divLabel(d) { return d === 'jh' ? '中学' : d === 'hs' ? '高校' : ''; }
+  // ランキング・PB・グラフで使う種目のキー：区分（中学/高校）＋学年別などの区分＋種目
+  function eventKey(r) { var c = eventCat(r.event), d = divisionOf(r); return (d ? d + ':' : '') + normEvent(r.event) + (c ? '#' + c : ''); }
+  function eventKeyLabel(r) {
+    var n = normEvent(r.event), g = (n.match(/^(男子|女子)/) || [''])[0], c = eventCat(r.event), d = divLabel(divisionOf(r));
+    var cat = c === '共通' ? (d || '') + '共通' : /^\d年$/.test(c) ? (d ? d.charAt(0) : '') + c.charAt(0) : /年$/.test(c) ? (d || '') + c : c;
+    if (!cat && d) cat = d;
+    return g + (cat ? ' ' + cat + ' ' : '') + n.slice(g.length);
+  }
+  function hasMark(r) { return !!markValue(r && r.mark); }
+  function shownWind(r) { return hasMark(r) && windApplies(r.event) ? (r.wind || '') : ''; }   // DNS・DNF・失格などには風を出さない
   function windApplies(ev) { var d = nk(ev).replace(/\s/g, ''); return /(^|\D)(50|60|80|100|110|200)m(H|$|\()/.test(d) || /(走幅跳|三段跳)/.test(d) && !/立/.test(d); }
   // 記録の数値化：時間は秒（小さいほど良い）、距離はm（大きいほど良い）
   function markValue(mark) {
@@ -172,6 +206,7 @@ var ResultParser = (function () {
             if (w == null && c.wind != null) { var wc = same.filter(function (x) { return WIND.test(x.n) && x.x >= c.wind - 10; })[0]; if (wc) w = wc.n; }
             if (w == null && wev && !/走幅跳|三段跳|跳|投/.test(ev)) w = wev.v;
             var g = parseGrade(kanji || '');
+            if (STATUS.test(mark) || !mark) w = null;
             var r = { event: nk(ev).replace(/\s+/g, ' ').trim(), round: round, heat: hev ? hev.v : '', rank: rank ? +rank.n : '', lane: lane ? +lane.n : '', bib: a.n, name: g.name || kanji, kana: kana, grade: g.grade, team: team, mark: mark, wind: w != null ? String(nk(w)).replace('±', '') : '', comment: cmt, page: pi + 1 };
             if (opt.school && !matchSchool(r.team, opt.school)) return;
             var probs = [];
@@ -252,6 +287,7 @@ var ResultParser = (function () {
       var badMark = mark && !isMark(mark);
       var w = mk.wind != null ? mk.wind : (map.wind != null ? get(map.wind) : wind);
       if (/跳|投/.test(ev) && map.wind == null && mk.wind == null) w = '';
+      if (!mark || STATUS.test(mark)) w = '';
       var team = get(map.team);
       var hc = map.heat != null ? (get(map.heat).match(/\d+/) || [''])[0] : ''; var r = { event: ev, round: round, heat: hc ? +hc : heat, rank: /^\d+$/.test(get(map.rank)) ? +get(map.rank) : '', lane: /^\d+$/.test(get(map.lane)) ? +get(map.lane) : '', bib: get(map.bib), name: g.name.replace(/\s+/g, ' '), kana: kana, grade: g.grade || get(map.grade), team: team, mark: mark, wind: (w || '').replace('±', '').replace(/[()（）]/g, ''), comment: cmt };
       if (opt.school && !matchSchool(team, opt.school)) return;
@@ -303,12 +339,12 @@ var ResultParser = (function () {
   }
   function dedupe(recs) {
     var seen = {}, out = [];
-    recs.forEach(function (r) { var k = [normEvent(r.event), r.round, r.heat, nameKey(r.name || r.kana), r.mark].join('|'); if (!seen[k]) { seen[k] = 1; out.push(r); } });
+    recs.forEach(function (r) { var k = [normEvent(r.event) + '#' + eventCat(r.event), r.round, r.heat, nameKey(r.name || r.kana), r.mark].join('|'); if (!seen[k]) { seen[k] = 1; out.push(r); } });
     return out;
   }
 
   /* ---------- 自己ベスト ---------- */
-  function athleteKey(r) { return nameKey(r.name || r.kana) + '@' + schoolBase(r.team); }
+  function athleteKey(r) { var d = divisionOf(r); return nameKey(r.name || r.kana) + '@' + schoolBase(r.team) + (d ? '#' + d : ''); }
   function windClass(r) {   // 'ok' 公認対象 / 'aid' 追い風参考 / 'unk' 風不明 / 'na' 風の無い種目
     if (!windApplies(r.event)) return 'na';
     var w = windNum(r.wind); if (w == null) return 'unk';
@@ -317,7 +353,7 @@ var ResultParser = (function () {
   // recs: 日付つきの記録。各記録に pb（'PB'更新／'初'）と、選手×種目のベストを返す
   function computeBests(recs) {
     var groups = {};
-    recs.forEach(function (r) { var k = athleteKey(r) + '|' + normEvent(r.event); (groups[k] = groups[k] || []).push(r); });
+    recs.forEach(function (r) { var k = athleteKey(r) + '|' + eventKey(r); (groups[k] = groups[k] || []).push(r); });
     var bests = [], flags = {};
     Object.keys(groups).forEach(function (k) {
       var g = groups[k].slice().sort(function (a, b) { return (a.date || '').localeCompare(b.date || '') || (a.order || 0) - (b.order || 0); });
@@ -331,7 +367,7 @@ var ResultParser = (function () {
         } else if (better(bestAid)) bestAid = { r: r, mv: mv };
       });
       var any = g[0];
-      bests.push({ key: athleteKey(any), name: any.name || any.kana, team: any.team, event: normEvent(any.event), eventLabel: any.event, best: best && best.r, ref: bestAid && (!best || (bestAid.mv.lower ? bestAid.mv.v < best.mv.v : bestAid.mv.v > best.mv.v)) ? bestAid.r : null, count: g.length });
+      bests.push({ key: athleteKey(any), name: any.name || any.kana, kana: any.kana || '', grade: any.grade || '', team: any.team, div: divisionOf(any), event: eventKey(any), eventLabel: eventKeyLabel(any), best: best && best.r, ref: bestAid && (!best || (bestAid.mv.lower ? bestAid.mv.v < best.mv.v : bestAid.mv.v > best.mv.v)) ? bestAid.r : null, count: g.length });
     });
     return { bests: bests, flags: flags };
   }
@@ -354,7 +390,7 @@ var ResultParser = (function () {
   // 各記録の PB 情報：{ flag:'PB'|'初', prev: 直前の公認ベストの記録, diff: 改善幅 }
   function pbDetails(recs) {
     var groups = {}, out = {};
-    recs.forEach(function (r) { var k = athleteKey(r) + '|' + normEvent(r.event); (groups[k] = groups[k] || []).push(r); });
+    recs.forEach(function (r) { var k = athleteKey(r) + '|' + eventKey(r); (groups[k] = groups[k] || []).push(r); });
     Object.keys(groups).forEach(function (k) {
       var best = null;
       groups[k].slice().sort(byDate).forEach(function (r) {
@@ -372,9 +408,9 @@ var ResultParser = (function () {
   // 学年は対象期間の中でいちばん新しい記録の学年で判定する
   function ranking(recs, opt) {
     opt = opt || {};
-    var rs = recs.filter(function (r) { return opt.season == null || seasonOf(r.date) === opt.season; });
+    var rs = recs.filter(function (r) { return (opt.season == null || seasonOf(r.date) === opt.season) && (!opt.div || divisionOf(r) === opt.div); });
     var groups = {};
-    rs.forEach(function (r) { var ev = normEvent(r.event), k = athleteKey(r); ((groups[ev] = groups[ev] || {})[k] = groups[ev][k] || []).push(r); });
+    rs.forEach(function (r) { var ev = eventKey(r), k = athleteKey(r); ((groups[ev] = groups[ev] || {})[k] = groups[ev][k] || []).push(r); });
     var out = {};
     Object.keys(groups).forEach(function (ev) {
       var list = [];
@@ -383,7 +419,7 @@ var ResultParser = (function () {
         var gr = null; for (var i = g.length - 1; i >= 0 && gr == null; i--) gr = gradeNum(g[i].grade);
         if (opt.grade != null && gr !== opt.grade) return;
         g.forEach(function (r) { if (isOfficial(r)) { var mv = markValue(r.mark); if (isBetter(mv, best && best.mv)) best = { r: r, mv: mv }; } });
-        if (best) list.push({ key: k, name: last.name || last.kana, team: last.team, grade: gr, best: best.r, mv: best.mv, count: g.length });
+        if (best) list.push({ key: k, label: eventKeyLabel(last), name: last.name || last.kana, team: last.team, grade: gr, best: best.r, mv: best.mv, count: g.length });
       });
       list.sort(function (a, b) { return a.mv.lower ? a.mv.v - b.mv.v : b.mv.v - a.mv.v; });
       var prev = null; list.forEach(function (x, i) { x.rank = prev && prev.mv.v === x.mv.v ? prev.rank : i + 1; prev = x; });
@@ -392,8 +428,8 @@ var ResultParser = (function () {
     return out;
   }
   // 歴代記録：種目ごとに、選手ひとりにつき公認ベスト1つで上位 n 人（卒業生も含む）
-  function allTimeTop(recs, n) {
-    var r = ranking(recs, {}), out = {};
+  function allTimeTop(recs, n, opt) {
+    var r = ranking(recs, { div: opt && opt.div }), out = {};
     Object.keys(r).forEach(function (ev) { out[ev] = r[ev].slice(0, n || 10).map(function (x) { return Object.assign({}, x, { season: seasonOf(x.best.date), year: String(x.best.date || '').slice(0, 4) }); }); });
     return out;
   }
@@ -402,15 +438,31 @@ var ResultParser = (function () {
     var mine = recs.filter(function (r) { return athleteKey(r) === key; });
     if (!mine.length) return null;
     var cb = computeBests(mine), byEv = {};
-    mine.forEach(function (r) { var ev = normEvent(r.event); (byEv[ev] = byEv[ev] || []).push(r); });
+    mine.forEach(function (r) { var ev = eventKey(r); (byEv[ev] = byEv[ev] || []).push(r); });
     var last = mine.slice().sort(byDate)[mine.length - 1];
     var events = cb.bests.map(function (b) {
       var g = byEv[b.event].slice().sort(byDate);
-      var pts = g.filter(isOfficial).map(function (r) { return { date: r.date, v: markValue(r.mark).v, mark: r.mark }; });
+      var all = g.filter(hasMark).map(function (r) { return { date: r.date, v: markValue(r.mark).v, mark: r.mark, wind: r.wind || '', ref: !isOfficial(r), wc: windClass(r) }; });
+      var pts = all.filter(function (p) { return !p.ref; });
       var any = g.map(function (r) { return markValue(r.mark); }).filter(Boolean)[0];
-      return { event: b.event, eventLabel: b.eventLabel, best: b.best, ref: b.ref, count: b.count, recent: g.slice().reverse().slice(0, 5), points: pts, lower: any ? any.lower : true };
+      return { event: b.event, eventLabel: b.eventLabel, best: b.best, ref: b.ref, count: b.count, recent: g.slice().reverse().slice(0, 5), points: pts, allPoints: all, lower: any ? any.lower : true };
     }).sort(function (a, b) { return a.event < b.event ? -1 : a.event > b.event ? 1 : 0; });
     return { key: key, name: last.name || last.kana, kana: last.kana, team: last.team, grade: last.grade, events: events, count: mine.length };
+  }
+
+  // 選手別の並び：フリガナがあれば五十音、なければ学年→氏名（日本語の照合順）
+  var COLL = (typeof Intl !== 'undefined' && Intl.Collator) ? new Intl.Collator('ja') : null;
+  function jcmp(a, b) { a = a || ''; b = b || ''; return COLL ? COLL.compare(a, b) : (a < b ? -1 : a > b ? 1 : 0); }
+  function kanaKey(k) { return nk(k || '').replace(/[\s　・]/g, '').replace(/[ぁ-ゖ]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) + 0x60); }); }
+  function sortAthletes(list, get) {
+    get = get || function (x) { return x; };
+    return list.slice().sort(function (x, y) {
+      var a = get(x), b = get(y), ka = kanaKey(a.kana), kb = kanaKey(b.kana);
+      if (ka && kb) return jcmp(ka, kb) || jcmp(nk(a.name), nk(b.name));
+      var ga = gradeNum(a.grade), gb = gradeNum(b.grade);
+      if (ga !== gb) return (ga == null ? 9 : ga) - (gb == null ? 9 : gb);
+      return jcmp(ka || nk(a.name), kb || nk(b.name));
+    });
   }
 
   /* ---------- 大会名の推測（ファイル名・資料の見出しから） ---------- */
@@ -459,6 +511,7 @@ var ResultParser = (function () {
   function recId(meetName, date, r) { return [nk(meetName).replace(/\s/g, ''), date, normEvent(r.event), r.round, r.heat, nameKey(r.name || r.kana), schoolBase(r.team), r.mark].join('|'); }
   return { parsePdf: parsePdf, parseCells: parseCells, parsePlain: parsePlain, textToStream: textToStream, normEvent: normEvent, markValue: markValue, windApplies: windApplies, windClass: windClass, windNum: windNum,
     computeBests: computeBests, athleteKey: athleteKey, matchSchool: matchSchool, recId: recId, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
-    guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText };
+    guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText,
+    eventCat: eventCat, divisionOf: divisionOf, divLabel: divLabel, eventKey: eventKey, eventKeyLabel: eventKeyLabel, shownWind: shownWind, hasMark: hasMark, sortAthletes: sortAthletes, kanaKey: kanaKey };
 })();
 if (typeof module !== 'undefined') module.exports = ResultParser;

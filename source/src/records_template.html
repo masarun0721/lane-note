@@ -3,12 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LANE LOG（レーンログ）試作版｜LANE NOTE</title>
+<title>記録 試作版｜LANE NOTE</title>
 <link rel="icon" type="image/svg+xml" href="__FAVICON__">
 <link rel="apple-touch-icon" sizes="180x180" href="__APPLE_ICON__">
 <style>
 __BASE_CSS__
-/* ===== LANE LOGだけの見た目 ===== */
+/* ===== 記録ページだけの見た目 ===== */
+.divsw{display:flex;gap:0;margin:4px 0 10px;border:1px solid #1f3a68;border-radius:10px;overflow:hidden;width:max-content}
+.divsw button{border:0;background:#fff;color:#1f3a68;font-size:15px;font-weight:700;padding:8px 18px;min-height:40px;cursor:pointer}
+.divsw button+button{border-left:1px solid #1f3a68}
+.divsw button.on{background:#1f3a68;color:#fff}
+.rb-meetlist{margin:6px 0 0;padding-left:18px;font-size:13px}.rb-meetlist li{margin:2px 0}
+.rb-done{font-size:15px}
+.meetsel{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 8px}.meetsel select{max-width:100%;font-size:15px;padding:6px}
+.chartbox{display:flex;flex-direction:column;gap:4px}.chartopt{font-size:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.chartopt .lg-ref{display:inline-flex;align-items:center;gap:3px}
+.ev-only select{font-size:15px}
 .rb-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .rb-row input[type=text],.rb-row input[type=date],.rb-row select{font-size:15px;padding:6px 8px;border:1px solid #c9d2e0;border-radius:8px}
 #rbPaste{width:100%;min-height:110px;font-size:13px;border:1px solid #c9d2e0;border-radius:8px;padding:8px;font-family:inherit}
@@ -111,17 +121,17 @@ body.ath-open #rbLegend{display:none}
 <body class="records">
 <header>
   <div class="hdr-meta">
-    <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／LANE LOG __REC_VERSION__ <span class="beta-tag">試作</span></div>
+    <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／記録 __REC_VERSION__ <span class="beta-tag">試作</span></div>
     <div class="credit">Presented by Sakata</div>
     <div class="hdr-msg">すべての陸上競技部顧問が、少しでも楽になりますように。</div>
   </div>
   <div class="brand">
-    <h1 class="logo">__LOGO_DARK__<span class="vh">LANE NOTE（レーンノート）LANE LOG（レーンログ）</span></h1>
+    <h1 class="logo">__LOGO_DARK__<span class="vh">LANE NOTE（レーンノート）記録</span></h1>
     <span class="badge">試作版</span>
   </div>
   <div class="beta-banner" role="note" aria-label="試作中のお知らせ"><b>⚠️ 試作中（β版）</b><span>機能や画面は予告なく変わることがあります。記録が消えたり読み取りを間違えたりする可能性があるので、大事な記録は元の結果資料でも確認してください。</span></div>
-  <p class="tagline">LANE LOG：大会の結果から、自校の記録と自己ベストをためていく</p>
-  <nav class="pagenav" aria-label="ページ"><a href="./">🏁 大会準備</a><a href="records.html" class="on" aria-current="page">📒 LANE LOG</a></nav>
+  <p class="tagline">記録：大会の結果から、自校の記録と自己ベストをためていく</p>
+  <nav class="pagenav" aria-label="ページ"><a href="./">🏁 大会準備</a><a href="records.html" class="on" aria-current="page">📒 記録</a></nav>
 </header>
 <main>
 <section class="box">
@@ -150,10 +160,13 @@ body.ath-open #rbLegend{display:none}
     <button class="btn sub" id="rbPasteGo" type="button">貼り付けた文章を読み取る</button>
   </details>
   <div id="rbBatches"></div>
+  <div class="status" id="rbDone" aria-live="polite"></div>
+  <details class="rb-meets" id="rbMeetsBox"><summary><b>取り込み済みの大会</b> <span class="small muted" id="rbMeetsN"></span></summary><ul class="rb-meetlist" id="rbMeets"></ul></details>
 </section>
 
 <section class="box">
-  <h2><span class="no">2</span>LANE LOG</h2>
+  <h2><span class="no">2</span>記録</h2>
+  <div class="divsw" role="radiogroup" aria-label="中学・高校の切り替え" id="rbDiv"><button type="button" data-div="all">すべて</button><button type="button" data-div="jh">中学</button><button type="button" data-div="hs">高校</button></div>
   <div class="rb-stats" id="rbStats"></div>
   <div class="tabbar"><div class="tabs" role="tablist">
     <button class="on" data-v="home" type="button">ホーム</button><button data-v="ath" type="button">選手別</button><button data-v="rank" type="button">部内ランキング</button><button data-v="meet" type="button">大会別</button><button data-v="hist" type="button">歴代記録</button><button data-v="all" type="button">全記録</button>
@@ -175,14 +188,14 @@ body.ath-open #rbLegend{display:none}
   <div class="status" id="rbDataStatus"></div>
 </section>
 </main>
-<footer><details class="about"><summary><b>このLANE LOGについて</b>（版・対応している形式・既知の制限）</summary>
+<footer><details class="about"><summary><b>この記録ページについて</b>（版・対応している形式・既知の制限）</summary>
   <ul>
-    <li><b>LANE NOTE（レーンノート）LANE LOG（レーンログ） 試作版</b>　版：<span class="appver"></span>／LANE LOG __REC_VERSION__（__BUILD_DATE__ 作成）／ Presented by Sakata</li>
+    <li><b>LANE NOTE（レーンノート）記録 試作版</b>　版：<span class="appver"></span>／記録 __REC_VERSION__（__BUILD_DATE__ 作成）／ Presented by Sakata</li>
     <li>読める形式：組ごとに2列で並ぶ結果PDF（「順位・レーン・ナンバー・氏名・所属・記録」の見出しがあるもの。北区・江東区・都高体連などで確認）／ 結果サイトのHTML（表のあるもの）・その貼り付け。</li>
     <li>既知の制限：リレー・混成の得点・スキャン（画像）PDFは読みません。大会名・日付が資料に無いときは手で入れてください。風が読めない記録は公認ベストに数えません。</li>
     <li>使っている部品（外部CDNから読み込み、ハッシュで確認）：pdf.js 4.10.38（Apache-2.0, Mozilla）／ SheetJS Community Edition 0.20.3（Apache-2.0）／ Firebase JS SDK 10.14.1（Apache-2.0, Google・ログインと保存）</li>
   </ul></details>
-<div class="f-disc">ⓘ 本ツールは結果資料の文字を読み取って自動で整理しているだけです。内容は必ず元の結果資料と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div><div><b class="f-brand">LANE NOTE</b>（レーンノート）LANE LOG 試作版 ／ <span class="f-credit">Presented by Sakata</span></div>🔒 ログイン中の記録は本人だけが読めるクラウド（Google Firebase）に保存します。ログインしないときはこのブラウザの中にだけ保存します（部品取得のため外部CDNへ通信します）。 <a href="./">大会準備のページへ</a></footer>
+<div class="f-disc">ⓘ 本ツールは結果資料の文字を読み取って自動で整理しているだけです。内容は必ず元の結果資料と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div><div><b class="f-brand">LANE NOTE</b>（レーンノート）記録 試作版 ／ <span class="f-credit">Presented by Sakata</span></div>🔒 ログイン中の記録は本人だけが読めるクラウド（Google Firebase）に保存します。ログインしないときはこのブラウザの中にだけ保存します（部品取得のため外部CDNへ通信します）。 <a href="./">大会準備のページへ</a></footer>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
 <script src="firebase-config.js"></script>
 <script>

@@ -41,10 +41,10 @@ var PlayerLogic = (function () {
   function autoItems(p) {
     var out = [];
     (p.e || []).forEach(function (x, i) {
-      var e = entryObj(x), where = [e.heat ? e.heat + 'くみ' : '', e.pos ? (e.posLabel === 'レーン' ? e.pos + 'レーン' : (e.posLabel || '') + ' ' + e.pos) : ''].filter(Boolean).join('・');
+      var e = entryObj(x), where = [e.heat ? e.heat + '組' : '', e.pos ? (e.posLabel === 'レーン' ? e.pos + 'レーン' : (e.posLabel || '') + ' ' + e.pos) : ''].filter(Boolean).join('・');
       var ev = e.event + (e.round ? ' ' + e.round : '');
       if (e.callStart || e.callEnd) out.push({ id: 'c' + i, auto: true, kind: 'call', t: e.callStart || e.callEnd, t2: e.callStart && e.callEnd ? e.callEnd : '',
-        label: 'しょうしゅう（' + ev + '）', sub: (p.cp ? 'ばしょ：' + p.cp : '') });
+        label: '招集（' + ev + '）', sub: (p.cp ? '場所：' + p.cp : '') });
       out.push({ id: 'r' + i, auto: true, kind: 'race', t: e.start, label: (e.relay ? 'リレー ' : '') + ev, sub: [where, e.relay && e.relayTeam ? e.relayTeam : ''].filter(Boolean).join('・') });
     });
     return out;
@@ -62,7 +62,7 @@ var PlayerLogic = (function () {
     for (var i = 0; i < items.length; i++) { var m = toMin(items[i].t); if (m != null && m >= nowMin) return i; }
     return -1;
   }
-  var PRESETS = [['おきる', -180], ['あさごはん', -150], ['いえを出る', -120], ['しゅうごう', -90], ['アップ開始', -60], ['おひるごはん', null], ['ストレッチ', -45], ['かえる', null]];
+  var PRESETS = [['起床', -180], ['朝ごはん', -150], ['家を出る', -120], ['集合', -90], ['アップ開始', -60], ['昼ごはん', null], ['ストレッチ', -45], ['帰る', null]];
   return { athletes: athletes, payloadFor: payloadFor, autoItems: autoItems, merge: merge, nextIndex: nextIndex, entryObj: entryObj, toMin: toMin, keyOf: keyOf, PRESETS: PRESETS };
 })();
 if (typeof module !== 'undefined') module.exports = PlayerLogic;

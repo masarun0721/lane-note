@@ -25,7 +25,7 @@ console.log('[3] 自動の予定と自分の予定をまぜる');
 const auto=PL.autoItems(p);
 ok(auto.length===6&&auto.every(x=>x.auto),'招集とレースで6件、すべて自動（消せない）');
 ok(auto[0].kind==='call'&&auto[0].t==='10:00'&&auto[0].t2==='10:10'&&/サブトラック/.test(auto[0].sub),'招集は開始〜完了と場所');
-ok(/2くみ・4レーン/.test(auto[1].sub),'組とレーンを出す');
+ok(/2組・4レーン/.test(auto[1].sub),'組とレーンを出す');
 const own=[{id:'o1',label:'おきる',t:'6:30'},{id:'o2',label:'アップ開始',t:'10:00'},{id:'o3',label:'メモ',t:''},{id:'o4',label:'おひる',t:'12:00'}];
 const M=PL.merge(auto,own);
 ok(M.map(x=>x.t||'-').join()==='6:30,10:00,10:00,10:30,12:00,12:20,13:00,14:40,15:10,-','時間順・時刻なしは最後：'+M.map(x=>x.t||'-').join());
