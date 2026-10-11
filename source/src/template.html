@@ -268,6 +268,10 @@ footer a{color:var(--navy)}
 }
 .outgrp{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center}.outgrp>b{font-size:13px}
 @media (max-width:600px){.outgrp{flex:1 1 100%}.outgrp>b{flex:1 1 100%}.toolbar .outgrp .btn{flex:1 1 30%;padding:9px 6px;font-size:13.5px}}
+#parentView{position:fixed;inset:0;z-index:1000;background:#e9edf3;display:flex;flex-direction:column}#parentView[hidden]{display:none}#pvFrame{flex:1;border:0;background:#fff;margin:0 8px 8px;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.pv-bar{flex-wrap:wrap;gap:6px 10px}.pv-opt{font-size:13px;white-space:nowrap}.pv-btns{display:flex;flex-wrap:wrap;gap:6px}.pv-msg{font-size:13px;color:#137333}.pv-help{font-size:12px;margin:4px 10px;color:#444}
+.trial{display:inline-block;font-size:10px;font-weight:700;background:#fff3cd;color:#7a5a00;border:1px solid #f0d58a;border-radius:6px;padding:0 4px;vertical-align:middle}
+@media print{#parentView{display:none!important}}
 #docView{position:fixed;inset:0;z-index:1000;background:#e9edf3;display:flex;flex-direction:column}#docView[hidden]{display:none}
 .docbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 10px;background:#1f3a68;color:#fff}.docbar b{flex:1 1 auto}.docbar .btn{min-height:44px}
 #docFrame{flex:1 1 auto;width:100%;border:0;background:#fff}
@@ -663,6 +667,7 @@ body.fb-open{overflow:hidden}
     <button class="btn sub" id="btnRecXlsx">記録用紙をExcelで保存</button>
     <button class="btn sub" id="btnShare">📱 スマホで見る／共有</button>
     <button class="btn sub" id="btnPlayers">🏃 選手用リンクを作る</button>
+    <button class="btn sub" id="btnParent" type="button">👪 保護者案内用の表 <span class="trial">試し版</span></button>
   </div>
   <div class="recmeta noprint">大会名 <input id="meetName" size="28" placeholder="例：第74回北区民体育大会"> <span class="rs na" id="dateMark" title="">－</span>日付 <input id="meetDate" size="18" placeholder="例：2026年10月11日（日）"> <small class="muted" id="dateSrc"></small> <select id="dateAlt" hidden title="日付の候補から選ぶ"></select><div class="warn small" id="multiDayWarn" hidden></div></div>
   <p class="small muted noprint">用紙：出場一覧・記録用紙＝A4縦／ナンバーカード＝B5。印刷の設定は「実際のサイズ（100%）」にしてください。</p>
@@ -704,6 +709,12 @@ body.fb-open{overflow:hidden}
     <ul id="checkList"></ul>
   </div>
 </section>
+<div id="parentView" class="noprint" hidden role="dialog" aria-label="保護者案内用の表"><div class="docbar pv-bar"><b>👪 保護者案内用の表 <span class="trial">試し版</span></b>
+  <label class="pv-opt"><input type="checkbox" id="pvGrade" checked> 学年の列</label><label class="pv-opt"><input type="checkbox" id="pvSplit" checked> 男子・女子を左右に並べる</label>
+  <span class="pv-btns"><button class="btn" type="button" id="pvCopyAth">📋 出場選手表をコピー</button><button class="btn" type="button" id="pvCopyTime">📋 時間順の予定をコピー</button><button class="btn sub" type="button" id="pvPdf">📄 PDF作成</button><button class="btn sub" type="button" id="pvPrint">🖨 印刷</button><button class="btn sub" type="button" id="pvXlsx">📊 Excelで保存</button><button class="btn sub" type="button" id="pvClose">✕ 閉じる</button></span>
+  <span class="pv-msg" id="pvMsg" role="status"></span></div>
+  <p class="pv-help">表だけを作ります。お知らせの文面は学校で書いて、「コピー」した表を Word・Excel に貼り付けてください（Wordでは罫線つきの表になります）。</p>
+  <iframe id="pvFrame" title="保護者案内用の表の見た目"></iframe></div>
 <div id="docView" class="noprint" hidden role="dialog" aria-label="画面で見る"><div class="docbar"><b id="docTitle"></b><button class="btn" type="button" id="docPdf">📄 PDF作成</button><button class="btn" type="button" id="docPrint">🖨 印刷</button><button class="btn sub" type="button" id="docClose">✕ 閉じる</button></div><iframe id="docFrame" title="印刷の見た目"></iframe></div>
 <div id="pdfHint" class="noprint" role="status" hidden></div>
 <div id="printTime" class="psheet"></div>
@@ -760,6 +771,9 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
 </script>
 <script>
 __URLLOAD__
+</script>
+<script>
+__PARENT__
 </script>
 <script>
 __APP__

@@ -855,6 +855,60 @@
   // 「=」「+」「-」「@」で始まる文字はExcelで数式として動くことがあるので、先頭に ' を付けて文字として扱う
   function safeCell(v) { return typeof v === 'string' && /^[=+\-@\t\r]/.test(v) && !/^-?\d+(\.\d+)?$/.test(v) ? "'" + v : v; }
   function safeAoa(a) { return a.map(function (r) { return r.map(safeCell); }); }
+  /* ---------- v0.21（試し版）保護者案内用の表 ---------- */
+  function parentOpt() { return { grade: $('pvGrade').checked, split: $('pvSplit').checked }; }
+  function parentMeta() { return { title: ($('meetName').value || '（大会名）') + '　出場選手・予定', sub: [$('meetDate').value, state.teams.join('・')].filter(Boolean).join('　') }; }
+  function parentParts() {
+    var o = parentOpt();
+    return { ath: LaneParent.athleteGrid(state.rows, o), time: LaneParent.timeGrid(dispRows(), MeetLogic.byTime) };
+  }
+  function parentDoc() { var p = parentParts(); return LaneParent.docHtml([LaneParent.gridHtml(p.ath, '出場選手'), LaneParent.gridHtml(p.time, '時間順の予定')], parentMeta()); }
+  function openParent() {
+    refreshPrint();
+    if (!state.rows.length) { alert('学校を選んで結果を出してから作ってください。'); return; }
+    $('pvMsg').textContent = ''; $('pvFrame').srcdoc = parentDoc(); $('parentView').hidden = false;
+  }
+  async function copyTable(which) {
+    var p = parentParts(), g = p[which], title = which === 'ath' ? '出場選手' : '時間順の予定';
+    var html = LaneParent.gridHtml(g), tsv = LaneParent.gridTsv(g), ok = false;
+    try {
+      if (navigator.clipboard && window.ClipboardItem) { await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([tsv], { type: 'text/plain' }) })]); ok = true; }
+    } catch (e) { }
+    if (!ok) {   // 古いブラウザ：表を画面外に置いて選び、コピーする
+      var d = document.createElement('div'); d.contentEditable = 'true'; d.style.cssText = 'position:fixed;left:-9999px;top:0'; d.innerHTML = html; document.body.appendChild(d);
+      try { var rg = document.createRange(); rg.selectNodeContents(d); var sel = getSelection(); sel.removeAllRanges(); sel.addRange(rg); ok = document.execCommand('copy'); sel.removeAllRanges(); } catch (e) { }
+      d.remove();
+    }
+    if (!ok) { try { await navigator.clipboard.writeText(tsv); ok = true; } catch (e) { } }
+    $('pvMsg').style.color = ok ? '' : '#b3261e';
+    $('pvMsg').textContent = ok ? '✔ 「' + title + '」の表をコピーしました。Word・Excel に貼り付けてください。' : '✖ コピーできませんでした。「Excelで保存」か「PDF作成」を使ってください。';
+  }
+  function printParent(pdf) {
+    var f = $('pvFrame'); if (!f.contentWindow) return;
+    pdfHint(!!pdf);
+    var go = function () { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { } };
+    if (pdf) setTimeout(go, 400); else go();
+  }
+  function parentXlsx() {
+    if (typeof XLSX === 'undefined') { alert('Excel作成部品を読み込めませんでした。インターネット接続を確認して、ページを開き直してください。'); return; }
+    var p = parentParts(), m = parentMeta(), wb = XLSX.utils.book_new();
+    [['出場選手', p.ath], ['時間順の予定', p.time]].forEach(function (x) {
+      var ws = XLSX.utils.aoa_to_sheet(safeAoa([[m.title], [m.sub], []].concat(LaneParent.gridAoa(x[1], x[0]))));
+      ws['!cols'] = x[1].head.map(function (h) { return { wch: /出場種目|種目/.test(h) ? 22 : /出る人/.test(h) ? 50 : /名前/.test(h) ? 16 : /招集/.test(h) ? 12 : 7 }; });
+      XLSX.utils.book_append_sheet(wb, ws, x[0]);
+    });
+    XLSX.writeFile(wb, fileBase() + '_保護者案内用.xlsx');
+  }
+  function setupParent() {
+    $('btnParent').addEventListener('click', openParent);
+    ['pvGrade', 'pvSplit'].forEach(function (id) { $(id).addEventListener('change', function () { $('pvFrame').srcdoc = parentDoc(); }); });
+    $('pvCopyAth').addEventListener('click', function () { copyTable('ath'); });
+    $('pvCopyTime').addEventListener('click', function () { copyTable('time'); });
+    $('pvPdf').addEventListener('click', function () { printParent(true); });
+    $('pvPrint').addEventListener('click', function () { printParent(false); });
+    $('pvXlsx').addEventListener('click', parentXlsx);
+    $('pvClose').addEventListener('click', function () { $('parentView').hidden = true; });
+  }
   function exportXlsx() {
     if (!state.rows.length) { alert('学校を選んで結果を出してから保存してください。'); return; }
     if (typeof XLSX === 'undefined') { alert('Excel作成部品を読み込めませんでした。インターネット接続を確認して、ページを開き直してください。'); return; }
@@ -880,7 +934,7 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     Object.keys(SID).forEach(function (k) { INIT_STATUS[k] = $(SID[k]).innerHTML; });
-    setupShare(); setupPlayer();
+    setupShare(); setupPlayer(); setupParent();
     setupDrop('slDrop', 'slFile', 'sl');
     setupDrop('ttDrop', 'ttFile', 'tt');
     setupDrop('noteDrop', 'noteFile', 'note');
