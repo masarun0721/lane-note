@@ -356,9 +356,13 @@ var ResultParser = (function () {
   // v0.18：大会準備の記録用紙に出す「自己ベスト」。名前（正規化）＋区分（中学/高校）＋種目（区分を除く種目名と学年別などの区分）で引く。
   // 返り値の関数に出場の行（name・team・event・grade）を渡すと { best: 公認ベストの記録, ref: 参考記録のほうが良ければその記録 } か null
   function pbLookup(recs) {
-    var map = {};
+    var map = {}, lastOf = {};
+    // v0.18.1：前回大会＝その選手・種目のいちばん新しい記録（DNS などもそのまま。日付→順で最後）
+    (recs || []).forEach(function (r) { var k = athleteKey(r) + '|' + eventKey(r), o = lastOf[k];
+      if (!o || (r.date || '') > (o.date || '') || ((r.date || '') === (o.date || '') && (r.order || 0) >= (o.order || 0))) lastOf[k] = r; });
     computeBests(recs || []).bests.forEach(function (b) {
-      var any = b.best || b.ref; if (!any) return;
+      b.last = lastOf[b.key + '|' + b.event] || null;
+      var any = b.best || b.ref || b.last; if (!any) return;
       var k = nameKey(b.name) + '|' + String(b.event).replace(/^[a-z]+:/, '');
       (map[k] = map[k] || []).push(b);
     });
@@ -367,7 +371,7 @@ var ResultParser = (function () {
       var d = divisionOf(row), k = nameKey(row.name) + '|' + normEvent(row.event) + (eventCat(row.event) ? '#' + eventCat(row.event) : '');
       var c = (map[k] || []).filter(function (b) { return !d || !b.div || b.div === d; });
       if (c.length !== 1) return null;   // 見つからない・同じ名前で区分の違う人が2人以上（決められない）→ 空欄
-      return { best: c[0].best || null, ref: c[0].ref || null };
+      return { best: c[0].best || null, ref: c[0].ref || null, last: c[0].last || null };
     };
   }
   function athleteKey(r) { var d = divisionOf(r); return nameKey(r.name || r.kana) + '@' + schoolBase(r.team) + (d ? '#' + d : ''); }

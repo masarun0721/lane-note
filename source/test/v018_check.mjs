@@ -33,7 +33,7 @@ await check('公認ベスト＋参考のほうが良ければ参考も・名前�
   assert.equal(look({ name: '山田太郎', team: '架空中', event: '男子 中学 走幅跳' }).best.mark, '5m21');
 });
 await check('記録なし（DNS だけ）・知らない人・別の種目は空欄（null）', () => {
-  assert.equal(look({ name: '見本 次郎', team: '架空中', event: '男子 中学 100m' }), null); assert.equal(look({ name: '例題 三郎', team: '架空中', event: '男子 中学 100m' }), null);
+  { const q = look({ name: '見本 次郎', team: '架空中', event: '男子 中学 100m' }); assert.equal(q.best, null); assert.equal(q.ref, null); assert.equal(q.last.mark, 'DNS'); } assert.equal(look({ name: '例題 三郎', team: '架空中', event: '男子 中学 100m' }), null);
   assert.equal(look({ name: '山田 太郎', team: '架空中', event: '男子 中学 200m' }), null);
 });
 await check('区分（中学／高校）で分ける・区分が決められず同名が2人なら空欄', () => {
@@ -58,18 +58,39 @@ const app = w.__meetApp, $ = id => w.document.getElementById(id);
 Object.assign(app.state, { sl: fakeSl(), tt: fakeTt(), teams: ['架空中'], slName: '架空.pdf', ttName: '架空TT.pdf' }); app.render(); await delay();
 await check('「👀 画面で見る」の記録用紙：「自己ベスト」欄が「記録」の前・公認 12.10＋小さく参考 11.98・別アカウントの控えは出ない', async () => {
   $('btnRecView').click(); await delay(150);
-  const ths = [...$('recSheet').querySelectorAll('tr.pcols th')].map(t => t.textContent); assert.equal(ths.indexOf('自己ベスト') + 1, ths.indexOf('記録'));
-  const sheet = $('recSheet').innerHTML; assert.match(sheet, /<b class="p-pbv">12\.10<\/b><small class="p-pbr">参考 11\.98<\/small>/); assert.match(sheet, /5m21/); assert.doesNotMatch(sheet, /10\.01/);
+  const ths = [...$('recSheet').querySelectorAll('tr.pcols th')].map(t => t.textContent); assert.equal(ths.indexOf('PB') + 2, ths.indexOf('記録')); assert.equal(ths.indexOf('前回大会') + 1, ths.indexOf('記録'));
+  const sheet = $('recSheet').innerHTML; assert.match(sheet, /<b class="p-pbv"><small>PB<\/small> 12\.10<\/b><small class="p-pbr">参考 11\.98<\/small>/); assert.match(sheet, /5m21/); assert.doesNotMatch(sheet, /10\.01/);
   assert.match($('docFrame').srcdoc, /12\.10/); if (process.env.DUMP) fs.writeFileSync(process.env.DUMP, $('recSheet').outerHTML); $('docClose').click();
 });
 await check('Excel の記録用紙にも「自己ベスト」列（記録の前）', () => {
-  const a = w.__pb.recAoa(); const h = a[3]; assert.equal(h.indexOf('自己ベスト') + 1, h.indexOf('記録'));
-  assert(a.some(r => r[7] === '12.10 （参考 11.98）')); assert(a.slice(4).every(r => r.length === h.length));
+  const a = w.__pb.recAoa(); const h = a[3]; assert.equal(h.indexOf('PB') + 2, h.indexOf('記録')); assert.equal(h.indexOf('前回大会') + 1, h.indexOf('記録'));
+  assert(a.some(r => r[7] === 'PB 12.10 （参考 11.98）' && /^11\.98（7\/1 県大会）$/.test(r[8]))); assert(a.slice(4).every(r => r.length === h.length));
 });
 await check('ログイン・ログアウト（認証の世代が変わる）と、前に読んだ自己ベストは使わない', () => {
   const row = app.state.rows.find(r => r.name === '山田 太郎'); assert(w.__pb.pbOf(row)); w.__pb.bump(); assert.equal(w.__pb.pbOf(row), null);
 });
 await check('電波なし（fetch 失敗）でも端末の控えから読める', async () => { await w.__pb.loadPBs(); assert.equal(w.__pb.pbOf(app.state.rows.find(r => r.name === '山田 太郎')).best.mark, '12.10'); });
+
+console.log('[v0.18.1] 氏名はどの出力にも出る・PB／前回大会・空は「―」・凡例・アイコン');
+await check('画面・印刷（recSheet）・PDF/画面で見る（srcdoc）・Excel のすべてに「氏名」列と選手名、通過したらは（）付き', async () => {
+  $('btnRecView').click(); await delay(150);
+  const ths = [...$('recSheet').querySelectorAll('tr.pcols th')].map(t => t.textContent);
+  assert.deepEqual(ths, ['組', 'レーン/順', 'ナンバー', '氏名', '学年', 'PB', '前回大会', '記録', '風', '順位']);
+  const cols = [...$('recSheet').querySelectorAll('colgroup col')].map(c => c.style.width); assert.equal(cols.length, ths.length);
+  assert(cols.every(c => /%$/.test(c)), '列幅は％（390px でも氏名が0幅にならない）'); assert(parseFloat(cols[3]) >= 20, '氏名がいちばん広い');
+  const names = [...$('recSheet').querySelectorAll('td.p-name')].map(t => t.textContent);
+  assert(names.some(n => n.includes('山田 太郎'))); assert(names.some(n => /（.*山田 太郎.*）|（山田 太郎）/.test(n)), names.join('/'));
+  const doc = new JSDOM($('docFrame').srcdoc).window.document;
+  assert([...doc.querySelectorAll('tr.pcols th')].some(t => t.textContent === '氏名')); assert(doc.querySelector('td.p-name').textContent.includes('山田'));
+  assert(doc.body.textContent.includes('PB＝これまでの公認ベスト／前回大会＝この種目のいちばん新しい記録'));
+  assert(!/<img[^>]*src=""/.test($('recSheet').innerHTML), '空の src の画像を出さない'); $('docClose').click();
+  const a = w.__pb.recAoa(); assert.equal(a[3][5], '氏名'); assert(a.slice(4).every(r => r[5]));
+});
+await check('記録のない選手は PB・前回大会とも「―」、DNS は前回大会に薄く', () => {
+  const sheet = $('recSheet').innerHTML; assert.match(sheet, /p-none">―</); assert.match(sheet, /p-pbv p-bad">DNS</);
+  const a = w.__pb.recAoa(); assert(a.slice(4).some(r => r[7] === '―'));
+});
+await check('時間順（出場一覧）も氏名列が％幅', () => { $('btnPrintView').click(); const c = [...$('printTime').querySelectorAll('colgroup col')].map(x => x.style.width); assert(c.every(x => /%$/.test(x))); $('docClose').click(); });
 
 console.log('[v0.18-3] はじめての人はこちら・ヘッダー・短い説明');
 const G = built('guide.html'), I = built('index.html'), RC = built('records.html'), SW = built('sw.js');

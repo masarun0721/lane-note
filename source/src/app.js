@@ -284,7 +284,7 @@
   var PG_CHUNK = 12;
   function band(kind, ncol) {
     var name = $('meetName').value || '（大会名）', date = $('meetDate').value || '';
-    return '<tr class="pband"><th colspan="' + ncol + '"><div class="pb-in"><div class="pb-l"><img class="pb-icon" src="' + (typeof PRINT_ICON !== 'undefined' ? PRINT_ICON : '') + '" alt=""><span class="pb-kind">' + esc(kind) + '</span><span class="pb-meet">' + esc(name) + '</span></div>' +
+    return '<tr class="pband"><th colspan="' + ncol + '"><div class="pb-in"><div class="pb-l">' + (typeof PRINT_ICON === 'string' && /^data:image\//.test(PRINT_ICON) ? '<img class="pb-icon" src="' + PRINT_ICON + '" alt="" onerror="this.remove()">' : '') + '<span class="pb-kind">' + esc(kind) + '</span><span class="pb-meet">' + esc(name) + '</span></div>' +
       '<div class="pb-r">' + (date ? '<span class="pb-date">' + esc(date) + '</span>' : '') + '<span class="pb-school">' + esc(state.teams.join('・')) + '</span></div></div><div class="pb-lanes"><i></i><i></i><i></i></div></th></tr>';
   }
   function grpBar(g, ncol, extra) {
@@ -312,7 +312,7 @@
           '</td><td class="c">' + esc(r.grade) + '</td><td class="p-tm">' + esc(r.team) + '</td><td class="p-note">' + noteCell + '</td></tr>';
       }).join('') + '</tbody>';
     }).join('');
-    $('printTime').innerHTML = '<table class="ptab ptime"><colgroup><col style="width:8mm"><col style="width:20mm"><col style="width:15mm"><col><col style="width:11mm"><col style="width:22mm"><col style="width:46mm"></colgroup><thead>' + band('出場一覧（時間順）', N) +
+    $('printTime').innerHTML = '<table class="ptab ptime"><colgroup><col style="width:5%"><col style="width:11%"><col style="width:8%"><col style="width:28%"><col style="width:6%"><col style="width:14%"><col style="width:28%"></colgroup><thead>' + band('出場一覧（時間順）', N) +
       '<tr class="pcols"><th>組</th><th>レーン/順番</th><th>ナンバー</th><th>氏名</th><th>学年</th><th>所属</th><th>備考</th></tr></thead>' + info + body + '</table>';
   }
   // v0.18：記録用紙の「自己ベスト」欄。記録のページがこの端末に置いた記録（ログイン中は lanenote-cache-<uid>、なしは lanenote-records）を読むだけ。
@@ -337,20 +337,25 @@
     if (!PBS.look || !PBS.sc || !authOk(PBS.sc) || r.typ === 'relay' || !r.name) return null;
     return PBS.look({ name: r.name, team: r.team, event: r.event, grade: r.grade });
   }
-  function pbText(p) { if (!p) return ''; var b = p.best, f = p.ref; return (b ? b.mark : '') + (f ? (b ? ' ' : '') + '（参考 ' + f.mark + '）' : ''); }
-  function pbHtml(p) { if (!p) return ''; var b = p.best, f = p.ref; return (b ? '<b class="p-pbv">' + esc(b.mark) + '</b>' : '') + (f ? '<small class="p-pbr">参考 ' + esc(f.mark) + '</small>' : ''); }
+  // v0.18.1：PB（公認ベスト・参考が良ければ小さく）と前回大会（いちばん新しい記録・日付と大会の短い名前）。空は「―」
+  function lastShort(l) { var d = String(l.date || '').replace(/^\d{4}-0?(\d+)-0?(\d+)$/, '$1/$2'), m = String(l.meet || ''); return (d + ' ' + (m.length > 8 ? m.slice(0, 8) + '…' : m)).trim(); }
+  function lastBad(l) { return !ResultParser.markValue || !ResultParser.markValue(l.mark); }
+  function pbText(p) { if (!p || !(p.best || p.ref)) return '―'; var b = p.best, f = p.ref; return (b ? 'PB ' + b.mark : '') + (f ? (b ? ' ' : '') + '（参考 ' + f.mark + '）' : ''); }
+  function lastText(p) { var l = p && p.last; if (!l) return '―'; return (l.mark || '―') + (lastShort(l) ? '（' + lastShort(l) + '）' : ''); }
+  function pbHtml(p) { if (!p || !(p.best || p.ref)) return '<span class="p-none">―</span>'; var b = p.best, f = p.ref; return (b ? '<b class="p-pbv"><small>PB</small> ' + esc(b.mark) + '</b>' : '') + (f ? '<small class="p-pbr">参考 ' + esc(f.mark) + '</small>' : ''); }
+  function lastHtml(p) { var l = p && p.last; if (!l) return '<span class="p-none">―</span>'; return '<b class="p-pbv' + (lastBad(l) ? ' p-bad' : '') + '">' + esc(l.mark || '―') + '</b><small class="p-pbr">' + esc(lastShort(l)) + '</small>'; }
   function buildRecSheet() {
-    var G = printGroups(), N = 9, multi = state.teams.length > 1;
-    var info = '<tbody class="pinfo"><tr><td colspan="' + N + '"><div class="pi-box pi-legend"><span><i class="lg-h"></i>斜線の風欄＝風を測らない種目</span><span><i class="lg-w"></i>点線＝記入の目安</span><span class="pi-disc">ⓘ 本ツールはPDFの文字を読み取って自動で整理しているだけです。内容は必ず元のスタートリスト・タイムテーブル等と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</span></div></td></tr></tbody>';
+    var G = printGroups(), N = 10, multi = state.teams.length > 1;
+    var info = '<tbody class="pinfo"><tr><td colspan="' + N + '"><div class="pi-box pi-legend"><span class="pi-pb">PB＝これまでの公認ベスト／前回大会＝この種目のいちばん新しい記録（記録ページにたまっている記録。今日の記録と比べられます）</span><span><i class="lg-h"></i>斜線の風欄＝風を測らない種目</span><span><i class="lg-w"></i>点線＝記入の目安</span><span class="pi-disc">ⓘ 本ツールはPDFの文字を読み取って自動で整理しているだけです。内容は必ず元のスタートリスト・タイムテーブル等と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</span></div></td></tr></tbody>';
     var body = G.map(function (g) {
       return '<tbody class="pg' + (g.cont ? ' cont' : '') + (g.tent ? ' tent' : '') + '">' + grpBar(g, N, '<span class="g-wind">' + (g.wind ? '風 計測あり' : '風 なし') + '</span>') + g.rows.map(function (r) {
         var w = isWind(r);
         return '<tr class="rr"><td class="c">' + esc(r.heat) + '</td><td class="c p-pos">' + posHtml(r) + '</td><td class="c p-bib">' + esc(r.typ === 'relay' ? '' : r.bib) + '</td><td class="p-name">' + nameHtml(r, multi) +
-          '</td><td class="c">' + esc(r.grade) + '</td><td class="p-pb">' + pbHtml(pbOf(r)) + '</td><td class="wc"><div class="wl"></div></td><td class="wc' + (w ? '' : ' nowind') + '">' + (w ? '<div class="wl"></div>' : '') + '</td><td class="wc"><div class="wl"></div></td></tr>';
+          '</td><td class="c">' + esc(r.grade) + '</td><td class="p-pb">' + pbHtml(pbOf(r)) + '</td><td class="p-pb">' + lastHtml(pbOf(r)) + '</td><td class="wc"><div class="wl"></div></td><td class="wc' + (w ? '' : ' nowind') + '">' + (w ? '<div class="wl"></div>' : '') + '</td><td class="wc"><div class="wl"></div></td></tr>';
       }).join('') + '</tbody>';
     }).join('');
-    $('recSheet').innerHTML = '<table class="ptab prec"><colgroup><col style="width:8mm"><col style="width:20mm"><col style="width:15mm"><col><col style="width:11mm"><col style="width:20mm"><col style="width:28mm"><col style="width:15mm"><col style="width:12mm"></colgroup><thead>' + band('記録用紙', N) +
-      '<tr class="pcols"><th>組</th><th>レーン/順</th><th>ナンバー</th><th>氏名</th><th>学年</th><th>自己ベスト</th><th>記録</th><th>風</th><th>順位</th></tr></thead>' + info + body + '</table>';
+    $('recSheet').innerHTML = '<table class="ptab prec"><colgroup><col style="width:4%"><col style="width:9%"><col style="width:7%"><col style="width:22%"><col style="width:5%"><col style="width:11%"><col style="width:13%"><col style="width:16%"><col style="width:7%"><col style="width:6%"></colgroup><thead>' + band('記録用紙', N) +
+      '<tr class="pcols"><th>組</th><th>レーン/順</th><th>ナンバー</th><th>氏名</th><th>学年</th><th>PB</th><th>前回大会</th><th>記録</th><th>風</th><th>順位</th></tr></thead>' + info + body + '</table>';
   }
   function printRec() {
     refreshPrint();
@@ -384,17 +389,17 @@
   function recAoa() {
     var h = recHead();
     var pg = null;
-    return [[h.title], [h.sub], [], ['時刻', '種目', '組', 'レーン/順', 'ナンバー', '氏名', '学年', '自己ベスト', '記録', '風', '順位']].concat(recRows().map(function (r) {
+    return [[h.title], [h.sub], [], ['時刻', '種目', '組', 'レーン/順', 'ナンバー', '氏名', '学年', 'PB', '前回大会', '記録', '風', '順位']].concat(recRows().map(function (r) {
       var same = r.g === pg; pg = r.g;
-      return [same ? '' : r.start, same ? '' : r.event + (r.tent ? '（通過したら）' : ''), r.tent ? '' : r.heat, r.tent ? '未定' : r.pos, r.bib, r.name + (r.members ? '（' + r.members + '）' : '') + (state.teams.length > 1 ? ' ' + r.team : ''), r.grade, pbText(r.pb), '', r.wind ? '' : '－', ''];
+      return [same ? '' : r.start, same ? '' : r.event + (r.tent ? '（通過したら）' : ''), r.tent ? '' : r.heat, r.tent ? '未定' : r.pos, r.bib, r.name + (r.members ? '（' + r.members + '）' : '') + (state.teams.length > 1 ? ' ' + r.team : ''), r.grade, pbText(r.pb), lastText(r.pb), '', r.wind ? '' : '－', ''];
     }));
   }
   function recWs() {
     var ws = XLSX.utils.aoa_to_sheet(safeAoa(recAoa()));
-    ws['!cols'] = [7, 20, 5, 10, 8, 26, 6, 16, 12, 7, 6].map(function (w) { return { wch: w }; });
+    ws['!cols'] = [7, 20, 5, 10, 8, 26, 6, 16, 20, 12, 7, 6].map(function (w) { return { wch: w }; });
     var n = recAoa().length; ws['!rows'] = [];
     for (var i = 0; i < n; i++) ws['!rows'].push(i >= 4 ? { hpt: 30 } : {});
-    ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 10 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: 10 } }];
+    ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 11 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: 11 } }];
     return ws;
   }
   async function exportRecXlsx() {
