@@ -260,7 +260,7 @@
     return MeetLogic.byTime(dispRows()).map(function (r) {
       return { tent: !!r.tent, g: grpKey(r), start: r.start || '', event: r.event + (r.round ? ' ' + r.round : ''), heat: r.heat, pos: r.posLabel + ' ' + r.pos, bib: r.typ === 'relay' ? '' : r.bib,
         name: shownName(r), members: r.typ === 'relay' ? r.members.map(function (m) { return m.bib + ' ' + m.name; }).join('、') : '',
-        grade: r.grade || '', team: r.team, wind: isWind(r) };
+        grade: r.grade || '', team: r.team, wind: isWind(r), pb: pbOf(r) };
     });
   }
   function recHead() {
@@ -315,18 +315,42 @@
     $('printTime').innerHTML = '<table class="ptab ptime"><colgroup><col style="width:8mm"><col style="width:20mm"><col style="width:15mm"><col><col style="width:11mm"><col style="width:22mm"><col style="width:46mm"></colgroup><thead>' + band('出場一覧（時間順）', N) +
       '<tr class="pcols"><th>組</th><th>レーン/順番</th><th>ナンバー</th><th>氏名</th><th>学年</th><th>所属</th><th>備考</th></tr></thead>' + info + body + '</table>';
   }
+  // v0.18：記録用紙の「自己ベスト」欄。記録のページがこの端末に置いた記録（ログイン中は lanenote-cache-<uid>、なしは lanenote-records）を読むだけ。
+  // 読み込み始めの認証の世代と uid を覚えておき、終わったときに違えば捨てる（別のアカウントの記録を出さない）。電波がなくても端末の控えで動く
+  var PBS = { sc: null, look: null };
+  function pbReadDb(name) {
+    return new Promise(function (ok) {
+      if (typeof indexedDB === 'undefined' || !indexedDB || typeof ResultParser === 'undefined') { ok([]); return; }
+      var q; try { q = indexedDB.open(name, 1); } catch (e) { ok([]); return; }
+      q.onupgradeneeded = function () { var d = q.result; if (!d.objectStoreNames.contains('records')) d.createObjectStore('records', { keyPath: 'id' }); };
+      q.onerror = function () { ok([]); };
+      q.onsuccess = function () { var d = q.result; try { var g = d.transaction('records').objectStore('records').getAll(); g.onsuccess = function () { d.close(); ok(g.result || []); }; g.onerror = function () { d.close(); ok([]); }; } catch (e) { d.close(); ok([]); } };
+    });
+  }
+  async function loadPBs() {
+    if (CLOUD_OK && !FB) { try { await Promise.race([loadFirebase(), new Promise(function (_, ng) { setTimeout(function () { ng(new Error('timeout')); }, 4000); })]); } catch (e) { } }
+    var sc = authScope(), recs = await pbReadDb(sc.uid ? 'lanenote-cache-' + sc.uid : 'lanenote-records');
+    if (!authOk(sc)) return;
+    PBS = { sc: sc, look: ResultParser.pbLookup(recs) };
+  }
+  function pbOf(r) {
+    if (!PBS.look || !PBS.sc || !authOk(PBS.sc) || r.typ === 'relay' || !r.name) return null;
+    return PBS.look({ name: r.name, team: r.team, event: r.event, grade: r.grade });
+  }
+  function pbText(p) { if (!p) return ''; var b = p.best, f = p.ref; return (b ? b.mark : '') + (f ? (b ? ' ' : '') + '（参考 ' + f.mark + '）' : ''); }
+  function pbHtml(p) { if (!p) return ''; var b = p.best, f = p.ref; return (b ? '<b class="p-pbv">' + esc(b.mark) + '</b>' : '') + (f ? '<small class="p-pbr">参考 ' + esc(f.mark) + '</small>' : ''); }
   function buildRecSheet() {
-    var G = printGroups(), N = 8, multi = state.teams.length > 1;
+    var G = printGroups(), N = 9, multi = state.teams.length > 1;
     var info = '<tbody class="pinfo"><tr><td colspan="' + N + '"><div class="pi-box pi-legend"><span><i class="lg-h"></i>斜線の風欄＝風を測らない種目</span><span><i class="lg-w"></i>点線＝記入の目安</span><span class="pi-disc">ⓘ 本ツールはPDFの文字を読み取って自動で整理しているだけです。内容は必ず元のスタートリスト・タイムテーブル等と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</span></div></td></tr></tbody>';
     var body = G.map(function (g) {
       return '<tbody class="pg' + (g.cont ? ' cont' : '') + (g.tent ? ' tent' : '') + '">' + grpBar(g, N, '<span class="g-wind">' + (g.wind ? '風 計測あり' : '風 なし') + '</span>') + g.rows.map(function (r) {
         var w = isWind(r);
         return '<tr class="rr"><td class="c">' + esc(r.heat) + '</td><td class="c p-pos">' + posHtml(r) + '</td><td class="c p-bib">' + esc(r.typ === 'relay' ? '' : r.bib) + '</td><td class="p-name">' + nameHtml(r, multi) +
-          '</td><td class="c">' + esc(r.grade) + '</td><td class="wc"><div class="wl"></div></td><td class="wc' + (w ? '' : ' nowind') + '">' + (w ? '<div class="wl"></div>' : '') + '</td><td class="wc"><div class="wl"></div></td></tr>';
+          '</td><td class="c">' + esc(r.grade) + '</td><td class="p-pb">' + pbHtml(pbOf(r)) + '</td><td class="wc"><div class="wl"></div></td><td class="wc' + (w ? '' : ' nowind') + '">' + (w ? '<div class="wl"></div>' : '') + '</td><td class="wc"><div class="wl"></div></td></tr>';
       }).join('') + '</tbody>';
     }).join('');
-    $('recSheet').innerHTML = '<table class="ptab prec"><colgroup><col style="width:8mm"><col style="width:20mm"><col style="width:15mm"><col><col style="width:11mm"><col style="width:34mm"><col style="width:17mm"><col style="width:14mm"></colgroup><thead>' + band('記録用紙', N) +
-      '<tr class="pcols"><th>組</th><th>レーン/順</th><th>ナンバー</th><th>氏名</th><th>学年</th><th>記録</th><th>風</th><th>順位</th></tr></thead>' + info + body + '</table>';
+    $('recSheet').innerHTML = '<table class="ptab prec"><colgroup><col style="width:8mm"><col style="width:20mm"><col style="width:15mm"><col><col style="width:11mm"><col style="width:20mm"><col style="width:28mm"><col style="width:15mm"><col style="width:12mm"></colgroup><thead>' + band('記録用紙', N) +
+      '<tr class="pcols"><th>組</th><th>レーン/順</th><th>ナンバー</th><th>氏名</th><th>学年</th><th>自己ベスト</th><th>記録</th><th>風</th><th>順位</th></tr></thead>' + info + body + '</table>';
   }
   function printRec() {
     refreshPrint();
@@ -345,7 +369,8 @@
     var css = Array.prototype.map.call(document.querySelectorAll('style'), function (s) { return s.textContent; }).join('\n').replace(/@media\s+print\s*\{/g, '@media all{');
     return '<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>' + css + '\nbody{padding:6mm;background:#fff}#docView,#pdfHint{display:none!important}</style></head><body class="' + (kind === 'rec' ? 'print-rec' : '') + '"><main>' + $('printTime').outerHTML + $('recSheet').outerHTML + '</main></body></html>';
   }
-  function outDoc(kind, act) {
+  async function outDoc(kind, act) {
+    if (kind === 'rec') { try { await loadPBs(); } catch (e) { } }
     if (kind === 'rec' && act === 'print') { pdfHint(false); printRec(); return; }
     refreshPrint();
     if (!state.rows.length) { alert('学校を選んで結果を出してから出力してください。'); return; }
@@ -359,20 +384,21 @@
   function recAoa() {
     var h = recHead();
     var pg = null;
-    return [[h.title], [h.sub], [], ['時刻', '種目', '組', 'レーン/順', 'ナンバー', '氏名', '学年', '記録', '風', '順位']].concat(recRows().map(function (r) {
+    return [[h.title], [h.sub], [], ['時刻', '種目', '組', 'レーン/順', 'ナンバー', '氏名', '学年', '自己ベスト', '記録', '風', '順位']].concat(recRows().map(function (r) {
       var same = r.g === pg; pg = r.g;
-      return [same ? '' : r.start, same ? '' : r.event + (r.tent ? '（通過したら）' : ''), r.tent ? '' : r.heat, r.tent ? '未定' : r.pos, r.bib, r.name + (r.members ? '（' + r.members + '）' : '') + (state.teams.length > 1 ? ' ' + r.team : ''), r.grade, '', r.wind ? '' : '－', ''];
+      return [same ? '' : r.start, same ? '' : r.event + (r.tent ? '（通過したら）' : ''), r.tent ? '' : r.heat, r.tent ? '未定' : r.pos, r.bib, r.name + (r.members ? '（' + r.members + '）' : '') + (state.teams.length > 1 ? ' ' + r.team : ''), r.grade, pbText(r.pb), '', r.wind ? '' : '－', ''];
     }));
   }
   function recWs() {
     var ws = XLSX.utils.aoa_to_sheet(safeAoa(recAoa()));
-    ws['!cols'] = [7, 20, 5, 10, 8, 26, 6, 12, 7, 6].map(function (w) { return { wch: w }; });
+    ws['!cols'] = [7, 20, 5, 10, 8, 26, 6, 16, 12, 7, 6].map(function (w) { return { wch: w }; });
     var n = recAoa().length; ws['!rows'] = [];
     for (var i = 0; i < n; i++) ws['!rows'].push(i >= 4 ? { hpt: 30 } : {});
-    ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 9 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: 9 } }];
+    ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 10 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: 10 } }];
     return ws;
   }
-  function exportRecXlsx() {
+  async function exportRecXlsx() {
+    try { await loadPBs(); } catch (e) { }
     if (!state.rows.length) { alert('学校を選んで結果を出してから保存してください。'); return; }
     if (typeof XLSX === 'undefined') { alert('Excel作成部品を読み込めませんでした。'); return; }
     var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, recWs(), '記録用紙');
@@ -1042,7 +1068,7 @@
     var uid = u ? u.uid : null;
     if (uid === lastUid) return;
     lastUid = uid; authEpoch++;
-    clearAllShares(); shareShort = ''; PL.links = {};
+    clearAllShares(); shareShort = ''; PL.links = {}; PBS = { sc: null, look: null }; setTimeout(function () { loadPBs().catch(function () { }); }, 0);
     try { renderShareAuth(); plAuth(); if (!$('playerDlg').hidden) renderPlayerList(); } catch (e) { }
     if (uid) document.querySelectorAll('.myShares').forEach(function (b) { renderMyShares(b); });
   }

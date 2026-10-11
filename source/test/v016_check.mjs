@@ -112,7 +112,7 @@ await check('v0.17 大会準備の出力：「👀 画面で見る」は印刷�
   let n = 0; w.print = () => { n++; };
   $('btnPrintView').click(); assert.equal($('docView').hidden, false); assert.equal(n, 0); assert.match($('docFrame').getAttribute('srcdoc') || $('docFrame').srcdoc, /id="printTime"/); assert.match($('docTitle').textContent, /時間順/);
   $('docClose').click(); assert.equal($('docView').hidden, true);
-  $('btnRecView').click(); assert.match($('docFrame').srcdoc, /<body class="print-rec">/); assert.equal(n, 0); $('docClose').click();
+  $('btnRecView').click(); await delay(100); assert.match($('docFrame').srcdoc, /<body class="print-rec">/); assert.equal(n, 0); $('docClose').click();
   $('btnPrintPdf').click(); assert.equal($('pdfHint').hidden, false); assert.match($('pdfHint').textContent, /保存先で『PDFに保存』を選んでください/); await delay(500); assert.equal(n, 1);
   $('btnPrint').click(); assert.equal(n, 2); assert.equal($('pdfHint').hidden, true);
   $('btnRecPdf').click(); await delay(500); assert.equal(n, 3); $('btnRec').click(); assert.equal(n, 4);

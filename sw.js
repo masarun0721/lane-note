@@ -4,14 +4,17 @@
    ・ネット優先：つながるときは常に最新のページを使い、つながらないときだけ保存しておいたページを使う。
    ・v0.14（監査F13）：キャッシュ名は build.py が版とページの中身のハッシュから作る（公開のたびに変わり、古いキャッシュは消える）。
      記録のページが保存されていないときは、大会準備のページではなく「電波がない」案内を出す。 */
-var CACHE = 'lanenote-page-v0.17-rv0.9.0-846c5bfb65';
+var CACHE = 'lanenote-page-v0.18-rv0.9.1-5889644bce';
 var PAGE = new URL('./', self.location).href;   // 例：https://masarun0721.github.io/lane-note/
 var REC = new URL('./records.html', self.location).href;
+var GUIDE = new URL('./guide.html', self.location).href;   // v0.18：はじめての人はこちら
 function getPage(u) { return fetch(new Request(u, { cache: 'reload', credentials: 'same-origin' })).then(function (res) { if (!res || !res.ok) throw new Error('page fetch failed: ' + (res && res.status)); return res; }); }
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) {
     return getPage(PAGE).then(function (res) { return c.put(PAGE, res); }).then(function () {
       return getPage(REC).then(function (res) { return c.put(REC, res); }, function () { });   // 記録のページは取れなくても続ける
+    }).then(function () {
+      return getPage(GUIDE).then(function (res) { return c.put(GUIDE, res); }, function () { });
     });
   }).then(function () { return self.skipWaiting(); }));
 });

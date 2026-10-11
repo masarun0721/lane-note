@@ -13,10 +13,10 @@ import base64, hashlib, html as htmlmod, json, pathlib, re, sys
 ROOT = pathlib.Path(__file__).resolve().parent
 S = ROOT / 'src'
 SHARE_BASE = 'https://masarun0721.github.io/lane-note/'   # 共有リンク・QRの公開アドレス（file:// で開いたとき用）
-VERSION = 'v0.17'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
+VERSION = 'v0.18'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
 # 作成日は版番号から取れないので固定（ビルドした日で変わると、公開時の一致検査ができないため）
 BUILD_DATE = '2026年10月11日'
-REC_VERSION = 'v0.9.0'   # LANE LOG（records.html）だけの版
+REC_VERSION = 'v0.9.1'   # LANE LOG（records.html）だけの版
 REC_BUILD_DATE = '2026年10月11日'
 
 
@@ -42,14 +42,14 @@ def changelog_html():
     e = htmlmod.escape
     lis = ''.join('<li><div class="cl-h"><b>%s</b>%s</div><div class="cl-b">%s</div></li>' % (e(x['ver']), e(x['date'].replace('-', '/')), e(x['text'])) for x in reversed(items))
     new = items[-1]
-    return ('<section class="box changelog" id="changelog"><details><summary><b>📰 更新情報</b>　<span class="small muted">最新：%s（%s）</span><span class="cl-new">NEW</span></summary><ol>%s</ol></details></section>'
+    return ('<details class="changelog" id="changelog"><summary><b>📰 更新情報</b>　<span class="small muted">最新：%s（%s）</span><span class="cl-new">NEW</span></summary><ol>%s</ol></details>'
             % (e(new['ver']), e(new['date'].replace('-', '/')), lis))
 
 
 def build():
     html = text('src/template.html')
     rep = {
-        '__PARSER__': text('src/parser.js'), '__LOGIC__': text('src/logic.js'), '__PLAYER__': text('src/player.js'), '__PERSONAL__': text('src/personal.js'),
+        '__PARSER__': text('src/parser.js'), '__RESULTS__': text('src/results.js'), '__LOGIC__': text('src/logic.js'), '__PLAYER__': text('src/player.js'), '__PERSONAL__': text('src/personal.js'),
         '__ZEKKEN__': text('src/zekken.js'), '__APP__': text('src/app.js'), '__FEEDBACK__': text('src/feedback.js'),
         '__AUTHCOMMON__': text('src/auth_common.js'), '__CHANGELOG__': changelog_html(),
         '__KOSHI_B64__': b64('templates/koshi_template.docx'), '__MUNE_B64__': b64('templates/mune_template.docx'),
@@ -57,19 +57,33 @@ def build():
         '__FAVICON__': 'data:image/svg+xml;base64,' + b64('logo/option_A_icon.svg'),
         '__APPLE_ICON__': 'data:image/png;base64,' + b64('logo/png/option_A_icon_180.png'),
         '__VERSION__': VERSION, '__SHARE_BASE__': SHARE_BASE, '__QRCODE__': text('vendor/qrcode.js'),
-        '__BUILD_DATE__': BUILD_DATE,
+        '__BUILD_DATE__': BUILD_DATE, '__REC_VERSION__': REC_VERSION,
         '__PRINT_ICON__': 'data:image/svg+xml;base64,' + b64('logo/option_A_icon_mono.svg'),
     }
     for k, v in rep.items():
         assert k in html, k
         html = html.replace(k, v)
     rec = build_records(html)
+    guide = build_guide()
     # v0.14（監査F13）：Service Worker のキャッシュ名に版とページの中身のハッシュを入れる（公開のたびに古いページが入れ替わる）
-    h = hashlib.sha256((html + rec).encode('utf-8')).hexdigest()[:10]
+    h = hashlib.sha256((html + rec + guide).encode('utf-8')).hexdigest()[:10]
     sw = text('src/sw.js')
     assert '__CACHE__' in sw
     sw = sw.replace('__CACHE__', 'lanenote-page-%s-r%s-%s' % (VERSION, REC_VERSION, h))
-    return html, sw, rec, text('src/firebase-config.js')
+    return html, sw, rec, text('src/firebase-config.js'), guide
+
+
+def build_guide():
+    """はじめての人はこちら（guide.html）：使い方とデータの取り扱いの全文"""
+    base = text('src/template.html')
+    g = text('src/guide_template.html')
+    rep = {'__BASE_CSS__': base[base.index('<style>') + 7:base.index('</style>')], '__LOGO_DARK__': logo_inline('logo/option_A_dark.svg'),
+           '__FAVICON__': 'data:image/svg+xml;base64,' + b64('logo/option_A_icon.svg'),
+           '__APPLE_ICON__': 'data:image/png;base64,' + b64('logo/png/option_A_icon_180.png'), '__VERSION__': VERSION}
+    for k, v in rep.items():
+        assert k in g, k
+        g = g.replace(k, v)
+    return g
 
 
 def build_records(index_html):
@@ -82,7 +96,7 @@ def build_records(index_html):
         '__LOGO_DARK__': logo_inline('logo/option_A_dark.svg'),
         '__FAVICON__': 'data:image/svg+xml;base64,' + b64('logo/option_A_icon.svg'),
         '__APPLE_ICON__': 'data:image/png;base64,' + b64('logo/png/option_A_icon_180.png'),
-        '__VERSION__': VERSION, '__REC_VERSION__': REC_VERSION, '__BUILD_DATE__': REC_BUILD_DATE,
+        '__VERSION__': VERSION, '__REC_VERSION__': REC_VERSION, '__BUILD_DATE__': REC_BUILD_DATE, '__CHANGELOG__': changelog_html(),
     }
     for k, v in rep.items():
         assert k in rec, k
@@ -90,24 +104,24 @@ def build_records(index_html):
     return rec
 
 
-OUTPUTS = ('index.html', 'sw.js', 'records.html', 'firebase-config.js')   # 公開するファイル（--check もこれらを確かめる）
+OUTPUTS = ('index.html', 'sw.js', 'records.html', 'firebase-config.js', 'guide.html')   # 公開するファイル（--check もこれらを確かめる）
 
 
-def write(out, html, sw, rec, cfg):
+def write(out, html, sw, rec, cfg, guide):
     out.mkdir(parents=True, exist_ok=True)
-    for name, body in zip(OUTPUTS, (html, sw, rec, cfg)):
+    for name, body in zip(OUTPUTS, (html, sw, rec, cfg, guide)):
         (out / name).write_bytes(body.encode('utf-8'))
     print(out / 'index.html', len(html), '/', out / 'sw.js', '/', out / 'records.html', len(rec))
 
 
 def main(argv):
-    html, sw, rec, cfg = build()
+    html, sw, rec, cfg, guide = build()
     if len(argv) == 2 and argv[0] == '--out':
-        write(pathlib.Path(argv[1]), html, sw, rec, cfg)
+        write(pathlib.Path(argv[1]), html, sw, rec, cfg, guide)
         return 0
     if len(argv) == 2 and argv[0] == '--check':
         d, ng = pathlib.Path(argv[1]), 0
-        for name, body in zip(OUTPUTS, (html, sw, rec, cfg)):
+        for name, body in zip(OUTPUTS, (html, sw, rec, cfg, guide)):
             f = d / name
             if not f.exists() or f.read_bytes() != body.encode('utf-8'):
                 print('NG: %s がソースからのビルド結果と一致しません（build.py を実行してから公開してください）' % f)
@@ -118,7 +132,7 @@ def main(argv):
     if argv:
         print(__doc__)
         return 2
-    write(ROOT / 'dist', html, sw, rec, cfg)
+    write(ROOT / 'dist', html, sw, rec, cfg, guide)
     (ROOT / 'LANE_NOTE.html').write_bytes(html.encode('utf-8'))   # 手元でダブルクリックして開く用
     print(ROOT / 'LANE_NOTE.html')
     return 0

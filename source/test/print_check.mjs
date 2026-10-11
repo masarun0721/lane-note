@@ -27,7 +27,7 @@ try {
   await check('LanePrint.athleteSheet：学校名・出力日・LANE NOTE・名前・種目ごとのPB・記録の一覧・グラフ（純粋関数）', () => {
     const s = w.LanePrint.athleteSheet(R, [mk('山田 太郎', '男子100m', '2026-04-01', '12.40', '春', '2'), mk('山田 太郎', '男子100m', '2026-06-01', '12.10', '県', '2')], key, { school: '架空中', date: '2026-10-11', spark: () => '<svg class="spark"></svg>' });
     assert.match(s, /^<section class="lp-page">/); assert.match(s, /架空中/); assert.match(s, /出力日 2026-10-11/); assert.match(s, /LANE NOTE/); assert.match(s, /山田 太郎/);
-    assert.match(s, /種目ごとの自己ベスト/); assert.match(s, /12\.10/); assert.match(s, /12\.40/); assert.match(s, /<svg class="spark">/); assert.doesNotMatch(s, /<button/);
+    assert.match(s, /種目ごとの自己ベスト/); assert.match(s, /12\.10/); assert.match(s, /12\.40/); assert.match(s, /<svg class="lp-svg"/); assert.match(s, /lp-card/); assert.match(s, /公認/); assert.doesNotMatch(s, /<button/);
   });
   await check('名前などは HTML として入らない（エスケープ）', () => {
     const r = mk('<img src=x onerror=1>', '男子100m', '2026-04-01', '12.40', '<b>大会</b>', '1');
@@ -46,7 +46,7 @@ try {
     assert.deepEqual(acts, ['view:👀 画面で見る', 'pdf:📄 PDF作成', 'print:🖨 印刷']);
     $('rbView').querySelector('[data-print="ath"][data-act="view"]').click();
     assert.equal($('rbPrint').hidden, false); assert($('rbPrintBody').querySelectorAll('.lp-page').length === 1);
-    assert.match($('rbPrintBody').textContent, /山田 太郎/); assert($('rbPrintBody').querySelector('svg.spark'));
+    assert.match($('rbPrintBody').textContent, /山田 太郎/); assert($('rbPrintBody').querySelector('svg.lp-svg'));
     assert.equal(printed, 0, '画面で見るでは印刷ダイアログを出さない');
     $('rbPrintGo').click(); await delay(20); assert.equal(printed, 1); assert.equal($('rbPrintHint').hidden, true);
     $('rbPrintClose').click(); assert.equal($('rbPrint').hidden, true); assert(!w.document.body.classList.contains('printing'));
@@ -68,7 +68,7 @@ try {
     const names = boxes().slice(0, 2).map(b => b.closest('label').querySelector('b').textContent);
     $('rbPrintBody').querySelector('[data-ppmake]').click();
     const pages = $('rbPrintBody').querySelectorAll('.lp-page'); assert.equal(pages.length, 2);
-    names.forEach((n, i) => assert.match(pages[i].querySelector('.lp-name').textContent, new RegExp(n)));
+    names.forEach((n, i) => assert.match(pages[i].querySelector('.lp-big').textContent, new RegExp(n)));
     assert.equal($('rbPrintGo').hidden, false); $('rbPrintClose').click();
   });
   t.setTab('rank'); await delay(60);

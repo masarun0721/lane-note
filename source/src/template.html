@@ -501,6 +501,9 @@ footer a{color:var(--navy)}
   .pv-row{display:flex;gap:8px;margin-top:10px}.pv-row input{min-height:48px;font-size:17px;border:2px solid var(--line);border-radius:12px;padding:0 10px}#pvLabel{flex:1;min-width:0}#pvTime{width:7.5em}
   .pv-add{flex:1;min-height:52px;border:0;border-radius:14px;background:var(--track);color:#fff;font-size:18px;font-weight:800}.pv-cancel{min-height:52px;padding:0 16px;border:2px solid var(--line);border-radius:14px;background:#fff;font-size:16px}
   .pv-msg{color:var(--ng);font-weight:700;margin-top:6px}.pv-foot{font-size:13px;color:var(--muted);line-height:1.6;margin-top:14px}
+.topbar{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start;max-width:1100px;margin:8px auto 0;padding:0 10px}.topbar .changelog{margin:0;padding:0;border:0;background:none;box-shadow:none;flex:0 1 auto}.topbar .changelog[open]{flex-basis:100%;order:9}.topbar .changelog .muted{display:none}.topbar .changelog summary{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #c9d2e0;border-radius:999px;padding:6px 12px;min-height:36px;cursor:pointer;font-size:14px}.topbar .changelog ol{background:#fff;border:1px solid #c9d2e0;border-radius:10px;padding:8px 10px 8px 28px;margin:6px 0}.tb-btn{display:inline-flex;align-items:center;min-height:36px;padding:6px 12px;border-radius:999px;font-size:14px;font-weight:700;text-decoration:none;border:1px solid #c9d2e0;background:#fff;color:var(--navy);cursor:pointer}.tb-guide{background:#d7263d;border-color:#d7263d;color:#fff!important}.beta-line{max-width:1100px;margin:6px auto 0;padding:0 12px;font-size:12.5px;color:#7a5600}
+.p-pb{font-variant-numeric:tabular-nums;font-size:11px;line-height:1.25}.p-pbv{display:block}.p-pbr{display:block;font-size:9px;color:#666}
+.guide-cta{display:inline-block;background:#d7263d;color:#fff!important;font-weight:800;border-radius:999px;padding:6px 14px;text-decoration:none;margin:4px 0;font-size:14px}.privacy-line{font-size:13px;background:#eef8f0;border-radius:8px;padding:8px 10px;margin:8px 0 0}.quick{line-height:1.8}
 .pagenav{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .pagenav a{display:inline-block;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.45);border-radius:999px;padding:3px 12px;font-size:13px;text-decoration:none}
 .pagenav a.on{background:#fff;color:var(--navy);font-weight:700}
@@ -524,7 +527,7 @@ body.fb-open{overflow:hidden}
 <body>
 <header>
   <div class="hdr-meta">
-    <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span></div>
+    <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／記録 __REC_VERSION__</div>
     <div class="credit">Presented by Sakata</div>
     <div class="hdr-msg"><span class="hm-l">すべての陸上競技部顧問が、</span><span class="hm-l">少しでも楽になりますように。</span></div>
   </div>
@@ -532,9 +535,11 @@ body.fb-open{overflow:hidden}
     <h1 class="logo">__LOGO_DARK__<span class="vh">LANE NOTE（レーンノート）</span></h1>
     <span class="badge">試作版</span>
   </div>
-  <p class="tagline">スタートリストから、自校の出場一覧・記録用紙・ナンバーカードまで</p>
-  <nav class="pagenav" aria-label="ページ"><a href="./" class="on" aria-current="page">🏁 大会準備</a><a href="records.html">📒 記録</a></nav>
+  <p class="tagline">大会準備：スタートリストから、自校の出場一覧・記録用紙・ナンバーカードまで</p>
+  <nav class="pagenav" aria-label="ページ"><a href="./" class="on" aria-current="page">🏁 大会準備</a><a href="records.html">📒 記録</a><a href="guide.html">🔰 はじめての人はこちら</a></nav>
 </header>
+<div class="topbar">__CHANGELOG__<a href="guide.html" class="tb-btn tb-guide">🔰 はじめての人はこちら</a><button type="button" class="tb-btn fb-link" data-feedback="1">🚨 不具合・要望を送る</button></div>
+<p class="beta-line">⚠️ 試作版です。内容は元資料でも確認してください</p>
 <main>
 <section id="player" hidden>
   <div class="pv-head"><div class="pv-ttl">大会当日の予定</div><div class="pv-name" id="pvName"></div><div class="pv-meet" id="pvMeet"></div></div>
@@ -596,35 +601,13 @@ body.fb-open{overflow:hidden}
     <div class="dlg-btns"><button class="btn sub" id="plClose" type="button">閉じる</button></div>
   </div>
 </div>
-__CHANGELOG__
 <section class="box howto">
-  <h2>使い方</h2>
-  <ol>
-    <li>大会の<b>スタートリスト（またはプログラム）</b>と<b>タイムテーブル（競技時間）</b>のPDFを、下の枠にドラッグするか、枠をクリックして選びます。<b>競技注意事項</b>も入れると招集時刻のルールを自動で設定します（任意）。</li>
-    <li><b>学校名</b>を入れます（一部でOK。例：「本郷」→ 本郷高・本郷中が出るので、必要な方にチェック）。</li>
-    <li>「時間順」「選手別」「ナンバーカード」に結果が出ます。Excel保存・印刷・ナンバーカード（Word）作成ができます。</li>
-  </ol>
-  <div class="notice">⚠ <b>試作版です。</b><button type="button" class="fb-link" data-feedback="1">📮 不具合・要望を送る</button>　本ツールはPDFの文字を読み取って自動で整理しているだけです。内容は必ず元のスタートリスト・タイムテーブル等と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div>
-  <details class="privacy" id="dataPolicy"><summary>🔒 <b>データの取り扱いについて</b>（押すと開きます）</summary>
-    <ul>
-      <li>PDF本文はどこにも送りません。選手情報も、下の「短いリンク」を作ったときを除いてサーバーへ送信・保存しません。</li>
-      <li>部品取得のため外部CDN（jsDelivr・SheetJS）へ通信します。プログラム部品（pdf.js・JSZip・SheetJS）は決まった版をハッシュ（SRI）で確認してから使い、確認できないブラウザでは読み込みません。pdf.jsが必要に応じて取りに行く文字の対応表（CMap）・標準フォントのデータはハッシュ確認の対象外です（プログラムではなくデータです）。短いリンクを作る・開くとき・ログインするとき・不具合を送るときは、Googleのサーバー（gstatic.com）から Firebase の部品を読み込みます。<b>Firebase の部品は版を固定していますが、ハッシュ確認はしていません</b>（読み込み方の都合。今後、同じサイトから配る形に変える予定です）。</li>
-      <li><b>ログアウト</b>（v0.14）：このページでログアウトすると、この端末に残っている「記録」ページの控え（ログイン中の記録のコピー）も消します。</li>
-      <li>保存したファイル・印刷物は残ります。保存先のクラウド同期は各学校の設定によります。</li>
-      <li>画面を閉じると、読み込んだ内容は消えます（「この端末に保存」を押したものだけ、その端末のブラウザに残ります。削除ボタンで消せます）。</li>
-      <li>「スマホで見る／共有」で<b>Googleでログインしているとき</b>は短いリンク（…/?s=英数字10文字）を作ります。このとき、選んだ学校の結果（大会名・日付・時刻・選手名など）を LANE NOTE の Firebase（Google）に保存し、リンクを知っている人なら誰でも見られます（一覧で探すことはできません）。<b>見られるのは作ってから119日まで</b>（サーバーのルールで最長120日に制限。期限を過ぎると開けなくなりますが、データの自動削除はまだしていません）。「作った短いリンク」からいつでも共有を止められ、止めるとサーバーの中身も消えます。<b>ただし、受け取った人が「この端末に保存」したコピー・長いリンク・スクリーンショットは、共有を止めても回収できません</b>（短いリンクから保存したコピーは、電波のあるところで開いたときに消えます。期限を過ぎたものは開けません）。リンクには作った人を区別する番号（アカウントID）も入っています。</li>
-      <li><b>ログインしていないとき</b>（または通信できないとき）は長いリンクになり、結果はリンクの「#」より後ろに入ります。この部分はサーバーへ送られず、どこにも保存されませんが、リンクを渡した相手は中身を見られます。</li>
-      <li>このページ（大会準備）の説明です。別ページの「記録」は、Googleでログインしたときだけ記録を LANE NOTE の Firebase（Google）に本人だけが読める形で保存します（ログインしないときはそのブラウザの中だけ）。</li>
-      <li><b>選手用リンク</b>（v0.11）：1人分の出場（大会名・日付・会場・種目・組・レーン・レースと招集の時刻・招集場所・その子の名前／学年／学校／ナンバー）だけを入れます。ほかの選手の名前・ナンバー（リレーの仲間も）は入れません。ログイン中は上と同じく Firebase に保存し、作ってから119日まで見られます（1人1件・止められます）、ログインなしは長いリンクの「#」より後ろに入ります。選手が自分で足した予定（起床など）と、開いたリンクの中身は、その選手の端末のブラウザにだけ保存し、どこにも送りません（選手のページの「この予定を端末から削除」で消せます。期限切れ・止めたリンクを開くと、端末の控えも消します）。</li>
-      <li><b>通過したら出るラウンド</b>（v0.16）：タイムテーブルにある準決勝・決勝などの時刻を、選手用リンクにも「通過したら」として入れます（その子の分だけ）。選手が押した「通過！」「敗退」は、その選手の端末のブラウザにだけ保存し、どこにも送りません。</li>
-      <li><b>選手の個人ページ</b>（v0.16）：「記録」ページで作るリンクです。その選手1人分の記録（種目ごとの自己ベスト・最近の記録・グラフの点・記録なしの大会）と名前・学校・学年だけを入れます（ほかの選手は入れません）。ログイン中は上と同じく Firebase の shares に保存し、作ってから119日まで見られます（止められます）。ログインなしは長いリンクの「#」より後ろに入ります。作った時点のコピーなので、あとで記録が増えても自動では変わりません。</li>
-      <li><b>体調メモ</b>（v0.16）：選手のページ（予定・個人ページ）で書く体調・睡眠時間・ひとことメモは、<b>その選手のスマホのブラウザにだけ保存し、どこにも送りません。先生にも見えません</b>（「この日のメモを削除」「体調メモを全部削除」で消せます）。</li>
-      <li><b>不具合・要望を送る</b>（v0.13・v0.14からGoogleでのログインが必要）：フォームから送った内容は LANE NOTE の Firebase（Google）の feedback に保存し、作成者だけが確認します（送った人を含め、ほかの人は読めません）。送るのは 種類・内容・連絡先（書いたときだけ）・ページ名・版・ブラウザの種類・画面の大きさ・開いていたタブとURLのパス（「#」「?」より後ろは送りません）・ログインしているアカウントのID です（メールアドレスは送りません）。PDFの中身・選手名・記録は自動では送りません（内容に書いたものは送られます）。</li>
-    </ul></details>
+  <div class="quick"><b>使い方</b>：①スタートリストとタイムテーブルのPDFを入れる → ②学校名を入れる → ③時間順・選手別・記録用紙ができる</div>
+  <p class="privacy-line" id="dataPolicy">🔒 PDF本文はサーバーへ送りません。共有リンクを作ったときだけ、その中身を保存します。詳しくは <a href="guide.html#data">はじめての人はこちら（データの取り扱い）</a></p>
 </section>
 
 <section class="box" id="inputs">
-  <h2><span class="no">1</span>PDFを入れる <a href="#dataPolicy" class="lockbadge" onclick="document.getElementById('dataPolicy').open=true">🔒 PDF本文はサーバーへ送りません</a> <button class="btn sub" id="btnReset" type="button">新しい大会を始める（全消去）</button></h2>
+  <h2><span class="no">1</span>PDFを入れる <a href="guide.html#data" class="lockbadge">🔒 PDF本文はサーバーへ送りません</a> <button class="btn sub" id="btnReset" type="button">新しい大会を始める（全消去）</button></h2>
   <div class="drops">
     <div class="drop" id="slDrop" tabindex="0"><div class="big">📄 スタートリスト</div><div class="muted small">ここにドラッグ／クリックして選ぶ</div><input type="file" id="slFile" accept="application/pdf,.pdf"><div class="status" id="slStatus"></div></div>
     <div class="drop" id="ttDrop" tabindex="0"><div class="big">🕘 タイムテーブル（競技時間）</div><div class="muted small">ここにドラッグ／クリックして選ぶ<br>（プログラムに時刻が載っている大会は不要）</div><input type="file" id="ttFile" accept="application/pdf,.pdf"><div class="status" id="ttStatus"></div></div>
@@ -728,6 +711,9 @@ __CHANGELOG__
 
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG" crossorigin="anonymous"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
+<script>
+__RESULTS__
+</script>
 <script>
 __PARSER__
 </script>

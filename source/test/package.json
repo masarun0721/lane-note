@@ -13,7 +13,7 @@
     "puppeteer-core": "23.11.1"
   },
   "scripts": {
-    "test": "node records_check.mjs && node player_check.mjs && node tt_callcols_check.mjs && node quality_check.mjs && node rules_static_check.mjs && node app_check.mjs && node residual_regress.mjs && node chart_check.mjs && node v016_check.mjs && node print_check.mjs",
+    "test": "node records_check.mjs && node player_check.mjs && node tt_callcols_check.mjs && node quality_check.mjs && node rules_static_check.mjs && node app_check.mjs && node residual_regress.mjs && node chart_check.mjs && node v016_check.mjs && node print_check.mjs && node v018_check.mjs",
     "test:rules": "cd ../.. && npx -y firebase-tools@14.12.0 emulators:exec --only firestore --project demo-lane-note --config firebase.json \"node source/test/rules_check.mjs\""
   }
 }

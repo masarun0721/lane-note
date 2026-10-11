@@ -353,6 +353,23 @@ var ResultParser = (function () {
   }
 
   /* ---------- 自己ベスト ---------- */
+  // v0.18：大会準備の記録用紙に出す「自己ベスト」。名前（正規化）＋区分（中学/高校）＋種目（区分を除く種目名と学年別などの区分）で引く。
+  // 返り値の関数に出場の行（name・team・event・grade）を渡すと { best: 公認ベストの記録, ref: 参考記録のほうが良ければその記録 } か null
+  function pbLookup(recs) {
+    var map = {};
+    computeBests(recs || []).bests.forEach(function (b) {
+      var any = b.best || b.ref; if (!any) return;
+      var k = nameKey(b.name) + '|' + String(b.event).replace(/^[a-z]+:/, '');
+      (map[k] = map[k] || []).push(b);
+    });
+    return function (row) {
+      if (!row || !row.name) return null;
+      var d = divisionOf(row), k = nameKey(row.name) + '|' + normEvent(row.event) + (eventCat(row.event) ? '#' + eventCat(row.event) : '');
+      var c = (map[k] || []).filter(function (b) { return !d || !b.div || b.div === d; });
+      if (c.length !== 1) return null;   // 見つからない・同じ名前で区分の違う人が2人以上（決められない）→ 空欄
+      return { best: c[0].best || null, ref: c[0].ref || null };
+    };
+  }
   function athleteKey(r) { var d = divisionOf(r); return nameKey(r.name || r.kana) + '@' + schoolBase(r.team) + (d ? '#' + d : ''); }
   function windClass(r) {   // 'ok' 公認対象 / 'aid' 追い風参考 / 'unk' 風不明 / 'na' 風の無い種目
     if (!windApplies(r.event)) return 'na';
@@ -751,7 +768,7 @@ var ResultParser = (function () {
     return { rec: r, errors: errs };
   }
   return { parsePdf: parsePdf, parseCells: parseCells, parsePlain: parsePlain, textToStream: textToStream, normEvent: normEvent, markValue: markValue, windApplies: windApplies, windClass: windClass, windNum: windNum,
-    computeBests: computeBests, nameKey: nameKey, athleteKey: athleteKey, matchSchool: matchSchool, recId: recId, recIdLegacy: recIdLegacy, recIdV6: recIdV6, identityKey: identityKey, fullIdentity: fullIdentity, looseIdentity: looseIdentity, manualRecord: manualRecord, sanitizeRecord: sanitizeRecord, validDate: validDate, normManualWind: normManualWind, dedupe: dedupe, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
+    computeBests: computeBests, pbLookup: pbLookup, nameKey: nameKey, athleteKey: athleteKey, matchSchool: matchSchool, recId: recId, recIdLegacy: recIdLegacy, recIdV6: recIdV6, identityKey: identityKey, fullIdentity: fullIdentity, looseIdentity: looseIdentity, manualRecord: manualRecord, sanitizeRecord: sanitizeRecord, validDate: validDate, normManualWind: normManualWind, dedupe: dedupe, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
     guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText,
     eventCat: eventCat, divisionOf: divisionOf, divLabel: divLabel, eventKey: eventKey, eventKeyLabel: eventKeyLabel, shownWind: shownWind, hasMark: hasMark, sortAthletes: sortAthletes, kanaKey: kanaKey,
     setDivisionHints: setDivisionHints, rawDivisionOf: rawDivisionOf, genderOf: genderOf, divGroup: divGroup, disciplineOrder: disciplineOrder, groupEvents: groupEvents, gendersIn: gendersIn, GROUPS: GROUPS,

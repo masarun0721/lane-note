@@ -7,11 +7,14 @@
 var CACHE = '__CACHE__';
 var PAGE = new URL('./', self.location).href;   // 例：https://masarun0721.github.io/lane-note/
 var REC = new URL('./records.html', self.location).href;
+var GUIDE = new URL('./guide.html', self.location).href;   // v0.18：はじめての人はこちら
 function getPage(u) { return fetch(new Request(u, { cache: 'reload', credentials: 'same-origin' })).then(function (res) { if (!res || !res.ok) throw new Error('page fetch failed: ' + (res && res.status)); return res; }); }
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) {
     return getPage(PAGE).then(function (res) { return c.put(PAGE, res); }).then(function () {
       return getPage(REC).then(function (res) { return c.put(REC, res); }, function () { });   // 記録のページは取れなくても続ける
+    }).then(function () {
+      return getPage(GUIDE).then(function (res) { return c.put(GUIDE, res); }, function () { });
     });
   }).then(function () { return self.skipWaiting(); }));
 });
