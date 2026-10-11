@@ -1034,6 +1034,12 @@
   function buildPrint(kind, key) {
     var rows = filtered();
     if (kind === 'ath') { openPrint(athSheets([key])); return; }
+    if (kind === 'meet') {   // v0.9.2：大会まとめ（いまの絞り込みのまま）
+      var mr = rows.filter(function (r) { return r.date + '|' + r.meet === key; }), ks = {}; mr.forEach(function (r) { ks[R.athleteKey(r)] = 1; });
+      var mp = key.split('|');
+      openPrint(LanePrint.meetSheet(R, mr, ALL.filter(function (r) { return ks[R.athleteKey(r)]; }), printMeta({ meet: mp.slice(1).join('|'), meetDate: mp[0], weather: weatherText(key), cond: filterCond() })));
+      return;
+    }
     if (kind === 'pick') {
       var ls = pickList(), c = filterCond();
       openPrint('<div class="lp-pick"><b>個人表をPDFにする選手を選ぶ</b><p class="small muted">' + (c ? 'いまの絞り込み（' + esc(c) + '）の' : '') + '選手 ' + ls.length + '人・1人1ページ</p><div class="lp-ops"><button class="btn sub" type="button" data-ppall="1">全員選択</button><button class="btn sub" type="button" data-ppnone="1">全解除</button><button class="btn" type="button" data-ppmake="1">🖨 PDFにまとめる（<span id="rbPPn">' + ls.length + '</span>人）</button></div><ul>' +
@@ -1101,6 +1107,7 @@
         if (mks.indexOf(meetSel) < 0) meetSel = mks[0];
         meetCtl = '<div class="meetsel"><label>大会 <select data-meetsel="1">' + mks.map(function (k) { var p = k.split('|'); return '<option value="' + esc(k) + '"' + (k === meetSel ? ' selected' : '') + '>' + esc(p[0] + '　' + p.slice(1).join('|') + '（' + meets[k] + '件）') + '</option>'; }).join('') + '</select></label></div>';
         rs = rs.filter(function (r) { return r.date + '|' + r.meet === meetSel; });
+        if (meetSel) meetCtl += '<div class="rb-row">' + ppBtns('meet', meetSel, '大会まとめ') + '</div>';
       }
       rs = sortRows(rs, view, d2);
       var grouped = view === 'meet' && !sort.meet, lastMeet = '';   // 大会別は見出しに大会名と日付を出すので、カードの中では繰り返さない

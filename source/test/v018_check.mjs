@@ -100,7 +100,7 @@ await check('guide.html：9つの項目と、データの取り扱いの全文�
 });
 await check('大会準備・記録：同じヘッダー（版の書き方・ナビ・試作版の1行・更新情報・はじめての人・不具合）・長い説明は無い', () => {
   for (const P of [I, RC]) {
-    assert.match(P, /<div class="hdr-ver" aria-label="バージョン"><span class="appver"><\/span>／記録 v0\.9\.1<\/div>/);
+    assert.match(P, /<div class="hdr-ver" aria-label="バージョン"><span class="appver"><\/span>／記録 v\d+\.\d+\.\d+<\/div>/);
     assert.match(P, /<nav class="pagenav"[^>]*>.*🏁 大会準備.*📒 記録.*🔰 はじめての人はこちら<\/a><\/nav>/);
     assert.match(P, /<div class="topbar"><details class="changelog" id="changelog">.*<\/details><a href="guide.html" class="tb-btn tb-guide">🔰 はじめての人はこちら<\/a><button type="button" class="tb-btn fb-link" data-feedback="1">🚨 不具合・要望を送る<\/button><\/div>/);
     assert.match(P, /<p class="beta-line">⚠️ 試作版です。内容は元資料でも確認してください<\/p>/);
