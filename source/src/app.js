@@ -340,22 +340,25 @@
   // v0.18.1：PB（公認ベスト・参考が良ければ小さく）と前回大会（いちばん新しい記録・日付と大会の短い名前）。空は「―」
   function lastShort(l) { var d = String(l.date || '').replace(/^\d{4}-0?(\d+)-0?(\d+)$/, '$1/$2'), m = String(l.meet || ''); return (d + ' ' + (m.length > 8 ? m.slice(0, 8) + '…' : m)).trim(); }
   function lastBad(l) { return !ResultParser.markValue || !ResultParser.markValue(l.mark); }
-  function pbText(p) { if (!p || !(p.best || p.ref)) return '―'; var b = p.best, f = p.ref; return (b ? 'PB ' + b.mark : '') + (f ? (b ? ' ' : '') + '（参考 ' + f.mark + '）' : ''); }
-  function lastText(p) { var l = p && p.last; if (!l) return '―'; return (l.mark || '―') + (lastShort(l) ? '（' + lastShort(l) + '）' : ''); }
-  function pbHtml(p) { if (!p || !(p.best || p.ref)) return '<span class="p-none">―</span>'; var b = p.best, f = p.ref; return (b ? '<b class="p-pbv"><small>PB</small> ' + esc(b.mark) + '</b>' : '') + (f ? '<small class="p-pbr">参考 ' + esc(f.mark) + '</small>' : ''); }
-  function lastHtml(p) { var l = p && p.last; if (!l) return '<span class="p-none">―</span>'; return '<b class="p-pbv' + (lastBad(l) ? ' p-bad' : '') + '">' + esc(l.mark || '―') + '</b><small class="p-pbr">' + esc(lastShort(l)) + '</small>'; }
+  // v0.18.2：どのマスも見ただけで分かるように「2年」「PB 12.10」「前回 11.98（参考）」＋小さく「7/1 県大会」。参考の別行は出さない
+  function gradeText(g) { g = String(g == null ? '' : g).trim(); return /^[0-9０-９]$/.test(g) ? g + '年' : g; }
+  function lastRef(l) { return !lastBad(l) && ResultParser.isOfficial && !ResultParser.isOfficial(l); }
+  function pbText(p) { if (!p || !p.best) return '―'; return 'PB ' + p.best.mark; }
+  function lastText(p) { var l = p && p.last; if (!l) return '―'; return '前回 ' + (l.mark || '―') + (lastRef(l) ? '（参考）' : '') + (lastShort(l) ? '（' + lastShort(l) + '）' : ''); }
+  function pbHtml(p) { if (!p || !p.best) return '<span class="p-none">―</span>'; return '<b class="p-pbv">PB ' + esc(p.best.mark) + '</b>'; }
+  function lastHtml(p) { var l = p && p.last; if (!l) return '<span class="p-none">―</span>'; return '<b class="p-pbv' + (lastBad(l) ? ' p-bad' : '') + '">前回 ' + esc(l.mark || '―') + (lastRef(l) ? '<span class="p-ref">（参考）</span>' : '') + '</b><small class="p-pbr">' + esc(lastShort(l)) + '</small>'; }
   function buildRecSheet() {
     var G = printGroups(), N = 10, multi = state.teams.length > 1;
-    var info = '<tbody class="pinfo"><tr><td colspan="' + N + '"><div class="pi-box pi-legend"><span class="pi-pb">PB＝これまでの公認ベスト／前回大会＝この種目のいちばん新しい記録（記録ページにたまっている記録。今日の記録と比べられます）</span><span><i class="lg-h"></i>斜線の風欄＝風を測らない種目</span><span><i class="lg-w"></i>点線＝記入の目安</span><span class="pi-disc">ⓘ 本ツールはPDFの文字を読み取って自動で整理しているだけです。内容は必ず元のスタートリスト・タイムテーブル等と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</span></div></td></tr></tbody>';
+    var info = '<tbody class="pinfo"><tr><td colspan="' + N + '"><div class="pi-box pi-legend"><span class="pi-pb">PB＝これまでの公認ベスト　前回＝この種目のいちばん新しい記録（参考＝追い風参考など公認にならない記録）</span><span><i class="lg-h"></i>斜線の風欄＝風を測らない種目</span><span><i class="lg-w"></i>点線＝記入の目安</span><span class="pi-disc">ⓘ 本ツールはPDFの文字を読み取って自動で整理しているだけです。内容は必ず元のスタートリスト・タイムテーブル等と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</span></div></td></tr></tbody>';
     var body = G.map(function (g) {
       return '<tbody class="pg' + (g.cont ? ' cont' : '') + (g.tent ? ' tent' : '') + '">' + grpBar(g, N, '<span class="g-wind">' + (g.wind ? '風 計測あり' : '風 なし') + '</span>') + g.rows.map(function (r) {
         var w = isWind(r);
         return '<tr class="rr"><td class="c">' + esc(r.heat) + '</td><td class="c p-pos">' + posHtml(r) + '</td><td class="c p-bib">' + esc(r.typ === 'relay' ? '' : r.bib) + '</td><td class="p-name">' + nameHtml(r, multi) +
-          '</td><td class="c">' + esc(r.grade) + '</td><td class="p-pb">' + pbHtml(pbOf(r)) + '</td><td class="p-pb">' + lastHtml(pbOf(r)) + '</td><td class="wc"><div class="wl"></div></td><td class="wc' + (w ? '' : ' nowind') + '">' + (w ? '<div class="wl"></div>' : '') + '</td><td class="wc"><div class="wl"></div></td></tr>';
+          '</td><td class="c p-gr">' + esc(gradeText(r.grade)) + '</td><td class="p-pb">' + pbHtml(pbOf(r)) + '</td><td class="p-pb">' + lastHtml(pbOf(r)) + '</td><td class="wc"><div class="wl"></div></td><td class="wc' + (w ? '' : ' nowind') + '">' + (w ? '<div class="wl"></div>' : '') + '</td><td class="wc"><div class="wl"></div></td></tr>';
       }).join('') + '</tbody>';
     }).join('');
     $('recSheet').innerHTML = '<table class="ptab prec"><colgroup><col style="width:4%"><col style="width:9%"><col style="width:7%"><col style="width:22%"><col style="width:5%"><col style="width:11%"><col style="width:13%"><col style="width:16%"><col style="width:7%"><col style="width:6%"></colgroup><thead>' + band('記録用紙', N) +
-      '<tr class="pcols"><th>組</th><th>レーン/順</th><th>ナンバー</th><th>氏名</th><th>学年</th><th>PB</th><th>前回大会</th><th>記録</th><th>風</th><th>順位</th></tr></thead>' + info + body + '</table>';
+      '<tr class="pcols"><th>組</th><th>レーン</th><th>No.</th><th>氏名</th><th>学年</th><th>PB</th><th>前回</th><th>記録</th><th>風</th><th>順位</th></tr></thead>' + info + body + '</table>';
   }
   function printRec() {
     refreshPrint();
@@ -391,7 +394,7 @@
     var pg = null;
     return [[h.title], [h.sub], [], ['時刻', '種目', '組', 'レーン/順', 'ナンバー', '氏名', '学年', 'PB', '前回大会', '記録', '風', '順位']].concat(recRows().map(function (r) {
       var same = r.g === pg; pg = r.g;
-      return [same ? '' : r.start, same ? '' : r.event + (r.tent ? '（通過したら）' : ''), r.tent ? '' : r.heat, r.tent ? '未定' : r.pos, r.bib, r.name + (r.members ? '（' + r.members + '）' : '') + (state.teams.length > 1 ? ' ' + r.team : ''), r.grade, pbText(r.pb), lastText(r.pb), '', r.wind ? '' : '－', ''];
+      return [same ? '' : r.start, same ? '' : r.event + (r.tent ? '（通過したら）' : ''), r.tent ? '' : r.heat, r.tent ? '未定' : r.pos, r.bib, r.name + (r.members ? '（' + r.members + '）' : '') + (state.teams.length > 1 ? ' ' + r.team : ''), gradeText(r.grade), pbText(r.pb), lastText(r.pb), '', r.wind ? '' : '－', ''];
     }));
   }
   function recWs() {
