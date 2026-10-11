@@ -74,7 +74,7 @@ w.fetch = () => Promise.reject(new Error('network prohibited in tests')); w.inde
 const copied = [];
 w.ClipboardItem = function (o) { this.o = o; }; Object.defineProperty(w.navigator, 'clipboard', { value: { write: async items => { for (const it of items) copied.push({ html: await it.o['text/html'].text(), text: await it.o['text/plain'].text() }); } }, configurable: true });
 const aoas = []; w.XLSX = { utils: { book_new: () => ({ s: [] }), aoa_to_sheet: a => ({ a }), book_append_sheet: (wb, ws, n) => wb.s.push([n, ws.a]) }, writeFile: (wb, n) => aoas.push([n, wb.s]) };
-['results.js', 'parser.js', 'logic.js', 'player.js', 'personal.js', 'auth_common.js', 'parent.js', 'notice.js', 'app.js'].forEach(f => w.eval(src(f)));
+['results.js', 'parser.js', 'logic.js', 'player.js', 'personal.js', 'auth_common.js', 'parent.js', 'notice.js', 'overlay.js', 'app.js'].forEach(f => w.eval(src(f)));
 const LN = w.LaneNotice;
 w.document.dispatchEvent(new w.Event('DOMContentLoaded')); await delay();
 const app = w.__meetApp, $ = id => w.document.getElementById(id);
@@ -90,7 +90,7 @@ await check('「👪 保護者へのお知らせ」→ タイトル・要点・2
   assert.equal($('parentView').hidden, false);
   assert.match(doc(), /<h1>第1回架空区大会について<\/h1>/); assert.match(doc(), /保護者各位/);
   assert.match(doc(), /令和8年10月18日（日）/); assert.match(doc(), /架空区総合運動場陸上競技場/); assert.match(doc(), /架空駅/);
-  assert.match(doc(), /山田 太郎/); assert.match(doc(), /佐藤 花子/); assert.doesNotMatch(doc(), /他校 一郎/); assert.match(doc(), /（通過したら）/); assert.match(doc(), /A・B/);
+  assert.match(doc(), /山田 太郎/); assert.match(doc(), /佐藤 花子/); assert.doesNotMatch(doc(), /他校 一郎/); assert.match(doc(), /（通過したら）/); assert.doesNotMatch(doc(), /<span>出場選手<\/span>/, '出場選手表ははじめは出さない'); assert.match(doc(), /<span>時間順の予定<\/span>/); assert.match(doc(), /class="tent"/);
   assert.match(q('[data-m="venue"]').nextElementSibling.textContent, /大会要項から/);
 });
 await check('集合時刻：自校の最初の種目の2時間前（ルールを変えると計算し直す・手で直したらそのまま）', async () => {
@@ -127,6 +127,59 @@ await check('📋 コピー（text/html＋text/plain）・Excel 2枚・Word（.d
   const zz = await JSZip.loadAsync(blobs[0] instanceof Uint8Array ? blobs[0] : await blobs[0].arrayBuffer()); const x = await zz.file('word/document.xml').async('string');
   assert.match(x, /第1回架空区大会の出場について/); assert.match(x, /山田 太郎/); assert.match(x, /<w:numId w:val="1"\/>/); assert.match(x, /<w:pgSz w:w="11906" w:h="16838"\/>/); assert.ok(zz.file('word/numbering.xml'));
   $('pvClose').click(); assert.equal($('parentView').hidden, true);
+});
+await check('v0.22.2 要項の実際の書き方（期　日／場　所・番号つき）から 日付・競技開始・競技場名だけ・住所・電話', () => {
+  const f = LN.extract({ yoko: '4．期　　日　　2026年10月11日（日）　9時30分競技開始予定\n5．場　　所　　スピアーズえどりくフィールド　〒134-0087 江戸川区清新町２－１－１　電話 03-3878-3388' });
+  assert.equal(f.venue.v, 'スピアーズえどりくフィールド'); assert.equal(f.address.v, '〒134-0087 江戸川区清新町2-1-1'); assert.equal(f.phone.v, '03-3878-3388');
+  assert.equal(f.date.v, '2026年10月11日'); assert.equal(f.start.v, '9:30');
+  assert.equal(LN.extract({ yoko: '会　場　駒沢オリンピック公園陸上競技場' }).venue.v, '駒沢オリンピック公園陸上競技場');
+  const T = LN.defaults(); T.call.base = 'start'; assert.equal(LN.gatherTime(T.call, { start: f.start.v }), '7:30');
+});
+await check('v0.22.2 競技場リスト：要項の名前と一部一致で選ばれ、最寄り駅・集合場所が入る／新しい競技場は「保存」できる', async () => {
+  const T = LN.defaults(); T.venues = [{ name: 'えどりくフィールド', station: '西葛西駅', access: '徒歩15分', place: 'スタンド下', address: '', memo: '' }];
+  assert.equal(LN.findVenue(T, 'スピアーズえどりくフィールド'), 0); assert.equal(LN.findVenue(T, '駒沢'), -1);
+  assert.equal(LN.sanitize({ venues: [{ name: '' }, { name: 'A', station: 1 }] }).venues.length, 1);
+  app.state.docText = { yoko: '5．場　　所　　スピアーズえどりくフィールド　〒134-0087 江戸川区清新町２－１－１' };
+  $('btnParent').click(); await delay();
+  q('[data-va="save"]').click(); await delay();
+  const vs = () => JSON.parse(JSON.stringify(w.eval('null') || null));
+  const n = q('[data-vn="0"][data-vk="station"]'); n.value = '西葛西駅'; n.dispatchEvent(new w.Event('input', { bubbles: true }));
+  const pl = q('[data-vn="0"][data-vk="place"]'); pl.value = 'スタンド下'; pl.dispatchEvent(new w.Event('input', { bubbles: true })); await delay(320);
+  const fr = q('[data-vn="0"][data-vk="fareRound"]'); fr.value = '1040'; fr.dispatchEvent(new w.Event('input', { bubbles: true }));
+  const rt = q('[data-vn="0"][data-vk="route"]'); rt.value = '本郷三丁目駅〜西葛西駅'; rt.dispatchEvent(new w.Event('input', { bubbles: true })); await delay(320);
+  q('#ntSave').click(); await delay();
+  $('pvClose').click(); await delay();
+  $('btnParent').click(); await delay();   // 開き直す：保存した競技場が自動で選ばれる
+  assert.equal(q('[data-venue]').value, '0'); assert.match(doc(), /西葛西駅/); assert.match(doc(), /スタンド下/);
+  assert.match(doc(), /交通費[\s\S]{0,200}往復1,040円程度（本郷三丁目駅〜西葛西駅）/, '要点に交通費');
+  const fb = q('[data-t="fareInBelongings"]'); fb.checked = true; fb.dispatchEvent(new w.Event('change', { bubbles: true })); await delay();
+  assert.match(doc(), /<li><i><\/i>交通費（往復1,040円程度/, '持ち物にも');
+  await setv('[data-m="fare"]', '往復1,200円程度'); assert.match(doc(), /往復1,200円程度/); assert.doesNotMatch(doc(), /1,040/);
+  assert.equal(LN.fareText({ route: '本郷三丁目駅〜西葛西駅' }), '', '金額がなければ書かない（推測しない）');
+  $('pvClose').click(); await delay();
+});
+await check('v0.22.2 全画面に「← 戻る」・開くと pushState、ブラウザの戻る（popstate）で閉じる', async () => {
+  const before = w.history.length;
+  $('btnParent').click(); await delay();
+  const back = $('parentView').querySelector('.ov-back'); assert.ok(back); assert.equal(back.textContent, '← 戻る');
+  assert.equal(w.history.state && w.history.state.laneOv, 'parentView');
+  w.dispatchEvent(new w.PopStateEvent('popstate', { state: null })); await delay();
+  assert.equal($('parentView').hidden, true, '戻るで閉じる');
+  $('btnParent').click(); await delay(); back.click(); await delay(); assert.equal($('parentView').hidden, true);
+  for (const id of ['docView', 'shareDlg', 'playerDlg']) assert.ok($(id).querySelector('.ov-back'), id);
+});
+await check('v0.22.2 読み込んだ内容を sessionStorage に控え、再読み込みで戻す／「最初から」で消す', async () => {
+  $('school').value = '架空'; app.updateTeams(); app.render(); app.ssSave(); await delay(500);
+  const raw = w.sessionStorage.getItem('lanenote-meet-session'); assert.ok(raw); const o = JSON.parse(raw);
+  assert.ok(o.st.sl.entries.length); assert.equal(o.inp.meetName.v, '第1回架空区大会');
+  // 新しいページで戻す
+  const d2 = new JSDOM(html, { url: 'http://127.0.0.1:9090/index.html', runScripts: 'outside-only' }); const w2 = d2.window; await delay();
+  Object.assign(w2, { TextEncoder, TextDecoder, CompressionStream, DecompressionStream, Response, Blob }); w2.alert = () => {}; w2.confirm = () => true; w2.scrollTo = () => {}; w2.fetch = () => Promise.reject(new Error('x')); w2.indexedDB = new IDBFactory(); w2.requestAnimationFrame = f => setTimeout(f, 0);
+  w2.sessionStorage.setItem('lanenote-meet-session', raw);
+  ['results.js', 'parser.js', 'logic.js', 'player.js', 'personal.js', 'auth_common.js', 'parent.js', 'notice.js', 'overlay.js', 'app.js'].forEach(f => w2.eval(src(f)));
+  w2.document.dispatchEvent(new w2.Event('DOMContentLoaded')); await delay(50);
+  const a2 = w2.__meetApp; assert.equal(w2.document.getElementById('meetName').value, '第1回架空区大会'); assert.ok(a2.state.rows.length > 0, '結果がもう一度出る'); assert.equal(w2.document.getElementById('ssNote').hidden, false);
+  a2.resetAll(); await delay(500); assert.equal(w2.sessionStorage.getItem('lanenote-meet-session'), null);
 });
 await check('ビルド結果：版 v0.22・試し版の印なし・使い方に説明', () => {
   const I = fs.readFileSync(path.join(OUT, 'index.html'), 'utf8'), G = fs.readFileSync(path.join(OUT, 'guide.html'), 'utf8');

@@ -11,16 +11,18 @@ var LaneNotice = (function () {
   var SEC_LABEL = { header: '宛先・日付・学校名', title: 'タイトル', greeting: 'あいさつ', points: '要点（日にち・競技場・集合など）', belongings: '持ち物', cautions: 'その他注意事項', contact: '連絡先', athletes: '出場選手表', schedule: '時間順の予定', free: '自由欄' };
   function defaults() {
     return {
-      v: 1, layout: 'std', font: 'gothic', accent: 'navy', mono: false, size: 10.5, fit: true, era: 'wareki',
+      v: 2, layout: 'std', font: 'gothic', accent: 'navy', mono: false, size: 10.5, fit: true, era: 'wareki',
       school: '', club: '陸上競技部', advisors: [], to: '保護者各位', title: '{大会名}について', place: '競技場 正門前',
       greeting: '日頃より陸上競技部の活動にご理解とご協力をいただき、ありがとうございます。\n先日の大会では、温かいご声援をありがとうございました。\nさて、下記のとおり{大会名}に出場いたします。お忙しいところ恐縮ですが、ご確認をお願いいたします。',
-      points: [{ k: 'date', label: '日にち', on: true }, { k: 'venue', label: '競技場', on: true }, { k: 'station', label: '最寄り駅', on: true }, { k: 'gate', label: '開門', on: false }, { k: 'gather', label: '集合', on: true }, { k: 'dismiss', label: '解散予定', on: true }],
+      points: [{ k: 'date', label: '日にち', on: true }, { k: 'venue', label: '競技場', on: true }, { k: 'station', label: '最寄り駅', on: true }, { k: 'gate', label: '開門', on: false }, { k: 'gather', label: '集合', on: true }, { k: 'dismiss', label: '解散予定', on: true }, { k: 'fare', label: '交通費', on: true }, { k: 'address', label: '住所', on: false }, { k: 'phone', label: '電話', on: false }],
+      fareInBelongings: false,
       belongings: { items: ['ユニフォーム', 'ナンバーカード（ゼッケン）', 'スパイク', '安全ピン', '弁当', '水筒・飲み物', 'タオル', '着替え', '雨具', '保険証のコピー'], note: '※ 貴重品は各自で管理してください。' },
       cautions: ['会場までは公共交通機関を利用し、車内では他の利用者の迷惑にならないようにしてください。', '欠席・遅刻の場合は、当日朝 7:00 までに顧問へ連絡してください。', '体調がすぐれない場合は無理をせず、早めに相談してください。', '会場ではごみを各自持ち帰ってください。', '保護者の方の観戦は、スタンドのみとなります。'],
       contact: ['当日の連絡先：顧問 携帯 000-0000-0000'],
+      venues: [],
       table: { grade: true, split: true },
       call: { base: 'first', h: 2, m: 0 }, dismiss: { on: true, h: 0, m: 30 },
-      sections: ['header', 'title', 'greeting', 'points', 'belongings', 'cautions', 'contact', 'athletes', 'schedule'].map(function (t) { return { id: t, type: t, on: true }; })
+      sections: ['header', 'title', 'greeting', 'points', 'belongings', 'cautions', 'contact', 'athletes', 'schedule'].map(function (t) { return { id: t, type: t, on: t !== 'athletes' }; })
     };
   }
   // 保存しておいたひな形を、決まった形・長さに作り直す（壊れた・古いデータでも動くように）
@@ -30,12 +32,14 @@ var LaneNotice = (function () {
     var list = function (v, def, n) { return Array.isArray(v) ? v.filter(function (x) { return typeof x === 'string'; }).slice(0, n || 40).map(function (x) { return x.slice(0, 400); }) : def; };
     var num = function (v, def, lo, hi) { v = +v; return isFinite(v) && v >= lo && v <= hi ? v : def; };
     var t = {
-      v: 1, layout: ['std', 'table', 'clean'].indexOf(o.layout) >= 0 ? o.layout : d.layout, font: o.font === 'mincho' ? 'mincho' : 'gothic', accent: ACCENT[o.accent] ? o.accent : 'navy', mono: o.mono === true, size: num(o.size, d.size, 8, 14), fit: o.fit !== false, era: o.era === 'seireki' ? 'seireki' : 'wareki',
+      v: 2, layout: ['std', 'table', 'clean'].indexOf(o.layout) >= 0 ? o.layout : d.layout, font: o.font === 'mincho' ? 'mincho' : 'gothic', accent: ACCENT[o.accent] ? o.accent : 'navy', mono: o.mono === true, size: num(o.size, d.size, 8, 14), fit: o.fit !== false, era: o.era === 'seireki' ? 'seireki' : 'wareki',
       school: str(o.school, d.school, 60), club: str(o.club, d.club, 40), advisors: list(o.advisors, d.advisors, 6), to: str(o.to, d.to, 60), title: str(o.title, d.title, 100), place: str(o.place, d.place, 60),
       greeting: str(o.greeting, d.greeting),
       points: d.points.map(function (p) { var q = Array.isArray(o.points) ? o.points.filter(function (x) { return x && x.k === p.k; })[0] : null; return { k: p.k, label: q ? str(q.label, p.label, 20) : p.label, on: q ? q.on !== false : p.on }; }),
       belongings: { items: list(o.belongings && o.belongings.items, d.belongings.items), note: str(o.belongings && o.belongings.note, d.belongings.note, 300) },
       cautions: list(o.cautions, d.cautions), contact: list(o.contact, d.contact, 10),
+      fareInBelongings: o.fareInBelongings === true,
+      venues: (Array.isArray(o.venues) ? o.venues : []).slice(0, 50).filter(function (v) { return v && typeof v === 'object' && typeof v.name === 'string' && v.name.trim(); }).map(function (v) { var r = {}; VENUE_KEYS.forEach(function (k) { r[k] = str(v[k], '', k === 'memo' ? 300 : 120); }); return r; }),
       table: { grade: !(o.table && o.table.grade === false), split: !(o.table && o.table.split === false) },
       call: { base: o.call && ['first', 'start', 'gate'].indexOf(o.call.base) >= 0 ? o.call.base : 'first', h: num(o.call && o.call.h, 2, 0, 6), m: num(o.call && o.call.m, 0, 0, 59) },
       dismiss: { on: !(o.dismiss && o.dismiss.on === false), h: num(o.dismiss && o.dismiss.h, 0, 0, 6), m: num(o.dismiss && o.dismiss.m, 30, 0, 59) },
@@ -45,10 +49,27 @@ var LaneNotice = (function () {
     (Array.isArray(o.sections) ? o.sections : []).slice(0, 40).forEach(function (s) {
       if (!s || typeof s !== 'object') return;
       if (s.type === 'free') { var id = 'f' + String(s.id || '').replace(/\W/g, '').slice(0, 12); if (seen[id]) return; seen[id] = 1; t.sections.push({ id: id, type: 'free', on: s.on !== false, title: str(s.title, '', 60), text: str(s.text, '') }); }
-      else if (SEC_LABEL[s.type] && !seen[s.type]) { seen[s.type] = 1; t.sections.push({ id: s.type, type: s.type, on: s.on !== false }); }
+      else if (SEC_LABEL[s.type] && !seen[s.type]) { seen[s.type] = 1; t.sections.push({ id: s.type, type: s.type, on: s.on !== false && !(s.type === 'athletes' && !(o.v >= 2)) }); }   // v0.22.2：出場選手表ははじめは出さない（前の版のひな形も）
     });
     d.sections.forEach(function (s) { if (!seen[s.type]) t.sections.push(s); });   // 新しく増えた欄は最後に
     return t;
+  }
+  /* ---------- 競技場リスト（学校の設定に保存。はじめは空：駅などのデータは作らない） ---------- */
+  var VENUE_KEYS = ['name', 'address', 'station', 'access', 'place', 'memo', 'route', 'fareOne', 'fareRound', 'fareNote'];
+  // 交通費の1行：保存した金額だけを使う（運賃を調べたり推測したりはしない）
+  function fareText(v) {
+    if (!v) return '';
+    var yen = function (x) { x = nk(x).replace(/[^\d]/g, ''); return x ? Number(x).toLocaleString('ja-JP') + '円' : ''; };
+    var r = yen(v.fareRound), o = yen(v.fareOne), amt = r ? '往復' + r + '程度' : o ? '片道' + o + '程度' : '';
+    if (!amt) return '';
+    return amt + (v.route ? '（' + nk(v.route).trim() + '）' : '') + (v.fareNote ? '　' + v.fareNote.trim() : '');
+  }
+  function vnorm(s) { return nk(s).replace(/[\s　・･\-－ー]/g, '').toLowerCase(); }
+  // 要項の競技場名と、保存した競技場（名前の一部でも）を突き合わせる
+  function findVenue(T, name) {
+    var n = vnorm(name); if (n.length < 2) return -1;
+    for (var i = 0; i < T.venues.length; i++) { var v = vnorm(T.venues[i].name); if (v.length >= 2 && (v === n || n.indexOf(v) >= 0 || v.indexOf(n) >= 0)) return i; }
+    return -1;
   }
   /* ---------- 日付・時刻 ---------- */
   function parseDate(s) {
@@ -69,18 +90,21 @@ var LaneNotice = (function () {
   function extract(docs) {
     var out = {}, order = ['yoko', 'note', 'tt', 'sl'];
     var pats = {
-      venue: [/(?:会\s*場|場\s*所|競\s*技\s*場)\s*[:：]?\s*([^\s:：、。()（）]{2,24}(?:陸上競技場|競技場|スタジアム|フィールド|総合運動場))/, /([一-龯ァ-ヶーA-Za-z0-9・]{2,20}(?:陸上競技場|スタジアム))/],
+      venue: [/(?:^|\n|[\d.．、)）]\s*)(?:会\s*場|場\s*所|競\s*技\s*場)\s*[:：]?\s*([^\s〒(（:：]{2,30})/, /(?:会\s*場|場\s*所|競\s*技\s*場)\s*[:：]?\s*([^\s:：、。()（）]{2,24}(?:陸上競技場|競技場|スタジアム|フィールド|総合運動場))/, /([一-龯ァ-ヶーA-Za-z0-9・]{2,20}(?:陸上競技場|スタジアム))/],
       station: [/最寄り?駅\s*[:：]?\s*([^\s、。:：]{1,15}駅)/, /([一-龯ァ-ヶーぁ-ん]{1,12}駅)\s*(?:から|より|下車|徒歩|[東西南北]口)/],
+      address: [/(〒\s*\d{3}-?\d{4}\s*[^\s]+)/],
+      phone: [/(?:電\s*話|TEL|Tel|tel)\s*[:：.]?\s*(0\d{1,4}-\d{1,4}-\d{3,4})/],
+      date: [/期\s*日\s*[:：]?\s*((?:20\d\d|令和\s*(?:\d+|元))\s*年\s*\d{1,2}\s*月\s*\d{1,2}\s*日)/],
       gate: [/開\s*門\s*(?:時\s*刻)?\s*[:：]?\s*(?:は)?\s*(\d{1,2}\s*[:：時]\s*\d{0,2})/],
       reception: [/受\s*付\s*(?:開\s*始)?\s*(?:時\s*刻)?\s*[:：]?\s*(\d{1,2}\s*[:：時]\s*\d{0,2})/],
-      start: [/競\s*技\s*開\s*始\s*(?:時\s*刻)?\s*[:：]?\s*(\d{1,2}\s*[:：時]\s*\d{0,2})/]
+      start: [/(\d{1,2}\s*[:：時]\s*\d{2})\s*分?\s*(?:から)?\s*競\s*技\s*開\s*始/, /競\s*技\s*開\s*始\s*(?:時\s*刻)?\s*[:：]?\s*(\d{1,2}\s*[:：時]\s*\d{0,2})/]
     };
     Object.keys(pats).forEach(function (k) {
       for (var i = 0; i < order.length && !out[k]; i++) {
         var txt = nk(docs && docs[order[i]] || ''); if (!txt) continue;
         for (var j = 0; j < pats[k].length; j++) {
           var m = txt.match(pats[k][j]); if (!m) continue;
-          var v = m[1].replace(/\s+/g, ''); if (/gate|reception|start/.test(k)) { var mm = toMin(v); if (mm == null || mm < 300 || mm > 1200) continue; v = fmtMin(mm); }
+          var v = k === 'address' ? m[1].replace(/〒\s*/, '〒').replace(/(\d{4})\s*/, '$1 ') : m[1].replace(/\s+/g, ''); if (/gate|reception|start/.test(k)) { var mm = toMin(v); if (mm == null || mm < 300 || mm > 1200) continue; v = fmtMin(mm); }
           out[k] = { v: v, src: SRC_NAME[order[i]] }; break;
         }
       }
@@ -91,13 +115,14 @@ var LaneNotice = (function () {
   function gatherTime(rule, t) { var b = rule.base === 'start' ? t.start : rule.base === 'gate' ? t.gate : t.first; var n = toMin(b); return n == null ? '' : fmtMin(n - rule.h * 60 - rule.m); }
   function dismissTime(rule, t) { var n = toMin(t.last); return !rule.on || n == null ? '' : fmtMin(n + rule.h * 60 + rule.m); }
   function vars(T, M) {
-    return { '大会名': M.name || '', '日付': M.date || '', '競技場': M.venue || '', '最寄り駅': M.station || '', '集合時刻': M.gather || '', '集合場所': M.place || T.place || '', '解散予定': M.dismiss || '', '開門': M.gate || '', '学校名': T.school || '', '部活名': T.club || '' };
+    return { '大会名': M.name || '', '日付': M.date || '', '競技場': M.venue || '', '最寄り駅': M.station || '', '集合時刻': M.gather || '', '集合場所': M.place || T.place || '', '交通費': M.fare || '', '解散予定': M.dismiss || '', '開門': M.gate || '', '学校名': T.school || '', '部活名': T.club || '' };
   }
   function fill(s, V) { return String(s || '').replace(/\{([^{}]{1,10})\}/g, function (a, k) { return Object.prototype.hasOwnProperty.call(V, k) ? V[k] : a; }); }
+  function belItems(T, M, V) { var a = T.belongings.items.filter(Boolean).map(function (x) { return fill(x, V); }); if (T.fareInBelongings && M.fare) a.push('交通費（' + M.fare + '）'); return a; }
   function pointRows(T, M) {
     var place = M.place || T.place;
-    var val = { date: [M.date], venue: [M.venue], station: [M.station], gate: [M.gate], gather: [M.gather, place], dismiss: [M.dismiss, M.dismiss ? 'ごろ（予定）' : ''] };
-    return T.points.filter(function (p) { return p.on; }).map(function (p) { var v = val[p.k] || ['']; return { k: p.k, label: p.label, main: v[0] || '', sub: v[1] || '', big: /gather|dismiss|gate/.test(p.k) && /^\d{1,2}:\d{2}$/.test(v[0] || ''), value: [v[0], v[1]].filter(Boolean).join('　') }; });
+    var val = { fare: [M.fare], date: [M.date], venue: [M.venue], address: [M.address], phone: [M.phone], station: [M.station, M.access || ''], gate: [M.gate], gather: [M.gather, place], dismiss: [M.dismiss, M.dismiss ? 'ごろ（予定）' : ''] };
+    return T.points.filter(function (p) { return p.on && !(p.k === 'fare' && !M.fare); }).map(function (p) { var v = val[p.k] || ['']; return { k: p.k, label: p.label, main: v[0] || '', sub: v[1] || '', big: /gather|dismiss|gate/.test(p.k) && /^\d{1,2}:\d{2}$/.test(v[0] || ''), value: [v[0], v[1]].filter(Boolean).join('　') }; });
   }
   /* ---------- 文書（HTML）：プレビュー・印刷・PDF ---------- */
   var FONT = { gothic: '"Noto Sans JP","Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI","游ゴシック","Yu Gothic","Meiryo","Noto Sans CJK JP",sans-serif', mincho: '"游明朝","Yu Mincho","ＭＳ 明朝","MS Mincho","Hiragino Mincho ProN","Noto Serif CJK JP",serif' };
@@ -109,7 +134,7 @@ var LaneNotice = (function () {
   var ICON = {
     date: '<path d="M4 6h16v14H4zM4 10h16M8 3v5M16 3v5"/>', venue: '<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
     station: '<rect x="6" y="3" width="12" height="14" rx="3"/><path d="M6 11h12M9 21l2-4M15 21l-2-4"/><circle cx="9" cy="14" r=".6"/><circle cx="15" cy="14" r=".6"/>',
-    gate: '<path d="M4 21V9l8-5 8 5v12M9 21v-7h6v7"/>', gather: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/>', dismiss: '<path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/>'
+    gate: '<path d="M4 21V9l8-5 8 5v12M9 21v-7h6v7"/>', fare: '<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/>', gather: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/>', dismiss: '<path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/>'
   };
   function icon(k) { return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">' + (ICON[k] || '') + '</svg>'; }
   function tableHtml(g, cls) {
@@ -135,7 +160,7 @@ var LaneNotice = (function () {
         if (L === 'clean') return '<dl class="nt-dl">' + pr.map(function (r) { return '<div><dt>' + esc(r.label) + '</dt><dd' + (r.big ? ' class="big"' : '') + '>' + esc(r.main || '—') + (r.sub ? '<small>' + esc(r.sub) + '</small>' : '') + '</dd></div>'; }).join('') + '</dl>';
         return '<div class="cards n' + pr.length + '">' + pr.map(function (r) { return '<div class="card k-' + r.k + (r.big ? ' big' : '') + '"><div class="cl">' + icon(r.k) + esc(r.label) + '</div><div class="cv">' + (esc(r.main) || '<span class="muted">—</span>') + '</div>' + (r.sub ? '<div class="cs">' + esc(r.sub) + '</div>' : '') + '</div>'; }).join('') + '</div>';
       case 'belongings':
-        var it = T.belongings.items.filter(Boolean).map(function (x) { return fill(x, V); });
+        var it = belItems(T, M, V);
         return head('持ち物') + '<ul class="chk">' + it.map(function (x) { return '<li><i></i>' + esc(x) + '</li>'; }).join('') + '</ul>' + (T.belongings.note ? '<p class="note">' + esc(fill(T.belongings.note, V)) + '</p>' : '');
       case 'cautions':
         return head('注意事項') + '<ol class="num">' + T.cautions.filter(Boolean).map(function (x, i) { return '<li><b>' + (i + 1) + '</b><span>' + esc(fill(x, V)) + '</span></li>'; }).join('') + '</ol>';
@@ -251,7 +276,7 @@ var LaneNotice = (function () {
       return tbl(rows, { widths: widths, mar: 70, vm: 10 });
     };
     var checklist = function (cols) {
-      var it = T.belongings.items.filter(Boolean).map(function (q) { return '☐ ' + fill(q, V); }), out = [];
+      var it = belItems(T, M, V).map(function (q) { return '☐ ' + q; }), out = [];
       for (var i = 0; i < it.length; i += cols) out.push(p(it.slice(i, i + cols).map(function (t, j) { return run((j ? '　　' : '') + t); }), { after: 10 }));
       if (T.belongings.note) out.push(p(fill(T.belongings.note, V), { sz: Math.round(hp * .86), color: '555555', after: 0 }));
       return out.join('');
@@ -317,6 +342,6 @@ var LaneNotice = (function () {
     table: '<svg viewBox="0 0 42 59" aria-hidden="true"><rect x=".5" y=".5" width="41" height="58" rx="2" fill="#fff" stroke="#9aa3b2"/><rect x="4" y="3" width="34" height="8" fill="currentColor"/><g fill="none" stroke="currentColor" stroke-width=".8"><rect x="4" y="14" width="16.5" height="9" rx="1.5"/><rect x="21.5" y="14" width="16.5" height="9" rx="1.5"/><rect x="4" y="26" width="16.5" height="8" rx="1.5"/><rect x="21.5" y="26" width="16.5" height="8" rx="1.5"/><rect x="4" y="37" width="34" height="17" rx="1.5"/></g><rect x="6.5" y="17" width="9" height="3.5" fill="currentColor"/><rect x="24" y="17" width="9" height="3.5" fill="currentColor"/></svg>',
     clean: '<svg viewBox="0 0 42 59" aria-hidden="true"><rect x=".5" y=".5" width="41" height="58" rx="2" fill="#fff" stroke="#9aa3b2"/><rect x="4" y="5" width="24" height="3.5" fill="#333"/><rect x="4" y="11" width="34" height=".9" fill="currentColor"/><g stroke="#c5ccd8" stroke-width=".5"><line x1="4" y1="14" x2="38" y2="14"/><line x1="4" y1="20" x2="38" y2="20"/><line x1="15.3" y1="14" x2="15.3" y2="20"/><line x1="26.6" y1="14" x2="26.6" y2="20"/></g><g fill="currentColor"><rect x="4" y="24" width="8" height="1"/><rect x="22" y="24" width="8" height="1"/></g><g fill="#b8bfcb"><rect x="4" y="27" width="14" height="1"/><rect x="4" y="29" width="14" height="1"/><rect x="22" y="27" width="15" height="1"/><rect x="22" y="29" width="15" height="1"/></g><g stroke="#c5ccd8" stroke-width=".5"><line x1="4" y1="37" x2="38" y2="37"/><line x1="4" y1="41" x2="38" y2="41"/><line x1="4" y1="45" x2="38" y2="45"/><line x1="4" y1="49" x2="38" y2="49"/><line x1="4" y1="53" x2="38" y2="53"/></g></svg>'
   };
-  return { defaults: defaults, sanitize: sanitize, parseDate: parseDate, fmtDate: fmtDate, toMin: toMin, fmtMin: fmtMin, extract: extract, gatherTime: gatherTime, dismissTime: dismissTime, vars: vars, fill: fill, pointRows: pointRows, docHtml: docHtml, fitDoc: fitDoc, docxXml: docxXml, toDocx: toDocx, SEC_LABEL: SEC_LABEL, THUMB: THUMB, MIN_FS: MIN_FS, ACCENT: ACCENT, ACCENT_NAME: ACCENT_NAME, colors: colors };
+  return { defaults: defaults, sanitize: sanitize, parseDate: parseDate, fmtDate: fmtDate, toMin: toMin, fmtMin: fmtMin, extract: extract, gatherTime: gatherTime, dismissTime: dismissTime, vars: vars, fill: fill, pointRows: pointRows, docHtml: docHtml, fitDoc: fitDoc, docxXml: docxXml, toDocx: toDocx, SEC_LABEL: SEC_LABEL, findVenue: findVenue, fareText: fareText, VENUE_KEYS: VENUE_KEYS, THUMB: THUMB, MIN_FS: MIN_FS, ACCENT: ACCENT, ACCENT_NAME: ACCENT_NAME, colors: colors };
 })();
 if (typeof module !== 'undefined') module.exports = LaneNotice;

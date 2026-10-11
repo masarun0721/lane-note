@@ -14,9 +14,9 @@ await p.evaluate(() => {
   gn.forEach((n, i) => { bib++; [ev.f[i % 4], ev.f[(i + 1) % 4]].forEach(e => entries.push({ team: '本郷中', event: e[0], round: e[1], heat: 1 + (i % 3), pos: 3 + i % 5, posKind: 'レーン', bib: String(bib), name: n, grade: String(1 + i % 3), page: 1 })); });
   const relays = [{ team: '本郷中A', event: '男子中学共通 4×100mR', round: '決勝', heat: 1, pos: 4, page: 3, members: sn.slice(0, 4).map(n => ({ name: n })) }, { team: '本郷中B', event: '男子中学共通 4×100mR', round: '決勝', heat: 2, pos: 5, page: 3, members: sn.slice(4, 8).map(n => ({ name: n })) }, { team: '本郷中A', event: '女子中学共通 4×100mR', round: '決勝', heat: 1, pos: 3, page: 3, members: gn.slice(0, 4).map(n => ({ name: n })) }];
   const tt = [['100m', '男子', '中学1年', '予選', '9:30'], ['100m', '男子', '中学1年', '決勝', '13:40'], ['100m', '女子', '中学2年', '予選', '9:50'], ['200m', '男子', '中学共通', '予選', '11:00'], ['200m', '女子', '中学共通', '予選', '11:30'], ['走幅跳', '男子', '中学共通', '決勝', '10:00'], ['走高跳', '女子', '中学共通', '決勝', '10:30'], ['1500m', '男子', '中学共通', 'タイムレース', '12:30'], ['800m', '女子', '中学共通', 'タイムレース', '13:00'], ['砲丸投', '男子', '中学共通', '決勝', '13:00'], ['4×100mR', '男子', '中学共通', '決勝', '14:30'], ['4×100mR', '女子', '中学共通', '決勝', '14:50']].map(a => ({ event: a[0], gender: a[1], cat: a[2], round: a[3], time: a[4] }));
-  Object.assign(A.state, { sl: { format: 'startlist', hasTimes: false, warnings: [], diag: [], entries, relays }, tt, teams: ['本郷中'], slName: 'sl.pdf', ttName: 'tt.pdf', docText: { yoko: '会場：味の素フィールド西が丘\n最寄駅：本蓮沼駅 徒歩10分\n開門 8:00 競技開始 9:30' } });
+  document.getElementById('school').value = '本郷'; Object.assign(A.state, { sl: { format: 'startlist', hasTimes: false, warnings: [], diag: [], entries, relays }, tt, teams: ['本郷中'], slName: 'sl.pdf', ttName: 'tt.pdf', docText: { yoko: '会場：味の素フィールド西が丘\n最寄駅：本蓮沼駅 徒歩10分\n開門 8:00 競技開始 9:30' } });
   document.getElementById('meetName').value = '第77回 北区中学校陸上競技大会'; document.getElementById('meetDate').value = '2026年10月18日';
-  A.render();
+  A.updateTeams(); A.render();
 });
 await new Promise(r => setTimeout(r, 500));
 await p.click('#btnParent'); await new Promise(r => setTimeout(r, 800));
@@ -43,6 +43,14 @@ await p.evaluate(() => { const m = document.querySelector('[data-t="mono"]'); m.
 { const html = await p.evaluate(() => '<!doctype html>' + document.getElementById('pvFrame').contentDocument.documentElement.outerHTML); const q = await b.newPage(); await q.setContent(html, { waitUntil: 'load' }); fs.writeFileSync('/tmp/nt/out/mono.pdf', await q.pdf({ format: 'A4', preferCSSPageSize: true, printBackground: true })); await q.close(); }
 await p.evaluate(() => { const m = document.querySelector('[data-t="mono"]'); m.checked = false; m.dispatchEvent(new Event('change', { bubbles: true })); document.querySelector('[data-accent="red"]').click(); }); await new Promise(r => setTimeout(r, 1200));
 await p.evaluate(() => { document.getElementById('ntSchool').open = true; document.querySelector('.nt-acc').scrollIntoView({ block: 'center' }); }); await p.screenshot({ path: '/tmp/nt/out/editor.png' });
+// 戻る：ブラウザの戻るで閉じる・ページに残る
+await p.setViewport({ width: 1280, height: 900 });
+await p.evaluate(() => document.querySelector('#parentView .ov-back').scrollIntoView()); await p.screenshot({ path: '/tmp/nt/out/editor_back.png' });
+await p.goBack(); await new Promise(r => setTimeout(r, 600));
+const after = await p.evaluate(() => ({ hidden: document.getElementById('parentView').hidden, url: location.href, rows: window.__meetApp.state.rows.length }));
+await p.reload({ waitUntil: 'networkidle0' }); await new Promise(r => setTimeout(r, 800));
+const rel = await p.evaluate(() => ({ rows: window.__meetApp.state.rows.length, note: !document.getElementById('ssNote').hidden, meet: document.getElementById('meetName').value }));
+console.log('BACK', JSON.stringify(after), 'RELOAD', JSON.stringify(rel));
 // phone
 await p.setViewport({ width: 390, height: 844 }); await new Promise(r => setTimeout(r, 600)); await p.evaluate(() => { document.getElementById('ntEdit').scrollTop = 0; }); await p.screenshot({ path: '/tmp/nt/out/phone.png' }); await p.evaluate(() => document.querySelector('.nt-prev').scrollIntoView()); await new Promise(r => setTimeout(r, 400)); await p.screenshot({ path: '/tmp/nt/out/phone2.png' });
 console.log(JSON.stringify(res)); await b.close(); srv.close();

@@ -635,6 +635,7 @@
   }
   function teamClass(t) { var i = state.teams.indexOf(t); return 'tm' + (i % 4); }
   function render() {
+    ssSave();
     var res = $('results');
     if (!state.sl || !state.teams.length) { res.hidden = true; state.rows = []; state.allRows = []; state.tent = []; refreshPrint(); return; }
     requestAnimationFrame(function () { var tb = document.querySelector('.tabbar'); if (tb) document.documentElement.style.setProperty('--tabh', tb.offsetHeight + 'px'); });
@@ -889,14 +890,20 @@
     var all = (state.tt || []).map(function (s) { return LaneNotice.toMin(s.time); }).filter(function (n) { return n != null; });
     var f = ntFound;
     return { first: real.length ? LaneNotice.fmtMin(Math.min.apply(null, real)) : '', last: real.length ? LaneNotice.fmtMin(Math.max.apply(null, real)) : '',
-      start: all.length ? LaneNotice.fmtMin(Math.min.apply(null, all)) : f.start ? f.start.v : '', gate: NM.gate || (f.gate ? f.gate.v : '') };
+      start: f.start ? f.start.v : all.length ? LaneNotice.fmtMin(Math.min.apply(null, all)) : '', gate: NM.gate || (f.gate ? f.gate.v : '') };
   }
   // この大会だけの値：自分で直したもの（edited）はそのまま、ほかは毎回資料から作り直す
   function ntAuto() {
     ntFound = LaneNotice.extract(state.docText || {});
-    var d = LaneNotice.parseDate($('meetDate').value || state.day || ''), now = new Date();
-    var auto = { name: $('meetName').value || '', date: LaneNotice.fmtDate(d, NT.era), venue: ntFound.venue ? ntFound.venue.v : '', station: ntFound.station ? ntFound.station.v : '', gate: ntFound.gate ? ntFound.gate.v : '', docDate: LaneNotice.fmtDate({ y: now.getFullYear(), m: now.getMonth() + 1, d: now.getDate() }, NT.era, true), place: '' };
+    var d = LaneNotice.parseDate($('meetDate').value || state.day || '') || (ntFound.date ? LaneNotice.parseDate(ntFound.date.v) : null), now = new Date();
+    var auto = { name: $('meetName').value || '', date: LaneNotice.fmtDate(d, NT.era), venue: ntFound.venue ? ntFound.venue.v : '', station: ntFound.station ? ntFound.station.v : '', gate: ntFound.gate ? ntFound.gate.v : '', address: ntFound.address ? ntFound.address.v : '', phone: ntFound.phone ? ntFound.phone.v : '', docDate: LaneNotice.fmtDate({ y: now.getFullYear(), m: now.getMonth() + 1, d: now.getDate() }, NT.era, true), place: '' };
     Object.keys(auto).forEach(function (k) { if (!NM.edited[k]) NM[k] = auto[k]; });
+    // 保存した競技場と同じなら、最寄り駅・行き方・集合場所・住所もそこから入れる
+    var vi = NM.venuePick != null ? NM.venuePick : LaneNotice.findVenue(NT, NM.venue);
+    NM.venueIdx = vi;
+    if (vi >= 0 && NT.venues[vi]) { var V0 = NT.venues[vi]; if (NM.venuePick == null && !NM.edited.venue) NM.venue = V0.name; [['station', 'station'], ['access', 'access'], ['place', 'place'], ['address', 'address']].forEach(function (a) { if (!NM.edited[a[0]] && V0[a[1]]) NM[a[0]] = V0[a[1]]; }); }
+    else if (!NM.edited.access) NM.access = '';
+    if (!NM.edited.fare) NM.fare = vi >= 0 && NT.venues[vi] ? LaneNotice.fareText(NT.venues[vi]) : '';
     var t = ntTimes();
     if (!NM.edited.gather) NM.gather = LaneNotice.gatherTime(NT.call, t);
     if (!NM.edited.dismiss) NM.dismiss = LaneNotice.dismissTime(NT.dismiss, t);
@@ -916,7 +923,9 @@
     var h = '<section class="nt-box"><h3>📅 この大会だけ</h3>' +
       inp('name', '大会名', '例：第○回 北区中学校陸上競技大会', NM.edited.name ? '自分で入力' : $('meetName').value ? '資料から' : '') +
       inp('date', '日にち', '例：令和8年10月11日（日）', NM.edited.date ? '自分で入力' : NM.date ? '資料から' : '資料に見つからず') +
-      inp('venue', '競技場', '', srcOf('venue')) + inp('station', '最寄り駅', '', srcOf('station')) + inp('gate', '開門', '例：8:00', srcOf('gate')) +
+      '<div class="nt-f"><span>競技場（保存した一覧から選べます）</span><select data-venue="1"><option value="">' + (NM.venueIdx >= 0 ? '—' : '（資料のまま／手入力）') + '</option>' + T.venues.map(function (v, i) { return '<option value="' + i + '"' + (NM.venueIdx === i ? ' selected' : '') + '>' + e(v.name) + '</option>'; }).join('') + '<option value="new">＋ 新しく追加…</option></select></div>' +
+      inp('venue', '競技場の名前', '', NM.venueIdx >= 0 ? '保存した競技場「' + e(T.venues[NM.venueIdx].name) + '」から（最寄り駅・集合場所も）' : srcOf('venue')) +
+      (NM.venue && NM.venueIdx < 0 ? '<button type="button" class="btn sub nt-small" data-va="save">💾 この競技場を保存（次から最寄り駅・集合場所も自動で入ります）</button>' : '') + inp('station', '最寄り駅', '', NM.venueIdx >= 0 && !NM.edited.station ? '保存した競技場から' : srcOf('station')) + inp('access', '駅からの行き方', '例：徒歩10分', NM.venueIdx >= 0 ? '保存した競技場から' : '') + inp('fare', '交通費（この大会）', '例：往復1,000円程度（○○駅〜○○駅）', NM.edited.fare ? '自分で入力' : NM.fare ? '保存した競技場の交通費から' : '競技場リストに金額を入れると自動で入ります') + inp('address', '住所（要点に出すときは学校の設定で）', '', srcOf('address')) + inp('phone', '電話（競技場）', '', srcOf('phone')) + inp('gate', '開門', '例：8:00', srcOf('gate')) +
       inp('gather', '集合時刻', '例：7:30', timeNote(T.call, 'gather')) + inp('place', '集合場所', T.place, 'ふだんの場所は「学校の設定」') +
       inp('dismiss', '解散予定', '', T.dismiss.on ? timeNote(T.dismiss, 'dismiss') : '「学校の設定」で表示を切っています') + inp('docDate', '文書の日付', '', '今日の日付（直せます）') +
       '<button type="button" class="btn sub nt-small" id="ntReauto">↻ 資料から入れ直す</button></section>';
@@ -924,6 +933,8 @@
       '<div class="nt-lay" role="radiogroup" aria-label="レイアウト">' + [['std', 'スタンダード'], ['table', 'カード'], ['clean', 'ミニマル']].map(function (l) { return '<button type="button" role="radio" aria-checked="' + (T.layout === l[0]) + '" class="nt-th' + (T.layout === l[0] ? ' on' : '') + '" style="color:' + LaneNotice.colors(T).a + '" data-layout="' + l[0] + '">' + LaneNotice.THUMB[l[0]] + '<span>' + l[1] + '</span></button>'; }).join('') + '</div>' +
       '<div class="nt-f"><span>アクセントの色</span><div class="nt-acc" role="radiogroup" aria-label="アクセントの色">' + Object.keys(LaneNotice.ACCENT).map(function (k) { return '<button type="button" role="radio" aria-checked="' + (T.accent === k) + '" class="nt-sw' + (T.accent === k ? ' on' : '') + '" data-accent="' + k + '" style="--c:' + LaneNotice.ACCENT[k] + '" title="' + LaneNotice.ACCENT_NAME[k] + '"><i></i>' + LaneNotice.ACCENT_NAME[k] + '</button>'; }).join('') + '</div><label class="nt-c"><input type="checkbox" data-t="mono"' + (T.mono ? ' checked' : '') + '> 白黒印刷向け（色を使わず、黒と灰色だけにする）</label></div>' +
       ['school:学校名', 'club:部活名', 'to:宛先', 'title:タイトル（{大会名} が入ります）', 'place:ふだんの集合場所'].map(function (p) { var k = p.split(':'); return '<label class="nt-f"><span>' + k[1] + '</span><input data-t="' + k[0] + '" value="' + e(T[k[0]]) + '"></label>'; }).join('') +
+      '<div class="nt-f" id="ntVenues"><span>競技場リスト（' + T.venues.length + '件）</span>' + T.venues.map(function (v, i) { return '<details class="nt-vn"' + (NM.venueOpen === i ? ' open' : '') + '><summary>🏟 ' + e(v.name) + '</summary>' + [['name', '名前'], ['address', '住所'], ['station', '最寄り駅'], ['access', '駅からの行き方（例：徒歩10分）'], ['place', '集合場所'], ['route', '交通費の経路（例：本郷三丁目駅〜西葛西駅）'], ['fareOne', '交通費 片道（円）'], ['fareRound', '交通費 往復（円）'], ['fareNote', '交通費のメモ（例：PASMO可）'], ['memo', 'メモ']].map(function (f) { return '<label class="nt-f"><span>' + f[1] + '</span><input data-vn="' + i + '" data-vk="' + f[0] + '" value="' + e(v[f[0]]) + '"></label>'; }).join('') + '<button type="button" class="btn sub nt-small" data-va="del" data-i="' + i + '">✕ この競技場を消す</button></details>'; }).join('') + '<button type="button" class="nt-add" data-va="add">＋ 競技場を追加</button></div>' +
+      '<label class="nt-c"><input type="checkbox" data-t="fareInBelongings"' + (T.fareInBelongings ? ' checked' : '') + '> 交通費を「持ち物」にも書く（要点に出すかは下の「要点に出す項目」で）</label>' +
       '<div class="nt-f"><span>顧問名</span>' + list('advisors', T.advisors) + '</div>' +
       '<label class="nt-f"><span>日付の書き方</span><select data-t="era"><option value="wareki"' + (T.era === 'wareki' ? ' selected' : '') + '>和暦（令和）</option><option value="seireki"' + (T.era === 'seireki' ? ' selected' : '') + '>西暦</option></select></label>' +
       '<label class="nt-f"><span>フォント</span><select data-t="font"><option value="gothic"' + (T.font === 'gothic' ? ' selected' : '') + '>ゴシック（おすすめ）</option><option value="mincho"' + (T.font === 'mincho' ? ' selected' : '') + '>明朝</option></select></label>' +
@@ -974,12 +985,21 @@
     if (d.m) { NM[d.m] = el.value; NM.edited[d.m] = true; }
     else if (d.t) { var v = el.type === 'checkbox' ? el.checked : d.num ? +el.value || 0 : el.value; ntSetPath(d.t, v); rebuild = el.tagName === 'SELECT' || el.type === 'checkbox' || /^(call|dismiss)\./.test(d.t); if (d.t === 'era') { NM.edited.date = NM.edited.docDate = false; } }
     else if (d.li != null) { ntGetPath(el.closest('[data-list]').dataset.list)[+d.li] = el.value; }
+    else if (d.vn != null) { NT.venues[+d.vn][d.vk] = el.value; if (ev.type === 'change') rebuild = true; }
+    else if (d.venue) {
+      if (ev.type !== 'change') return;
+      if (el.value === 'new') { ntAddVenue(); }
+      else if (el.value === '') { NM.venuePick = null; ['venue', 'station', 'access', 'place', 'address'].forEach(function (k) { NM.edited[k] = false; }); }
+      else { var V1 = NT.venues[+el.value]; NM.venuePick = +el.value; NM.venue = V1.name; NM.edited.venue = true; ['station', 'access', 'place', 'address'].forEach(function (k) { NM[k] = V1[k] || ''; NM.edited[k] = true; }); }
+      rebuild = true;
+    }
     else if (d.pt != null) NT.points[+d.pt].label = el.value;
     else if (d.ptOn != null) { NT.points[+d.ptOn].on = el.checked; }
     else if (d.son != null) { NT.sections[+d.son].on = el.checked; rebuild = true; }
     else if (d.s != null) NT.sections[+d.s][d.sk] = el.value;
     else return;
-    if (rebuild && ev.type === 'change') { ntEditor(); ntRender(); } else ntSoon();
+    if (d.vn != null) NM.venueOpen = +d.vn;
+    if (rebuild && ev.type === 'change') { var op = $('ntSchool') && $('ntSchool').open, y = $('ntEdit').scrollTop; ntEditor(); if ($('ntSchool')) $('ntSchool').open = op; $('ntEdit').scrollTop = y; ntRender(); } else ntSoon();
   }
   function ntClick(ev) {
     var b = ev.target.closest('button'); if (!b) return; var d = b.dataset, mv = function (a, i, j) { if (j < 0 || j >= a.length) return; var x = a[i]; a[i] = a[j]; a[j] = x; };
@@ -992,7 +1012,10 @@
       var S = NT.sections, k = +d.i;
       if (d.sa === 'free') S.splice(k + 1, 0, { id: 'f' + Date.now().toString(36), type: 'free', on: true, title: '', text: '' });
       else if (d.sa === 'del') S.splice(k, 1); else mv(S, k, d.sa === 'up' ? k - 1 : k + 1);
-    } else if (b.id === 'ntFree') NT.sections.push({ id: 'f' + Date.now().toString(36), type: 'free', on: true, title: 'お願い', text: '' });
+    } else if (d.va === 'save') { NT.venues.push({ name: NM.venue, address: NM.address || '', station: NM.station || '', access: NM.access || '', place: NM.place || '', memo: '', route: '', fareOne: '', fareRound: '', fareNote: '' }); NM.venuePick = NT.venues.length - 1; ntMsg('✔ 競技場を一覧に入れました。「💾 ひな形を保存」で保存されます。'); }
+    else if (d.va === 'add') { ntAddVenue(); }
+    else if (d.va === 'del') { if (!confirm('この競技場を一覧から消します。よろしいですか？')) return; NT.venues.splice(+d.i, 1); NM.venuePick = null; }
+    else if (b.id === 'ntFree') NT.sections.push({ id: 'f' + Date.now().toString(36), type: 'free', on: true, title: 'お願い', text: '' });
     else if (b.id === 'ntReauto') NM = { edited: {} };
     else if (b.id === 'ntSave') { ntSave(); return; }
     else if (b.id === 'ntReset') { if (!confirm('ひな形を初めの状態に戻します（保存するまでは元に戻せます）。よろしいですか？')) return; NT = LaneNotice.defaults(); }
@@ -1001,6 +1024,7 @@
     ntEditor(); if ($('ntSchool')) $('ntSchool').open = open; $('ntEdit').scrollTop = y; ntRender();
     if (d.la === 'add') { var ins = b.closest('[data-list]'); ins = document.querySelector('[data-list="' + ins.dataset.list + '"] .nt-li:last-of-type input'); if (ins) ins.focus(); }
   }
+  function ntAddVenue() { NT.venues.push({ name: NM.venue || '新しい競技場', address: NM.address || '', station: NM.station || '', access: NM.access || '', place: NM.place || '', memo: '', route: '', fareOne: '', fareRound: '', fareNote: '' }); NM.venueOpen = NT.venues.length - 1; NM.venuePick = NM.venueOpen; setTimeout(function () { if ($('ntSchool')) { $('ntSchool').open = true; var el = document.querySelector('[data-vn="' + NM.venueOpen + '"][data-vk="name"]'); if (el) { el.scrollIntoView({ block: 'center' }); el.focus(); } } }, 0); }
   function openParent() {
     refreshPrint();
     if (!state.rows.length) { alert('学校を選んで結果を出してから作ってください。'); return; }
@@ -1436,7 +1460,7 @@
     var uid = null; try { await loadFirebase(); uid = FB.auth.currentUser && FB.auth.currentUser.uid; } catch (e) { }
     authEpoch++; clearAllShares();   // 進行中の一覧読み込み・短いリンク作成の結果は出さない
     var r = FB ? await LaneAuth.signOutAndWipe(FB, uid) : { signedOut: false, error: new Error('ログインの部品を読み込めませんでした') };
-    if (r.signedOut) { lastUid = null; authEpoch++; PL.links = {}; }
+    if (r.signedOut) { lastUid = null; authEpoch++; PL.links = {}; ssClear(); }
     shareShort = ''; renderShareAuth(); clearAllShares(); plAuth();
     var msg = !r.signedOut ? '✖ ログアウトできませんでした：' + LaneAuth.errorText(r.error) : r.wiped ? 'ログアウトし、この端末の記録の控えも消しました。' : '⚠ ログアウトはしましたが、この端末の記録の控えを消せませんでした：' + (r.error && r.error.message) + '（記録のページを閉じてから、もう一度ログイン→ログアウトしてください）';
     if (shareLong) showShareUrl(shareLong, esc(msg) + (r.signedOut ? '（長いリンクに戻しました）' : '')); else alert(msg);
@@ -1730,8 +1754,57 @@
     });
   }
   var INIT_STATUS = {};
+  /* ---------- v0.22.2 読み込んだ内容をこのタブの中だけに控える（再読み込み・「戻る」で消えないように）
+     sessionStorage はタブを閉じると消える。「最初から」・ログアウトでも消す。 */
+  var SS_KEY = 'lanenote-meet-session', ssTimer = 0, ssRestoring = false;
+  var SS_STATE = ['sl', 'tt', 'notes', 'slName', 'ttName', 'noteName', 'yokoName', 'dateCands', 'feeParsed', 'feeFrom', 'prices', 'priceSrc', 'make', 'teamCat', 'teams', 'allTeams', 'progCopies', 'docText', 'day', 'athSort'];
+  function ssClear() { clearTimeout(ssTimer); try { sessionStorage.removeItem(SS_KEY); } catch (e) { } }
+  function ssSave() {
+    if (ssRestoring) return; clearTimeout(ssTimer);
+    ssTimer = setTimeout(function () {
+      try {
+        if (!state.sl && !state.tt && !state.notes && !state.yokoName) { sessionStorage.removeItem(SS_KEY); return; }
+        var st = {}, inp = {}, stat = {};
+        SS_STATE.forEach(function (k) { st[k] = state[k]; });
+        document.querySelectorAll('main input[id], main select[id]').forEach(function (el) {
+          if (el.type === 'file' || el.type === 'password' || el.closest('[role=dialog]')) return;
+          inp[el.id] = el.type === 'checkbox' || el.type === 'radio' ? { c: el.checked } : { v: el.value, m: el.dataset.manual || '', a: el.dataset.auto || '' };
+        });
+        Object.keys(SID).forEach(function (k) { var el = $(SID[k]); stat[k] = { h: el.innerHTML, c: el.className }; });
+        sessionStorage.setItem(SS_KEY, JSON.stringify({ v: 1, t: Date.now(), st: st, inp: inp, stat: stat, rule: ruleState }));
+      } catch (e) { }   // 入りきらないときは控えない（今まで通り）
+    }, 400);
+  }
+  function ssRestore() {
+    if (/^#[dp]=/.test(location.hash) || /[?&]s=/.test(location.search)) return false;   // 共有リンクを開いたときは戻さない
+    var o = null; try { o = JSON.parse(sessionStorage.getItem(SS_KEY) || 'null'); } catch (e) { }
+    if (!o || o.v !== 1 || !o.st) return false;
+    ssRestoring = true;
+    try {
+      SS_STATE.forEach(function (k) { if (k in o.st) state[k] = o.st[k]; });
+      Object.keys(o.inp || {}).forEach(function (id) {
+        var el = $(id), x = o.inp[id]; if (!el || !x) return;
+        if ('c' in x) el.checked = !!x.c; else { el.value = x.v; if (x.m) el.dataset.manual = x.m; if (x.a) el.dataset.auto = x.a; }
+      });
+      Object.keys(o.stat || {}).forEach(function (k) { var x = o.stat[k]; if (SID[k] && x) setStatus(SID[k], x.h, ((x.c || '').match(/\b(ok|ng)\b/) || [''])[0]); });
+      ruleState = o.rule || {}; renderRuleMarks(); renderFeePrices();
+      try { updateDate(); } catch (e) { }
+      renderDateMark(); updateTeams(); render();
+      var n = $('ssNote'); if (n) n.hidden = false;
+    } catch (e) { console.error(e); ssClear(); }
+    ssRestoring = false;
+    return true;
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    setTimeout(ssRestore, 0);
+    document.addEventListener('input', function (e) { if (!e.target.closest('[role=dialog]')) ssSave(); });
+    document.addEventListener('change', function (e) { if (!e.target.closest('[role=dialog]')) ssSave(); });
+    var c = $('ssClearBtn'); if (c) c.addEventListener('click', resetAll);
+  });
   function resetAll() {
     if (!confirm('読み込んだPDF・学校名・設定・枚数をすべて消して、新しい大会を始めます。よろしいですか？')) return;
+    ssClear(); var sn = $('ssNote'); if (sn) sn.hidden = true;
+    state.docText = {};
     Object.keys(loadSeq).forEach(function (k) { loadSeq[k]++; });   // 読み込み途中のものも捨てる
     Object.assign(state, { make: {}, dateCands: {}, feeParsed: null, feeFrom: '', prices: {}, priceSrc: {}, athSort: null, sl: null, tt: null, notes: null, slName: '', ttName: '', noteName: '', yokoName: '', rows: [], teams: [], allTeams: [], teamCat: {}, date: null, day: '', progCopies: {} });
     document.querySelectorAll('input, select').forEach(function (el) {
@@ -1743,5 +1816,5 @@
     $('teamList').dataset.q = ''; ruleState = {}; renderRuleMarks(); renderFeePrices(); renderDateMark(); updateTeams(); render();
     window.scrollTo(0, 0);
   }
-  window.__meetApp = { openPersonal: openPersonal, openPlayers: openPlayers, openPlayer: openPlayer, encodePayload: encodePayload, decodePayload: decodePayload, payloadFromState: payloadFromState, openShare: openShare, refreshPrint: refreshPrint, tableData: tableData, feeData: feeData, totalText: totalText, safeCell: safeCell, state: state, handleFile: handleFile, render: render, updateTeams: updateTeams };
+  window.__meetApp = { ssSave: ssSave, ssRestore: ssRestore, ssClear: ssClear, resetAll: resetAll, openPersonal: openPersonal, openPlayers: openPlayers, openPlayer: openPlayer, encodePayload: encodePayload, decodePayload: decodePayload, payloadFromState: payloadFromState, openShare: openShare, refreshPrint: refreshPrint, tableData: tableData, feeData: feeData, totalText: totalText, safeCell: safeCell, state: state, handleFile: handleFile, render: render, updateTeams: updateTeams };
 })();
