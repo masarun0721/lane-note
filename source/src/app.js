@@ -1883,7 +1883,10 @@
       }
       var snap = await F.getDoc(ref), n = snap.exists() ? snap.data().n : null;
       if (typeof n !== 'number' || !isFinite(n) || n < 1) { el.hidden = true; return; }
-      el.textContent = 'これまでの利用 ' + Math.floor(n).toLocaleString('ja-JP') + '回'; el.hidden = false;
+      /* v0.25.6：「2026.10.13-」のあとに、数字を1けたずつレーン番号板のような四角に入れる */
+      var num = String(Math.floor(n)); el.textContent = ''; var lb = document.createElement('span'); lb.className = 'uc-from'; lb.textContent = '2026.10.13-'; lb.setAttribute('aria-hidden', 'true'); el.appendChild(lb);
+      for (var i = 0; i < num.length; i++) { var dg = document.createElement('span'); dg.className = 'uc-d'; dg.textContent = num[i]; dg.setAttribute('aria-hidden', 'true'); el.appendChild(dg); }
+      el.setAttribute('role', 'img'); el.setAttribute('aria-label', '2026年10月13日からの利用 ' + num + '回'); el.hidden = false;
     } catch (e) { el.hidden = true; }
   }
   window.addEventListener('load', function () { setTimeout(useCounter, 1200); });

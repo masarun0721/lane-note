@@ -35,13 +35,13 @@ p.on('request', r => { const u = r.url(), m = /gstatic\.com\/firebasejs\/[^/]+\/
   if (m && FAKE[m[1]]) r.respond({ status: 200, contentType: 'application/javascript', headers: { 'Access-Control-Allow-Origin': '*' }, body: FAKE[m[1]] });
   else if (u.startsWith(B)) r.continue(); else r.abort(); });
 const errs = []; p.on('pageerror', e => errs.push(e.message));
-async function load(pg = 'index.html') { await p.goto(B + pg, { waitUntil: 'load' }); await sleep(2200); return p.evaluate(() => { const e = document.getElementById('useCount'); return { hidden: !e || e.hidden, text: e ? e.textContent : '' }; }); }
+async function load(pg = 'index.html') { await p.goto(B + pg, { waitUntil: 'load' }); await sleep(2200); return p.evaluate(() => { const e = document.getElementById('useCount'); return { hidden: !e || e.hidden, text: e ? e.textContent : '', aria: e ? e.getAttribute('aria-label') : '', digits: e ? e.querySelectorAll('.uc-d').length : 0 }; }); }
 await p.goto(B + 'guide.html'); await p.evaluate(() => { localStorage.clear(); localStorage.setItem('lanenote.mode.v1', 'coach'); });
-let r = await load(); ok('最初の1回：文書がないので n=1 で作って表示', !r.hidden && r.text === 'これまでの利用 1回' && S.set === 1, JSON.stringify(r));
-r = await load(); ok('再読み込みでは増えない', r.text === 'これまでの利用 1回' && S.inc === 0, JSON.stringify(r));
+let r = await load(); ok('最初の1回：文書がないので n=1 で作って表示', !r.hidden && r.text === '2026.10.13-1' && S.set === 1, JSON.stringify(r));
+r = await load(); ok('再読み込みでは増えない', r.text === '2026.10.13-1' && S.inc === 0, JSON.stringify(r));
 const today = await p.evaluate(() => localStorage.getItem('lanenote.count.v1')); ok('localStorage には日付だけ', /^\d{4}-\d\d-\d\d$/.test(today), today);
 await p.evaluate(() => localStorage.setItem('lanenote.count.v1', '2000-01-01')); S.n = 1233;
-r = await load(); ok('日付が変わると +1（3桁区切り）', r.text === 'これまでの利用 1,234回' && S.inc === 1, JSON.stringify(r));
+r = await load(); ok('日付が変わると +1（3桁区切り）', r.text === '2026.10.13-1234' && S.inc === 1, JSON.stringify(r));
 r = await load('index.html?s=AbCdEfGh12'); ok('共有リンクで開いても、同じ日は増えない', S.inc === 1);
 await p.evaluate(() => localStorage.removeItem('lanenote.count.v1')); r = await load('index.html?s=AbCdEfGh12'); ok('共有リンクで開いた日も数える', S.inc === 2, S.inc);
 S.fail = true; await p.evaluate(() => localStorage.removeItem('lanenote.count.v1'));
