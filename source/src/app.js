@@ -1793,14 +1793,14 @@
     var sch = await ppSchedules(o.a.name);
     if (!PP || PP.id !== id) return;
     LanePersonal.render(o, $('ppBody'), { base: shareBase(), schedules: sch.filter(function (x) { return !(o.nx && x.url === shareBase() + '?s=' + o.nx.s); }) });
-    $('ppTalk').hidden = true; $('ppTalk').innerHTML = ''; if (o.tk && window.LaneTalk) LaneTalk.renderPlayer($('ppTalk'), o.tk);   // v0.24：先生がやり取りをオンにしているときだけ出る
+    $('ppTalk').hidden = true; $('ppTalk').innerHTML = '';   // v0.25（C302）：個人ページのリンクには、やり取りの招待を入れない（先生から別のリンクで受け取る）
     window.scrollTo(0, 0);
   }
   function setupPlayer() {
     $('ppForget').addEventListener('click', function () {
       if (!PP || !confirm('この記録のページを、このスマホから削除します（体調メモは残ります。体調メモはページの中の「体調メモを全部削除」で消せます）。よろしいですか？')) return;
       try { localStorage.removeItem(PKEY + PP.id); } catch (e) { }
-      PP = null; $('ppBody').innerHTML = '<div class="pp-snap">このスマホから削除しました。もう一度見るには、先生のリンクを開き直してください。</div>'; $('ppForget').hidden = true;
+      PP = null; $('ppTalk').hidden = true; $('ppTalk').innerHTML = ''; $('ppBody').innerHTML = '<div class="pp-snap">このスマホから削除しました。もう一度見るには、先生のリンクを開き直してください。</div>'; $('ppForget').hidden = true;
       history.replaceState(null, '', location.pathname);
     });
     $('btnPlayers').addEventListener('click', openPlayers);
@@ -1837,7 +1837,7 @@
           if (el.type === 'file' || el.type === 'password' || el.closest('[role=dialog]')) return;
           inp[el.id] = el.type === 'checkbox' || el.type === 'radio' ? { c: el.checked } : { v: el.value, m: el.dataset.manual || '', a: el.dataset.auto || '' };
         });
-        Object.keys(SID).forEach(function (k) { var el = $(SID[k]); stat[k] = { h: el.innerHTML, c: el.className }; });
+        Object.keys(SID).forEach(function (k) { var el = $(SID[k]); stat[k] = { t: el.textContent, c: el.className }; /* S11：HTML ではなく文字だけ控える */ });
         sessionStorage.setItem(SS_KEY, JSON.stringify({ v: 1, t: Date.now(), st: st, inp: inp, stat: stat, rule: ruleState }));
       } catch (e) { }   // 入りきらないときは控えない（今まで通り）
     }, 400);
@@ -1853,7 +1853,7 @@
         var el = $(id), x = o.inp[id]; if (!el || !x) return;
         if ('c' in x) el.checked = !!x.c; else { el.value = x.v; if (x.m) el.dataset.manual = x.m; if (x.a) el.dataset.auto = x.a; }
       });
-      Object.keys(o.stat || {}).forEach(function (k) { var x = o.stat[k]; if (SID[k] && x) setStatus(SID[k], x.h, ((x.c || '').match(/\b(ok|ng)\b/) || [''])[0]); });
+      Object.keys(o.stat || {}).forEach(function (k) { var x = o.stat[k]; if (SID[k] && x && typeof x.t === 'string') setStatus(SID[k], String(x.t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }), ((x.c || '').match(/\b(ok|ng)\b/) || [''])[0]); });
       ruleState = o.rule || {}; renderRuleMarks(); renderFeePrices();
       try { updateDate(); } catch (e) { }
       renderDateMark(); updateTeams(); render();

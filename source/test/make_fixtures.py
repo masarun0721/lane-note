@@ -7,7 +7,7 @@ pdfmetrics.registerFont(UnicodeCIDFont('HeiseiKakuGo-W5'))
 F='HeiseiKakuGo-W5'; W,H=A4; OUT='fixtures/'
 def t(c,x,y,s,size=9): c.setFont(F,size); c.drawString(x,H-y,s)
 NAMES=['架空 一郎(2)','見本 二郎(1)','試験 三太(3)','仮名 四郎(2)','例示 五郎(1)','模擬 六助(2)','空想 七海(3)','想定 八雲(1)']
-TEAMS=['架空本郷高','見本高','試験高','仮名高','例示高','模擬高','空想高','想定高']
+TEAMS=['架空第一高','見本高','試験高','仮名高','例示高','模擬高','空想高','想定高']
 def block(c,y0,heat,rows,start_bib):
     t(c,48,y0-10,'%d組'%heat)
     for x,s in ((40,'ﾚｰﾝ'),(68,'ﾅﾝﾊﾞｰ'),(110,'氏'),(128,'名'),(190,'所'),(208,'属'),(270,'記録')): t(c,x,y0,s)

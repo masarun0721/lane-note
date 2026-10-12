@@ -87,7 +87,7 @@ console.log('[5] シーズン・PBの伸び・ランキング・歴代（v0.3）
  const e100=pf.events.find(e=>e.event===K('男子100m'));
  ok(e100.best.mark==='11.80'&&e100.ref.mark==='11.60'&&e100.points.length===2&&e100.lower&&e100.recent[0].id==='a4','選手ページ：公認ベスト・参考・グラフ点（公認のみ）・最近の記録');
  ok(R.athleteProfile(rs,'nobody')===null,'いない選手はnull');}
-console.log('[6] 中学・高校の区分と学年別（v0.4・本郷中／本郷高の混ざりの再発防止）');
+console.log('[6] 中学・高校の区分と学年別（v0.4・同じ系列の中学／高校の混ざりの再発防止）');
 {const mk=(id,d,ev,n,team,g,m,w)=>({id,date:d,event:ev,name:n,team,grade:g,mark:m,wind:w});
  ok(R.normEvent('男子中学1年 100m')===R.normEvent('男子高校 100m'),'（原因）normEvent だけでは中1と高校の100mが同じ「男子100m」になる');
  ok(R.divisionOf({team:'架空中'})==='jh'&&R.divisionOf({team:'架空高'})==='hs'&&R.divisionOf({team:'架空中学校'})==='jh'&&R.divisionOf({team:'架空高等学校'})==='hs','所属の中・高で区分');

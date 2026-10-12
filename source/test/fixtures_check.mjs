@@ -6,7 +6,7 @@ const P=require(SRC+'/parser.js');globalThis.MeetParser=P;
 delete require.cache[require.resolve(SRC+'/logic.js')];const L=require(SRC+'/logic.js');
 const F='fixtures/';let pass=0,fail=0;const ok=(c,m)=>{if(c){pass++;console.log('  ok',m)}else{fail++;console.log('  NG',m)}};
 const sl=async f=>P.parseStartList(await loadPages(F+f)), tt=async f=>P.parseTimetable(await loadPages(F+f));
-const rows=(s,t,day)=>{let r=L.build(s,t&&day?t.filter(x=>!x.date||x.date===day):t,['架空本郷高'],{});return day?r.filter(x=>!x.date||x.date===day):r;};
+const rows=(s,t,day)=>{let r=L.build(s,t&&day?t.filter(x=>!x.date||x.date===day):t,['架空第一高'],{});return day?r.filter(x=>!x.date||x.date===day):r;};
 console.log('[1] 見出しの継承');
 let s=await sl('f1_small_heading.pdf');
 const p2=s.entries.filter(e=>e.page===2);

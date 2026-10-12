@@ -1,5 +1,5 @@
 rules_version = '2';
-// LANE NOTE firestore.rules（v0.24 で talks を追加。2026-10-12。もとは v0.14／記録 v0.6.0 の版）：Astra 監査版をベースに、リポジトリ d489257 の現行ルールと統合
+// LANE NOTE firestore.rules（v0.25 で talks を作り直し。2026-10-12。もとは v0.14／記録 v0.6.0 の版）：Astra 監査版をベースに、リポジトリ d489257 の現行ルールと統合
 // ※アプリ v0.14 より前の版は、ログインなしの不具合送信がこのルールで断られる。v0.14 を公開してから（または同時に）Firebase コンソールに貼り替えること
 // ・users/{uid}/**（records・meets・settings/divOverrides・将来の shareIndex）：本人だけ読み書き（現行と同じ）
 // ・shares/{id}：IDを知っていれば期限内だけ読める（expiresAt と createdAt+120日の早い方）。作成はGoogleログイン本人・形式/サイズ/期限を検査。変更不可・一覧不可・削除は本人（期限後も可）
@@ -71,57 +71,80 @@ service cloud.firestore {
         && d.uid == request.auth.uid;
     }
 
-    // v0.24 talks ここから
+    // v0.24 talks ここから（v0.25 で作り直し：Astra 第3回監査 C301・C303・C304・C307）
     function validTalkId(id) {
       return id.matches('^[A-Za-z0-9]{20}$');
     }
+    function talkPath(tid) {
+      return /databases/$(database)/documents/talks/$(tid);
+    }
+    // 顧問の「選手とのやり取りを使う」がオンのときだけ（設定がない・false なら閉じる）（C304）
+    function teamOn(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)/settings/talk).data.get('enabled', false) == true;
+    }
+    // 選手が読み書きできる状態：v2 の形・使用中・閉じていない・期限内・チーム全体がオン
     function talkOpen(d) {
-      return d.active == true
+      return d.get('v', 1) == 2
+        && d.active == true
+        && d.closed == false
         && d.createdAt is timestamp
         && d.expiresAt is timestamp
         && request.time < d.expiresAt
-        && request.time < d.createdAt + duration.value(120, 'd');
+        && request.time < d.createdAt + duration.value(120, 'd')
+        && teamOn(d.ownerUid);
     }
     function talkOwner(d) {
       return signedIn() && d.ownerUid == request.auth.uid;
     }
     function validTalkNew(d) {
-      return d.keys().hasAll(['ownerUid', 'name', 'note', 'noteAt', 'active', 'createdAt', 'expiresAt'])
-        && d.keys().hasOnly(['ownerUid', 'name', 'note', 'noteAt', 'active', 'createdAt', 'expiresAt'])
+      return d.keys().hasAll(['v', 'ownerUid', 'name', 'note', 'noteAt', 'active', 'closed', 'n', 'lastAt', 'createdAt', 'expiresAt'])
+        && d.keys().hasOnly(['v', 'ownerUid', 'name', 'note', 'noteAt', 'active', 'closed', 'n', 'lastAt', 'createdAt', 'expiresAt'])
+        && d.v == 2
         && d.ownerUid is string
         && d.ownerUid == request.auth.uid
         && d.name is string && d.name.size() >= 1 && d.name.size() <= 60
         && d.note is string && d.note.size() <= 500
         && d.noteAt == request.time
         && d.active == true
+        && d.closed == false
+        && d.n == 0
+        && d.lastAt == request.time
         && d.createdAt == request.time
         && d.expiresAt is timestamp
         && d.expiresAt > request.time
         && d.expiresAt <= request.time + duration.value(120, 'd') + duration.value(5, 'm');
     }
-    function validTalkUpdate(d, old) {
-      return d.diff(old).affectedKeys().hasOnly(['active', 'note', 'noteAt'])
+    // 顧問の管理：ひとこと・停止/再開・閉じる（閉じたら二度と開けない・名前とひとことを消す）（C301）
+    function validTalkManage(d, old) {
+      return !old.get('closed', false)
+        && d.diff(old).affectedKeys().hasOnly(['active', 'note', 'noteAt', 'closed', 'name'])
         && d.active is bool
         && d.note is string && d.note.size() <= 500
-        && (d.note == old.note || d.noteAt == request.time);
+        && (d.note == old.note || d.noteAt == request.time)
+        && d.get('closed', false) is bool
+        && (d.get('closed', false) == false
+            ? (d.name == old.name)
+            : (d.active == false && d.name == '' && d.note == ''));
     }
-    function validCond(c) {
-      return c is map
-        && c.keys().hasAll(['d'])
-        && c.keys().hasOnly(['d', 's', 'sl', 'm'])
-        && c.d is string && c.d.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
-        && (!('s' in c) || (c.s is int && c.s >= 1 && c.s <= 5))
-        && (!('sl' in c) || (c.sl is number && c.sl >= 0 && c.sl <= 24))
-        && (!('m' in c) || (c.m is string && c.m.size() <= 100));
+    // 投稿のたびに数を1つ増やす（同じまとめ書きで msgs/m<n> を作る）。3秒に1回まで・1会話1000件まで（C303）
+    function validCounter(tid, d, old) {
+      return d.diff(old).affectedKeys().hasOnly(['n', 'lastAt'])
+        && talkOpen(old)
+        && old.n is int && old.n < 1000
+        && d.n == old.n + 1
+        && d.lastAt == request.time
+        && (old.n == 0 || request.time > old.lastAt + duration.value(3, 's'))
+        && existsAfter(/databases/$(database)/documents/talks/$(tid)/msgs/$('m' + string(d.n)));
     }
-    function validMsg(d) {
-      return d.keys().hasAll(['from', 'body', 'createdAt'])
-        && d.keys().hasOnly(['from', 'body', 'createdAt', 'cond'])
+    function validMsg(d, talkBefore) {
+      return d.keys().hasAll(['from', 'body', 'createdAt', 'purgeAt'])
+        && d.keys().hasOnly(['from', 'body', 'createdAt', 'purgeAt'])
         && d.from in ['p', 't']
         && d.body is string
+        && d.body.size() >= 1
         && d.body.size() <= 500
         && d.createdAt == request.time
-        && (('cond' in d) ? validCond(d.cond) : d.body.size() >= 1);
+        && d.purgeAt == talkBefore.expiresAt;
     }
     // v0.24 talks ここまで
 
@@ -144,20 +167,32 @@ service cloud.firestore {
     match /talks/{tid} {
       allow get: if validTalkId(tid) && (talkOpen(resource.data) || talkOwner(resource.data));
       allow list: if false;
+      // 一度使ったIDは本体を消さない（閉じた印として残す）ので、同じIDで作り直せない（C301）
       allow create: if googleUser() && validTalkId(tid) && validTalkNew(request.resource.data);
-      allow update: if talkOwner(resource.data) && validTalkUpdate(request.resource.data, resource.data);
-      allow delete: if talkOwner(resource.data);
+      allow update: if validTalkId(tid) && (
+        (talkOwner(resource.data) && validTalkManage(request.resource.data, resource.data))
+        || validCounter(tid, request.resource.data, resource.data));
+      allow delete: if false;
       match /msgs/{mid} {
-        function talk() {
-          return get(/databases/$(database)/documents/talks/$(tid)).data;
+        function talkBefore() {
+          return get(talkPath(tid)).data;
         }
-        allow read: if validTalkId(tid) && (talkOpen(talk()) || talkOwner(talk()));
-        allow create: if validTalkId(tid) && mid.matches('^[A-Za-z0-9]{20}$')
-          && validMsg(request.resource.data)
-          && talkOpen(talk())
-          && ((request.resource.data.from == 'p') || (request.resource.data.from == 't' && talkOwner(talk())));
+        function talkAfter() {
+          return getAfter(talkPath(tid)).data;
+        }
+        allow get: if validTalkId(tid) && (talkOpen(talkBefore()) || talkOwner(talkBefore()));
+        // 一度に読むのは50件まで（C303）
+        allow list: if validTalkId(tid) && request.query.limit <= 50
+          && (talkOpen(talkBefore()) || talkOwner(talkBefore()));
+        // 体調メモ（cond）は v0.25 では受け付けない（選手のログインができるまで止める：C302・C306）
+        allow create: if validTalkId(tid)
+          && talkOpen(talkBefore())
+          && validMsg(request.resource.data, talkBefore())
+          && talkAfter().n == talkBefore().n + 1
+          && mid == 'm' + string(talkAfter().n)
+          && (request.resource.data.from == 'p' || talkOwner(talkBefore()));
         allow update: if false;
-        allow delete: if talkOwner(talk());
+        allow delete: if validTalkId(tid) && talkOwner(talkBefore());
       }
     }
     // v0.24 talks ここまで

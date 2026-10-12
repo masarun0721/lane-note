@@ -146,12 +146,12 @@ await check('v0.22.2 競技場リスト：要項の名前と一部一致で選�
   q('[data-va="regfound"]').click(); await delay();
   assert.equal($('venueView').hidden, false); const F = n => $('vnForm').querySelector(`[name="${n}"]`);
   assert.equal(F('name').value, 'スピアーズえどりくフィールド'); assert.equal(F('address').value, '〒134-0087 江戸川区清新町2-1-1');
-  F('station').value = '西葛西駅'; F('place').value = 'スタンド下'; F('fareRound').value = '1040'; F('route').value = '本郷三丁目駅〜西葛西駅';
+  F('station').value = '西葛西駅'; F('place').value = 'スタンド下'; F('fareRound').value = '1040'; F('route').value = '架空駅A〜架空駅B';
   $('vnForm').dispatchEvent(new w.Event('submit', { bubbles: true, cancelable: true })); await delay();
   assert.equal($('vnBody').querySelectorAll('.vn-card').length, 1); assert.match($('vnBody').textContent, /往復1,040円程度/);
   $('vnClose').click(); await delay(); assert.equal($('venueView').hidden, true); assert.equal($('parentView').hidden, false);
   assert.equal(q('[data-venue]').value, '0'); assert.equal(q('.nt-hint'), null); assert.match(doc(), /西葛西駅/); assert.match(doc(), /スタンド下/);
-  assert.match(doc(), /交通費[\s\S]{0,200}往復1,040円程度（本郷三丁目駅〜西葛西駅）/, '要点に交通費');
+  assert.match(doc(), /交通費[\s\S]{0,200}往復1,040円程度（架空駅A〜架空駅B）/, '要点に交通費');
   const fb = q('[data-t="fareInBelongings"]'); fb.checked = true; fb.dispatchEvent(new w.Event('change', { bubbles: true })); await delay();
   assert.match(doc(), /<li><i><\/i>交通費（往復1,040円程度/, '持ち物にも');
   await setv('[data-m="station"]', '葛西駅'); assert.match(doc(), /葛西駅/); assert.equal(LN.sanitize(JSON.parse(store[Object.keys(store).find(x => /parent-template/.test(x))])).venues[0].station, '西葛西駅', 'この大会だけの変更は競技場に書き戻さない');
@@ -167,7 +167,7 @@ await check('v0.22.2 競技場リスト：要項の名前と一部一致で選�
   $('pvClose').click(); await delay();
   $('btnVenues').click(); await delay(); assert.equal($('venueView').hidden, false, '大会準備のボタンからも開ける'); assert.ok($('venueView').querySelector('.ov-back'));
   w.dispatchEvent(new w.PopStateEvent('popstate', { state: null })); await delay(); assert.equal($('venueView').hidden, true, '戻るで閉じる');
-  assert.equal(LN.fareText({ route: '本郷三丁目駅〜西葛西駅' }), '', '金額がなければ書かない（推測しない）');
+  assert.equal(LN.fareText({ route: '架空駅A〜架空駅B' }), '', '金額がなければ書かない（推測しない）');
   $('pvClose').click(); await delay();
 });
 await check('v0.22.2 全画面に「← 戻る」・開くと pushState、ブラウザの戻る（popstate）で閉じる', async () => {

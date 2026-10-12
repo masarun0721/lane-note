@@ -11,16 +11,16 @@ async function check(n, f) { try { await f(); pass++; console.log('  ok', n); } 
 // 偽 Firestore：パス→データ。active でない・ないものは permission-denied（ルールと同じふるまいの一部だけ）
 function fakeFS(store, who = 'anon') {
   let t = 1;
-  const ts = () => ({ toMillis: () => 1760000000000 + (t++) * 1000 });
+  const ts = () => { const v = 1760000000000 + (t++) * 1000; return { toMillis: () => v }; };
   const fix = o => { const r = {}; for (const k in o) r[k] = o[k] && o[k].__st ? ts() : o[k]; return r; };
   const deny = () => { const e = new Error('denied'); e.code = 'permission-denied'; throw e; };
-  const canRead = p => { const tp = p.split('/').slice(0, 2).join('/'), d = store[tp]; if (!d) return true; return d.active || who === d.ownerUid; };
+  const canRead = p => { const tp = p.split('/').slice(0, 2).join('/'), d = store[tp]; if (!d) return true; return (d.active && !d.closed) || who === d.ownerUid; };
   const F = {
-    doc: (fs, ...p) => ({ p: p.join('/') }), collection: (fs, ...p) => ({ p: p.join('/') }), query: c => c, orderBy: () => 0, limit: () => 0,
+    doc: (fs, ...p) => ({ p: p.join('/') }), collection: (fs, ...p) => ({ p: p.join('/') }), query: (c, ...m) => ({ p: c.p, m }), orderBy: (f, dir) => ({ dir }), limit: n => ({ lim: n }), startAfter: x => ({ after: x }),
     serverTimestamp: () => ({ __st: 1 }), Timestamp: { fromMillis: m => ({ toMillis: () => m }) },
     getDoc: async r => { if (!canRead(r.p)) deny(); const d = store[r.p]; return { exists: () => !!d, data: () => d }; },
-    getDocs: async c => { if (!canRead(c.p)) deny(); const pre = c.p + '/', out = Object.keys(store).filter(k => k.startsWith(pre) && !k.slice(pre.length).includes('/')).sort((a, b) => (store[a].createdAt?.toMillis?.() || 0) - (store[b].createdAt?.toMillis?.() || 0)).map(k => ({ id: k.slice(pre.length), data: () => store[k] })); return { forEach: f => out.forEach(f) }; },
-    setDoc: async (r, d, o) => { const tp = r.p.split('/').slice(0, 2).join('/'); if (r.p.startsWith('talks/') && r.p.includes('/msgs/') && !(store[tp] && store[tp].active)) deny(); store[r.p] = o && o.merge ? { ...store[r.p], ...fix(d) } : fix(d); },
+    getDocs: async c => { if (!canRead(c.p)) deny(); const m = c.m || [], desc = m.some(x => x && x.dir === 'desc'), lim = (m.find(x => x && x.lim) || {}).lim, after = (m.find(x => x && x.after) || {}).after; const pre = c.p + '/'; let out = Object.keys(store).filter(k => k.startsWith(pre) && !k.slice(pre.length).includes('/')).sort((a, b) => (store[a].createdAt?.toMillis?.() || 0) - (store[b].createdAt?.toMillis?.() || 0)).map(k => ({ id: k.slice(pre.length), data: () => store[k] })); if (desc) out.reverse(); if (after) out = out.slice(out.findIndex(x => x.id === after.id) + 1); if (lim) out = out.slice(0, lim); return { size: out.length, forEach: f => out.forEach(f) }; },
+    setDoc: async (r, d, o) => { const tp = r.p.split('/').slice(0, 2).join('/'); if (r.p.startsWith('talks/') && r.p.includes('/msgs/') && !(store[tp] && store[tp].active && !store[tp].closed)) deny(); store[r.p] = o && o.merge ? { ...store[r.p], ...fix(d) } : fix(d); },
     updateDoc: async (r, d) => { store[r.p] = { ...store[r.p], ...fix(d) }; }, deleteDoc: async r => { delete store[r.p]; },
     writeBatch: () => { const ops = []; return { set: (r, d, o) => ops.push(() => F.setDoc(r, d, o)), update: (r, d) => ops.push(() => F.updateDoc(r, d)), delete: r => ops.push(() => F.deleteDoc(r)), commit: async () => { for (const f of ops) await f(); } }; },
   };
@@ -62,16 +62,10 @@ await check('選手：?t= のリンクでひとこと・やり取り・返信・
   assert.ok(!box.querySelector('.tk-body b'), '文字として出す（XSSなし）'); assert.match(box.textContent, /<b>はい<\/b>/);
   assert.ok(JSON.parse(w.localStorage.getItem('lanenote.talks.v1'))[TID], 'スマホに覚える');
 });
-await check('選手：体調メモは「先生に送る」を押した日の分だけ送る', async () => {
-  const w = page('http://127.0.0.1/index.html?t=' + TID); w.LaneTalk.setFirebase(fakeFS(store));
-  w.LanePersonal.cSet('2026-10-11', { s: 4, sl: 7.5, m: '足が軽い' }); w.LanePersonal.cSet('2026-10-12', { s: 2, sl: 5, m: '内緒のメモ' });
-  w.LaneTalk.initLink(); await delay(60);
-  const box = w.document.getElementById('tvBody'), before = Object.keys(store).length;
-  assert.equal(Object.values(store).filter(v => v.cond).length, 0, '開いただけでは送らない');
-  box.querySelector('.tk-cday').value = '2026-10-11'; box.querySelector('.tk-csend').click(); await delay(80);
-  const c = Object.values(store).filter(v => v.cond); assert.equal(c.length, 1); assert.equal(JSON.stringify(c[0].cond), JSON.stringify({ d: '2026-10-11', s: 4, sl: 7.5, m: '足が軽い' }));
-  assert.ok(!JSON.stringify(store).includes('内緒のメモ')); assert.equal(Object.keys(store).length, before + 1);
-  assert.match(w.document.getElementById('tvBody').textContent, /10月11日の体調/); assert.match(w.document.getElementById('tvBody').innerHTML, /送信済み/);
+await check('v0.24.3：体調メモを先生に送る欄は一時停止（送る手段がない）', async () => {
+  const w = page('http://127.0.0.1/index.html?t=' + TID); w.LaneTalk.setFirebase(fakeFS(store)); w.LanePersonal.cSet('2026-10-11', { s: 4 });
+  w.LaneTalk.initLink(); await delay(60); const box = w.document.getElementById('tvBody');
+  assert.equal(box.querySelector('.tk-csend'), null); assert.match(box.textContent, /止めています/); assert.equal(Object.values(store).filter(v => v.cond).length, 0);
 });
 await check('停止・削除されたら選手の画面にやり取りの欄を出さない（個人ページ・ホーム）', async () => {
   const api = page('http://127.0.0.1/records.html').LaneTalk.teacher(fakeFS(store, 'alice'), { uid: 'alice', epoch: 1 }, () => {});
@@ -79,18 +73,56 @@ await check('停止・削除されたら選手の画面にやり取りの欄を�
   const w = page('http://127.0.0.1/index.html'); w.LaneTalk.setFirebase(fakeFS(store)); w.LaneTalk.remember(TID, '架空');
   const box = w.document.getElementById('ppTalk'); box.hidden = false; assert.equal(await w.LaneTalk.renderPlayer(box, TID), false); assert.equal(box.hidden, true); assert.equal(box.innerHTML, '');
   assert.equal(w.LaneTalk.saved().length, 0, '使えないIDは忘れる');
-  await api.setActive(TID, true); await api.remove(TID); assert.equal(Object.keys(store).filter(k => k.includes(TID)).length, 0, 'メッセージも一覧も消える');
+  await api.setActive(TID, true); await api.remove(TID);
+  assert.equal(Object.keys(store).filter(k => k.includes(TID + '/msgs/')).length, 0, 'メッセージは消える');
+  assert.equal(store['talks/' + TID].closed, true, '本体は「閉じた印」として残す（C301）'); assert.equal(store['talks/' + TID].name, ''); assert.equal(store['talks/' + TID].note, '');
+  assert.equal(store['users/alice/talkIndex/' + TID].purged, true, '一覧に消し終わった印');
   const w2 = page('http://127.0.0.1/index.html?t=' + TID); w2.LaneTalk.setFirebase(fakeFS(store)); w2.LaneTalk.initLink(); await delay(60);
   assert.match(w2.document.getElementById('tvBody').textContent, /開けません/);
 });
 await check('個人ページの中身：やり取りのIDは20文字のときだけ通す', () => {
   const w = page('http://127.0.0.1/index.html'), P = w.LanePersonal;
   const o = { v: 1, k: 'pp', g: '', a: { name: '架空', team: '', grade: '' }, e: [] };
-  assert.equal(P.sanitize({ ...o, tk: TID }).tk, TID); assert.equal(P.sanitize({ ...o, tk: 'x"><img>' }).tk, ''); assert.equal(P.sanitize(o).tk, '');
+  assert.equal(P.sanitize({ ...o, tk: TID }).tk, '', '個人ページの tk は使わない（C302）'); assert.equal(P.sanitize({ ...o, tk: 'x"><img>' }).tk, ''); assert.equal(P.sanitize(o).tk, '');
 });
-await check('記録ページ：やり取りの画面（はじめはオフ・選手ごとに使う/停止/再開/削除・個人ページに tk を入れる）', () => {
+await check('記録ページ：やり取りの画面（はじめはオフ・選手ごとに使う/停止/再開/削除・個人ページに tk を入れない）', () => {
   const r = src('records_app.js'), t = src('records_template.html');
   assert.match(t, /id="rbTalkOn"> <span><b>選手とのやり取りを使う<\/b>/); assert.doesNotMatch(t, /id="rbTalkOn" checked/);
-  ['data-tknew', 'data-tkact', 'data-tkrm', 'data-tkopen', 'data-tkdel', 'o.tk = tkx.id', 'tkAlive(sc, gen)'].forEach(s => assert.ok(r.includes(s), s));
+  assert.ok(!r.includes('o.tk = tkx.id'));
+  ['data-tknew', 'data-tkact', 'data-tkrm', 'data-tkopen', 'data-tkdel', 'tkAlive(sc, gen)'].forEach(s => assert.ok(r.includes(s), s));
+});
+await check('C303：新しい順に50件だけ読み、「前のやり取りを見る」で古いものを足す・投稿は msgs/m<n>', async () => {
+  const st = {}, X = 'TalkPageing000000001'; st['talks/' + X] = { v: 2, ownerUid: 'alice', name: '架空 二郎', note: '', active: true, closed: false, n: 0, expiresAt: { toMillis: () => Date.now() + 864e5 } };
+  const api = page('http://127.0.0.1/records.html').LaneTalk.teacher(fakeFS(st, 'alice'), { uid: 'alice', epoch: 1 }, () => {});
+  for (let i = 1; i <= 60; i++) { st['talks/' + X].n = i - 1; await api.reply(X, '架空' + i); }
+  assert.ok(st['talks/' + X + '/msgs/m60'], 'ID は m<n>'); assert.equal(st['talks/' + X].n, 60); assert.ok(st['talks/' + X + '/msgs/m60'].purgeAt, 'purgeAt を付ける');
+  const w = page('http://127.0.0.1/index.html?t=' + X); w.LaneTalk.setFirebase(fakeFS(st)); w.LaneTalk.initLink(); await delay(60);
+  const box = w.document.getElementById('tvBody'), items = [...box.querySelectorAll('.tk-body')].map(x => x.textContent);
+  assert.equal(items.length, 50); assert.equal(items[49], '架空60', 'いちばん新しいものが最後に出る'); assert.equal(items[0], '架空11');
+  assert.match(box.textContent, /架空 二郎 さん/, 'だれのやり取りかを出す（C306）');
+  box.querySelector('.tk-more').click(); await delay(60);
+  const all = [...box.querySelectorAll('.tk-body')].map(x => x.textContent); assert.equal(all.length, 60); assert.equal(all[0], '架空1');
+});
+await check('C305：ほかのアカウントのやり取りは顧問の画面で開かない', async () => {
+  const st = { ['talks/TalkOther00000000001']: { v: 2, ownerUid: 'bob', name: '架空', active: true, closed: false, n: 0 } };
+  const api = page('http://127.0.0.1/records.html').LaneTalk.teacher(fakeFS(st, 'alice'), { uid: 'alice', epoch: 1 }, () => {});
+  await assert.rejects(api.read('TalkOther00000000001'), /このアカウント/);
+  const r = src('records_app.js'); assert.ok(!/tkRun\([^;]*\.then\(function \(\) \{/.test(r), '.then は成功したときだけ続ける');
+});
+await check('C307：期限切れ・削除の途中のものを sweep で片づける', async () => {
+  const st = {}, A = 'TalkExpired000000009', B = 'TalkHalfDel000000009';
+  st['talks/' + A] = { v: 2, ownerUid: 'alice', name: '架空', note: 'x', active: true, closed: false, n: 1 }; st['talks/' + A + '/msgs/m1'] = { from: 'p', body: 'a' };
+  st['talks/' + B] = { v: 2, ownerUid: 'alice', name: '', note: '', active: false, closed: true, n: 1 }; st['talks/' + B + '/msgs/m1'] = { from: 'p', body: 'b' };
+  const api = page('http://127.0.0.1/records.html').LaneTalk.teacher(fakeFS(st, 'alice'), { uid: 'alice', epoch: 1 }, () => {});
+  const n = await api.sweep([{ id: A, exp: Date.now() - 1000 }, { id: B, closed: true, exp: Date.now() + 864e5 }, { id: 'TalkFine000000000009', exp: Date.now() + 864e5 }]);
+  assert.equal(n, 2); assert.equal(Object.keys(st).filter(k => k.includes('/msgs/')).length, 0); assert.equal(st['talks/' + A].closed, true);
+});
+await check('C306・C312：端末から全部消す・体調メモの中身を確かめて読む（HTMLを入れない）', () => {
+  const w = page('http://127.0.0.1/index.html'), P = w.LanePersonal;
+  w.localStorage.setItem('lanenote.cond.v1', JSON.stringify({ '2026-10-11': { s: '<img src=x onerror=alert(1)>', sl: '<b>8</b>', m: 'ok' }, 'bad': { s: 3 }, '2026-10-12': { s: 9 } }));
+  const L = P.cList(); assert.equal(L.length, 1); assert.equal(L[0].c.s, null); assert.equal(L[0].c.sl, null); assert.equal(L[0].c.m, 'ok');
+  assert.doesNotMatch(P.condBadge({ s: '<img>', sl: '<b>' }), /<img|<b>/);
+  w.localStorage.setItem('lanenote.talks.v1', '{"TalkAbcdefghij012345":{}}'); w.LaneTalk.clearDevice(); assert.equal(w.localStorage.getItem('lanenote.talks.v1'), null);
+  assert.match(src('mode.js'), /phWipe/); assert.match(src('app.js'), /PP = null; \$\('ppTalk'\)\.hidden = true/);
 });
 console.log(pass + ' passed, ' + fail + ' failed'); if (fail) process.exit(1);

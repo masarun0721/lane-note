@@ -7,9 +7,9 @@ await p.goto('http://127.0.0.1:9124/index.html', { waitUntil: 'networkidle0' });
 const W = ms => new Promise(r => setTimeout(r, ms));
 await p.evaluate(() => {
   const A = window.__meetApp;
-  const entries = [['山田 太郎', '男子中学1年 100m'], ['佐藤 花子', '女子中学共通 200m']].map((x, i) => ({ team: '本郷中', event: x[1], round: '予選', heat: 1, pos: 3 + i, posKind: 'レーン', bib: String(101 + i), name: x[0], grade: '2', page: 1 }));
-  document.getElementById('school').value = '本郷';
-  Object.assign(A.state, { sl: { format: 'startlist', hasTimes: false, warnings: [], diag: [], entries, relays: [] }, tt: [{ event: '100m', gender: '男子', cat: '中学1年', round: '予選', time: '9:30' }, { event: '200m', gender: '女子', cat: '中学共通', round: '予選', time: '10:30' }], teams: ['本郷中'], slName: 'a.pdf', ttName: 'b.pdf',
+  const entries = [['山田 太郎', '男子中学1年 100m'], ['佐藤 花子', '女子中学共通 200m']].map((x, i) => ({ team: '架空第一中', event: x[1], round: '予選', heat: 1, pos: 3 + i, posKind: 'レーン', bib: String(101 + i), name: x[0], grade: '2', page: 1 }));
+  document.getElementById('school').value = '架空第一';
+  Object.assign(A.state, { sl: { format: 'startlist', hasTimes: false, warnings: [], diag: [], entries, relays: [] }, tt: [{ event: '100m', gender: '男子', cat: '中学1年', round: '予選', time: '9:30' }, { event: '200m', gender: '女子', cat: '中学共通', round: '予選', time: '10:30' }], teams: ['架空第一中'], slName: 'a.pdf', ttName: 'b.pdf',
     docText: { yoko: '4．期　　日　　2026年10月11日（日）　9時30分競技開始予定\n5．場　　所　　スピアーズえどりくフィールド　〒134-0087 江戸川区清新町２－１－１　電話 03-3878-3388' } });
   document.getElementById('meetName').value = '第77回 北区中学校陸上競技大会'; A.updateTeams(); A.render();
   A.openVenues();
@@ -17,7 +17,7 @@ await p.evaluate(() => {
 await W(300);
 // 1件登録済みにする（架空の値）
 await p.evaluate(() => { document.getElementById('vnAdd').click(); });
-await p.evaluate(() => { const f = document.getElementById('vnForm'), s = (n, v) => f.querySelector(`[name=${n}]`).value = v; s('name', '架空区総合運動場'); s('station', '架空駅'); s('access', '徒歩10分'); s('place', '正門前'); s('route', '本郷駅〜架空駅'); s('fareRound', '800'); f.requestSubmit(); });
+await p.evaluate(() => { const f = document.getElementById('vnForm'), s = (n, v) => f.querySelector(`[name=${n}]`).value = v; s('name', '架空区総合運動場'); s('station', '架空駅'); s('access', '徒歩10分'); s('place', '正門前'); s('route', '架空駅C〜架空駅'); s('fareRound', '800'); f.requestSubmit(); });
 await W(400); await p.screenshot({ path: OUT + 'v0_22_3_venues_list.png' });
 await p.evaluate(() => { document.getElementById('vnClose').click(); document.getElementById('btnParent').click(); }); await W(800);
 await p.evaluate(() => { const s = document.querySelector('[data-venue]'); s.closest('.nt-f').scrollIntoView({ block: 'start' }); document.getElementById('ntEdit').closest('.nt-wrap').scrollTop -= 40; window.scrollBy(0,0); }); await W(200);

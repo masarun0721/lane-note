@@ -22,7 +22,7 @@ ok('Q1b：同じ資料の中の本当の重なり（同じ所属・同じナン�
   assert.equal(d.length, 1);
 });
 const row = { event: '男子100m', round: '決勝', heat: 1, name: '架空 太郎', mark: '12.00' };
-ok('Q2：本郷中と本郷高のように、同じ系列の中学と高校の記録は別のIDになる', () => {
+ok('Q2：架空第一中と架空第一高のように、同じ系列の中学と高校の記録は別のIDになる', () => {
   const mid = R.recId('架空大会', '2026-10-10', { ...row, team: '架空中' }), high = R.recId('架空大会', '2026-10-10', { ...row, team: '架空高' });
   assert.notEqual(mid, high);
   assert.equal(R.recId('架 空大会', '2026-10-10', { ...row, team: '架空高' }), high, '同じ記録は同じID');

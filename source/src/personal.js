@@ -8,7 +8,16 @@ var LanePersonal = (function () {
   /* ---------- 体調メモ ---------- */
   var CKEY = 'lanenote.cond.v1', FACES = ['', '😣', '😟', '😐', '🙂', '😄'], FWORD = ['', 'とても悪い', '悪い', 'ふつう', '良い', 'とても良い'];
   function ls() { try { return typeof localStorage !== 'undefined' ? localStorage : null; } catch (e) { return null; } }
-  function cLoad() { var L = ls(); if (!L) return {}; try { var o = JSON.parse(L.getItem(CKEY) || '{}'); return o && typeof o === 'object' && !Array.isArray(o) ? o : {}; } catch (e) { return {}; } }
+  /* C312：保存されている中身も1件ずつ確かめる（日付・体調1〜5・睡眠0〜24・メモ100文字） */
+  function okCond(c) {
+    if (!c || typeof c !== 'object' || Array.isArray(c)) return null;
+    var s = typeof c.s === 'number' && c.s >= 1 && c.s <= 5 && Math.floor(c.s) === c.s ? c.s : null;
+    var sl = typeof c.sl === 'number' && isFinite(c.sl) && c.sl >= 0 && c.sl <= 24 ? c.sl : null;
+    var m = typeof c.m === 'string' ? c.m.slice(0, 100) : '';
+    if (s == null && sl == null && !m) return null;
+    return { s: s, sl: sl, m: m, at: typeof c.at === 'string' ? c.at.slice(0, 40) : '' };
+  }
+  function cLoad() { var L = ls(); if (!L) return {}; try { var o = JSON.parse(L.getItem(CKEY) || '{}'), out = {}; if (!o || typeof o !== 'object' || Array.isArray(o)) return {}; Object.keys(o).forEach(function (d) { var c = validDay(d) && okCond(o[d]); if (c) out[d] = c; }); return out; } catch (e) { return {}; } }
   function cStore(m) { var L = ls(); if (!L) throw new Error('このブラウザでは保存できません'); if (Object.keys(m).length) L.setItem(CKEY, JSON.stringify(m)); else L.removeItem(CKEY); }
   function validDay(d) { return /^\d{4}-\d{2}-\d{2}$/.test(d || ''); }
   function cGet(d) { var o = cLoad()[d]; return o && typeof o === 'object' ? o : null; }
@@ -25,15 +34,15 @@ var LanePersonal = (function () {
   function mdLabel(d) { var p = d.split('-'); return (+p[1]) + '月' + (+p[2]) + '日'; }
   function condBadge(c) {
     if (!c) return '';
-    return '<span class="cd-badge">' + [c.s ? FACES[c.s] + ' 体調' + c.s : '', c.sl != null ? '😴 ' + c.sl + '時間' : '', c.m ? '「' + esc(c.m) + '」' : ''].filter(Boolean).join('・') + '</span>';
+    return '<span class="cd-badge">' + [c.s ? FACES[c.s] + ' 体調' + esc(c.s) : '', c.sl != null ? '😴 ' + esc(c.sl) + '時間' : '', c.m ? '「' + esc(c.m) + '」' : ''].filter(Boolean).join('・') + '</span>';
   }
-  var PRIV = '🔒 このスマホにだけ保存します。先生やほかの人には見えません（送信もしません）。先生とのやり取りで「📤 先生に送る」を押した日の分だけは、先生が見られます。';
+  var PRIV = '🔒 このスマホにだけ保存します。先生やほかの人には見えません（送信もしません）。同じスマホを使う人は見られるので、共用のスマホでは使い終わったら消してください。';
   function condFormHtml(d, title) {
     var c = cGet(d) || {};
     return '<div class="cd-box" data-cdday="' + esc(d) + '"><h3>' + esc(title || '体調メモ') + '</h3>' +
       '<div class="cd-priv">' + PRIV + '</div>' +
       '<div class="cd-lab">体調（5段階）</div><div class="cd-faces" role="radiogroup" aria-label="体調">' + [1, 2, 3, 4, 5].map(function (n) { return '<button type="button" class="cd-f' + (c.s === n ? ' on' : '') + '" data-cds="' + n + '" aria-pressed="' + (c.s === n) + '" aria-label="' + FWORD[n] + '"><span>' + FACES[n] + '</span><small>' + n + '</small></button>'; }).join('') + '</div>' +
-      '<div class="cd-row"><label>睡眠時間 <input type="number" inputmode="decimal" min="0" max="24" step="0.5" class="cd-sl" value="' + (c.sl != null ? c.sl : '') + '"> 時間</label></div>' +
+      '<div class="cd-row"><label>睡眠時間 <input type="number" inputmode="decimal" min="0" max="24" step="0.5" class="cd-sl" value="' + (c.sl != null ? esc(c.sl) : '') + '"> 時間</label></div>' +
       '<div class="cd-row"><input type="text" class="cd-m" maxlength="100" placeholder="ひとことメモ（例：足が軽かった）" value="' + esc(c.m || '') + '" aria-label="ひとことメモ"></div>' +
       '<div class="cd-row"><button type="button" class="cd-save">💾 保存</button><button type="button" class="cd-del"' + (cGet(d) ? '' : ' hidden') + '>🗑 この日のメモを削除</button></div><div class="cd-msg" aria-live="polite"></div></div>';
   }
@@ -99,7 +108,7 @@ var LanePersonal = (function () {
           r: arr(e.r, MAX_R).map(function (p) { return row(p, 6); }) };
       }),
       nx: o.nx && typeof o.nx === 'object' && /^[A-Za-z0-9]{6,40}$/.test(String(o.nx.s || '')) ? { s: String(o.nx.s), n: S(o.nx.n, 100) } : null,
-      tk: /^[A-Za-z0-9]{20}$/.test(String(o.tk || '')) ? String(o.tk) : '' };   // v0.24：先生とのやり取り（先生がオンにしたときだけ入る）
+      tk: '' };   // v0.24.3：個人ページからのやり取りは一時停止（監査 C302）   // v0.24：先生とのやり取り（先生がオンにしたときだけ入る）
   }
   function snapLabel(g) { var d = g ? new Date(g) : null; return d && !isNaN(d) ? (d.getMonth() + 1) + '月' + d.getDate() + '日' : '作成した日'; }
   var VIEW = { official: false, nm: true, ev: '' };

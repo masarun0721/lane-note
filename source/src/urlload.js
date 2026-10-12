@@ -13,13 +13,25 @@
     big: '大きすぎるので読み込めませんでした（20MBまで）。PDFをダウンロードして、枠に入れてください',
     type: '対応していない形式です（読み込めるのはPDFとWebページだけです）',
     login: 'ログインが必要なページのようです。そのページを開いてPDFをダウンロードし、枠に入れてください',
-    blocked: 'このアドレスは読み込めません'
+    blocked: 'このアドレスは読み込めません',
+    host: 'このサイトは LANE NOTE の中継に登録されていないので読み込めません。ページを開いてPDFを保存し、枠に入れてください（よく使うサイトなら「不具合・要望を送る」で知らせてください）',
+    many: '短い時間に何度も読み込んだので、少し待ってからもう一度ためしてください'
   };
   function isUrlOnly(t) { return /^\s*https?:\/\/\S+\s*$/i.test(String(t || '')); }
   function normUrl(s) {
     s = String(s || '').trim(); if (!s) return null;
     if (!/^https?:\/\//i.test(s) && /^[\w-]+(\.[\w-]+)+(\/|$)/.test(s)) s = 'https://' + s;
     try { var u = new URL(s); return /^https?:$/.test(u.protocol) ? u.href : null; } catch (e) { return null; }
+  }
+  async function readCapped(res, max) {
+    if (!res.body || !res.body.getReader) { var b = new Uint8Array(await res.arrayBuffer()); if (b.length > max) throw err('big'); return b; }
+    var rd = res.body.getReader(), parts = [], n = 0;
+    for (;;) {
+      var r = await rd.read(); if (r.done) break;
+      n += r.value.byteLength; if (n > max) { try { rd.cancel(); } catch (e) { } throw err('big'); }
+      parts.push(r.value);
+    }
+    var out = new Uint8Array(n), o = 0; parts.forEach(function (p) { out.set(p, o); o += p.byteLength; }); return out;
   }
   function err(code) { var e = new Error(MSG[code] || code); e.code = code; return e; }
   function sniff(bytes, type) {
@@ -57,14 +69,15 @@
     if (res.status === 413) throw err('big');
     if (res.status === 415) throw err('type');
     if (res.status === 401 || res.status === 407) throw err('login');
-    if (res.status === 403) throw err(/forbidden/.test(await safeText(res)) ? 'net' : 'login');
+    if (res.status === 429) throw err('many');
+    if (res.status === 403) { var t3 = await safeText(res); throw err(/host not allowed/.test(t3) ? 'host' : /forbidden/.test(t3) ? 'net' : 'login'); }
     if (res.status === 404 || res.status === 410) throw err('notfound');
     if (res.status === 400) { var bt = await safeText(res); throw err(/blocked/.test(bt) ? 'blocked' : 'bad'); }
     if (!res.ok) throw err('net');
     var len = +(res.headers.get('Content-Length') || 0); if (len > MAX) throw err('big');
-    var buf; try { buf = new Uint8Array(await res.arrayBuffer()); } catch (e) { if (e && e.name === 'AbortError') throw e; throw err('net'); }
-    if (buf.length > MAX) throw err('big');
-    var type = res.headers.get('Content-Type') || '', kind = sniff(buf, type);
+    // v0.25（監査 C310）：全部受け取ってからではなく、受け取りながら数えて 20MiB を超えたら止める
+    var buf; try { buf = await readCapped(res, MAX); } catch (e) { if (e && e.name === 'AbortError') throw e; throw err(e && e.code === 'big' ? 'big' : 'net'); }
+    var type = res.headers.get('X-Lane-Type') || res.headers.get('Content-Type') || '', kind = sniff(buf, type);
     if (kind === 'text') kind = 'html';
     if (kind !== 'pdf' && kind !== 'html') throw err('type');
     var out = { url: u, kind: kind, bytes: buf, type: type, name: fileName(u, kind) };

@@ -26,6 +26,10 @@ var LaneMode = (function () {
     } catch (e) { }
     return out.sort(function (a, b) { return a.at < b.at ? 1 : a.at > b.at ? -1 : 0; });
   }
+  /* C306：共用のスマホ向け。選手モードで保存したものを全部消す */
+  function wipeDevice() {
+    try { var ks = []; for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && (k.indexOf(PKEY) === 0 || k === 'lanenote.talks.v1' || k === 'lanenote.talksent.v1' || k === 'lanenote.cond.v1')) ks.push(k); } ks.forEach(function (k) { localStorage.removeItem(k); }); } catch (e) { }
+  }
   function forget(id) { try { localStorage.removeItem(PKEY + id); } catch (e) { } }
   function dayOf(s) { var m = /(\d{4})\D+(\d{1,2})\D+(\d{1,2})/.exec(String(s || '').normalize('NFKC')); return m ? m[1] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[3]).slice(-2) : ''; }
   function today() { var d = window.__playerNow ? new Date(window.__playerNow) : new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
@@ -93,17 +97,22 @@ var LaneMode = (function () {
       var t = L.kind === 'pp' ? '🏅 個人ページ' + (o.a ? '（' + o.a.name + '）' : '') : '📅 ' + (o.n || '大会当日の予定') + (o.d ? '（' + o.d + '）' : '');
       return '<li><a href="' + esc(L.url) + '">' + esc(t) + '</a><button type="button" class="ph-x" data-phforget="' + esc(L.id) + '" aria-label="このリンクをスマホから削除">削除</button></li>'; }).join('') + '</ul>' : '<p class="ph-empty">先生からもらったリンクは、一度開くと自動でここに保存されます。</p>') +
       '<div class="ph-paste"><input type="url" id="phUrl" placeholder="もらったリンクをここに貼る" aria-label="もらったリンク"><button type="button" class="ph-btn sm" id="phGo">開いて保存</button></div><div class="ph-msg" id="phMsg" role="status"></div></section>';
-    h += '<p class="ph-foot">🔒 この画面の内容は、このスマホの中だけに保存しています。<br><button type="button" class="ph-link" data-pickmode="1">🧑‍🏫 顧問・コーチの画面に切りかえる</button></p>';
+    h += '<p class="ph-foot">🔒 この画面の内容は、このスマホの中だけに保存しています。<br><button type="button" class="ph-link danger" id="phWipe">🗑 この端末から全部消す（共用のスマホを返す前に）</button><br><button type="button" class="ph-link" data-pickmode="1">🧑‍🏫 顧問・コーチの画面に切りかえる</button></p>';
     box.innerHTML = h;
     LanePersonal.bindCond($('phCond'), function () { });
     box.querySelectorAll('[data-phforget]').forEach(function (b) { b.addEventListener('click', function () { if (!confirm('このリンクを、このスマホから削除しますか？（もう一度開けば、また保存されます）')) return; forget(b.getAttribute('data-phforget')); renderHome(); }); });
+    $('phWipe').addEventListener('click', function () {
+      if (!confirm('このスマホに保存している、もらったリンク・個人ページ・先生とのやり取りのリンク・体調メモを全部消します。元に戻せません。よろしいですか？')) return;
+      wipeDevice(); renderHome();
+      var m = $('phMsg'); if (m) m.textContent = '✔ このスマホから全部消しました。';
+    });
     $('phGo').addEventListener('click', function () {
       var u = $('phUrl').value.trim(), m = /^https?:\/\/[^\s]+$/.test(u) ? u : '';
       var ok = m && (u.indexOf(base()) === 0 || /^https:\/\/masarun0721\.github\.io\/lane-note\//.test(u)) && (/[#](p|d)=/.test(u) || /[?&](s|t)=/.test(u));
       if (!ok) { $('phMsg').textContent = 'LANE NOTE のリンク（先生からもらったもの）を貼ってください。'; return; }
       location.href = u.indexOf(base()) === 0 ? u : base() + u.replace(/^https:\/\/masarun0721\.github\.io\/lane-note\//, '');
     });
-    if (window.LaneTalk) LaneTalk.renderHomeCard($('phTalk'), pps.map(function (x) { return x.o.tk; }).filter(Boolean));
+    if (window.LaneTalk) LaneTalk.renderHomeCard($('phTalk'), []);   // v0.25（C302）：個人ページの tk は使わない
   }
   function init() {
     if (!$('modePick')) return;
@@ -116,5 +125,5 @@ var LaneMode = (function () {
     if ($('phome') && !get() && !sharedView()) openPick(true);   // はじめての質問はトップだけ
     apply();
   }
-  return { get: get, set: set, apply: apply, init: init, savedLinks: savedLinks, sharedView: sharedView, renderHome: renderHome, KEY: KEY };
+  return { get: get, set: set, apply: apply, init: init, savedLinks: savedLinks, sharedView: sharedView, renderHome: renderHome, KEY: KEY, wipeDevice: wipeDevice };
 })();

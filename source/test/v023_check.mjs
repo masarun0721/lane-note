@@ -105,11 +105,11 @@ await check('見る側：中身の文字は文字として出す（XSSなし）�
 });
 A._cloud(null, null);
 await check('v0.23.1 大会まとめPDF：1人だけの投てき（9m54・風なし）の行がPDF用のHTMLに入る・zoom/sticky を使わない', async () => {
-  await t.putMany([mk('赤木 奏介', '中学共通 砲丸投(5.000kg)', '2026-10-11', '9m54', '北区大会', '3')], t.scope()); await t.reload(t.scope());
+  await t.putMany([mk('見本 奏太', '中学共通 砲丸投(5.000kg)', '2026-10-11', '9m54', '北区大会', '3')], t.scope()); await t.reload(t.scope());
   A.goView('meet'); await delay(); const sel = w.document.querySelector('[data-meetsel]'); sel.value = '2026-10-11|北区大会'; sel.dispatchEvent(new w.Event('change', { bubbles: true })); await delay();
   const made = []; w.LanePdf = { make: async o => { made.push(o); return { pages: 1 }; }, pageDoc: (h, c) => '<html><body class="' + (c || '') + '">' + h + '</body></html>' };
   w.document.querySelector('[data-print="meet"][data-act="pdf"]').click(); await delay(100); delete w.LanePdf;
-  assert.equal(made.length, 1); const h = made[0].html; assert.match(h, /砲丸投/); assert.match(h, /赤木 奏介/); assert.match(h, /9m54/);
+  assert.equal(made.length, 1); const h = made[0].html; assert.match(h, /砲丸投/); assert.match(h, /見本 奏太/); assert.match(h, /9m54/);
   const box = new JSDOM(h).window.document.querySelectorAll('.lp-box'); const sp = [...box].find(b => /砲丸投/.test(b.textContent)); assert.equal(sp.querySelectorAll('tbody tr').length, 1);
   assert.doesNotMatch(h, /<body class="[^"]*printing/);
   const pm = src('pdfmake.js'); assert.match(pm, /\*\{zoom:1!important\}/); assert.match(pm, /th,thead\{position:static!important\}/);

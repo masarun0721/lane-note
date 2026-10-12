@@ -1446,7 +1446,6 @@
       var o = ppPayload(keys[i]); if (!o) continue;
       var nx = sch.filter(function (x) { return R.nameKey(x.name) === R.nameKey(o.a.name); })[0];
       if (nx) o.nx = { s: nx.id, n: nx.meet };
-      var tkx = tki && tkByKey(keys[i], tki); if (tkx) o.tk = tkx.id;
       var str = await encodePP(o), url = siteBase() + '#p=' + str, short = false;
       if (!alive()) break;
       if (sc.uid && !OFFLINE) { try { var u = await ppShort(str, '個人ページ：' + o.a.name, sc); if (u) { url = u; short = true; } } catch (e) { if (isAbort(e) || !alive()) break; errs++; } }
@@ -1486,7 +1485,7 @@
   var TK = { on: false, idx: [], cur: '', gen: 0 };
   function tkApi(sc) { return LaneTalk.teacher(FB, sc, check); }
   function tkAlive(sc, gen) { return gen === TK.gen && sc.epoch === authEpoch && sc.uid === (USER ? USER.uid : null); }
-  function tkByKey(k, idx) { return (idx || TK.idx).filter(function (x) { return x.akey === k && x.exp > Date.now(); }).sort(function (a, b) { return b.at - a.at; })[0] || null; }
+  function tkByKey(k, idx) { return (idx || TK.idx).filter(function (x) { return x.akey === k && !x.closed && x.exp > Date.now(); }).sort(function (a, b) { return b.at - a.at; })[0] || null; }
   function tkAthletes() { var seen = {}, out = []; R.sortAthletes(R.computeBests(ppBase()).bests).forEach(function (b) { if (!seen[b.key]) { seen[b.key] = 1; out.push(b); } }); return out; }
   function tkDay(m) { var d = new Date(m); return m ? (d.getMonth() + 1) + '月' + d.getDate() + '日' : ''; }
   async function openTalk() {
@@ -1499,12 +1498,19 @@
     try { var api = tkApi(sc), st = await api.settings(), idx = await api.index(); if (!tkAlive(sc, gen)) return; TK.on = st.enabled; TK.idx = idx; }
     catch (e) { if (isAbort(e) || !tkAlive(sc, gen)) return; status('rbTalkMsg', '✖ 読み込めませんでした：' + esc(e.message), 'ng'); return; }
     $('rbTalkOn').disabled = false; $('rbTalkOn').checked = TK.on; status('rbTalkMsg', '', ''); renderTalkList();
+    // C307：期限切れ・削除の途中で止まったものを片づける（始めたときの uid・世代に固定：A01）
+    if (TK.idx.some(function (x) { return !x.purged && (x.closed || (x.exp && x.exp < Date.now())); })) {
+      try { var n = await api.sweep(TK.idx); if (!tkAlive(sc, gen)) return; if (n) { var idx2 = await api.index(); if (!tkAlive(sc, gen)) return; TK.idx = idx2; renderTalkList(); status('rbTalkMsg', '🧹 期限切れ・削除済みのやり取り ' + n + '件の中身を消しました。', 'ok'); } }
+      catch (e) { if (isAbort(e) || !tkAlive(sc, gen)) return; status('rbTalkMsg', '⚠️ 期限切れのやり取りの片づけが途中で止まりました（次に開いたときに続けます）', 'ng'); }
+    }
   }
   function renderTalkList() {
     $('rbTalkMain').hidden = !TK.on; if (!TK.on) { $('rbTalkThread').hidden = true; return; }
     var ls = tkAthletes();
     $('rbTalkList').innerHTML = ls.length ? ls.map(function (b) {
-      var t = tkByKey(b.key), st = !t ? '<span class="tk-st">未使用</span>' : t.active ? '<span class="tk-st on">使用中</span>' : '<span class="tk-st off">停止中</span>';
+      var t = tkByKey(b.key), st = !t ? '<span class="tk-st">未使用</span>' : t.v !== 2 ? '<span class="tk-st off">旧形式・停止中</span>' : t.active ? '<span class="tk-st on">使用中</span>' : '<span class="tk-st off">停止中</span>';
+      // C302：v0.24 で作ったやり取りは個人ページのリンクにも入っていたので、v0.25 では選手から見えない。「安全に作り直す」で新しいリンクにする
+      if (t && t.v !== 2) return '<li><span class="nm">' + esc(b.name) + '</span>' + st + '<button class="btn" type="button" data-tkrenew="' + esc(t.id) + '" data-key="' + esc(b.key) + '">🔁 安全に作り直す</button><button class="btn sub danger-t" type="button" data-tkrm="' + esc(t.id) + '">🗑 削除</button></li>';
       return '<li><span class="nm">' + esc(b.name) + '</span>' + st + (t ? '<button class="btn sub" type="button" data-tkopen="' + esc(t.id) + '">💬 開く</button><button class="btn sub" type="button" data-tkact="' + esc(t.id) + '" data-on="' + (t.active ? 0 : 1) + '">' + (t.active ? '⏸ 停止' : '▶ 再開') + '</button><button class="btn sub danger-t" type="button" data-tkrm="' + esc(t.id) + '">🗑 削除</button>'
         : '<button class="btn" type="button" data-tknew="' + esc(b.key) + '">使う</button>') + '</li>';
     }).join('') : '<li class="small muted" style="padding:10px">選手がいません（先に記録を入れてください）。</li>';
@@ -1516,14 +1522,21 @@
   }
   async function openThread(id) {
     var sc = scope(), gen = TK.gen, box = $('rbTalkThread'); TK.cur = id; box.hidden = false; box.innerHTML = '<p class="small muted">読み込んでいます…</p>';
-    var r; try { r = await tkApi(sc).read(id); } catch (e) { if (isAbort(e) || !tkAlive(sc, gen) || TK.cur !== id) return; box.innerHTML = '<p class="ng">✖ 読み込めませんでした：' + esc(e.message) + '</p>'; return; }
+    var r; try { r = await tkApi(sc).read(id); TK.more = r.more; TK.older = []; } catch (e) { if (isAbort(e) || !tkAlive(sc, gen) || TK.cur !== id) return; box.innerHTML = '<p class="ng">✖ 読み込めませんでした：' + esc(e.message) + '</p>'; return; }
     if (!tkAlive(sc, gen) || TK.cur !== id) return;
     var ix = TK.idx.filter(function (x) { return x.id === id; })[0] || {};
     box.innerHTML = '<div class="tk-th-h"><b>💬 ' + esc(r.talk.name) + ' さん</b><span class="tk-st ' + (r.talk.active ? 'on' : 'off') + '">' + (r.talk.active ? '使用中' : '停止中') + '</span><button class="btn sub" type="button" data-tkreload="' + esc(id) + '">↻ 最新にする</button><button class="btn sub" type="button" data-tkclose="1">閉じる</button></div>' +
       '<label class="small">選手専用のリンク' + (ix.exp ? '（' + tkDay(ix.exp) + 'まで）' : '') + '<input class="tk-link" id="rbTkLink" readonly value="' + esc(LaneTalk.linkFor(id)) + '"></label><div class="rb-row"><button class="btn sub" type="button" data-tkcopy="1">📋 リンクをコピー</button><span class="small muted">⚠️ このリンクを知っている人は、その選手として書きこめます。本人にだけ送ってください。</span></div>' +
       '<div class="tk-note"><small>先生からのひとこと（選手の画面のいちばん上に出ます）</small><textarea id="rbTkNote" class="tk-in" maxlength="500" rows="2" placeholder="例：次はスタートを意識しよう">' + esc(r.talk.note || '') + '</textarea><div class="rb-row"><button class="btn" type="button" data-tknote="' + esc(id) + '">💾 ひとことを保存</button></div></div>' +
-      LaneTalk.msgsHtml(r.msgs, 't', true) +
-      (r.talk.active ? '<div class="tk-form"><textarea id="rbTkReply" class="tk-in" maxlength="500" rows="2" placeholder="選手への返事（500文字まで）" aria-label="選手への返事"></textarea><button class="tk-send" type="button" data-tkreply="' + esc(id) + '">送る</button></div>' : '<p class="small muted">停止中は返事を送れません（選手からも見えません）。</p>');
+      (r.more ? '<button class="btn sub" type="button" data-tkmore="' + esc(id) + '">前のやり取りを見る</button>' : '') +
+      '<div id="rbTkList">' + LaneTalk.msgsHtml(r.msgs, 't', true) + '</div>' +
+      ((r.talk.active && TK.on) ? '<div class="tk-form"><textarea id="rbTkReply" class="tk-in" maxlength="500" rows="2" placeholder="選手への返事（500文字まで）" aria-label="選手への返事"></textarea><button class="tk-send" type="button" data-tkreply="' + esc(id) + '">送る</button></div>' : '<p class="small muted">停止中は返事を送れません（選手からも見えません）。</p>');
+    TK.shown = r.msgs;
+  }
+  async function moreThread(id, btn) {
+    var sc = scope(), gen = TK.gen; if (!TK.more) return; btn.disabled = true;
+    try { var r = await tkApi(sc).read(id, TK.more); if (!tkAlive(sc, gen) || TK.cur !== id) return; TK.older = r.msgs.concat(TK.older || []); TK.more = r.more; $('rbTkList').innerHTML = LaneTalk.msgsHtml(TK.older.concat(TK.shown || []), 't', true); if (TK.more) btn.disabled = false; else btn.remove(); }
+    catch (e) { if (isAbort(e) || !tkAlive(sc, gen)) return; btn.disabled = false; status('rbTalkMsg', '✖ ' + esc(e.message), 'ng'); }
   }
   $('rbTalkOpen').addEventListener('click', function () { openTalk(); });
   $('rbTalkBack').addEventListener('click', function () { TK.gen++; $('rbTalkScreen').hidden = true; document.body.classList.remove('pps-open'); });
@@ -1539,17 +1552,21 @@
     var b = e.target.closest('button'); if (!b) return;
     var g = function (k) { return b.getAttribute(k); };
     if (g('data-tknew')) { var a = tkAthletes().filter(function (x) { return x.key === g('data-tknew'); })[0]; if (!a) return; b.disabled = true;
-      tkRun(function (api) { return api.create(a.key, a.name); }, '✔ ' + esc(a.name) + ' さんのやり取りを使えるようにしました。「💬 開く」でリンクをコピーできます（個人ページのリンクを作り直すと、そこにも入ります）。'); }
+      tkRun(function (api) { return api.create(a.key, a.name); }, '✔ ' + esc(a.name) + ' さんのやり取りを使えるようにしました。「💬 開く」で選手専用のリンクをコピーして、本人にだけ送ってください（個人ページのリンクには入りません）。'); }
     else if (g('data-tkopen') || g('data-tkreload')) openThread(g('data-tkopen') || g('data-tkreload'));
     else if (g('data-tkact')) { var on = g('data-on') === '1'; if (!on && !confirm('このやり取りを停止します。選手の画面から欄が消えます（再開できます）。よろしいですか？')) return;
-      tkRun(function (api) { return api.setActive(g('data-tkact'), on); }, on ? '✔ 再開しました' : '✔ 停止しました').then(function () { if (TK.cur === g('data-tkact')) openThread(TK.cur); }); }
-    else if (g('data-tkrm')) { if (!confirm('このやり取り（ひとこと・返信・送られた体調メモ）を全部削除します。元に戻せません。リンクも使えなくなります。よろしいですか？')) return;
-      var rid = g('data-tkrm'); tkRun(function (api) { return api.remove(rid); }, '✔ 削除しました').then(function () { if (TK.cur === rid) { TK.cur = ''; $('rbTalkThread').hidden = true; } }); }
+      tkRun(function (api) { return api.setActive(g('data-tkact'), on); }, on ? '✔ 再開しました' : '✔ 停止しました').then(function (ok) { if (ok && TK.cur === g('data-tkact')) openThread(TK.cur); }); }
+    else if (g('data-tkrm')) { if (!confirm('このやり取り（ひとこと・返信・送られた体調メモ）を全部削除します。先に投稿を止めてから消します。元に戻せません。リンクも使えなくなります。よろしいですか？')) return;
+      var rid = g('data-tkrm'); tkRun(function (api) { return api.remove(rid); }, '✔ 削除しました').then(function (ok) { if (ok && TK.cur === rid) { TK.cur = ''; $('rbTalkThread').hidden = true; } }); }
+    else if (g('data-tkmore')) moreThread(g('data-tkmore'), b);
+    else if (g('data-tkrenew')) { var oid = g('data-tkrenew'), ra = tkAthletes().filter(function (x) { return x.key === g('data-key'); })[0]; if (!ra) return;
+      if (!confirm('v0.24 で作ったやり取りを閉じて中身を消し、新しいリンクを作ります。新しいリンクを選手に送り直してください。よろしいですか？')) return; b.disabled = true;
+      tkRun(async function (api) { await api.remove(oid); await api.create(ra.key, ra.name); }, '✔ 作り直しました。「💬 開く」で新しいリンクをコピーして、本人にだけ送ってください。'); }
     else if (g('data-tkclose')) { TK.cur = ''; $('rbTalkThread').hidden = true; }
     else if (g('data-tkcopy')) copyT($('rbTkLink').value, b, '📋 リンクをコピー');
-    else if (g('data-tknote')) { var nid = g('data-tknote'), v = $('rbTkNote').value.trim(); tkRun(function (api) { return api.setNote(nid, v); }, '✔ ひとことを保存しました').then(function () { openThread(nid); }); }
-    else if (g('data-tkreply')) { var pid = g('data-tkreply'), t = $('rbTkReply').value.trim(); if (!t) return; b.disabled = true; tkRun(function (api) { return api.reply(pid, t); }, '✔ 送りました').then(function () { openThread(pid); }); }
-    else if (g('data-tkdel')) { if (!confirm('このメッセージを削除しますか？')) return; var cid = TK.cur, mid = g('data-tkdel'); tkRun(function (api) { return api.delMsg(cid, mid); }, '✔ 削除しました').then(function () { openThread(cid); }); }
+    else if (g('data-tknote')) { var nid = g('data-tknote'), v = $('rbTkNote').value.trim(); tkRun(function (api) { return api.setNote(nid, v); }, '✔ ひとことを保存しました').then(function (ok) { if (ok && TK.cur === nid) openThread(nid); }); }
+    else if (g('data-tkreply')) { var pid = g('data-tkreply'), t = $('rbTkReply').value.trim(); if (!t) return; b.disabled = true; tkRun(function (api) { return api.reply(pid, t); }, '✔ 送りました').then(function (ok) { b.disabled = false; if (ok && TK.cur === pid) openThread(pid); }); }
+    else if (g('data-tkdel')) { if (!confirm('このメッセージを削除しますか？')) return; var cid = TK.cur, mid = g('data-tkdel'); tkRun(function (api) { return api.delMsg(cid, mid); }, '✔ 削除しました').then(function (ok) { if (ok && TK.cur === cid) openThread(cid); }); }
   });
   $('rbPPBack').addEventListener('click', function () { $('rbPPScreen').hidden = true; document.body.classList.remove('pps-open'); });
   $('rbPPDiv').addEventListener('click', function (e) { var d = e.target.getAttribute('data-ppdiv'); if (d) { PPS.div = d; renderPPNames(); } });

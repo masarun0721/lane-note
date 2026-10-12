@@ -12,30 +12,30 @@ const W = ms => new Promise(r => setTimeout(r, ms));
 const p = await b.newPage(); await p.setBypassServiceWorker(true); await p.setViewport({ width: 1200, height: 900 });
 await p.goto(`http://127.0.0.1:${port}/records.html`, { waitUntil: 'networkidle0' });
 await p.evaluate(async () => {
-  const R = window.ResultParser, recs = [], add = o => { const r = Object.assign({ team: '本郷中', date: '2026-10-11', meet: '第74回 北区中学校陸上競技大会', wind: '' }, o); r.id = R.recId(r.meet, r.date, r); recs.push(r); };
+  const R = window.ResultParser, recs = [], add = o => { const r = Object.assign({ team: '架空第一中', date: '2026-10-11', meet: '第74回 架空区中学校陸上競技大会', wind: '' }, o); r.id = R.recId(r.meet, r.date, r); recs.push(r); };
   for (let i = 0; i < 12; i++) for (let k = 0; k < 3 + i % 5; k++) add({ name: '選手' + i + '_' + k, event: '中学共通男子' + (100 + i * 100) + 'm', mark: (13 + i + k / 10).toFixed(2), wind: '+0.5', grade: String(1 + k % 3), rank: String(k + 1) });
-  add({ name: '赤木 奏介', event: '中学共通 砲丸投(5.000kg)', mark: '9m54', grade: '3', rank: '1' });
-  document.getElementById('rbSchool').value = '本郷中'; await window.__t.putMany(recs, window.__t.scope()); await window.__t.reload(window.__t.scope()); window.__t.setTab('meet');
+  add({ name: '見本 奏太', event: '中学共通 砲丸投(5.000kg)', mark: '9m54', grade: '3', rank: '1' });
+  document.getElementById('rbSchool').value = '架空第一中'; await window.__t.putMany(recs, window.__t.scope()); await window.__t.reload(window.__t.scope()); window.__t.setTab('meet');
 });
 await W(300);
 await p.evaluate(() => { const c = document.querySelector('[data-onepage]'); if (!c.checked) c.click(); document.querySelector('[data-print="meet"][data-act="view"]').click(); });
 await W(300);
-await check('画面で見る：砲丸投の箱に 赤木 奏介・9m54 の行がある／タイトルは下のカードと同じ左端', async () => {
+await check('画面で見る：砲丸投の箱に 見本 奏太・9m54 の行がある／タイトルは下のカードと同じ左端', async () => {
   const r = await p.evaluate(() => { const box = [...document.querySelectorAll('#rbPrintBody .lp-box')].find(x => /砲丸投/.test(x.textContent)); const L = s => document.querySelector('#rbPrintBody ' + s).getBoundingClientRect().left;
     return { rows: box.querySelectorAll('tbody tr').length, txt: box.textContent, bl: L('.lp-bl'), sum: L('.lp-sum') }; });
-  assert.equal(r.rows, 1); assert.match(r.txt, /赤木 奏介/); assert.match(r.txt, /9m54/); assert.ok(Math.abs(r.bl - r.sum) <= 4, JSON.stringify(r));
+  assert.equal(r.rows, 1); assert.match(r.txt, /見本 奏太/); assert.match(r.txt, /9m54/); assert.ok(Math.abs(r.bl - r.sum) <= 4, JSON.stringify(r));
 });
-await check('印刷：PDFに保存した文字に 赤木 奏介・9m54', async () => {
+await check('印刷：PDFに保存した文字に 見本 奏太・9m54', async () => {
   await p.emulateMediaType('print'); const pdf = await p.pdf({ format: 'A4', printBackground: true }); await p.emulateMediaType(null);
   fs.writeFileSync('/tmp/v0231_print.pdf', pdf);
   const { execSync } = await import('node:child_process'); const t = execSync('pdftotext /tmp/v0231_print.pdf -').toString();
-  assert.match(t, /赤木\s*奏介/); assert.match(t, /9m54/);
+  assert.match(t, /見本\s*奏太/); assert.match(t, /9m54/);
 });
 await check('PDF作成（html2canvas）：PDF用のHTMLに行があり、zoom・sticky を使わず、描いた範囲が行の下端まで届く', async () => {
   const r = await p.evaluate(async () => {
     await LanePdf.load('h2c'); await LanePdf.load('jspdf');
     const orig = window.html2canvas, seen = [];
-    window.html2canvas = async (body, o) => { const d = body.ownerDocument, tr = [...d.querySelectorAll('tbody tr')].find(x => /赤木/.test(x.textContent)), top0 = d.body.getBoundingClientRect().top;
+    window.html2canvas = async (body, o) => { const d = body.ownerDocument, tr = [...d.querySelectorAll('tbody tr')].find(x => /見本/.test(x.textContent)), top0 = d.body.getBoundingClientRect().top;
       const th = d.querySelector('.lp-box th'), hd = d.querySelector('.lp-boxh'), cv = await orig(body, o);
       seen.push({ html: d.body.innerHTML.includes('9m54'), rowBottom: tr ? tr.getBoundingClientRect().bottom - top0 : -1, y: o.y, h: o.height, cvh: cv.height / (o.scale || 1), zoom: d.defaultView.getComputedStyle(d.querySelector('.lp-one') || d.body).zoom, thPos: d.defaultView.getComputedStyle(th).position, gap: th.getBoundingClientRect().top - hd.getBoundingClientRect().bottom });
       return cv; };

@@ -1,9 +1,12 @@
 /* ===== v0.24：選手とのやり取り（顧問がオンにしたときだけ）
    ・Firestore の talks/{tid}（tid は推測できない20文字）。顧問が Google ログインで作り、選手はリンク（?t=tid／個人ページ）だけで読む・書く
    ・使える期間は作ってから119日。顧問が「停止」すると、選手からは見えなくなる（欄ごと出さない）。削除もできる
-   ・選手が先生に見せる体調メモは「先生に送る」を押した日の分だけ。ほかはスマホの中だけ
+   ・（v0.24.3 から）体調メモを先生に送る機能は止めている。体調メモはスマホの中だけ
    ・顧問側の読み書きは、始めたときのアカウント（uid）と世代（epoch）に固定する（A01）。選手側は画面ごとの世代で古い結果を捨てる
-   ・あとで選手のログインを選べるようにするときは、talks に選手の uid を足し、ルールで from:'p' の書き込みをその uid に絞る */
+   ・あとで選手のログインを選べるようにするときは、talks に選手の uid を足し、ルールで from:'p' の書き込みをその uid に絞る
+   ・v0.25（Astra 第3回監査）：削除は「閉じる（印を残す）→ メッセージを消す」の順。本体は消さないので同じIDは作り直せない（C301）
+     投稿は数 n を1つ増やすまとめ書き（msgs/m<n>）。3秒に1回・1会話1000件まで（ルールで制限：C303）。読むのは新しい順に50件ずつ
+     招待リンクは個人ページに入れない。顧問がやり取りの画面から1人ずつ渡す（C302）。体調メモの送信は止めたまま */
 var LaneTalk = (function () {
   'use strict';
   var FB_VER = '10.14.1', DAYS = 119, MAXLEN = 500, SKEY = 'lanenote.talks.v1', SENTKEY = 'lanenote.talksent.v1';
@@ -31,14 +34,36 @@ var LaneTalk = (function () {
     return FBP;
   }
   function setFirebase(x) { FBP = x; }   // テスト用
-  async function readTalk(F, fs, tid) {
+  var PAGE = 50;
+  /* 新しい順に50件ずつ読む（C303：古い200件だけになる問題を直す）。before を渡すとその前の50件 */
+  async function readTalk(F, fs, tid, before) {
     var d = await F.getDoc(F.doc(fs, 'talks', tid));
     if (!d.exists()) { var e = new Error('このやり取りは削除されました'); e.code = 'not-found'; throw e; }
-    var q = F.query(F.collection(fs, 'talks', tid, 'msgs'), F.orderBy('createdAt'), F.limit(200));
-    var s = await F.getDocs(q), msgs = [];
-    s.forEach(function (x) { var v = x.data() || {}; msgs.push({ id: x.id, from: v.from === 't' ? 't' : 'p', body: String(v.body || ''), cond: v.cond || null, at: v.createdAt }); });
-    return { talk: d.data(), msgs: msgs };
+    var t = d.data() || {};
+    if (t.closed) { var e2 = new Error('このやり取りは削除されました'); e2.code = 'not-found'; throw e2; }
+    var parts = [F.collection(fs, 'talks', tid, 'msgs'), F.orderBy('createdAt', 'desc')];
+    if (before && F.startAfter) parts.push(F.startAfter(before));
+    parts.push(F.limit(PAGE));
+    var s = await F.getDocs(F.query.apply(null, parts)), msgs = [], last = null;
+    s.forEach(function (x) { var v = x.data() || {}; last = x; msgs.push({ id: x.id, from: v.from === 't' ? 't' : 'p', body: String(v.body || ''), cond: v.cond || null, at: v.createdAt }); });
+    msgs.reverse();
+    return { talk: t, msgs: msgs, more: msgs.length >= PAGE ? last : null };
   }
+  /* 投稿：数 n を読んで、msgs/m<n+1> と数の更新を1回のまとめ書き。ぶつかったら1回だけやり直す（C303） */
+  async function postMsg(F, fs, tid, data) {
+    for (var tries = 0; ; tries++) {
+      var g = F.getDocFromServer || F.getDoc, d = await g(F.doc(fs, 'talks', tid));
+      if (!d.exists()) { var e = new Error('gone'); e.code = 'not-found'; throw e; }
+      var t = d.data() || {}, n = (typeof t.n === 'number' ? t.n : 0) + 1, b = F.writeBatch(fs), o = {};
+      Object.keys(data).forEach(function (k) { o[k] = data[k]; });
+      o.createdAt = F.serverTimestamp(); o.purgeAt = t.expiresAt;
+      b.set(F.doc(fs, 'talks', tid, 'msgs', 'm' + n), o);
+      b.update(F.doc(fs, 'talks', tid), { n: n, lastAt: F.serverTimestamp() });
+      try { await b.commit(); return 'm' + n; }
+      catch (err) { if (tries >= 1 || !err || err.code !== 'permission-denied') throw err; await new Promise(function (r) { setTimeout(r, 400); }); }
+    }
+  }
+  function postErr(e) { return e && e.code === 'permission-denied' ? '続けて送るときは3秒あけてください。先生がやり取りを止めたか、期限が切れた場合も送れません' : (e && e.code === 'not-found' ? 'このやり取りは削除されました' : '電波の良いところでもう一度'); }
   var FACES = ['', '😣', '😟', '😐', '🙂', '😄'];
   function condText(c) { if (!c) return ''; var p = String(c.d || '').split('-'); return '📝 ' + (p.length === 3 ? (+p[1]) + '月' + (+p[2]) + '日の体調：' : '体調：') + [c.s ? FACES[c.s] + ' ' + c.s + '/5' : '', c.sl != null ? '😴 ' + c.sl + '時間' : '', c.m ? '「' + c.m + '」' : ''].filter(Boolean).join('・'); }
   function msgsHtml(msgs, me, delBtn) {
@@ -65,36 +90,40 @@ var LaneTalk = (function () {
     }
     if (gen !== box.__tkGen) return false;
     remember(tid, r.talk.name);
-    var sent = ls(SENTKEY)[tid] || {}, conds = window.LanePersonal ? LanePersonal.cList() : [];
     box.hidden = false;
-    box.innerHTML = '<h3>💬 先生とのやり取り</h3>' +
+    var older = [];
+    // C306：だれのやり取りかを見出しに出す（同じ端末を何人かで使うとき）
+    box.innerHTML = '<h3>💬 先生とのやり取り<small class="tk-who">（' + esc(r.talk.name || '選手') + ' さん）</small></h3>' +
       (r.talk.note ? '<div class="tk-note"><small>先生からのひとこと</small><p>' + esc(r.talk.note) + '</p></div>' : '') +
-      msgsHtml(r.msgs, 'p', false) +
+      (r.more ? '<button type="button" class="tk-more">前のやり取りを見る</button>' : '') +
+      '<div class="tk-list">' + msgsHtml(r.msgs, 'p', false) + '</div>' +
       '<div class="tk-form"><textarea class="tk-in" maxlength="' + MAXLEN + '" rows="2" placeholder="先生への返信（500文字まで）" aria-label="先生への返信"></textarea><button type="button" class="tk-send">送る</button></div>' +
-      '<div class="tk-condsend"><label>体調メモを先生に送る <select class="tk-cday" aria-label="送る日"><option value="">日付を選ぶ</option>' + conds.slice(0, 14).map(function (c) { return '<option value="' + esc(c.d) + '">' + esc(LanePersonal.mdLabel(c.d)) + (sent[c.d] ? '（送信済み）' : '') + '</option>'; }).join('') + '</select></label><button type="button" class="tk-csend">📤 先生に送る</button>' +
-      '<p class="tk-small">送るのは選んだ日の分だけです。ほかの体調メモはこのスマホの中だけにあります。' + (conds.length ? '' : '（まだ体調メモがありません）') + '</p></div>' +
+      '<p class="tk-small">体調メモを先生に送る機能は、安全のため止めています（v0.25）。体調メモはこのスマホの中だけに残ります。</p>' +
       '<div class="tk-msg" role="status" aria-live="polite"></div><p class="tk-warn">' + WARN + '</p>';
     var msg = box.querySelector('.tk-msg');
     async function post(data, btn) {
       btn.disabled = true; msg.textContent = '送っています…';
       try {
-        var x = await fb(); data.createdAt = x.F.serverTimestamp();
-        await x.F.setDoc(x.F.doc(x.fs, 'talks', tid, 'msgs', newId()), data);
+        var x = await fb();
+        await postMsg(x.F, x.fs, tid, data);
         if (gen !== box.__tkGen) return;
-        if (data.cond) { var all = ls(SENTKEY); all[tid] = all[tid] || {}; all[tid][data.cond.d] = new Date().toISOString(); ls(SENTKEY, all); }
         renderPlayer(box, tid, opts);
-      } catch (e) { if (gen === box.__tkGen) { btn.disabled = false; msg.textContent = '送れませんでした（' + (e.code === 'permission-denied' ? '先生がやり取りを止めたか、期限が切れました' : '電波の良いところでもう一度') + '）'; } }
+      } catch (e) { if (gen === box.__tkGen) { btn.disabled = false; msg.textContent = '送れませんでした（' + postErr(e) + '）'; } }
     }
+    var mb = box.querySelector('.tk-more'), cur = r.more;
+    if (mb) mb.addEventListener('click', async function () {
+      mb.disabled = true;
+      try {
+        var x = await fb(), r2 = await readTalk(x.F, x.fs, tid, cur);
+        if (gen !== box.__tkGen) return;
+        older = r2.msgs.concat(older); cur = r2.more;
+        box.querySelector('.tk-list').innerHTML = msgsHtml(older.concat(r.msgs), 'p', false);
+        if (cur) mb.disabled = false; else mb.remove();
+      } catch (e) { if (gen === box.__tkGen) { mb.disabled = false; msg.textContent = '読みこめませんでした'; } }
+    });
     box.querySelector('.tk-send').addEventListener('click', function () {
       var t = box.querySelector('.tk-in').value.trim().slice(0, MAXLEN); if (!t) { msg.textContent = '返信を入れてください'; return; }
       post({ from: 'p', body: t }, this);
-    });
-    box.querySelector('.tk-csend').addEventListener('click', function () {
-      var d = box.querySelector('.tk-cday').value; if (!d) { msg.textContent = '送る日を選んでください'; return; }
-      var c = LanePersonal.cGet(d); if (!c) { msg.textContent = 'その日の体調メモがありません'; return; }
-      var o = { d: d }; if (c.s) o.s = c.s; if (c.sl != null) o.sl = c.sl; if (c.m) o.m = String(c.m).slice(0, 100);
-      if (!confirm(LanePersonal.mdLabel(d) + 'の体調メモを先生に送ります。送ったものは先生が見られます。よろしいですか？')) return;
-      post({ from: 'p', body: '', cond: o }, this);
     });
     return true;
   }
@@ -117,6 +146,8 @@ var LaneTalk = (function () {
   }
 
   /* ---------- 顧問側（records.html）。FB={F,fs}・sc={uid,epoch}・check(sc) を呼ぶ側が渡す ---------- */
+  /* この端末から、やり取りのリンクと送った記録を全部消す（C306） */
+  function clearDevice() { try { localStorage.removeItem(SKEY); localStorage.removeItem(SENTKEY); } catch (e) {} }
   function T(FB, sc, check) {
     if (!sc || !sc.uid) throw new Error('Googleでログインすると使えます');
     var F = FB.F, fs = FB.fs, uid = sc.uid;
@@ -126,13 +157,13 @@ var LaneTalk = (function () {
       setEnabled: async function (on) { await F.setDoc(F.doc(fs, 'users', uid, 'settings', 'talk'), { enabled: !!on, updatedAt: new Date().toISOString() }); ok(); },
       index: async function () {
         var s = await F.getDocs(F.collection(fs, 'users', uid, 'talkIndex')); ok(); var out = [];
-        s.forEach(function (d) { var v = d.data() || {}; out.push({ id: d.id, akey: String(v.akey || ''), name: String(v.name || ''), active: !!v.active, exp: ms(v.expiresAt), at: ms(v.createdAt) }); });
+        s.forEach(function (d) { var v = d.data() || {}; out.push({ id: d.id, akey: String(v.akey || ''), name: String(v.name || ''), active: !!v.active, exp: ms(v.expiresAt), at: ms(v.createdAt), v: v.v === 2 ? 2 : 1, closed: !!v.closed, purged: !!v.purged }); });
         return out;
       },
       create: async function (akey, name) {
         var id = newId(), exp = F.Timestamp.fromMillis(Date.now() + DAYS * 864e5), b = F.writeBatch(fs);
-        b.set(F.doc(fs, 'talks', id), { ownerUid: uid, name: String(name).slice(0, 60) || '選手', note: '', noteAt: F.serverTimestamp(), active: true, createdAt: F.serverTimestamp(), expiresAt: exp });
-        b.set(F.doc(fs, 'users', uid, 'talkIndex', id), { akey: String(akey).slice(0, 200), name: String(name).slice(0, 60), active: true, createdAt: F.serverTimestamp(), expiresAt: exp });
+        b.set(F.doc(fs, 'talks', id), { v: 2, ownerUid: uid, name: String(name).slice(0, 60) || '選手', note: '', noteAt: F.serverTimestamp(), active: true, closed: false, n: 0, lastAt: F.serverTimestamp(), createdAt: F.serverTimestamp(), expiresAt: exp });
+        b.set(F.doc(fs, 'users', uid, 'talkIndex', id), { v: 2, akey: String(akey).slice(0, 200), name: String(name).slice(0, 60), active: true, closed: false, createdAt: F.serverTimestamp(), expiresAt: exp });
         ok(); await b.commit(); ok(); return id;
       },
       setActive: async function (id, on) {
@@ -142,18 +173,40 @@ var LaneTalk = (function () {
         ok(); await b.commit(); ok();
       },
       setNote: async function (id, note) { ok(); await F.updateDoc(F.doc(fs, 'talks', id), { note: String(note).slice(0, MAXLEN), noteAt: F.serverTimestamp() }); ok(); },
-      read: async function (id) { ok(); var r = await readTalk(F, fs, id); ok(); return r; },
-      reply: async function (id, body) { ok(); await F.setDoc(F.doc(fs, 'talks', id, 'msgs', newId()), { from: 't', body: String(body).slice(0, MAXLEN), createdAt: F.serverTimestamp() }); ok(); },
+      read: async function (id, before) { ok(); var r = await readTalk(F, fs, id, before); ok(); if (!r.talk || r.talk.ownerUid !== uid) { var e = new Error('このアカウントのやり取りではありません'); e.code = 'permission-denied'; throw e; } return r; },
+      reply: async function (id, body) { ok(); await postMsg(F, fs, id, { from: 't', body: String(body).slice(0, MAXLEN) }); ok(); },
       delMsg: async function (id, mid) { ok(); await F.deleteDoc(F.doc(fs, 'talks', id, 'msgs', mid)); ok(); },
-      remove: async function (id) {   // やり取りを丸ごと削除（メッセージ→本体→一覧の順）
-        ok(); var s = await F.getDocs(F.collection(fs, 'talks', id, 'msgs')); ok();
-        var ids = []; s.forEach(function (d) { ids.push(d.id); });
-        for (var i = 0; i < ids.length; i += 400) { var b = F.writeBatch(fs); ids.slice(i, i + 400).forEach(function (m) { b.delete(F.doc(fs, 'talks', id, 'msgs', m)); }); await b.commit(); ok(); }
-        var b2 = F.writeBatch(fs); b2.delete(F.doc(fs, 'talks', id)); b2.delete(F.doc(fs, 'users', uid, 'talkIndex', id)); await b2.commit(); ok();
+      /* 削除（C301）：①閉じる（投稿をサーバーで止める・名前とひとことを消す・本体は印として残す）→ ②メッセージを無くなるまで消す → ③一覧に「消した」印。途中で止まっても purge でやり直せる */
+      remove: async function (id) {
+        ok();
+        var b = F.writeBatch(fs);
+        b.update(F.doc(fs, 'talks', id), { closed: true, active: false, name: '', note: '' });
+        b.set(F.doc(fs, 'users', uid, 'talkIndex', id), { closed: true, active: false, name: '', akey: '' }, { merge: true });
+        try { await b.commit(); } catch (e) { if (!e || e.code !== 'permission-denied') throw e; ok(); var c = await F.getDoc(F.doc(fs, 'talks', id)); if (c.exists() && !(c.data() || {}).closed) throw e; }
+        ok(); await this.purge(id);
+      },
+      purge: async function (id) {
+        for (var round = 0; round < 100; round++) {
+          ok(); var s = await F.getDocs(F.query(F.collection(fs, 'talks', id, 'msgs'), F.limit(PAGE))); ok();
+          var ids = []; s.forEach(function (d) { ids.push(d.id); });
+          if (!ids.length) break;
+          var b = F.writeBatch(fs); ids.forEach(function (m) { b.delete(F.doc(fs, 'talks', id, 'msgs', m)); }); await b.commit();
+        }
+        ok(); await F.setDoc(F.doc(fs, 'users', uid, 'talkIndex', id), { purged: true }, { merge: true }); ok();
+      },
+      /* 期限切れ・閉じたのに消し終わっていないものを片づける（C307：顧問がやり取りの画面を開いたとき） */
+      sweep: async function (list) {
+        var now = Date.now(), done = 0;
+        for (var i = 0; i < list.length; i++) {
+          var t = list[i]; if (t.purged) continue;
+          if (t.closed) { await this.purge(t.id); done++; }
+          else if (t.exp && t.exp < now) { await this.remove(t.id); done++; }
+        }
+        return done;
       },
       dropIndex: async function (id) { ok(); await F.deleteDoc(F.doc(fs, 'users', uid, 'talkIndex', id)); ok(); }
     };
   }
-  return { validId: validId, newId: newId, linkFor: linkFor, remember: remember, forget: forget, saved: saved, renderPlayer: renderPlayer, renderHomeCard: renderHomeCard, initLink: initLink, msgsHtml: msgsHtml, condText: condText, teacher: T, setFirebase: setFirebase, WARN: WARN, DAYS: DAYS, esc: esc, when: when };
+  return { clearDevice: clearDevice, postMsg: postMsg, readTalk: readTalk, PAGE: PAGE, validId: validId, newId: newId, linkFor: linkFor, remember: remember, forget: forget, saved: saved, renderPlayer: renderPlayer, renderHomeCard: renderHomeCard, initLink: initLink, msgsHtml: msgsHtml, condText: condText, teacher: T, setFirebase: setFirebase, WARN: WARN, DAYS: DAYS, esc: esc, when: when };
 })();
 if (typeof module !== 'undefined') module.exports = LaneTalk;
