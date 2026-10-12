@@ -680,7 +680,6 @@ body.fb-open{overflow:hidden}
     <details class="small"><summary><b>作った短いリンク</b>（一覧・共有を止める）</summary><div class="myShares" id="shareMine"></div></details>
   </div>
 </div>
-__MODEPICK__
 <div id="playerDlg" class="dlg" hidden role="dialog" aria-modal="true" aria-labelledby="plTtl">
   <div class="dlg-in">
     <h3 id="plTtl">🏃 選手用リンク（1人ずつ）</h3>
@@ -798,6 +797,8 @@ __MODEPICK__
 <div id="printTime" class="psheet"></div>
 <div id="recSheet" class="psheet"></div>
 </main>
+<!-- v0.24.2：モードを選ぶ画面は main の外に置く（選手モードでは main の中のほかの要素を隠すため、中にあると開けなかった） -->
+__MODEPICK__
 <footer><details class="about" id="about"><summary><b>このツールについて</b>（版・利用条件・ライセンス・既知の制限）</summary>
   <ul>
     <li><b>LANE NOTE（レーンノート）試作版</b>　版：<span class="appver"></span>（__BUILD_DATE__ 作成）／ Presented by Sakata</li>
