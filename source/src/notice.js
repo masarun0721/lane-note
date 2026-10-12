@@ -8,7 +8,7 @@ var LaneNotice = (function () {
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
   var WD = ['日', '月', '火', '水', '木', '金', '土'];
   var MIN_FS = 8, MAX_STR = 2000;
-  var SEC_LABEL = { header: '宛先・日付・学校名', title: 'タイトル', greeting: 'あいさつ', points: '要点（日にち・競技場・集合など）', belongings: '持ち物', cautions: 'その他注意事項', contact: '連絡先', athletes: '出場選手表', schedule: '時間順の予定', free: '自由欄' };
+  var SEC_LABEL = { header: '宛先・日付・学校・クラブ名', title: 'タイトル', greeting: 'あいさつ', points: '要点（日にち・競技場・集合など）', belongings: '持ち物', cautions: 'その他注意事項', contact: '連絡先', athletes: '出場選手表', schedule: '時間順の予定', free: '自由欄' };
   function defaults() {
     return {
       v: 2, layout: 'std', font: 'gothic', accent: 'navy', mono: false, size: 10.5, fit: true, era: 'wareki',

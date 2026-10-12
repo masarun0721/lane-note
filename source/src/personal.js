@@ -27,7 +27,7 @@ var LanePersonal = (function () {
     if (!c) return '';
     return '<span class="cd-badge">' + [c.s ? FACES[c.s] + ' 体調' + c.s : '', c.sl != null ? '😴 ' + c.sl + '時間' : '', c.m ? '「' + esc(c.m) + '」' : ''].filter(Boolean).join('・') + '</span>';
   }
-  var PRIV = '🔒 このスマホにだけ保存します。先生やほかの人には見えません（送信もしません）。';
+  var PRIV = '🔒 このスマホにだけ保存します。先生やほかの人には見えません（送信もしません）。先生とのやり取りで「📤 先生に送る」を押した日の分だけは、先生が見られます。';
   function condFormHtml(d, title) {
     var c = cGet(d) || {};
     return '<div class="cd-box" data-cdday="' + esc(d) + '"><h3>' + esc(title || '体調メモ') + '</h3>' +
@@ -98,7 +98,8 @@ var LanePersonal = (function () {
           x: arr(e.x, MAX_X).map(function (p) { var r = row(p, 4); return { date: r[0], mark: r[1], meet: r[2], round: r[3] }; }),
           r: arr(e.r, MAX_R).map(function (p) { return row(p, 6); }) };
       }),
-      nx: o.nx && typeof o.nx === 'object' && /^[A-Za-z0-9]{6,40}$/.test(String(o.nx.s || '')) ? { s: String(o.nx.s), n: S(o.nx.n, 100) } : null };
+      nx: o.nx && typeof o.nx === 'object' && /^[A-Za-z0-9]{6,40}$/.test(String(o.nx.s || '')) ? { s: String(o.nx.s), n: S(o.nx.n, 100) } : null,
+      tk: /^[A-Za-z0-9]{20}$/.test(String(o.tk || '')) ? String(o.tk) : '' };   // v0.24：先生とのやり取り（先生がオンにしたときだけ入る）
   }
   function snapLabel(g) { var d = g ? new Date(g) : null; return d && !isNaN(d) ? (d.getMonth() + 1) + '月' + d.getDate() + '日' : '作成した日'; }
   var VIEW = { official: false, nm: true, ev: '' };

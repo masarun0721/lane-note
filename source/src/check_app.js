@@ -140,7 +140,7 @@
     var box = $('ckTeams');
     if (!st.sl) { box.innerHTML = '<span class="muted small">先にスタートリストを入れてください</span>'; return; }
     var q = $('ckSchool').value.trim();
-    if (!q) { box.innerHTML = '<span class="muted small">学校名（一部でOK）を入れると候補が出ます</span>'; st.teams = []; return; }
+    if (!q) { box.innerHTML = '<span class="muted small">学校・クラブ名（一部でOK）を入れると候補が出ます</span>'; st.teams = []; return; }
     var found = MeetLogic.findTeams(st.sl, q);
     if (!found.length) { box.innerHTML = '<span class="warn">「' + esc(q) + '」を含む所属が見つかりません</span>'; st.teams = []; return; }
     if (box.dataset.q !== q) { var auto = st.ent ? E.pickTeams(st.ent, found) : []; st.teams = found.length === 1 ? found.slice() : auto.length ? auto : st.teams.filter(function (t) { return found.indexOf(t) >= 0; }); }

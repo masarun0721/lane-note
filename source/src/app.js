@@ -612,7 +612,7 @@
     var box = $('teamList');
     if (!state.sl) { box.innerHTML = '<span class="muted">先にスタートリストを入れてください</span>'; return; }
     var q = $('school').value.trim();
-    if (!q) { box.innerHTML = '<span class="muted">学校名（一部でOK）を入れると候補が出ます</span>'; state.teams = []; return; }
+    if (!q) { box.innerHTML = '<span class="muted">学校・クラブ名（一部でOK）を入れると候補が出ます</span>'; state.teams = []; return; }
     var found = MeetLogic.findTeams(state.sl, q);
     var prev = new Set(state.teams);
     var counts = {};
@@ -940,7 +940,7 @@
     h += '<details class="nt-box" id="ntSchool"' + (T.school ? '' : ' open') + '><summary><h3>⚙ 学校の設定（毎回同じ）</h3></summary>' +
       '<div class="nt-lay" role="radiogroup" aria-label="レイアウト">' + [['std', 'スタンダード'], ['table', 'カード'], ['clean', 'ミニマル']].map(function (l) { return '<button type="button" role="radio" aria-checked="' + (T.layout === l[0]) + '" class="nt-th' + (T.layout === l[0] ? ' on' : '') + '" style="color:' + LaneNotice.colors(T).a + '" data-layout="' + l[0] + '">' + LaneNotice.THUMB[l[0]] + '<span>' + l[1] + '</span></button>'; }).join('') + '</div>' +
       '<div class="nt-f"><span>アクセントの色</span><div class="nt-acc" role="radiogroup" aria-label="アクセントの色">' + Object.keys(LaneNotice.ACCENT).map(function (k) { return '<button type="button" role="radio" aria-checked="' + (T.accent === k) + '" class="nt-sw' + (T.accent === k ? ' on' : '') + '" data-accent="' + k + '" style="--c:' + LaneNotice.ACCENT[k] + '" title="' + LaneNotice.ACCENT_NAME[k] + '"><i></i>' + LaneNotice.ACCENT_NAME[k] + '</button>'; }).join('') + '</div><label class="nt-c"><input type="checkbox" data-t="mono"' + (T.mono ? ' checked' : '') + '> 白黒印刷向け（色を使わず、黒と灰色だけにする）</label></div>' +
-      ['school:学校名', 'club:部活名', 'to:宛先', 'title:タイトル（{大会名} が入ります）', 'place:ふだんの集合場所'].map(function (p) { var k = p.split(':'); return '<label class="nt-f"><span>' + k[1] + '</span><input data-t="' + k[0] + '" value="' + e(T[k[0]]) + '"></label>'; }).join('') +
+      ['school:学校・クラブ名', 'club:部活・チーム名', 'to:宛先', 'title:タイトル（{大会名} が入ります）', 'place:ふだんの集合場所'].map(function (p) { var k = p.split(':'); return '<label class="nt-f"><span>' + k[1] + '</span><input data-t="' + k[0] + '" value="' + e(T[k[0]]) + '"></label>'; }).join('') +
       '<div class="nt-f"><span>競技場</span><button type="button" class="btn sub nt-small" data-va="open">🏟 競技場の設定（' + T.venues.length + '件）</button></div>' +
       '<label class="nt-c"><input type="checkbox" data-t="fareInBelongings"' + (T.fareInBelongings ? ' checked' : '') + '> 交通費を「持ち物」にも書く（要点に出すかは下の「要点に出す項目」で）</label>' +
       '<div class="nt-f"><span>顧問名</span>' + list('advisors', T.advisors) + '</div>' +
@@ -1586,7 +1586,7 @@
       $('vMeta').textContent += viewing.shareId ? '　（保存しました：元のリンクの期限まで。止められたリンクは、次に電波のあるところで開いたときに消えます）' : '　（保存しました：長いリンクからのコピーなので、この端末で消すまで残ります）';
     } catch (e) { alert('保存できませんでした（ブラウザの設定・プライベートモード・容量の可能性）：' + e.message); }
   }
-  function closeViewer() { document.body.classList.remove('viewer-mode'); $('viewer').hidden = true; viewing = null; if (/^#d=/.test(location.hash) || /[?&]s=/.test(location.search)) history.replaceState(null, '', location.pathname); renderSaved(); }
+  function closeViewer() { document.body.classList.remove('viewer-mode'); $('viewer').hidden = true; viewing = null; if (/^#d=/.test(location.hash) || /[?&]s=/.test(location.search)) history.replaceState(null, '', location.pathname); renderSaved(); if (window.LaneMode) LaneMode.apply(); }
   function setupShare() {
     $('btnShare').addEventListener('click', openShare);
     if (window.LaneShareTip) { LaneShareTip.attach($('btnShare'), LaneShareTip.T.prep); LaneShareTip.attach($('btnPlayers'), LaneShareTip.T.prep); }
@@ -1793,6 +1793,7 @@
     var sch = await ppSchedules(o.a.name);
     if (!PP || PP.id !== id) return;
     LanePersonal.render(o, $('ppBody'), { base: shareBase(), schedules: sch.filter(function (x) { return !(o.nx && x.url === shareBase() + '?s=' + o.nx.s); }) });
+    $('ppTalk').hidden = true; $('ppTalk').innerHTML = ''; if (o.tk && window.LaneTalk) LaneTalk.renderPlayer($('ppTalk'), o.tk);   // v0.24：先生がやり取りをオンにしているときだけ出る
     window.scrollTo(0, 0);
   }
   function setupPlayer() {
@@ -1868,7 +1869,7 @@
     var c = $('ssClearBtn'); if (c) c.addEventListener('click', resetAll);
   });
   function resetAll() {
-    if (!confirm('読み込んだPDF・学校名・設定・枚数をすべて消して、新しい大会を始めます。よろしいですか？')) return;
+    if (!confirm('読み込んだPDF・学校・クラブ名・設定・枚数をすべて消して、新しい大会を始めます。よろしいですか？')) return;
     ssClear(); var sn = $('ssNote'); if (sn) sn.hidden = true;
     state.docText = {};
     Object.keys(loadSeq).forEach(function (k) { loadSeq[k]++; });   // 読み込み途中のものも捨てる

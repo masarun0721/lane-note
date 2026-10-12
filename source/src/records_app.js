@@ -356,7 +356,7 @@
   }
   // アカウントが変わったら、前の人の画面の中身（記録・読み込み途中の資料・入力欄）をすべて消す
   function resetView() {
-    ALL = []; batches = []; DONE = []; METS = {}; DIV_OV = {}; REVIEW = []; OFFLINE = false; MODE = { personal: false, name: '', team: '' }; PPL.links = {}; PPL.gen++; MSH = { key: '', url: '', name: '', busy: false, gen: MSH.gen + 1 }; try { applyModeUi(); $('rbPPList').innerHTML = ''; $('rbPPNames').innerHTML = ''; $('rbPPScreen').hidden = true; document.body.classList.remove('pps-open'); status('rbPPMsg', '', ''); } catch (e) { }
+    ALL = []; batches = []; DONE = []; METS = {}; DIV_OV = {}; REVIEW = []; OFFLINE = false; MODE = { personal: false, name: '', team: '' }; PPL.links = {}; PPL.gen++; MSH = { key: '', url: '', name: '', busy: false, gen: MSH.gen + 1 }; if (TK) { TK = { on: false, idx: [], cur: '', gen: TK.gen + 1 }; } try { $('rbTalkScreen').hidden = true; $('rbTalkThread').hidden = true; } catch (e) { } try { applyModeUi(); $('rbPPList').innerHTML = ''; $('rbPPNames').innerHTML = ''; $('rbPPScreen').hidden = true; document.body.classList.remove('pps-open'); status('rbPPMsg', '', ''); } catch (e) { }
     try { $('rbPaste').value = ''; $('rbFile').value = ''; status('rbStatus', '', ''); var d = $('rbDone'); d.innerHTML = ''; d.className = 'status'; status('rbDataStatus', '', ''); } catch (e) { }
     if (typeof manualReset === 'function') manualReset();
     renderBatches(); applyInference(); render();
@@ -421,7 +421,7 @@
     $('rbPersonal').checked = MODE.personal; $('rbPName').value = MODE.name; $('rbPTeam').value = MODE.team;
     $('rbSchoolRow').hidden = MODE.personal; $('rbPersonRow').hidden = !MODE.personal;
     document.body.classList.toggle('personal-on', MODE.personal);
-    var ml = $('rbMine').parentNode; if (ml && ml.lastChild) ml.lastChild.textContent = MODE.personal ? ' 自分の記録だけ' : ' 学校名の選手だけ';
+    var ml = $('rbMine').parentNode; if (ml && ml.lastChild) ml.lastChild.textContent = MODE.personal ? ' 自分の記録だけ' : ' 学校・クラブ名の選手だけ';
     if (MODE.personal && (view === 'rank' || view === 'hist')) setTab('home');
   }
   function cleanMode(o) { o = o && typeof o === 'object' ? o : {}; return { personal: !!o.personal, name: String(o.name || '').slice(0, 40), team: String(o.team || '').slice(0, 60) }; }
@@ -607,8 +607,8 @@
     else if (b.meta.guessed && !b.meta.typedName) ws.unshift('大会名は' + (b.meta.guessed === 'file' ? 'ファイル名' : '資料の見出し') + 'から推測しました。正しいか確かめて、違えば直してください。');
     if (!b.meta.date) ws.unshift('日付が資料から読み取れませんでした' + (b.meta.md ? '（「' + b.meta.md + '」はありますが年がわかりません）' : '') + '。手で入れてください。');
     if (MODE.personal) { if (!personOn()) ws.unshift('「個人で使う」の名前が空です。名前を入れると、その人の記録だけを拾います。'); else if (b.all.recs.length && !batchRecs(b).length) ws.unshift('「' + MODE.name + '」' + (MODE.team ? '（' + MODE.team + '）' : '') + 'の記録が見つかりませんでした。名前・所属の書き方を確かめてください。'); }
-    else if (q && b.all.recs.length && !batchRecs(b).length) ws.unshift('「' + q + '」の選手が見つかりませんでした。学校名の書き方（例：本郷高・本郷中）を確かめてください。');
-    if (!q && !MODE.personal) ws.unshift('学校名が空なので、全校の記録を表示しています。');
+    else if (q && b.all.recs.length && !batchRecs(b).length) ws.unshift('「' + q + '」の選手が見つかりませんでした。学校・クラブ名の書き方（例：本郷高・本郷中）を確かめてください。');
+    if (!q && !MODE.personal) ws.unshift('学校・クラブ名が空なので、全校の記録を表示しています。');
     return ws;
   }
   function recRow(r, extra) {
@@ -782,7 +782,7 @@
     var dupHtml = dups.length ? '<details class="card review" open><summary><span class="rv">要確認</span> <b>前の記録と同じかもしれない記録 ' + dups.length + '件</b></summary><p class="small muted">前に保存した記録にナンバーが無いなどで、同じ記録か別の選手か決められなかったので、消さずに入れました。</p><ul class="rvlist">' +
       dups.map(function (r) { var o = ALL.filter(function (x) { return x.id === r.dupOf; })[0]; return '<li><div><b>' + esc(r.name) + '</b> ' + esc(r.event) + ' <b>' + esc(r.mark) + '</b>' + (r.bib ? '（No.' + esc(r.bib) + '）' : '') + '<br><small class="muted">' + esc(r.date + ' ' + r.meet) + (o ? '／前の記録：' + esc(o.name + ' ' + o.mark) + (o.bib ? '（No.' + esc(o.bib) + '）' : '（ナンバーなし）') : '') + '</small></div><span class="rvbtn"><button type="button" class="btn sub" data-dupkeep="' + esc(r.id) + '">別の記録（両方残す）</button><button type="button" class="btn sub danger-t" data-dupdrop="' + esc(r.id) + '">同じ記録（こちらを消す）</button></span></li>'; }).join('') + '</ul></details>' : '';
     if (!list.length && !chosen.length) { box.innerHTML = dupHtml; return; }
-    box.innerHTML = dupHtml + (list.length ? '<details class="card review" open><summary><span class="rv">要確認</span> <b>中学か高校かわからない選手 ' + list.length + '人</b></summary><p class="small muted">所属が「' + esc(s || '学校名') + '」だけで、ほかの大会からも決められなかった選手です。選ぶとこの端末（ログイン中はクラウド）に覚えて、ランキングや自己ベストに入ります。選ぶまでは「すべて」にだけ出ます。</p><ul class="rvlist">' +
+    box.innerHTML = dupHtml + (list.length ? '<details class="card review" open><summary><span class="rv">要確認</span> <b>中学か高校かわからない選手 ' + list.length + '人</b></summary><p class="small muted">所属が「' + esc(s || '学校・クラブ名') + '」だけで、ほかの大会からも決められなかった選手です。選ぶとこの端末（ログイン中はクラウド）に覚えて、ランキングや自己ベストに入ります。選ぶまでは「すべて」にだけ出ます。</p><ul class="rvlist">' +
       list.map(function (x) { return '<li><div><b>' + esc(x.name) + '</b>' + (x.kana ? ' <small class="muted">' + esc(x.kana) + '</small>' : '') + '<br><small class="muted">' + esc(x.team) + '・' + x.ids.length + '件（' + esc(x.dates[0]) + (x.dates.length > 1 && x.dates[x.dates.length - 1] !== x.dates[0] ? '〜' + esc(x.dates[x.dates.length - 1]) : '') + '）<br>' + esc(x.reason) + '</small></div><span class="rvbtn"><button type="button" class="btn sub" data-divpick="jh" data-person="' + esc(x.person) + '">中学</button><button type="button" class="btn sub" data-divpick="hs" data-person="' + esc(x.person) + '">高校</button></span></li>'; }).join('') + '</ul></details>' : '') +
       (chosen.length ? '<details class="small rvdone"><summary>中学/高校を選んだ選手（' + chosen.length + '人）</summary><ul>' + chosen.map(function (k) { return '<li>' + esc(k.split('@')[0]) + '：' + R.divLabel(DIV_OV[k]) + ' <button type="button" class="btn sub" data-divpick="" data-person="' + esc(k) + '">選び直す</button></li>'; }).join('') + '</ul></details>' : '');
   }
@@ -839,6 +839,8 @@
     try { list = await getAll(sc); } catch (e) { if (isAbort(e)) return; list = []; status('rbDataStatus', '✖ ' + esc(e.message), 'ng'); }
     try { side = await loadSide(sc); } catch (e) { if (isAbort(e)) return; side = { mets: {}, ov: {} }; }
     var md; try { md = await loadMode(sc); } catch (e) { if (isAbort(e)) return; md = MODE; }
+    // v0.24：選手モードの「自分の記録をつける」（records.html?me=1）から来たら「個人で使う」にする（名前はあとで入れる）
+    if (/[?&]me=1(?:&|$)/.test(location.search) && !md.personal) md = cleanMode(Object.assign({}, md, { personal: true }));
     if (sc.epoch !== authEpoch) return;
     ALL = list; METS = side.mets; DIV_OV = side.ov; MODE = md; applyModeUi();
     applyInference(); render(); if (CLOUD_READY) renderAuth();
@@ -952,7 +954,7 @@
   }
   function pbFlag(f) { return f === 'PB' ? '<span class="pb">PB</span>' : f === '初' ? '<span class="pb first">初</span>' : ''; }
   function renderHome(rows) {
-    if (!rows.length) return '<div class="card empty"><b>まだ記録がありません</b><p>上の「1 学校名と結果の資料」で、大会の結果PDFや保存したWebページを入れて「記録に保存」を押すと、ここに最近の大会の自己ベストやシーズンの記録がまとまって出ます。</p><button class="btn" type="button" onclick="document.getElementById(\'rbDrop\').scrollIntoView({behavior:\'smooth\'})">結果の資料を入れる</button></div>';
+    if (!rows.length) return '<div class="card empty"><b>まだ記録がありません</b><p>上の「1 学校・クラブ名と結果の資料」で、大会の結果PDFや保存したWebページを入れて「記録に保存」を押すと、ここに最近の大会の自己ベストやシーズンの記録がまとまって出ます。</p><button class="btn" type="button" onclick="document.getElementById(\'rbDrop\').scrollIntoView({behavior:\'smooth\'})">結果の資料を入れる</button></div>';
     var pd = R.pbDetails(rows), ns = nowSeason();
     var aths = {}, meets = {}, seasonPB = 0, seasonPBAth = {};
     rows.forEach(function (r) { aths[R.athleteKey(r)] = 1; var k = r.date + '|' + r.meet; (meets[k] = meets[k] || []).push(r); var p = pd[r.id]; if (p && p.flag === 'PB' && R.seasonOf(r.date) === ns) { seasonPB++; seasonPBAth[R.athleteKey(r)] = 1; } });
@@ -1436,12 +1438,15 @@
     btn.disabled = true; PPL.links = {}; renderPPList();
     var sch = [], errs = 0;
     try { if (sc.uid && !OFFLINE) sch = await ppSchedules(sc); } catch (e) { if (isAbort(e) || !alive()) { btn.disabled = false; return; } }
+    var tki = null;   // v0.24：やり取りを使っている選手の個人ページには、やり取りのIDも入れる
+    try { if (sc.uid && !OFFLINE && FB) { var tapi = tkApi(sc); if ((await tapi.settings()).enabled) tki = (await tapi.index()).filter(function (x) { return x.active; }); } } catch (e) { if (isAbort(e) || !alive()) { btn.disabled = false; return; } }
     for (var i = 0; i < keys.length; i++) {
       if (!alive()) break;
       status('rbPPMsg', '作っています… ' + (i + 1) + '／' + keys.length, '');
       var o = ppPayload(keys[i]); if (!o) continue;
       var nx = sch.filter(function (x) { return R.nameKey(x.name) === R.nameKey(o.a.name); })[0];
       if (nx) o.nx = { s: nx.id, n: nx.meet };
+      var tkx = tki && tkByKey(keys[i], tki); if (tkx) o.tk = tkx.id;
       var str = await encodePP(o), url = siteBase() + '#p=' + str, short = false;
       if (!alive()) break;
       if (sc.uid && !OFFLINE) { try { var u = await ppShort(str, '個人ページ：' + o.a.name, sc); if (u) { url = u; short = true; } } catch (e) { if (isAbort(e) || !alive()) break; errs++; } }
@@ -1476,6 +1481,76 @@
     $('rbPPScreen').hidden = false; $('rbPPScreen').scrollTop = 0; document.body.classList.add('pps-open');
   }
   $('rbPPOpen').addEventListener('click', function () { openPPScreen(); });
+
+  /* ---------- v0.24：選手とのやり取り（顧問が「使う」にしたときだけ）。読み書きは押したときの uid＋世代に固定（A01） ---------- */
+  var TK = { on: false, idx: [], cur: '', gen: 0 };
+  function tkApi(sc) { return LaneTalk.teacher(FB, sc, check); }
+  function tkAlive(sc, gen) { return gen === TK.gen && sc.epoch === authEpoch && sc.uid === (USER ? USER.uid : null); }
+  function tkByKey(k, idx) { return (idx || TK.idx).filter(function (x) { return x.akey === k && x.exp > Date.now(); }).sort(function (a, b) { return b.at - a.at; })[0] || null; }
+  function tkAthletes() { var seen = {}, out = []; R.sortAthletes(R.computeBests(ppBase()).bests).forEach(function (b) { if (!seen[b.key]) { seen[b.key] = 1; out.push(b); } }); return out; }
+  function tkDay(m) { var d = new Date(m); return m ? (d.getMonth() + 1) + '月' + d.getDate() + '日' : ''; }
+  async function openTalk() {
+    $('rbTalkScreen').hidden = false; $('rbTalkScreen').scrollTop = 0; document.body.classList.add('pps-open'); $('rbTalkThread').hidden = true; TK.cur = '';
+    var sc = scope(), gen = ++TK.gen;
+    $('rbTalkMain').hidden = true; $('rbTalkOn').disabled = true;
+    if (!sc.uid || !FB) { status('rbTalkAuth', '🔑 やり取りは、Googleでログインしているときだけ使えます（記録ページの上の「Googleでログイン」から）。', 'ng'); status('rbTalkMsg', '', ''); return; }
+    if (OFFLINE) { status('rbTalkAuth', '📴 クラウドにつながらないので、いまは使えません。', 'ng'); return; }
+    status('rbTalkAuth', '', ''); status('rbTalkMsg', '読み込んでいます…', '');
+    try { var api = tkApi(sc), st = await api.settings(), idx = await api.index(); if (!tkAlive(sc, gen)) return; TK.on = st.enabled; TK.idx = idx; }
+    catch (e) { if (isAbort(e) || !tkAlive(sc, gen)) return; status('rbTalkMsg', '✖ 読み込めませんでした：' + esc(e.message), 'ng'); return; }
+    $('rbTalkOn').disabled = false; $('rbTalkOn').checked = TK.on; status('rbTalkMsg', '', ''); renderTalkList();
+  }
+  function renderTalkList() {
+    $('rbTalkMain').hidden = !TK.on; if (!TK.on) { $('rbTalkThread').hidden = true; return; }
+    var ls = tkAthletes();
+    $('rbTalkList').innerHTML = ls.length ? ls.map(function (b) {
+      var t = tkByKey(b.key), st = !t ? '<span class="tk-st">未使用</span>' : t.active ? '<span class="tk-st on">使用中</span>' : '<span class="tk-st off">停止中</span>';
+      return '<li><span class="nm">' + esc(b.name) + '</span>' + st + (t ? '<button class="btn sub" type="button" data-tkopen="' + esc(t.id) + '">💬 開く</button><button class="btn sub" type="button" data-tkact="' + esc(t.id) + '" data-on="' + (t.active ? 0 : 1) + '">' + (t.active ? '⏸ 停止' : '▶ 再開') + '</button><button class="btn sub danger-t" type="button" data-tkrm="' + esc(t.id) + '">🗑 削除</button>'
+        : '<button class="btn" type="button" data-tknew="' + esc(b.key) + '">使う</button>') + '</li>';
+    }).join('') : '<li class="small muted" style="padding:10px">選手がいません（先に記録を入れてください）。</li>';
+  }
+  async function tkRun(fn, okMsg) {
+    var sc = scope(), gen = TK.gen;
+    try { await fn(tkApi(sc), sc); if (!tkAlive(sc, gen)) return; var idx = await tkApi(sc).index(); if (!tkAlive(sc, gen)) return; TK.idx = idx; renderTalkList(); if (okMsg) status('rbTalkMsg', okMsg, 'ok'); return true; }
+    catch (e) { if (isAbort(e) || !tkAlive(sc, gen)) return; status('rbTalkMsg', '✖ ' + esc(e.message), 'ng'); }
+  }
+  async function openThread(id) {
+    var sc = scope(), gen = TK.gen, box = $('rbTalkThread'); TK.cur = id; box.hidden = false; box.innerHTML = '<p class="small muted">読み込んでいます…</p>';
+    var r; try { r = await tkApi(sc).read(id); } catch (e) { if (isAbort(e) || !tkAlive(sc, gen) || TK.cur !== id) return; box.innerHTML = '<p class="ng">✖ 読み込めませんでした：' + esc(e.message) + '</p>'; return; }
+    if (!tkAlive(sc, gen) || TK.cur !== id) return;
+    var ix = TK.idx.filter(function (x) { return x.id === id; })[0] || {};
+    box.innerHTML = '<div class="tk-th-h"><b>💬 ' + esc(r.talk.name) + ' さん</b><span class="tk-st ' + (r.talk.active ? 'on' : 'off') + '">' + (r.talk.active ? '使用中' : '停止中') + '</span><button class="btn sub" type="button" data-tkreload="' + esc(id) + '">↻ 最新にする</button><button class="btn sub" type="button" data-tkclose="1">閉じる</button></div>' +
+      '<label class="small">選手専用のリンク' + (ix.exp ? '（' + tkDay(ix.exp) + 'まで）' : '') + '<input class="tk-link" id="rbTkLink" readonly value="' + esc(LaneTalk.linkFor(id)) + '"></label><div class="rb-row"><button class="btn sub" type="button" data-tkcopy="1">📋 リンクをコピー</button><span class="small muted">⚠️ このリンクを知っている人は、その選手として書きこめます。本人にだけ送ってください。</span></div>' +
+      '<div class="tk-note"><small>先生からのひとこと（選手の画面のいちばん上に出ます）</small><textarea id="rbTkNote" class="tk-in" maxlength="500" rows="2" placeholder="例：次はスタートを意識しよう">' + esc(r.talk.note || '') + '</textarea><div class="rb-row"><button class="btn" type="button" data-tknote="' + esc(id) + '">💾 ひとことを保存</button></div></div>' +
+      LaneTalk.msgsHtml(r.msgs, 't', true) +
+      (r.talk.active ? '<div class="tk-form"><textarea id="rbTkReply" class="tk-in" maxlength="500" rows="2" placeholder="選手への返事（500文字まで）" aria-label="選手への返事"></textarea><button class="tk-send" type="button" data-tkreply="' + esc(id) + '">送る</button></div>' : '<p class="small muted">停止中は返事を送れません（選手からも見えません）。</p>');
+  }
+  $('rbTalkOpen').addEventListener('click', function () { openTalk(); });
+  $('rbTalkBack').addEventListener('click', function () { TK.gen++; $('rbTalkScreen').hidden = true; document.body.classList.remove('pps-open'); });
+  $('rbTalkOn').addEventListener('change', async function () {
+    var on = $('rbTalkOn').checked, act = TK.idx.filter(function (x) { return x.active; });
+    if (!on && act.length && !confirm('やり取りをオフにします。使用中の ' + act.length + '人分のやり取りも停止し、選手の画面から欄が消えます（データは残ります。削除は選手ごとに）。よろしいですか？')) { $('rbTalkOn').checked = true; return; }
+    $('rbTalkOn').disabled = true;
+    var done = await tkRun(async function (api) { await api.setEnabled(on); if (!on) for (var i = 0; i < act.length; i++) await api.setActive(act[i].id, false); }, on ? '✔ やり取りを使う設定にしました。選手ごとに「使う」を押してください。' : '✔ やり取りをオフにしました。');
+    $('rbTalkOn').disabled = false;
+    if (done) { TK.on = on; renderTalkList(); } else $('rbTalkOn').checked = TK.on;
+  });
+  $('rbTalkScreen').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    var g = function (k) { return b.getAttribute(k); };
+    if (g('data-tknew')) { var a = tkAthletes().filter(function (x) { return x.key === g('data-tknew'); })[0]; if (!a) return; b.disabled = true;
+      tkRun(function (api) { return api.create(a.key, a.name); }, '✔ ' + esc(a.name) + ' さんのやり取りを使えるようにしました。「💬 開く」でリンクをコピーできます（個人ページのリンクを作り直すと、そこにも入ります）。'); }
+    else if (g('data-tkopen') || g('data-tkreload')) openThread(g('data-tkopen') || g('data-tkreload'));
+    else if (g('data-tkact')) { var on = g('data-on') === '1'; if (!on && !confirm('このやり取りを停止します。選手の画面から欄が消えます（再開できます）。よろしいですか？')) return;
+      tkRun(function (api) { return api.setActive(g('data-tkact'), on); }, on ? '✔ 再開しました' : '✔ 停止しました').then(function () { if (TK.cur === g('data-tkact')) openThread(TK.cur); }); }
+    else if (g('data-tkrm')) { if (!confirm('このやり取り（ひとこと・返信・送られた体調メモ）を全部削除します。元に戻せません。リンクも使えなくなります。よろしいですか？')) return;
+      var rid = g('data-tkrm'); tkRun(function (api) { return api.remove(rid); }, '✔ 削除しました').then(function () { if (TK.cur === rid) { TK.cur = ''; $('rbTalkThread').hidden = true; } }); }
+    else if (g('data-tkclose')) { TK.cur = ''; $('rbTalkThread').hidden = true; }
+    else if (g('data-tkcopy')) copyT($('rbTkLink').value, b, '📋 リンクをコピー');
+    else if (g('data-tknote')) { var nid = g('data-tknote'), v = $('rbTkNote').value.trim(); tkRun(function (api) { return api.setNote(nid, v); }, '✔ ひとことを保存しました').then(function () { openThread(nid); }); }
+    else if (g('data-tkreply')) { var pid = g('data-tkreply'), t = $('rbTkReply').value.trim(); if (!t) return; b.disabled = true; tkRun(function (api) { return api.reply(pid, t); }, '✔ 送りました').then(function () { openThread(pid); }); }
+    else if (g('data-tkdel')) { if (!confirm('このメッセージを削除しますか？')) return; var cid = TK.cur, mid = g('data-tkdel'); tkRun(function (api) { return api.delMsg(cid, mid); }, '✔ 削除しました').then(function () { openThread(cid); }); }
+  });
   $('rbPPBack').addEventListener('click', function () { $('rbPPScreen').hidden = true; document.body.classList.remove('pps-open'); });
   $('rbPPDiv').addEventListener('click', function (e) { var d = e.target.getAttribute('data-ppdiv'); if (d) { PPS.div = d; renderPPNames(); } });
   $('rbPPSex').addEventListener('click', function (e) { var d = e.target.getAttribute('data-ppsex'); if (d) { PPS.sex = d; renderPPNames(); } });

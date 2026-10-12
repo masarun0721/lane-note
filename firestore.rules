@@ -1,9 +1,14 @@
 rules_version = '2';
-// LANE NOTE firestore.rules（v0.14／記録 v0.6.0 と同時に貼り替える版。2026-10-11）：Astra 監査版をベースに、リポジトリ d489257 の現行ルールと統合
+// LANE NOTE firestore.rules（v0.24 で talks を追加。2026-10-12。もとは v0.14／記録 v0.6.0 の版）：Astra 監査版をベースに、リポジトリ d489257 の現行ルールと統合
 // ※アプリ v0.14 より前の版は、ログインなしの不具合送信がこのルールで断られる。v0.14 を公開してから（または同時に）Firebase コンソールに貼り替えること
 // ・users/{uid}/**（records・meets・settings/divOverrides・将来の shareIndex）：本人だけ読み書き（現行と同じ）
 // ・shares/{id}：IDを知っていれば期限内だけ読める（expiresAt と createdAt+120日の早い方）。作成はGoogleログイン本人・形式/サイズ/期限を検査。変更不可・一覧不可・削除は本人（期限後も可）
 // ・feedback/{id}：Googleログイン必須（匿名送信は停止）。読む・直す・消すはアプリから不可
+// ・talks/{tid}（v0.24 選手とのやり取り）：tid は推測できない20文字。顧問（Googleログイン本人）が作る。
+//   ID を知っていれば、使える状態（active）かつ期限内（expiresAt と createdAt+120日の早い方）だけ読める。一覧は不可。
+//   顧問が変えられるのは active・note・noteAt だけ。消すのは顧問本人だけ。
+//   talks/{tid}/msgs/{mid}：選手（ログインなし・リンクだけ）は from:'p' だけ書ける（使える状態・期限内のとき）。顧問本人は from:'t'。
+//   直すのは誰も不可。消すのは顧問本人だけ。※あとで選手のログインを選べるようにするときは、talks に選手の uid を足して書き込みを絞る
 // ※回数制限ではない。App Check／受付サーバーは別途。
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -66,6 +71,60 @@ service cloud.firestore {
         && d.uid == request.auth.uid;
     }
 
+    // v0.24 talks ここから
+    function validTalkId(id) {
+      return id.matches('^[A-Za-z0-9]{20}$');
+    }
+    function talkOpen(d) {
+      return d.active == true
+        && d.createdAt is timestamp
+        && d.expiresAt is timestamp
+        && request.time < d.expiresAt
+        && request.time < d.createdAt + duration.value(120, 'd');
+    }
+    function talkOwner(d) {
+      return signedIn() && d.ownerUid == request.auth.uid;
+    }
+    function validTalkNew(d) {
+      return d.keys().hasAll(['ownerUid', 'name', 'note', 'noteAt', 'active', 'createdAt', 'expiresAt'])
+        && d.keys().hasOnly(['ownerUid', 'name', 'note', 'noteAt', 'active', 'createdAt', 'expiresAt'])
+        && d.ownerUid is string
+        && d.ownerUid == request.auth.uid
+        && d.name is string && d.name.size() >= 1 && d.name.size() <= 60
+        && d.note is string && d.note.size() <= 500
+        && d.noteAt == request.time
+        && d.active == true
+        && d.createdAt == request.time
+        && d.expiresAt is timestamp
+        && d.expiresAt > request.time
+        && d.expiresAt <= request.time + duration.value(120, 'd') + duration.value(5, 'm');
+    }
+    function validTalkUpdate(d, old) {
+      return d.diff(old).affectedKeys().hasOnly(['active', 'note', 'noteAt'])
+        && d.active is bool
+        && d.note is string && d.note.size() <= 500
+        && (d.note == old.note || d.noteAt == request.time);
+    }
+    function validCond(c) {
+      return c is map
+        && c.keys().hasAll(['d'])
+        && c.keys().hasOnly(['d', 's', 'sl', 'm'])
+        && c.d is string && c.d.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && (!('s' in c) || (c.s is int && c.s >= 1 && c.s <= 5))
+        && (!('sl' in c) || (c.sl is number && c.sl >= 0 && c.sl <= 24))
+        && (!('m' in c) || (c.m is string && c.m.size() <= 100));
+    }
+    function validMsg(d) {
+      return d.keys().hasAll(['from', 'body', 'createdAt'])
+        && d.keys().hasOnly(['from', 'body', 'createdAt', 'cond'])
+        && d.from in ['p', 't']
+        && d.body is string
+        && d.body.size() <= 500
+        && d.createdAt == request.time
+        && (('cond' in d) ? validCond(d.cond) : d.body.size() >= 1);
+    }
+    // v0.24 talks ここまで
+
     // Preserve the existing owner-only users subtree for compatibility with
     // records, weather, division settings, and existing user-owned data.
     // This rule does not validate record schemas or enforce storage quotas.
@@ -81,6 +140,27 @@ service cloud.firestore {
       // Owners can delete even after expiry. No client may change ownership.
       allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
     }
+    // v0.24 talks ここから
+    match /talks/{tid} {
+      allow get: if validTalkId(tid) && (talkOpen(resource.data) || talkOwner(resource.data));
+      allow list: if false;
+      allow create: if googleUser() && validTalkId(tid) && validTalkNew(request.resource.data);
+      allow update: if talkOwner(resource.data) && validTalkUpdate(request.resource.data, resource.data);
+      allow delete: if talkOwner(resource.data);
+      match /msgs/{mid} {
+        function talk() {
+          return get(/databases/$(database)/documents/talks/$(tid)).data;
+        }
+        allow read: if validTalkId(tid) && (talkOpen(talk()) || talkOwner(talk()));
+        allow create: if validTalkId(tid) && mid.matches('^[A-Za-z0-9]{20}$')
+          && validMsg(request.resource.data)
+          && talkOpen(talk())
+          && ((request.resource.data.from == 'p') || (request.resource.data.from == 't' && talkOwner(talk())));
+        allow update: if false;
+        allow delete: if talkOwner(talk());
+      }
+    }
+    // v0.24 talks ここまで
     match /feedback/{id} {
       // Behaviour change: signed-out and Firebase-anonymous users cannot submit.
       allow create: if googleUser() && validFeedback(request.resource.data);

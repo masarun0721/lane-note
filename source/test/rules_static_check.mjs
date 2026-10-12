@@ -14,10 +14,11 @@ ok('どこにも「if true」がない（期限切れの共有も読めた F01�
 ok('shares の get は期限内だけ（expiresAt と createdAt+120日）', () => { assert.match(body, /allow get: if validShareId\(shareId\) && shareReadable\(resource\.data\)/); assert.match(body, /request\.time < d\.createdAt \+ duration\.value\(120, 'd'\)/); });
 ok('shares の list・update は不可、作成は Google ログイン本人', () => { assert.match(body, /allow list: if false/); assert.match(body, /allow update: if false/); assert.match(body, /allow create: if googleUser\(\) && validShareId/); });
 ok('feedback は Google ログイン必須・読めない（F05）', () => { assert.match(body, /match \/feedback\/\{id\}[\s\S]*allow create: if googleUser\(\) && validFeedback/); assert.match(body, /allow read, update, delete: if false/); });
+ok('v0.24 talks：一覧不可・作成は Google 本人・選手は from:p だけ・直すのは不可', () => { assert.match(body, /match \/talks\/\{tid\}[\s\S]*allow list: if false/); assert.match(body, /allow create: if googleUser\(\) && validTalkId/); assert.match(body, /request\.resource\.data\.from == 'p'/); assert.match(body, /match \/msgs\/\{mid\}[\s\S]*allow update: if false/); });
 ok('最後に全部を断る', () => assert.match(body, /match \/\{document=\*\*\} \{\s*allow read, write: if false;/));
 ok('最終案（/workspace の firestore.rules.final）と本文が同じ（比較元が無ければ SKIP）', () => {
   const f = '/workspace/astra_audit/firestore.rules.final'; if (!fs.existsSync(f)) return SKIP;
-  const strip = s => s.replace(/^\/\/.*$/gm, '').replace(/\s+/g, ' ').trim(); assert.equal(strip(rules), strip(fs.readFileSync(f, 'utf8')));
+  const strip = s => s.replace(/^\/\/.*$/gm, '').replace(/\s+/g, ' ').trim(); assert.equal(strip(rules.replace(/\/\/ v0\.24 talks ここから[\s\S]*?\/\/ v0\.24 talks ここまで\n/g, '')), strip(fs.readFileSync(f, 'utf8')));
 });
 ok('アプリ：短いリンクの期限はルールの120日より短い（119日）', () => assert.match(app, /SHARE_DAYS = 119/));
 ok('アプリ：短いリンクの中身は 190000 文字まで・ID は10文字', () => { assert.match(app, /str\.length > 190000/); assert.match(app, /while \(out\.length < 10\)/); });

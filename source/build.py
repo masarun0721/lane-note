@@ -13,10 +13,10 @@ import base64, hashlib, html as htmlmod, json, pathlib, re, sys
 ROOT = pathlib.Path(__file__).resolve().parent
 S = ROOT / 'src'
 SHARE_BASE = 'https://masarun0721.github.io/lane-note/'   # 共有リンク・QRの公開アドレス（file:// で開いたとき用）
-VERSION = 'v0.23.1'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
+VERSION = 'v0.24'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
 # 作成日は版番号から取れないので固定（ビルドした日で変わると、公開時の一致検査ができないため）
 BUILD_DATE = '2026年10月12日'
-REC_VERSION = 'v0.10.3'   # LANE LOG（records.html）だけの版
+REC_VERSION = 'v0.11.0'   # LANE LOG（records.html）だけの版
 REC_BUILD_DATE = '2026年10月12日'
 
 
@@ -49,7 +49,7 @@ def changelog_html():
 def build():
     html = text('src/template.html')
     rep = {
-        '__PARSER__': text('src/parser.js'), '__RESULTS__': text('src/results.js'), '__LOGIC__': text('src/logic.js'), '__PLAYER__': text('src/player.js'), '__PERSONAL__': text('src/personal.js'),
+        '__PARSER__': text('src/parser.js'), '__RESULTS__': text('src/results.js'), '__LOGIC__': text('src/logic.js'), '__PLAYER__': text('src/player.js'), '__PERSONAL__': text('src/personal.js'), '__MODE__': text('src/mode.js'), '__TALK__': text('src/talk.js'),
         '__ZEKKEN__': text('src/zekken.js'), '__APP__': text('src/app.js'), '__PARENT__': text('src/parent.js'), '__NOTICE__': text('src/notice.js'), '__URLLOAD__': text('src/urlload.js'), '__OVERLAY__': text('src/overlay.js'), '__PDFMAKE__': text('src/pdfmake.js'), '__FEEDBACK__': text('src/feedback.js'),
         '__AUTHCOMMON__': text('src/auth_common.js'), '__CHANGELOG__': changelog_html(),
         '__KOSHI_B64__': b64('templates/koshi_template.docx'), '__MUNE_B64__': b64('templates/mune_template.docx'),
@@ -108,7 +108,7 @@ def build_records(index_html):
     css = base[base.index('<style>') + 7:base.index('</style>')]
     rec = text('src/records_template.html')
     rep = {
-        '__BASE_CSS__': css, '__RESULTS__': text('src/results.js'), '__RECAPP__': text('src/records_app.js'), '__URLLOAD__': text('src/urlload.js'), '__OVERLAY__': text('src/overlay.js'), '__PDFMAKE__': text('src/pdfmake.js'), '__PERSONAL__': text('src/personal.js'), '__PRINT__': text('src/print.js'), '__SHARE_BASE__': SHARE_BASE, '__FEEDBACK__': text('src/feedback.js'), '__AUTHCOMMON__': text('src/auth_common.js'),
+        '__BASE_CSS__': css, '__RESULTS__': text('src/results.js'), '__RECAPP__': text('src/records_app.js'), '__URLLOAD__': text('src/urlload.js'), '__OVERLAY__': text('src/overlay.js'), '__PDFMAKE__': text('src/pdfmake.js'), '__PERSONAL__': text('src/personal.js'), '__TALK__': text('src/talk.js'), '__PRINT__': text('src/print.js'), '__SHARE_BASE__': SHARE_BASE, '__FEEDBACK__': text('src/feedback.js'), '__AUTHCOMMON__': text('src/auth_common.js'),
         '__LOGO_DARK__': logo_inline('logo/option_A_dark.svg'),
         '__FAVICON__': 'data:image/svg+xml;base64,' + b64('logo/option_A_icon.svg'),
         '__APPLE_ICON__': 'data:image/png;base64,' + b64('logo/png/option_A_icon_180.png'),
