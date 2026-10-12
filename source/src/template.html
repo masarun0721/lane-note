@@ -624,7 +624,7 @@ body.fb-open{overflow:hidden}
   <p class="tagline">大会準備：スタートリストから、自校の出場一覧・記録用紙・ナンバーカードまで</p>
   <nav class="pagenav" aria-label="ページ"><a href="./" class="on" aria-current="page">🏁 大会準備</a><a href="records.html">📒 記録</a><a href="check.html">✅ 照合</a></nav>
 </header>
-<div class="topbar">__CHANGELOG__<a href="guide.html" class="tb-btn tb-guide">🔰 はじめての人はこちら</a><button type="button" class="tb-btn fb-link" data-feedback="1">🚨 不具合・要望を送る</button><button type="button" class="tb-btn mode-sw" id="modeSw" aria-label="顧問モードと選手モードを切りかえる">👤 モードを選ぶ</button></div>
+<div class="topbar">__CHANGELOG__<a href="guide.html" class="tb-btn tb-guide">🔰 はじめての人はこちら</a><button type="button" class="tb-btn fb-link" data-feedback="1">🚨 不具合・要望を送る</button>__MODEBTN__</div>
 <p class="beta-line">⚠️ 試作版です。内容は元資料でも確認してください</p>
 <main>
 <p id="ssNote" class="ss-note" hidden role="status">↺ 前に読み込んだ内容を戻しました（このタブを閉じると消えます）。 <button type="button" class="btn sub" id="ssClearBtn">最初から</button></p>
@@ -680,13 +680,7 @@ body.fb-open{overflow:hidden}
     <details class="small"><summary><b>作った短いリンク</b>（一覧・共有を止める）</summary><div class="myShares" id="shareMine"></div></details>
   </div>
 </div>
-<div id="modePick" hidden role="dialog" aria-modal="true" aria-labelledby="mpTtl"><div class="mp-card">
-  <h2 id="mpTtl">どちらで使いますか？</h2><p id="mpFirst">はじめに1回だけ選んでください。この端末に覚えます。あとで上の「モード」ボタンからいつでも切りかえられます。</p>
-  <div class="mp-opts"><button type="button" class="mp-opt" data-mode="coach"><span class="mp-ic">🧑‍🏫</span><b>顧問・コーチの方</b><span class="d">大会準備・記録・照合・保護者へのお知らせなど、すべての機能</span></button>
-  <button type="button" class="mp-opt" data-mode="player"><span class="mp-ic">👟</span><b>選手・保護者の方</b><span class="d">次の大会の予定と招集・自己ベスト・体調メモ・自分の記録をかんたんに</span></button></div>
-  <p class="mp-note">🔒 選んだモードはこの端末だけに保存します（送信しません）。</p>
-  <button type="button" class="mp-close" id="mpClose" hidden>閉じる</button>
-</div></div>
+__MODEPICK__
 <div id="playerDlg" class="dlg" hidden role="dialog" aria-modal="true" aria-labelledby="plTtl">
   <div class="dlg-in">
     <h3 id="plTtl">🏃 選手用リンク（1人ずつ）</h3>

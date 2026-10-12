@@ -630,6 +630,15 @@ body.fb-open{overflow:hidden}
   <h2 class="g-title" style="color:#fff;font-size:20px;margin:8px 0 0">🔰 はじめての人はこちら</h2>
   <nav class="pagenav" aria-label="ページ"><a href="./">← 🏁 大会準備へ</a><a href="records.html">← 📒 記録へ</a><a href="check.html">← ✅ 照合へ</a></nav>
 </header>
+<div class="topbar"><button type="button" class="tb-btn mode-sw" id="modeSw" aria-label="顧問モードと選手モードを切りかえる">👤 モードを選ぶ</button></div>
+<div id="modePick" hidden role="dialog" aria-modal="true" aria-labelledby="mpTtl"><div class="mp-card">
+  <h2 id="mpTtl">どちらで使いますか？</h2><p id="mpFirst">はじめに1回だけ選んでください。この端末に覚えます。あとで上の「モード」ボタンからいつでも切りかえられます。</p>
+  <div class="mp-opts"><button type="button" class="mp-opt" data-mode="coach"><span class="mp-ic">🧑‍🏫</span><b>顧問・コーチの方</b><span class="d">大会準備・記録・照合・保護者へのお知らせなど、すべての機能</span></button>
+  <button type="button" class="mp-opt" data-mode="player"><span class="mp-ic">👟</span><b>選手・保護者の方</b><span class="d">次の大会の予定と招集・自己ベスト・体調メモ・自分の記録をかんたんに</span></button></div>
+  <p class="mp-note">🔒 選んだモードはこの端末だけに保存します（送信しません）。</p>
+  <button type="button" class="mp-close" id="mpClose" hidden>閉じる</button>
+</div></div>
+
 <main>
 <nav class="g-toc" aria-label="目次"><a href="#g1">大会準備</a><a href="#g2">記録</a><a href="#g3">選手ページ</a><a href="#g4">個人で使う</a><a href="#g5">ログイン</a><a href="#g6">データの取り扱い</a><a href="#g7">共有と止め方</a><a href="#g8">体調メモ</a><a href="#g9">FAQ</a><a href="#g10">エントリー照合</a><a href="#g11">保護者へのお知らせ</a></nav>
 <section class="box g-card"><h2><span class="no" id="g1">1</span>🏁 大会準備（エントリーした大会の当日資料づくり）</h2><ol class="g-steps"><li><b>スタートリスト</b>（またはプログラム）と<b>タイムテーブル</b>のPDFを入れます。<b>競技注意事項</b>を入れると招集時刻のルールも自動で設定します（任意）。</li><li><b>学校・クラブ名</b>を入れます。一部でOK（「本郷」→ 本郷高・本郷中が出るので、必要な方にチェック）。</li><li>「時間順」「選手別」「記録用紙」「ナンバーカード」ができます。準決勝・決勝は「通過したら」の予定として入ります。</li><li>書類は「👀 画面で見る」「📄 PDF作成」「🖨 印刷」から選べます。</li></ol><p class="g-tip">💡 「この端末に保存」を押すと、電波のない競技場でも開けます。</p></section>
@@ -663,7 +672,131 @@ body.fb-open{overflow:hidden}
 <section class="box g-card" id="mode"><h2><span class="no" id="g12">12</span>👤 顧問モード／選手モード</h2><p>はじめて開いたときに「🧑‍🏫 顧問・コーチの方」か「👟 選手・保護者の方」かを選びます。選んだモードはこの端末（ブラウザ）にだけ覚えます。上の「モード」ボタンでいつでも切りかえられます。ログインは要りません。</p><ul><li><b>顧問モード</b>：今までどおり、大会準備・記録・照合・保護者へのお知らせなど、すべての機能が使えます。</li><li><b>選手モード</b>：次の大会の予定と招集時刻、自己ベスト、体調メモ、自分の記録をつける（「個人で使う」）、先生からもらったリンクの一覧を1つの画面にまとめます。もらったリンクは一度開くと自動でここに入ります。</li></ul></section>
 <section class="box g-card" id="talk"><h2><span class="no" id="g13">13</span>💬 選手とのやり取り（使いたい先生だけ）</h2><p>はじめは<b>オフ</b>です。オフのあいだは、選手の画面にやり取りの欄は出ません。</p><ol class="g-steps"><li>記録ページで Google にログインし、「💬 選手とのやり取り」を開いて「選手とのやり取りを使う」にチェックします。</li><li>やり取りしたい選手だけ「使う」を押します。その選手専用のリンク（119日まで）ができます。「💬 開く」からリンクをコピーして本人に送るか、個人ページのリンクを作り直すと、個人ページにもやり取りの欄が入ります。</li><li>「先生からのひとこと」を書くと、選手の画面のいちばん上に出ます。選手は返信でき、体調メモは<b>「📤 先生に送る」を押した日の分だけ</b>先生に届きます（ほかの体調メモはスマホの中だけ）。</li><li>「⏸ 停止」で選手から見えなくなります（再開できます）。「🗑 削除」でひとこと・返信・送られた体調メモを全部消します。チェックを外すと、全員分を停止します。</li></ul><p class="g-tip">⚠️ 選手はログインなしでリンクだけで使います。<b>リンクを知っている人は、その選手として書きこめます</b>。本人にだけ送ってください。ほかの選手のやり取りは見えません。あとで、選手もログインして使う形を選べるようにする予定です。</p></section>
 <section class="box" id="disclaimer"><h2>⚠ 試作版について・免責</h2><p>機能や画面は予告なく変わることがあります。記録が消えたり読み取りを間違えたりする可能性があるので、大事な記録は元の結果資料でも確認してください。</p><div class="notice">⚠ <b>試作版です。</b><button type="button" class="fb-link" data-feedback="1">📮 不具合・要望を送る</button>　本ツールはPDFの文字を読み取って自動で整理しているだけです。内容は必ず元のスタートリスト・タイムテーブル等と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div></section>
-<p class="small muted" style="text-align:center">LANE NOTE v0.24</p>
+<p class="small muted" style="text-align:center">LANE NOTE v0.24.1</p>
 </main>
+<script>
+/* ===== v0.24：顧問モード／選手モード（どちらで使うかを、この端末の localStorage にだけ覚える。ログイン不要）
+   ・顧問モード＝今までの全部の機能
+   ・選手モード＝自分の予定・自己ベスト・体調メモ・自分の記録・もらったリンクをまとめた、かんたんな画面
+   ・共有リンク（#p= / #d= / ?s= / ?t=）を開いたときは、モードに関係なくそのページを出す */
+var LaneMode = (function () {
+  'use strict';
+  var KEY = 'lanenote.mode.v1', PKEY = 'lanenote.player.v1.';
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function $(id) { return document.getElementById(id); }
+  function get() { try { var v = localStorage.getItem(KEY); return v === 'coach' || v === 'player' ? v : ''; } catch (e) { return ''; } }
+  function set(m) { try { if (m === 'coach' || m === 'player') localStorage.setItem(KEY, m); } catch (e) { } }
+  function sharedView() { return /^#[dpt]=/.test(location.hash) || /[?&][st]=/.test(location.search); }
+  function base() { return /^https?:$/.test(location.protocol) ? location.origin + location.pathname.replace(/[^\/]*$/, '') : (window.LANE_SHARE_BASE || './'); }
+  /* この端末に保存されている、もらったリンク（大会当日の予定＝p・個人ページ＝pp） */
+  function savedLinks() {
+    var out = [];
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i); if (!k || k.indexOf(PKEY) !== 0) continue;
+        var v = null; try { v = JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { }
+        if (!v || typeof v.p !== 'string') continue;
+        if (v.exp && v.exp < Date.now()) continue;
+        var id = k.slice(PKEY.length), short = /^[A-Za-z0-9]{10}$/.test(id);
+        out.push({ id: id, kind: v.kind === 'pp' ? 'pp' : 'p', p: v.p, at: v.at || '', exp: v.exp || null, url: short ? base() + '?s=' + id : base() + '#p=' + v.p });
+      }
+    } catch (e) { }
+    return out.sort(function (a, b) { return a.at < b.at ? 1 : a.at > b.at ? -1 : 0; });
+  }
+  function forget(id) { try { localStorage.removeItem(PKEY + id); } catch (e) { } }
+  function dayOf(s) { var m = /(\d{4})\D+(\d{1,2})\D+(\d{1,2})/.exec(String(s || '').normalize('NFKC')); return m ? m[1] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[3]).slice(-2) : ''; }
+  function today() { var d = window.__playerNow ? new Date(window.__playerNow) : new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+
+  /* ---------- 画面の切りかえ ---------- */
+  function apply() {
+    var m = get(), pl = m === 'player' && !sharedView() && !!$('phome');
+    document.body.classList.toggle('ln-player', pl);
+    var sw = $('modeSw'); if (sw) sw.innerHTML = m === 'player' ? '👟 選手モード<small>切りかえ</small>' : m === 'coach' ? '🧑‍🏫 顧問モード<small>切りかえ</small>' : '👤 モードを選ぶ';
+    if ($('phome')) { $('phome').hidden = !pl; if (pl) renderHome(); }
+  }
+  function choose(m) {
+    var was = get(); set(m); $('modePick').hidden = true; document.body.classList.remove('mp-open');
+    // v0.24.1：大会準備以外のページで選手モードにしたら、選手モードのホーム（トップ）へ移る
+    if (m === 'player' && !$('phome')) { location.href = './'; return; }
+    apply(); if (m !== was) window.scrollTo(0, 0);
+  }
+  function openPick(first) {
+    var d = $('modePick'); d.hidden = false; document.body.classList.add('mp-open');
+    $('mpFirst').hidden = !first; $('mpClose').hidden = !!first;
+    var cur = get(); d.querySelectorAll('[data-mode]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-mode') === cur); b.setAttribute('aria-pressed', b.getAttribute('data-mode') === cur); });
+    var f = d.querySelector('[data-mode]'); if (f) f.focus();
+  }
+
+  /* ---------- 選手モードのホーム ---------- */
+  var GEN = 0;
+  async function renderHome() {
+    var gen = ++GEN, box = $('phBody'); if (!box) return;
+    var app = window.__meetApp, links = savedLinks(), meets = [], pps = [];
+    for (var i = 0; i < links.length; i++) {
+      try { var o = await app.decodePayload(links[i].p); if (gen !== GEN) return;
+        if (links[i].kind === 'pp' && o.k === 'pp') pps.push({ L: links[i], o: o }); else if (o.k === 'p') meets.push({ L: links[i], o: o, day: dayOf(o.d) });
+      } catch (e) { }
+    }
+    if (gen !== GEN) return;
+    var td = today(), up = meets.filter(function (m) { return !m.day || m.day >= td; }).sort(function (a, b) { return (a.day || '9') < (b.day || '9') ? -1 : 1; });
+    var h = '';
+    // 1 次の大会
+    h += '<section class="ph-card"><h3>📅 次の大会の予定・招集</h3>';
+    if (up.length) {
+      var n = up[0], items = PlayerLogic.autoItems(n.o).filter(function (x) { return x.t && !x.tent; }), call = items.filter(function (x) { return x.kind === 'call'; })[0], race = items.filter(function (x) { return x.kind === 'race'; })[0];
+      h += '<a class="ph-next" href="' + esc(n.L.url) + '"><span class="ph-meet">' + esc(n.o.n || '大会') + '</span><span class="ph-date">' + esc([n.o.d, n.o.pl].filter(Boolean).join('・')) + '</span>' +
+        '<span class="ph-times">' + (call ? '<span><small>最初の招集</small><b>' + esc(call.t) + '</b><em>' + esc(call.label) + '</em></span>' : '') + (race ? '<span><small>最初の競技</small><b>' + esc(race.t) + '</b><em>' + esc(race.label) + '</em></span>' : '') + '</span><span class="ph-open">予定を開く →</span></a>';
+      if (up.length > 1) h += '<ul class="ph-list">' + up.slice(1, 6).map(function (m) { return '<li><a href="' + esc(m.L.url) + '">' + esc(m.o.n || '大会') + '<small>' + esc(m.o.d || '') + '</small></a></li>'; }).join('') + '</ul>';
+    } else h += '<p class="ph-empty">まだありません。先生から「大会当日の予定」のリンクをもらって開くと、ここに出ます。</p>';
+    h += '</section>';
+    // 2 自己ベスト
+    h += '<section class="ph-card"><h3>🏅 自己ベスト・グラフ</h3>';
+    if (pps.length) {
+      var p = pps[0];
+      h += '<p class="ph-sub">' + esc(p.o.a.name) + ' さん・' + esc(LanePersonal.snapLabel(p.o.g)) + '時点</p><ul class="ph-pbs">' + p.o.e.slice(0, 8).map(function (e) { var b = e.b || e.rf; return '<li><span>' + esc(e.l) + '</span><b>' + esc(b ? b[0] : '—') + '</b></li>'; }).join('') + '</ul>' +
+        '<a class="ph-btn" href="' + esc(p.L.url) + '">📈 グラフと最近の記録を見る</a>';
+    } else h += '<p class="ph-empty">まだありません。先生から「個人ページ」のリンクをもらって開くと、ここに出ます。自分で記録をつけるなら、下の「自分の記録をつける」へ。</p>';
+    h += '</section>';
+    // 3 先生とのやり取り（先生がオンにしているときだけ。LaneTalk が中身を入れる）
+    h += '<section class="ph-card" id="phTalk" hidden></section>';
+    // 4 体調メモ
+    h += '<section class="ph-card"><h3>📝 体調メモ</h3><div id="phCond">' + LanePersonal.condFormHtml(td, '今日の体調') + '</div>' +
+      (LanePersonal.cList().length ? '<ul class="ph-cdlist">' + LanePersonal.cList().slice(0, 5).map(function (x) { return '<li><b>' + esc(LanePersonal.mdLabel(x.d)) + '</b> ' + LanePersonal.condBadge(x.c) + '</li>'; }).join('') + '</ul>' : '') + '</section>';
+    // 5 自分の記録
+    h += '<section class="ph-card"><h3>📒 自分の記録をつける</h3><p class="ph-sub">大会の結果PDFやWebページから、自分の記録だけを取り込みます（「個人で使う」）。ログインしなくても、このスマホに保存できます。</p><a class="ph-btn" href="records.html?me=1">📒 自分の記録をつける・見る</a></section>';
+    // 6 もらったリンク
+    h += '<section class="ph-card"><h3>🔗 もらったリンク</h3>' + (links.length ? '<ul class="ph-links">' + links.map(function (L) {
+      var o = (pps.concat(meets).filter(function (x) { return x.L.id === L.id; })[0] || {}).o || {};
+      var t = L.kind === 'pp' ? '🏅 個人ページ' + (o.a ? '（' + o.a.name + '）' : '') : '📅 ' + (o.n || '大会当日の予定') + (o.d ? '（' + o.d + '）' : '');
+      return '<li><a href="' + esc(L.url) + '">' + esc(t) + '</a><button type="button" class="ph-x" data-phforget="' + esc(L.id) + '" aria-label="このリンクをスマホから削除">削除</button></li>'; }).join('') + '</ul>' : '<p class="ph-empty">先生からもらったリンクは、一度開くと自動でここに保存されます。</p>') +
+      '<div class="ph-paste"><input type="url" id="phUrl" placeholder="もらったリンクをここに貼る" aria-label="もらったリンク"><button type="button" class="ph-btn sm" id="phGo">開いて保存</button></div><div class="ph-msg" id="phMsg" role="status"></div></section>';
+    h += '<p class="ph-foot">🔒 この画面の内容は、このスマホの中だけに保存しています。<br><button type="button" class="ph-link" data-pickmode="1">🧑‍🏫 顧問・コーチの画面に切りかえる</button></p>';
+    box.innerHTML = h;
+    LanePersonal.bindCond($('phCond'), function () { });
+    box.querySelectorAll('[data-phforget]').forEach(function (b) { b.addEventListener('click', function () { if (!confirm('このリンクを、このスマホから削除しますか？（もう一度開けば、また保存されます）')) return; forget(b.getAttribute('data-phforget')); renderHome(); }); });
+    $('phGo').addEventListener('click', function () {
+      var u = $('phUrl').value.trim(), m = /^https?:\/\/[^\s]+$/.test(u) ? u : '';
+      var ok = m && (u.indexOf(base()) === 0 || /^https:\/\/masarun0721\.github\.io\/lane-note\//.test(u)) && (/[#](p|d)=/.test(u) || /[?&](s|t)=/.test(u));
+      if (!ok) { $('phMsg').textContent = 'LANE NOTE のリンク（先生からもらったもの）を貼ってください。'; return; }
+      location.href = u.indexOf(base()) === 0 ? u : base() + u.replace(/^https:\/\/masarun0721\.github\.io\/lane-note\//, '');
+    });
+    if (window.LaneTalk) LaneTalk.renderHomeCard($('phTalk'), pps.map(function (x) { return x.o.tk; }).filter(Boolean));
+  }
+  function init() {
+    if (!$('modePick')) return;
+    document.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-mode]'); if (b && b.closest('#modePick')) { choose(b.getAttribute('data-mode')); return; }
+      if (e.target.closest('[data-pickmode]') || e.target.closest('#modeSw')) { openPick(false); return; }
+      if (e.target.closest('#mpClose')) { $('modePick').hidden = true; document.body.classList.remove('mp-open'); }
+    });
+    window.addEventListener('hashchange', apply);
+    if ($('phome') && !get() && !sharedView()) openPick(true);   // はじめての質問はトップだけ
+    apply();
+  }
+  return { get: get, set: set, apply: apply, init: init, savedLinks: savedLinks, sharedView: sharedView, renderHome: renderHome, KEY: KEY };
+})();
+
+document.addEventListener('DOMContentLoaded', function () { LaneMode.init(); });
+</script>
 </body>
 </html>

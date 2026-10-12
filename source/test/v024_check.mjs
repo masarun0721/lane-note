@@ -8,7 +8,8 @@ const here = path.dirname(fileURLToPath(import.meta.url)), SRC = path.join(here,
 const src = f => fs.readFileSync(path.join(SRC, f), 'utf8');
 let pass = 0, fail = 0; const delay = (ms = 30) => new Promise(r => setTimeout(r, ms));
 async function check(n, f) { try { await f(); pass++; console.log('  ok', n); } catch (e) { fail++; console.log('  NG', n, '\n    ', e && e.stack || e); } }
-const tpl = src('template.html').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '').replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '').replace(/__[A-Z_0-9]+__/g, '');
+const [MB, MP] = (() => { const t = src('mode_pick.html'), i = t.indexOf('\n'); return [t.slice(0, i), t.slice(i + 1)]; })();
+const tpl = src('template.html').replace('__MODEBTN__', MB).replace('__MODEPICK__', MP).replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '').replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '').replace(/__[A-Z_0-9]+__/g, '');
 function page(url, ls = {}) {
   const d = new JSDOM(tpl, { url, runScripts: 'outside-only' }), w = d.window;
   for (const k in ls) w.localStorage.setItem(k, ls[k]);
@@ -55,4 +56,17 @@ await check('選手モード：期限切れのリンクは出さない・削除�
   assert.equal(w.localStorage.getItem('lanenote.player.v1.Meet000001'), null); assert.equal(d.querySelectorAll('.ph-links li').length, 1);
 });
 await check('記録ページ：records.html?me=1 で「個人で使う」になる', () => { assert.match(src('records_app.js'), /\[\?&\]me=1/); });
+await check('v0.24.1：記録・照合・はじめての人のページにも同じ「モード」ボタンと選ぶ画面', () => {
+  const B = f => fs.readFileSync(path.join(here, '../../' + f), 'utf8');
+  for (const f of ['index.html', 'records.html', 'check.html', 'guide.html']) { const h = B(f); assert.equal((h.match(/id="modeSw"/g) || []).length, 1, f); assert.ok(h.includes('id="modePick"'), f); assert.ok(h.includes('var LaneMode'), f); assert.ok(!h.includes('__MODE'), f); }
+});
+await check('v0.24.1：ほかのページで選手モードを選ぶとトップ（選手ホーム）へ・はじめての質問は出さない・記録ページは隠さない', async () => {
+  const h = '<body><button id="modeSw"></button>' + src('mode_pick.html').split('\n').slice(1).join('\n') + '<main><p id="x">記録</p></main></body>';
+  const d = new JSDOM(h, { url: 'http://127.0.0.1/lane-note/records.html', runScripts: 'outside-only' }), w = d.window; let went = '';
+  w.scrollTo = () => {}; w.eval(src('mode.js').replace("location.href = './'", "window.__go = './'")); w.LaneMode.init();
+  assert.equal(w.document.getElementById('modePick').hidden, true, '最初に聞かない');
+  w.document.getElementById('modeSw').click(); assert.equal(w.document.getElementById('modePick').hidden, false);
+  w.document.querySelector('[data-mode="player"]').click(); assert.equal(w.__go, './'); assert.equal(w.localStorage.getItem('lanenote.mode.v1'), 'player');
+  w.LaneMode.apply(); assert.ok(!w.document.body.classList.contains('ln-player')); assert.match(w.document.getElementById('modeSw').textContent, /選手モード/);
+});
 console.log(pass + ' passed, ' + fail + ' failed'); if (fail) process.exit(1);

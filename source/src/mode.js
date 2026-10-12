@@ -32,13 +32,17 @@ var LaneMode = (function () {
 
   /* ---------- 画面の切りかえ ---------- */
   function apply() {
-    var m = get(), pl = m === 'player' && !sharedView();
+    var m = get(), pl = m === 'player' && !sharedView() && !!$('phome');
     document.body.classList.toggle('ln-player', pl);
     var sw = $('modeSw'); if (sw) sw.innerHTML = m === 'player' ? '👟 選手モード<small>切りかえ</small>' : m === 'coach' ? '🧑‍🏫 顧問モード<small>切りかえ</small>' : '👤 モードを選ぶ';
-    $('phome').hidden = !pl;
-    if (pl) renderHome();
+    if ($('phome')) { $('phome').hidden = !pl; if (pl) renderHome(); }
   }
-  function choose(m) { set(m); $('modePick').hidden = true; document.body.classList.remove('mp-open'); apply(); window.scrollTo(0, 0); }
+  function choose(m) {
+    var was = get(); set(m); $('modePick').hidden = true; document.body.classList.remove('mp-open');
+    // v0.24.1：大会準備以外のページで選手モードにしたら、選手モードのホーム（トップ）へ移る
+    if (m === 'player' && !$('phome')) { location.href = './'; return; }
+    apply(); if (m !== was) window.scrollTo(0, 0);
+  }
   function openPick(first) {
     var d = $('modePick'); d.hidden = false; document.body.classList.add('mp-open');
     $('mpFirst').hidden = !first; $('mpClose').hidden = !!first;
@@ -102,14 +106,14 @@ var LaneMode = (function () {
     if (window.LaneTalk) LaneTalk.renderHomeCard($('phTalk'), pps.map(function (x) { return x.o.tk; }).filter(Boolean));
   }
   function init() {
-    if (!$('phome')) return;
+    if (!$('modePick')) return;
     document.addEventListener('click', function (e) {
       var b = e.target.closest('[data-mode]'); if (b && b.closest('#modePick')) { choose(b.getAttribute('data-mode')); return; }
       if (e.target.closest('[data-pickmode]') || e.target.closest('#modeSw')) { openPick(false); return; }
       if (e.target.closest('#mpClose')) { $('modePick').hidden = true; document.body.classList.remove('mp-open'); }
     });
     window.addEventListener('hashchange', apply);
-    if (!get() && !sharedView()) openPick(true);
+    if ($('phome') && !get() && !sharedView()) openPick(true);   // はじめての質問はトップだけ
     apply();
   }
   return { get: get, set: set, apply: apply, init: init, savedLinks: savedLinks, sharedView: sharedView, renderHome: renderHome, KEY: KEY };

@@ -25,6 +25,8 @@ __BASE_CSS__
   <h2 class="g-title" style="color:#fff;font-size:20px;margin:8px 0 0">🔰 はじめての人はこちら</h2>
   <nav class="pagenav" aria-label="ページ"><a href="./">← 🏁 大会準備へ</a><a href="records.html">← 📒 記録へ</a><a href="check.html">← ✅ 照合へ</a></nav>
 </header>
+<div class="topbar">__MODEBTN__</div>
+__MODEPICK__
 <main>
 <nav class="g-toc" aria-label="目次"><a href="#g1">大会準備</a><a href="#g2">記録</a><a href="#g3">選手ページ</a><a href="#g4">個人で使う</a><a href="#g5">ログイン</a><a href="#g6">データの取り扱い</a><a href="#g7">共有と止め方</a><a href="#g8">体調メモ</a><a href="#g9">FAQ</a><a href="#g10">エントリー照合</a><a href="#g11">保護者へのお知らせ</a></nav>
 <section class="box g-card"><h2><span class="no" id="g1">1</span>🏁 大会準備（エントリーした大会の当日資料づくり）</h2><ol class="g-steps"><li><b>スタートリスト</b>（またはプログラム）と<b>タイムテーブル</b>のPDFを入れます。<b>競技注意事項</b>を入れると招集時刻のルールも自動で設定します（任意）。</li><li><b>学校・クラブ名</b>を入れます。一部でOK（「本郷」→ 本郷高・本郷中が出るので、必要な方にチェック）。</li><li>「時間順」「選手別」「記録用紙」「ナンバーカード」ができます。準決勝・決勝は「通過したら」の予定として入ります。</li><li>書類は「👀 画面で見る」「📄 PDF作成」「🖨 印刷」から選べます。</li></ol><p class="g-tip">💡 「この端末に保存」を押すと、電波のない競技場でも開けます。</p></section>
@@ -60,5 +62,9 @@ __BASE_CSS__
 <section class="box" id="disclaimer"><h2>⚠ 試作版について・免責</h2><p>機能や画面は予告なく変わることがあります。記録が消えたり読み取りを間違えたりする可能性があるので、大事な記録は元の結果資料でも確認してください。</p><div class="notice">⚠ <b>試作版です。</b><button type="button" class="fb-link" data-feedback="1">📮 不具合・要望を送る</button>　本ツールはPDFの文字を読み取って自動で整理しているだけです。内容は必ず元のスタートリスト・タイムテーブル等と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div></section>
 <p class="small muted" style="text-align:center">LANE NOTE __VERSION__</p>
 </main>
+<script>
+__MODE__
+document.addEventListener('DOMContentLoaded', function () { LaneMode.init(); });
+</script>
 </body>
 </html>

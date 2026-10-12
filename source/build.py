@@ -13,11 +13,16 @@ import base64, hashlib, html as htmlmod, json, pathlib, re, sys
 ROOT = pathlib.Path(__file__).resolve().parent
 S = ROOT / 'src'
 SHARE_BASE = 'https://masarun0721.github.io/lane-note/'   # 共有リンク・QRの公開アドレス（file:// で開いたとき用）
-VERSION = 'v0.24'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
+VERSION = 'v0.24.1'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
 # 作成日は版番号から取れないので固定（ビルドした日で変わると、公開時の一致検査ができないため）
 BUILD_DATE = '2026年10月12日'
 REC_VERSION = 'v0.11.0'   # LANE LOG（records.html）だけの版
 REC_BUILD_DATE = '2026年10月12日'
+
+
+def _mp():
+    s = (ROOT / 'src/mode_pick.html').read_text(encoding='utf-8')
+    return s.split('\n', 1)
 
 
 def b64(p):
@@ -46,6 +51,9 @@ def changelog_html():
             % (e(new['ver']), e(new['date'].replace('-', '/')), lis))
 
 
+MODEBTN, MODEPICK = _mp()
+
+
 def build():
     html = text('src/template.html')
     rep = {
@@ -56,7 +64,7 @@ def build():
         '__LOGO_DARK__': logo_inline('logo/option_A_dark.svg'),
         '__FAVICON__': 'data:image/svg+xml;base64,' + b64('logo/option_A_icon.svg'),
         '__APPLE_ICON__': 'data:image/png;base64,' + b64('logo/png/option_A_icon_180.png'),
-        '__VERSION__': VERSION, '__SHARE_BASE__': SHARE_BASE, '__QRCODE__': text('vendor/qrcode.js'),
+        '__VERSION__': VERSION, '__MODEBTN__': MODEBTN, '__MODEPICK__': MODEPICK, '__MODE__': text('src/mode.js'), '__SHARE_BASE__': SHARE_BASE, '__QRCODE__': text('vendor/qrcode.js'),
         '__BUILD_DATE__': BUILD_DATE, '__REC_VERSION__': REC_VERSION,
         '__PRINT_ICON__': 'data:image/svg+xml;base64,' + b64('logo/option_A_icon_mono.svg'),
     }
@@ -80,7 +88,7 @@ def build_check():
     g = text('src/check_template.html')
     rep = {'__BASE_CSS__': base[base.index('<style>') + 7:base.index('</style>')], '__LOGO_DARK__': logo_inline('logo/option_A_dark.svg'),
            '__FAVICON__': 'data:image/svg+xml;base64,' + b64('logo/option_A_icon.svg'),
-           '__APPLE_ICON__': 'data:image/png;base64,' + b64('logo/png/option_A_icon_180.png'), '__VERSION__': VERSION, '__REC_VERSION__': REC_VERSION,
+           '__APPLE_ICON__': 'data:image/png;base64,' + b64('logo/png/option_A_icon_180.png'), '__VERSION__': VERSION, '__MODEBTN__': MODEBTN, '__MODEPICK__': MODEPICK, '__MODE__': text('src/mode.js'), '__MODEBTN__': MODEBTN, '__MODEPICK__': MODEPICK, '__MODE__': text('src/mode.js'), '__REC_VERSION__': REC_VERSION,
            '__PARSER__': text('src/parser.js'), '__LOGIC__': text('src/logic.js'), '__ENTRY__': text('src/entry.js'), '__CHECKAPP__': text('src/check_app.js'), '__URLLOAD__': text('src/urlload.js'), '__OVERLAY__': text('src/overlay.js'), '__PDFMAKE__': text('src/pdfmake.js'),
            '__AUTHCOMMON__': text('src/auth_common.js'), '__FEEDBACK__': text('src/feedback.js'), '__CHANGELOG__': changelog_html()}
     for k, v in rep.items():
@@ -95,7 +103,7 @@ def build_guide():
     g = text('src/guide_template.html')
     rep = {'__BASE_CSS__': base[base.index('<style>') + 7:base.index('</style>')], '__LOGO_DARK__': logo_inline('logo/option_A_dark.svg'),
            '__FAVICON__': 'data:image/svg+xml;base64,' + b64('logo/option_A_icon.svg'),
-           '__APPLE_ICON__': 'data:image/png;base64,' + b64('logo/png/option_A_icon_180.png'), '__VERSION__': VERSION}
+           '__APPLE_ICON__': 'data:image/png;base64,' + b64('logo/png/option_A_icon_180.png'), '__VERSION__': VERSION, '__MODEBTN__': MODEBTN, '__MODEPICK__': MODEPICK, '__MODE__': text('src/mode.js')}
     for k, v in rep.items():
         assert k in g, k
         g = g.replace(k, v)
@@ -112,7 +120,7 @@ def build_records(index_html):
         '__LOGO_DARK__': logo_inline('logo/option_A_dark.svg'),
         '__FAVICON__': 'data:image/svg+xml;base64,' + b64('logo/option_A_icon.svg'),
         '__APPLE_ICON__': 'data:image/png;base64,' + b64('logo/png/option_A_icon_180.png'),
-        '__VERSION__': VERSION, '__REC_VERSION__': REC_VERSION, '__BUILD_DATE__': REC_BUILD_DATE, '__CHANGELOG__': changelog_html(),
+        '__VERSION__': VERSION, '__MODEBTN__': MODEBTN, '__MODEPICK__': MODEPICK, '__MODE__': text('src/mode.js'), '__REC_VERSION__': REC_VERSION, '__BUILD_DATE__': REC_BUILD_DATE, '__CHANGELOG__': changelog_html(),
     }
     for k, v in rep.items():
         assert k in rec, k
