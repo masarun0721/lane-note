@@ -618,6 +618,12 @@ body.fb-open{overflow:hidden}
 .use-count .uc-from{margin-right:3px;font-variant-numeric:tabular-nums}
 .use-count .uc-d{display:inline-block;width:12px;height:17px;line-height:17px;text-align:center;background:#fff;color:#14213d;border-radius:2px;border-bottom:2px solid #f2c14e;box-sizing:border-box;font-family:"Arial Narrow","Roboto Condensed","Helvetica Neue",Arial,sans-serif;font-stretch:condensed;font-weight:900;font-size:13px;text-shadow:none;box-shadow:0 1px 2px rgba(0,0,0,.35)}
 @media screen and (max-width:720px){header>.hdr-meta{padding-bottom:24px}.hdr-meta>div.use-count{top:96px}.use-count .uc-d{width:11px;height:16px;line-height:15px;font-size:12px}}
+/* v0.25.7：数字はトラックのレーン番号ブロックふう（上が細い台形・黄色・左右に少し影・上に細い穴・黒い太字）。CSSだけで描く */
+.use-count .uc-d{position:relative;width:14px;height:18px;line-height:20px;padding:0;border:0;border-radius:0;box-shadow:none;color:#111;font-size:14px;font-weight:900;
+  background:linear-gradient(90deg,#c98f00 0,#f2b705 22%,#f7c51e 50%,#f2b705 78%,#b98300 100%);clip-path:polygon(18% 0,82% 0,100% 100%,0 100%)}
+.use-count .uc-d::before{content:"";position:absolute;left:34%;right:34%;top:1px;height:2px;border-radius:1px;background:rgba(80,50,0,.55)}
+.use-count{filter:drop-shadow(0 1px 1px rgba(0,0,0,.45))}.use-count .uc-d+.uc-d{margin-left:0}
+@media screen and (max-width:720px){.use-count .uc-d{width:13px;height:17px;line-height:19px;font-size:13px}}
 
 .g-toc{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}.g-toc a{background:#fff;border:1px solid #c9d2e0;border-radius:999px;padding:6px 12px;font-size:14px;color:var(--navy);text-decoration:none;font-weight:700}
 .g-card h2{font-size:18px}.g-card h3{font-size:15px;color:var(--navy);margin:12px 0 4px}
@@ -650,7 +656,7 @@ body.fb-open{overflow:hidden}
 <body>
 <header>
   <div class="hdr-meta">
-    <div class="hdr-ver" aria-label="バージョン">v0.25.6</div>
+    <div class="hdr-ver" aria-label="バージョン">v0.25.7</div>
     <div class="credit">Presented by Sakata</div>
     <div class="hdr-msg"><span class="hm-l">すべての陸上競技部顧問が、</span><span class="hm-l">少しでも楽になりますように。</span></div>
   </div>
@@ -712,7 +718,7 @@ body.fb-open{overflow:hidden}
 <section class="box g-card" id="mode"><h2><span class="no" id="g12">12</span>👤 顧問モード／選手モード</h2><p>はじめて開いたときに「🧑‍🏫 顧問・コーチの方」か「👟 選手・保護者の方」かを選びます。選んだモードはこの端末（ブラウザ）にだけ覚えます。上の「モード」ボタンでいつでも切りかえられます。ログインは要りません。</p><ul><li><b>顧問モード</b>：今までどおり、大会準備・記録・照合・保護者へのお知らせなど、すべての機能が使えます。</li><li><b>選手モード</b>：次の大会の予定と招集時刻、自己ベスト、体調メモ、自分の記録をつける（「個人で使う」）、先生からもらったリンクの一覧を1つの画面にまとめます。もらったリンクは一度開くと自動でここに入ります。</li></ul></section>
 <section class="box g-card" id="talk"><h2><span class="no" id="g13">13</span>💬 選手とのやり取り（使いたい先生だけ）</h2><p>はじめは<b>オフ</b>です。オフのあいだは、選手の画面にやり取りの欄は出ません。</p><ol class="g-steps"><li>記録ページで Google にログインし、「💬 選手とのやり取り」を開いて「選手とのやり取りを使う」にチェックします。</li><li>やり取りしたい選手だけ「使う」を押します。その選手専用のリンク（119日まで）ができます。「💬 開く」からリンクをコピーして、本人にだけ送ります（v0.25 から、個人ページのリンクには入りません）。v0.24 で作ったやり取りは「旧形式・停止中」と出るので、「🔁 安全に作り直す」で新しいリンクにしてください。</li><li>「先生からのひとこと」を書くと、選手の画面のいちばん上に出ます。選手は返信できます（続けて送るときは3秒あける・1人1000件まで）。体調メモを先生に送る機能は、安全のため止めています（体調メモはスマホの中だけ）。</li><li>「⏸ 停止」で選手から見えなくなります（再開できます）。「🗑 削除」は、先に投稿を止めてから、ひとこと・返信を全部消します（同じリンクは二度と使えません）。期限（119日）が過ぎたものは、先生がこの画面を開いたときに自動で中身を消します。チェックを外すと、全員分がすぐ止まります。</li></ul><p class="g-tip">⚠️ 選手はログインなしでリンクだけで使います。<b>リンクを知っている人は、その選手として書きこめます</b>。本人にだけ送ってください。ほかの選手のやり取りは見えません。共用のスマホでは、選手モードのホームの「この端末から全部消す」で消せます。あとで、選手もログインして使う形を選べるようにする予定です。</p></section>
 <section class="box" id="disclaimer"><h2>⚠ 試作版について・免責</h2><p>機能や画面は予告なく変わることがあります。記録が消えたり読み取りを間違えたりする可能性があるので、大事な記録は元の結果資料でも確認してください。</p><div class="notice">⚠ <b>試作版です。</b><button type="button" class="fb-link" data-feedback="1">📮 不具合・要望を送る</button>　本ツールはPDFの文字を読み取って自動で整理しているだけです。内容は必ず元のスタートリスト・タイムテーブル等と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div></section>
-<p class="small muted" style="text-align:center">LANE NOTE v0.25.6</p>
+<p class="small muted" style="text-align:center">LANE NOTE v0.25.7</p>
 </div>
 <div id="gBtn" hidden>
 <section class="box g-card" id="manual"><h2>📖 マニュアル</h2><p>LANE NOTE で「何ができるか」を、やりたいこと別にまとめました。まず自分に近いものを選んでください。下には、画面ごとのボタンの説明があります。絵は架空のデータで撮った実際の画面です（押すと大きく表示）。</p>
