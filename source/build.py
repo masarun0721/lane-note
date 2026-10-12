@@ -13,7 +13,7 @@ import base64, hashlib, html as htmlmod, json, pathlib, re, sys
 ROOT = pathlib.Path(__file__).resolve().parent
 S = ROOT / 'src'
 SHARE_BASE = 'https://masarun0721.github.io/lane-note/'   # 共有リンク・QRの公開アドレス（file:// で開いたとき用）
-VERSION = 'v0.25'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
+VERSION = 'v0.25.1'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
 # 作成日は版番号から取れないので固定（ビルドした日で変わると、公開時の一致検査ができないため）
 BUILD_DATE = '2026年10月12日'
 REC_VERSION = 'v0.11.1'   # LANE LOG（records.html）だけの版
@@ -97,13 +97,49 @@ def build_check():
     return g
 
 
+def buttons_html():
+    """v0.25.1：マニュアル（src/buttons.json から作る。文言が実際の画面と同じかは test/v0251_buttons_check.mjs で確かめる）"""
+    import html as H
+    E = H.escape
+    data = json.loads(text('src/buttons.json'))
+    scr = {sc['id']: sc for sc in data['screens']}
+
+    def img(name, alt):
+        p = ROOT / 'img' / (name + '.webp')
+        return '<img class="bx-shot" loading="lazy" alt="%s（架空のデータ）" src="data:image/webp;base64,%s">' % (E(alt), b64('img/' + name + '.webp')) if p.exists() else ''
+
+    def chip(sid, t):
+        it = [x for x in scr[sid]['items'] if x['t'] == t][0]
+        return '<span class="%s bx-chip" aria-hidden="true">%s</span>' % (E(it['c']), E(t))
+    out = ['<section class="box g-card" id="manual"><h2>📖 マニュアル</h2><p>LANE NOTE で「何ができるか」を、やりたいこと別にまとめました。まず自分に近いものを選んでください。下には、画面ごとのボタンの説明があります。絵は架空のデータで撮った画面です。</p>',
+           '<h3>こんなときに使えます</h3><nav class="bx-toc" aria-label="やりたいこと">']
+    out += ['<a href="#u%d">%s</a>' % (i + 1, E(u['q'])) for i, u in enumerate(data['purposes'])]
+    out.append('</nav><h3>画面ごとのボタン</h3><nav class="bx-toc" aria-label="画面ごとの目次">')
+    out += ['<a href="#%s">%s</a>' % (sc['id'], E(sc['title'])) for sc in data['screens']]
+    out.append('</nav></section>')
+    for i, u in enumerate(data['purposes']):
+        out.append('<section class="box g-card bx-use" id="u%d"><h2>💡 %s</h2><div class="bx-usegrid"><div>%s</div><div><p class="bx-get"><b>できあがるもの：</b>%s</p><ol class="bx-steps">' % (i + 1, E(u['q']), img(u['img'], u['q']), E(u['get'])))
+        for sid, t, how in u['steps']:
+            out.append('<li><a class="bx-where" href="#%s">%s</a> %s<br><span class="bx-how">%s</span></li>' % (sid, E(scr[sid]['title']), chip(sid, t), E(how)))
+        out.append('</ol></div></div></section>')
+    for sc in data['screens']:
+        out.append('<section class="box g-card" id="%s"><h2>%s</h2><p>%s%s</p>' % (sc['id'], E(sc['title']), E(sc['intro']), (' <a href="%s">このページを開く →</a>' % sc['page']) if sc['page'] else ''))
+        if sc['shot']:
+            out.append(img(sc['shot'], sc['title'] + 'の画面'))
+        out.append('<ul class="bx-list">')
+        for it in sc['items']:
+            out.append('<li data-bx-src="%s"><div class="bx-look"><span class="%s" aria-hidden="true">%s</span></div><p class="bx-does"><b class="vh">%s：</b>%s<span class="bx-need">必要なもの：%s</span></p></li>' % (E(it['f']), E(it['c']), E(it['t']), E(it['t']), E(it['does']), E(it['needs'])))
+        out.append('</ul><p><a href="#manual">↑ マニュアルの最初へ</a></p></section>')
+    return '\n'.join(out)
+
+
 def build_guide():
     """はじめての人はこちら（guide.html）：使い方とデータの取り扱いの全文"""
     base = text('src/template.html')
     g = text('src/guide_template.html')
     rep = {'__BASE_CSS__': base[base.index('<style>') + 7:base.index('</style>')], '__LOGO_DARK__': logo_inline('logo/option_A_dark.svg'),
            '__FAVICON__': 'data:image/svg+xml;base64,' + b64('logo/option_A_icon.svg'),
-           '__APPLE_ICON__': 'data:image/png;base64,' + b64('logo/png/option_A_icon_180.png'), '__VERSION__': VERSION, '__MODEBTN__': MODEBTN, '__MODEPICK__': MODEPICK, '__MODE__': text('src/mode.js')}
+           '__APPLE_ICON__': 'data:image/png;base64,' + b64('logo/png/option_A_icon_180.png'), '__VERSION__': VERSION, '__MODEBTN__': MODEBTN, '__MODEPICK__': MODEPICK, '__MODE__': text('src/mode.js'), '__BUTTONS__': buttons_html()}
     for k, v in rep.items():
         assert k in g, k
         g = g.replace(k, v)

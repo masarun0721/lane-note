@@ -14,22 +14,46 @@ __BASE_CSS__
 .g-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}.g-mini{border:1px solid var(--line);border-top:4px solid var(--navy);border-radius:8px;padding:8px 10px}.g-mini p{margin:4px 0 0;font-size:14px}
 .g-card details{border-top:1px solid var(--line);padding:8px 0}.g-card summary{font-weight:700;cursor:pointer;min-height:32px}
 .g-card .privacy ul{padding-left:1.2em}.g-card .privacy li{margin:6px 0}
+.g-topbar{justify-content:flex-end}
+.g-hero{background:#fff;border:2px solid var(--navy);border-radius:16px;padding:16px 18px;margin:0 0 14px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.g-hero h2{margin:0 0 6px;font-size:24px;color:var(--navy);line-height:1.35}.g-hero p{margin:0 0 12px;font-size:15px;line-height:1.7}
+.g-tabs{display:flex;gap:8px;flex-wrap:wrap}.g-tab{flex:1 1 160px;text-align:center;min-height:48px;display:flex;align-items:center;justify-content:center;border-radius:12px;border:2px solid var(--navy);color:var(--navy);font-weight:800;text-decoration:none;font-size:16px;background:#fff}
+.bx-usegrid{display:grid;grid-template-columns:minmax(0,300px) 1fr;gap:14px;align-items:start}.bx-use .bx-shot{width:100%}.bx-get{margin:0 0 8px;font-size:15px}.bx-steps{padding-left:1.3em;margin:0;line-height:1.7}.bx-steps li{margin:0 0 10px}.bx-where{font-weight:700;font-size:13px}.bx-how{font-size:14px}.bx-chip{display:inline-flex!important;width:auto!important;min-height:32px!important;padding:2px 10px!important;font-size:13px!important;pointer-events:none;vertical-align:middle;margin:2px 0}@media (max-width:640px){.bx-usegrid{grid-template-columns:1fr}}
+.g-tab.on{background:var(--navy);color:#fff}
+.bx-toc{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}.bx-toc a{background:#fff;border:1px solid #c9d2e0;border-radius:999px;padding:6px 12px;font-size:14px;color:var(--navy);text-decoration:none;font-weight:700}
+.bx-shot{display:block;max-width:100%;width:360px;border:1px solid var(--line);border-radius:10px;margin:6px 0 10px}
+.bx-list{list-style:none;margin:0;padding:0}.bx-list li{display:grid;grid-template-columns:minmax(150px,240px) 1fr;gap:8px 14px;align-items:start;border-top:1px solid var(--line);padding:10px 0}
+.bx-look{display:flex;align-items:flex-start}.bx-look>*{pointer-events:none;max-width:100%;white-space:normal;text-align:left}
+.bx-does{margin:0;font-size:15px;line-height:1.6}.bx-need{display:block;font-size:13px;color:#555;margin-top:2px}
+.bx-look .mode-link{background:none;border:0;padding:4px 2px;color:var(--navy);text-decoration:underline;font-size:13px}.bx-look .danger{background:#c0392b!important;box-shadow:0 2px 0 #8f2a1f!important}
+@media (max-width:640px){.bx-list li{grid-template-columns:1fr}.g-hero h2{font-size:20px}}
 </style>
 </head>
 <body>
 <header>
+  <div class="hdr-meta">
+    <div class="hdr-ver" aria-label="バージョン">__VERSION__</div>
+    <div class="credit">Presented by Sakata</div>
+    <div class="hdr-msg"><span class="hm-l">すべての陸上競技部顧問が、</span><span class="hm-l">少しでも楽になりますように。</span></div>
+  </div>
   <div class="brand">
     <h1 class="logo">__LOGO_DARK__<span class="vh">LANE NOTE（レーンノート）はじめての人はこちら</span></h1>
+    <span class="badge">試作版</span>
   </div>
-  <p class="tagline">はじめての人はこちら：LANE NOTE の使い方とデータの取り扱い</p>
-  <h2 class="g-title" style="color:#fff;font-size:20px;margin:8px 0 0">🔰 はじめての人はこちら</h2>
-  <nav class="pagenav" aria-label="ページ"><a href="./">← 🏁 大会準備へ</a><a href="records.html">← 📒 記録へ</a><a href="check.html">← ✅ 照合へ</a></nav>
+  <p class="tagline">はじめての人はこちら：使い方・マニュアル・データの取り扱い</p>
+  <nav class="pagenav" aria-label="ページ"><a href="./">🏁 大会準備</a><a href="records.html">📒 記録</a><a href="check.html">✅ 照合</a><a href="guide.html" class="on" aria-current="page">🔰 はじめての人</a><a href="guide.html#manual">📖 マニュアル</a></nav>
 </header>
-<div class="topbar">__MODEBTN__</div>
+<div class="topbar g-topbar">__MODEBTN__</div>
 __MODEPICK__
 <main>
+<section class="g-hero" aria-labelledby="gHeroT">
+  <h2 id="gHeroT">📘 はじめての人はこちら（使い方ガイド）</h2>
+  <p>LANE NOTE をはじめて使う人が、最初に読むページです。「🔰 使い方」を上から順に読むか、「📖 マニュアル」の「こんなときに使えます」から、やりたいことを選んでください。</p>
+  <div class="g-tabs" role="tablist" aria-label="ガイドの切りかえ"><a href="#g1" class="g-tab" id="gTabUse" role="tab">🔰 使い方</a><a href="#manual" class="g-tab" id="gTabBtn" role="tab">📖 マニュアル</a></div>
+</section>
+<div id="gUse">
 <nav class="g-toc" aria-label="目次"><a href="#g1">大会準備</a><a href="#g2">記録</a><a href="#g3">選手ページ</a><a href="#g4">個人で使う</a><a href="#g5">ログイン</a><a href="#g6">データの取り扱い</a><a href="#g7">共有と止め方</a><a href="#g8">体調メモ</a><a href="#g9">FAQ</a><a href="#g10">エントリー照合</a><a href="#g11">保護者へのお知らせ</a></nav>
-<section class="box g-card"><h2><span class="no" id="g1">1</span>🏁 大会準備（エントリーした大会の当日資料づくり）</h2><ol class="g-steps"><li><b>スタートリスト</b>（またはプログラム）と<b>タイムテーブル</b>のPDFを入れます。<b>競技注意事項</b>を入れると招集時刻のルールも自動で設定します（任意）。</li><li><b>学校・クラブ名</b>を入れます。一部でOK（「本郷」→ 本郷高・本郷中が出るので、必要な方にチェック）。</li><li>「時間順」「選手別」「記録用紙」「ナンバーカード」ができます。準決勝・決勝は「通過したら」の予定として入ります。</li><li>書類は「👀 画面で見る」「📄 PDF作成」「🖨 印刷」から選べます。</li></ol><p class="g-tip">💡 「この端末に保存」を押すと、電波のない競技場でも開けます。</p></section>
+<section class="box g-card"><h2><span class="no" id="g1">1</span>🏁 大会準備（エントリーした大会の当日資料づくり）</h2><ol class="g-steps"><li><b>スタートリスト</b>（またはプログラム）と<b>タイムテーブル</b>のPDFを入れます。<b>競技注意事項</b>を入れると招集時刻のルールも自動で設定します（任意）。</li><li><b>学校・クラブ名</b>を入れます。一部でOK（「第一」→ 第一高・第一中が出るので、必要な方にチェック）。</li><li>「時間順」「選手別」「記録用紙」「ナンバーカード」ができます。準決勝・決勝は「通過したら」の予定として入ります。</li><li>書類は「👀 画面で見る」「📄 PDF作成」「🖨 印刷」から選べます。</li></ol><p class="g-tip">💡 「この端末に保存」を押すと、電波のない競技場でも開けます。</p></section>
 <section class="box g-card"><h2><span class="no" id="g2">2</span>📒 記録（自校の記録と自己ベストをためる）</h2><ol class="g-steps"><li>Googleでログインします（しなくても、この端末だけで使えます）。</li><li>学校・クラブ名を入れ、大会結果のPDF・保存したWebページ・Excel（.xlsx/.xls/.csv）を入れます。</li><li>確認画面で中身を見て「保存」。部内ランキング・歴代記録・選手ごとの自己ベストとグラフが見られます。</li><li>個人表・ランキング・歴代記録は「PDF作成」でA4のきれいな書類にできます。選手を選んで1人1ページにもできます。</li></ol><p class="g-tip">💡 読み取りで漏れた記録は「✏️ 1件ずつ入力する」で足せます。</p></section>
 <section class="box g-card"><h2><span class="no" id="g3">3</span>🔗 選手ページ・個人ページ（選手に配るリンク）</h2><ul><li><b>選手用リンク（予定）</b>：大会準備の「スマホで見る／共有」から。その子の出場・招集時刻だけが入ります。</li><li><b>個人ページ（記録）</b>：記録ページの「📱 選手の個人ページを作る」から。別の画面で中学/高校・男女をしぼって選手にチェックを入れ、「🔗 チェックした人のリンクを作る」を押します。1人ずつの「コピー」か、「📋 まとめてコピー（LINE用）」で配れます。選手のページの「個人ページのリンク」からも1人分を作れます。</li><li>リンクにはその子の自己ベスト・推移グラフ・最近の記録だけが入ります（ほかの選手の記録は入りません）。選手はログインなしで見られます。</li><li>Googleでログイン中は短いリンク（作ってから119日まで・大会準備のページの「作った短いリンク」から止められます）、ログインなしは長いリンクになります。</li><li>大会準備のページで同じ名前の選手用リンク（短いリンク）を作ってあれば、「大会当日の予定」へのリンクも入れます。</li><li>個人ページは作った時点の写しです。新しい記録が入ったら作り直して配ってください。</li></ul></section>
 <section class="box g-card"><h2><span class="no" id="g4">4</span>👤 個人で使う（選手本人・保護者・クラブの人）</h2><p>記録ページの「👤 個人で使う」にチェックし、学校・クラブ名のかわりに自分の名前（と所属）を入れます。結果の資料から、その人の記録だけを取り込みます。同じ名前の別の人が混ざらないよう、所属も入れるのがおすすめです。</p></section>
@@ -61,10 +85,25 @@ __MODEPICK__
 <section class="box g-card" id="talk"><h2><span class="no" id="g13">13</span>💬 選手とのやり取り（使いたい先生だけ）</h2><p>はじめは<b>オフ</b>です。オフのあいだは、選手の画面にやり取りの欄は出ません。</p><ol class="g-steps"><li>記録ページで Google にログインし、「💬 選手とのやり取り」を開いて「選手とのやり取りを使う」にチェックします。</li><li>やり取りしたい選手だけ「使う」を押します。その選手専用のリンク（119日まで）ができます。「💬 開く」からリンクをコピーして、本人にだけ送ります（v0.25 から、個人ページのリンクには入りません）。v0.24 で作ったやり取りは「旧形式・停止中」と出るので、「🔁 安全に作り直す」で新しいリンクにしてください。</li><li>「先生からのひとこと」を書くと、選手の画面のいちばん上に出ます。選手は返信できます（続けて送るときは3秒あける・1人1000件まで）。体調メモを先生に送る機能は、安全のため止めています（体調メモはスマホの中だけ）。</li><li>「⏸ 停止」で選手から見えなくなります（再開できます）。「🗑 削除」は、先に投稿を止めてから、ひとこと・返信を全部消します（同じリンクは二度と使えません）。期限（119日）が過ぎたものは、先生がこの画面を開いたときに自動で中身を消します。チェックを外すと、全員分がすぐ止まります。</li></ul><p class="g-tip">⚠️ 選手はログインなしでリンクだけで使います。<b>リンクを知っている人は、その選手として書きこめます</b>。本人にだけ送ってください。ほかの選手のやり取りは見えません。共用のスマホでは、選手モードのホームの「この端末から全部消す」で消せます。あとで、選手もログインして使う形を選べるようにする予定です。</p></section>
 <section class="box" id="disclaimer"><h2>⚠ 試作版について・免責</h2><p>機能や画面は予告なく変わることがあります。記録が消えたり読み取りを間違えたりする可能性があるので、大事な記録は元の結果資料でも確認してください。</p><div class="notice">⚠ <b>試作版です。</b><button type="button" class="fb-link" data-feedback="1">📮 不具合・要望を送る</button>　本ツールはPDFの文字を読み取って自動で整理しているだけです。内容は必ず元のスタートリスト・タイムテーブル等と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div></section>
 <p class="small muted" style="text-align:center">LANE NOTE __VERSION__</p>
+</div>
+<div id="gBtn" hidden>
+__BUTTONS__
+</div>
 </main>
 <script>
 __MODE__
 document.addEventListener('DOMContentLoaded', function () { LaneMode.init(); });
+</script>
+<script>
+(function () {
+  function show() {
+    var h = location.hash, btn = h === '#manual' || h === '#buttons' || /^#[bu]\d+$/.test(h);
+    document.getElementById('gUse').hidden = btn; document.getElementById('gBtn').hidden = !btn;
+    document.getElementById('gTabUse').classList.toggle('on', !btn); document.getElementById('gTabBtn').classList.toggle('on', btn);
+    document.getElementById('gTabUse').setAttribute('aria-selected', String(!btn)); document.getElementById('gTabBtn').setAttribute('aria-selected', String(btn));
+  }
+  window.addEventListener('hashchange', show); show();
+})();
 </script>
 </body>
 </html>
