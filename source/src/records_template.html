@@ -184,6 +184,8 @@ tr.rc.editing td{background:#fff3ec!important}
 #rbPrintBody{padding:10px}
 .lp-page{--ln:#14284b;--lr:#d7263d;background:#fff;color:#16203a;max-width:190mm;margin:0 auto 14px;padding:0 0 8mm;box-shadow:0 2px 10px rgba(20,40,75,.18);font-size:12px;display:flex;flex-direction:column;font-family:"Noto Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;overflow:hidden;border-radius:6px}
 .lp-band{position:relative;display:flex;justify-content:space-between;align-items:flex-end;gap:10px;padding:14px 16px 16px;color:#fff;background:repeating-linear-gradient(180deg,transparent 0 17px,rgba(255,255,255,.07) 17px 18px),linear-gradient(120deg,#14284b 0%,#1f3a68 70%,#27508f 100%);border-bottom:5px solid var(--lr)}
+/* v0.23.1：ページ上部の header 用の指定（header>* の左右 auto 余白・header::before の影）が印刷用の帯（<header class="lp-band">）にも効いて、タイトルが右へずれていた */
+.lp-band>*{margin:0!important;max-width:none!important}.lp-band::before{content:none!important;display:none!important}.lp-page th{position:static!important}
 .lp-band:after{content:"";position:absolute;right:0;top:0;bottom:0;width:38%;background:repeating-linear-gradient(115deg,transparent 0 14px,rgba(215,38,61,.18) 14px 18px);pointer-events:none}
 .lp-bl,.lp-br{position:relative;z-index:1;display:flex;flex-direction:column;min-width:0}.lp-br{align-items:flex-end;text-align:right;flex:none}
 .lp-kind{font-size:10px;letter-spacing:.18em;font-weight:700;color:#ffb3bd}

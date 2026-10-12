@@ -82,7 +82,10 @@ var LanePdf = (function () {
       frame.setAttribute('aria-hidden', 'true'); frame.tabIndex = -1;
       frame.style.cssText = 'position:fixed;left:-10000px;top:0;width:' + Math.ceil(cw) + 'px;height:' + Math.ceil(ch) + 'px;border:0;visibility:hidden';
       document.body.appendChild(frame);
-      var html = printify(o.html).replace(/<\/head>/i, '<style>html,body{margin:0!important;padding:0!important;background:#fff!important;box-shadow:none!important;min-height:0!important;width:auto!important;max-width:none!important}' + (o.css || '') + '</style></head>');
+      var html = printify(o.html).replace(/<\/head>/i, '<style>html,body{margin:0!important;padding:0!important;background:#fff!important;box-shadow:none!important;min-height:0!important;width:auto!important;max-width:none!important}' +
+        // v0.23.1：html2canvas は CSS の zoom（画面の「1枚にまとめる」縮小）と position:sticky（画面の表の見出し）を正しく描けない
+        // （行が箱の下で切れる・見出しの上に空きができる）。PDFでは使わず、1枚に縮めるのはこちらで画像ごと行う
+        '*{zoom:1!important}th,thead{position:static!important}' + (o.css || '') + '</style></head>');
       await new Promise(function (res) { frame.onload = res; frame.srcdoc = html; setTimeout(res, 4000); });
       var doc = frame.contentDocument; if (doc.fonts && doc.fonts.ready) { try { await doc.fonts.ready; } catch (e) { } }
       await new Promise(function (r) { setTimeout(r, 60); });
