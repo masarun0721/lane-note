@@ -13,7 +13,7 @@ import base64, hashlib, html as htmlmod, json, pathlib, re, sys
 ROOT = pathlib.Path(__file__).resolve().parent
 S = ROOT / 'src'
 SHARE_BASE = 'https://masarun0721.github.io/lane-note/'   # 共有リンク・QRの公開アドレス（file:// で開いたとき用）
-VERSION = 'v0.25.2'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
+VERSION = 'v0.25.3'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
 # 作成日は版番号から取れないので固定（ビルドした日で変わると、公開時の一致検査ができないため）
 BUILD_DATE = '2026年10月12日'
 REC_VERSION = 'v0.11.1'   # LANE LOG（records.html）だけの版
@@ -97,35 +97,55 @@ def build_check():
     return g
 
 
+MANUAL_IMG = 'img/manual'   # v0.25.3：マニュアルの絵（guide.html には埋め込まず、別ファイルとして公開する）
+
+
+def manual_assets():
+    d = ROOT / MANUAL_IMG
+    return sorted(p for p in d.glob('*.webp')) if d.exists() else []
+
+
+def img_url(name):
+    p = ROOT / MANUAL_IMG / (name + '.webp')
+    return '%s/%s.webp?v=%s' % (MANUAL_IMG, name, hashlib.sha256(p.read_bytes()).hexdigest()[:8]) if p.exists() else ''
+
+
 def buttons_html():
-    """v0.25.1：マニュアル（src/buttons.json から作る。文言が実際の画面と同じかは test/v0251_buttons_check.mjs で確かめる）"""
+    """マニュアル（src/buttons.json から作る。文言が実際の画面と同じかは test/v0251_buttons_check.mjs で確かめる）"""
     import html as H
     E = H.escape
     data = json.loads(text('src/buttons.json'))
     scr = {sc['id']: sc for sc in data['screens']}
 
-    def img(name, alt):
-        p = ROOT / 'img' / (name + '.webp')
-        return '<img class="bx-shot" loading="lazy" alt="%s（架空のデータ）" src="data:image/webp;base64,%s">' % (E(alt), b64('img/' + name + '.webp')) if p.exists() else ''
+    def zoom(name, cap, w, h, cls):
+        u = img_url(name)
+        if not u:
+            return ''
+        return ('<button type="button" class="mz-open %s" data-kind="%s" data-full="%s" data-cap="%s" aria-label="%sを大きく表示">'
+                '<img loading="lazy" decoding="async" src="%s" width="%d" height="%d" alt="%s（架空のデータ）"></button>') % (cls, {'mz-pc': '🖥 パソコン', 'mz-sp': '📱 スマホ'}.get(cls, ''), E(u), E(cap), E(cap), E(u), w, h, E(cap))
 
     def chip(sid, t):
         it = [x for x in scr[sid]['items'] if x['t'] == t][0]
         return '<span class="%s bx-chip" aria-hidden="true">%s</span>' % (E(it['c']), E(t))
-    out = ['<section class="box g-card" id="manual"><h2>📖 マニュアル</h2><p>LANE NOTE で「何ができるか」を、やりたいこと別にまとめました。まず自分に近いものを選んでください。下には、画面ごとのボタンの説明があります。絵は架空のデータで撮った画面です。</p>',
+    out = ['<section class="box g-card" id="manual"><h2>📖 マニュアル</h2><p>LANE NOTE で「何ができるか」を、やりたいこと別にまとめました。まず自分に近いものを選んでください。下には、画面ごとのボタンの説明があります。絵は架空のデータで撮った実際の画面です（押すと大きく表示）。</p>',
            '<h3>こんなときに使えます</h3><nav class="bx-toc" aria-label="やりたいこと">']
     out += ['<a href="#u%d">%s</a>' % (i + 1, E(u['q'])) for i, u in enumerate(data['purposes'])]
     out.append('</nav><h3>画面ごとのボタン</h3><nav class="bx-toc" aria-label="画面ごとの目次">')
     out += ['<a href="#%s">%s</a>' % (sc['id'], E(sc['title'])) for sc in data['screens']]
     out.append('</nav></section>')
     for i, u in enumerate(data['purposes']):
-        out.append('<section class="box g-card bx-use" id="u%d"><h2>💡 %s</h2><div class="bx-usegrid"><div>%s</div><div><p class="bx-get"><b>できあがるもの：</b>%s</p><ol class="bx-steps">' % (i + 1, E(u['q']), img(u['img'], u['q']), E(u['get'])))
+        out.append('<section class="box g-card bx-use" id="u%d"><h2>💡 %s</h2><p class="bx-get"><b>できあがるもの：</b>%s</p>' % (i + 1, E(u['q']), E(u['get'])))
+        for name, cap in u['shots']:
+            out.append('<figure class="mz-pair"><figcaption>%s</figcaption><div class="mz-row">%s%s</div></figure>' % (
+                E(cap), zoom(name + '_pc', cap + '（パソコン）', 1280, 800, 'mz-pc'), zoom(name + '_sp', cap + '（スマホ）', 824, 1830, 'mz-sp')))
+        out.append('<ol class="bx-steps">')
         for sid, t, how in u['steps']:
             out.append('<li><a class="bx-where" href="#%s">%s</a> %s<br><span class="bx-how">%s</span></li>' % (sid, E(scr[sid]['title']), chip(sid, t), E(how)))
-        out.append('</ol></div></div></section>')
+        out.append('</ol></section>')
     for sc in data['screens']:
         out.append('<section class="box g-card" id="%s"><h2>%s</h2><p>%s%s</p>' % (sc['id'], E(sc['title']), E(sc['intro']), (' <a href="%s">このページを開く →</a>' % sc['page']) if sc['page'] else ''))
         if sc['shot']:
-            out.append(img(sc['shot'], sc['title'] + 'の画面'))
+            out.append('<div class="mz-row">%s</div>' % zoom(sc['shot'], sc['title'] + 'の画面', 390, 640, 'mz-mini'))
         out.append('<ul class="bx-list">')
         for it in sc['items']:
             out.append('<li data-bx-src="%s"><div class="bx-look"><span class="%s" aria-hidden="true">%s</span></div><p class="bx-does"><b class="vh">%s：</b>%s<span class="bx-need">必要なもの：%s</span></p></li>' % (E(it['f']), E(it['c']), E(it['t']), E(it['t']), E(it['does']), E(it['needs'])))
@@ -139,7 +159,7 @@ def build_guide():
     g = text('src/guide_template.html')
     rep = {'__BASE_CSS__': base[base.index('<style>') + 7:base.index('</style>')], '__LOGO_DARK__': logo_inline('logo/option_A_dark.svg'),
            '__FAVICON__': 'data:image/svg+xml;base64,' + b64('logo/option_A_icon.svg'),
-           '__APPLE_ICON__': 'data:image/png;base64,' + b64('logo/png/option_A_icon_180.png'), '__VERSION__': VERSION, '__MODEBTN__': MODEBTN, '__MODEPICK__': MODEPICK, '__MODE__': text('src/mode.js'), '__BUTTONS__': buttons_html()}
+           '__APPLE_ICON__': 'data:image/png;base64,' + b64('logo/png/option_A_icon_180.png'), '__VERSION__': VERSION, '__MODEBTN__': MODEBTN, '__MODEPICK__': MODEPICK, '__MODE__': text('src/mode.js'), '__BUTTONS__': buttons_html(), '__OVERLAY__': text('src/overlay.js')}
     for k, v in rep.items():
         assert k in g, k
         g = g.replace(k, v)
@@ -171,6 +191,16 @@ def write(out, *bodies):
     out.mkdir(parents=True, exist_ok=True)
     for name, body in zip(OUTPUTS, bodies):
         (out / name).write_bytes(body.encode('utf-8'))
+    dst = out / MANUAL_IMG   # マニュアルの絵を写す（ないものは消す）
+    dst.mkdir(parents=True, exist_ok=True)
+    keep = set()
+    for p in manual_assets():
+        keep.add(p.name)
+        if not (dst / p.name).exists() or (dst / p.name).read_bytes() != p.read_bytes():
+            (dst / p.name).write_bytes(p.read_bytes())
+    for p in dst.glob('*.webp'):
+        if p.name not in keep:
+            p.unlink()
     print(' / '.join('%s %d' % (out / n, len(b)) for n, b in zip(OUTPUTS, bodies)))
 
 
@@ -188,6 +218,17 @@ def main(argv):
                 ng += 1
             else:
                 print('OK: %s はビルド結果と一致' % f)
+        assets = manual_assets()
+        for p in assets:
+            f = d / MANUAL_IMG / p.name
+            if not f.exists() or f.read_bytes() != p.read_bytes():
+                print('NG: %s がソースの絵と一致しません' % f)
+                ng += 1
+        extra = [p for p in (d / MANUAL_IMG).glob('*.webp') if p.name not in {a.name for a in assets}] if (d / MANUAL_IMG).exists() else []
+        for p in extra:
+            print('NG: %s はソースにない絵です' % p)
+            ng += 1
+        print('OK: マニュアルの絵 %d 枚' % len(assets) if not ng else '')
         return 1 if ng else 0
     if argv:
         print(__doc__)

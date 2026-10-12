@@ -20,7 +20,13 @@ check('guide.html にマニュアル・目次・全部のボタン・絵が入�
   assert.match(g, /id="manual"/); assert.match(g, /こんなときに使えます/); assert.match(g, /📘 はじめての人はこちら（使い方ガイド）/);
   data.screens.forEach(s => { assert.ok(g.includes('id="' + s.id + '"')); s.items.forEach(i => assert.ok(g.includes('>' + i.t.replace(/&/g, '&amp;') + '<'), i.t)); });
   data.purposes.forEach((u, i) => assert.ok(g.includes('id="u' + (i + 1) + '"')));
-  assert.ok((g.match(/data:image\/webp;base64/g) || []).length >= 6, '絵');
+  // v0.25.3：絵は埋め込まず別ファイル（img/manual/*.webp）・遅延読み込み・各例にPCとスマホ
+  assert.doesNotMatch(g, /data:image\/webp;base64/, '絵を埋め込まない');
+  const imgs = [...g.matchAll(/<img loading="lazy" decoding="async" src="(img\/manual\/[a-z_]+\.webp)\?v=[0-9a-f]{8}"/g)].map(m => m[1]);
+  assert.ok(imgs.length >= data.purposes.length * 2, '絵の数');
+  imgs.forEach(f => assert.ok(fs.existsSync(path.join(R, f)), f));
+  data.purposes.forEach(u => assert.ok(u.shots && u.shots.length, u.q) || u.shots.forEach(([n]) => { assert.ok(g.includes('img/manual/' + n + '_pc.webp')); assert.ok(g.includes('img/manual/' + n + '_sp.webp')); }));
+  assert.match(g, /id="mzView" hidden/); assert.match(g, /LaneOverlay\.watch\(\[\{ id: 'mzView', close: 'mzClose' \}\]\)/);
   assert.match(g, /<nav class="pagenav"[^>]*>.*class="on" aria-current="page">🔰 はじめての人<\/a><a href="guide.html#manual">📖 マニュアル<\/a>/);
 });
 check('各ページから「📖 マニュアル」へ行ける・「はじめての人はこちら」は選択中に見せない', () => {

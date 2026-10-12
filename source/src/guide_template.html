@@ -19,6 +19,13 @@ __BASE_CSS__
 .g-hero h2{margin:0 0 6px;font-size:24px;color:var(--navy);line-height:1.35}.g-hero p{margin:0 0 12px;font-size:15px;line-height:1.7}
 .g-tabs{display:flex;gap:8px;flex-wrap:wrap}.g-tab{flex:1 1 160px;text-align:center;min-height:48px;display:flex;align-items:center;justify-content:center;border-radius:12px;border:2px solid var(--navy);color:var(--navy);font-weight:800;text-decoration:none;font-size:16px;background:#fff}
 .bx-usegrid{display:grid;grid-template-columns:minmax(0,300px) 1fr;gap:14px;align-items:start}.bx-use .bx-shot{width:100%}.bx-get{margin:0 0 8px;font-size:15px}.bx-steps{padding-left:1.3em;margin:0;line-height:1.7}.bx-steps li{margin:0 0 10px}.bx-where{font-weight:700;font-size:13px}.bx-how{font-size:14px}.bx-chip{display:inline-flex!important;width:auto!important;min-height:32px!important;padding:2px 10px!important;font-size:13px!important;pointer-events:none;vertical-align:middle;margin:2px 0}@media (max-width:640px){.bx-usegrid{grid-template-columns:1fr}}
+.mz-pair{margin:8px 0 14px}.mz-pair figcaption{font-weight:700;color:var(--navy);margin:0 0 6px;font-size:15px}
+.mz-row{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap}.mz-open{border:1px solid var(--line);background:#fff;padding:0;border-radius:10px;overflow:hidden;cursor:zoom-in;line-height:0;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.mz-open img{display:block;width:100%;height:auto}.mz-pc{flex:3 1 360px;max-width:640px}.mz-sp{flex:1 1 120px;max-width:200px}.mz-mini{width:240px;max-width:100%}
+.mz-pc::after,.mz-sp::after{display:block;content:attr(data-kind);font-size:12px;line-height:1.8;color:#555;text-align:center}
+#mzView{position:fixed;inset:0;z-index:9999;background:#0b1220;display:flex;flex-direction:column}#mzView[hidden]{display:none}
+.mz-bar{display:flex;align-items:center;gap:8px;padding:8px 10px;color:#fff;flex-wrap:wrap}.mz-bar span{font-weight:700}.mz-body{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:0 8px 16px;text-align:center}.mz-body img{max-width:100%;height:auto;background:#fff;border-radius:6px}
+@media (max-width:640px){.mz-pc{flex-basis:100%;max-width:none}.mz-sp{max-width:46%}}
 .g-tab.on{background:var(--navy);color:#fff}
 .bx-toc{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}.bx-toc a{background:#fff;border:1px solid #c9d2e0;border-radius:999px;padding:6px 12px;font-size:14px;color:var(--navy);text-decoration:none;font-weight:700}
 .bx-shot{display:block;max-width:100%;width:360px;border:1px solid var(--line);border-radius:10px;margin:6px 0 10px}
@@ -89,10 +96,24 @@ __MODEPICK__
 <div id="gBtn" hidden>
 __BUTTONS__
 </div>
+<div id="mzView" hidden role="dialog" aria-modal="true" aria-labelledby="mzCap"><div class="mz-bar"><button type="button" class="btn sub" id="mzClose">✕ 閉じる</button><span id="mzCap"></span></div><div class="mz-body"><img id="mzImg" alt=""></div></div>
 </main>
 <script>
 __MODE__
 document.addEventListener('DOMContentLoaded', function () { LaneMode.init(); });
+</script>
+<script>
+__OVERLAY__
+</script>
+<script>
+(function () {
+  /* v0.25.3：マニュアルの絵を大きく表示（overlay.js：← 戻る・ブラウザ／Android の戻るで閉じる） */
+  var V = document.getElementById('mzView'), I = document.getElementById('mzImg');
+  LaneOverlay.watch([{ id: 'mzView', close: 'mzClose' }]);
+  document.addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('.mz-open'); if (!b) return; I.src = b.getAttribute('data-full'); I.alt = b.getAttribute('data-cap') + '（架空のデータ）'; document.getElementById('mzCap').textContent = b.getAttribute('data-cap'); V.hidden = false; V.querySelector('.mz-body').scrollTop = 0; document.getElementById('mzClose').focus(); });
+  document.getElementById('mzClose').addEventListener('click', function () { V.hidden = true; I.removeAttribute('src'); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !V.hidden) document.getElementById('mzClose').click(); });
+})();
 </script>
 <script>
 (function () {
