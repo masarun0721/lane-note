@@ -133,6 +133,9 @@ await check('画面で見る・PDF作成・印刷：1枚の表（要約・全員
   assert.ok(!$('ckPrint').hidden); const b = $('ckPrintBody').innerHTML; assert.match(b, /ENTRY CHECK/); assert.match(b, /kakuu_startlist/); assert.match(b, /<table class="cp-t">/); assert.match(b, /渡邊 一郎/); assert.match(b, /リレー（/); assert.equal(printed, 0);
   $('ckPrintClose').click(); assert.ok($('ckPrint').hidden);
   w.document.querySelector('[data-ckprint="print"]').click(); await delay(); assert.equal(printed, 1);
-  w.document.querySelector('[data-ckprint="pdf"]').click(); await delay(500); assert.equal(printed, 2); assert.ok(!$('ckPrintHint').hidden);
+  // v0.23：PDF作成は印刷ダイアログなしでPDFファイルを直接作る
+  const made = []; w.LanePdf = { make: async o => { made.push(o); return { pages: 1 }; }, pageDoc: (h, c) => '<html><body class="' + (c || '') + '">' + h + '</body></html>' };
+  w.document.querySelector('[data-ckprint="pdf"]').click(); await delay(100); assert.equal(printed, 1); assert.equal(made.length, 1);
+  assert.match(made[0].filename, /_エントリー照合\.pdf$/); assert.match(made[0].html, /ENTRY CHECK/); delete w.LanePdf;
 });
 console.log(pass + ' passed, ' + fail + ' failed'); if (fail) process.exit(1);

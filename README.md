@@ -32,7 +32,7 @@
 
 ## 外部の部品
 
-- pdf.js 4.10.38・JSZip 3.10.1・SheetJS 0.20.3 は外部 CDN（jsDelivr・SheetJS）から読み込み、決まった版のハッシュ（SRI）と一致したときだけ使います。ハッシュを確かめられないブラウザでは読み込みを中止します。pdf.js が必要に応じて取りに行く文字の対応表（CMap）と標準フォントのデータは、ハッシュ確認の対象外です（プログラムではなくデータです）。
+- pdf.js 4.10.38・JSZip 3.10.1・SheetJS 0.20.3・html2canvas 1.4.1・jsPDF 2.5.2（v0.23：「📄 PDF作成」でPDFファイルを直接作るときだけ）は外部 CDN（jsDelivr・SheetJS）から読み込み、決まった版のハッシュ（SRI）と一致したときだけ使います。ハッシュを確かめられないブラウザでは読み込みを中止します。pdf.js が必要に応じて取りに行く文字の対応表（CMap）と標準フォントのデータは、ハッシュ確認の対象外です（プログラムではなくデータです）。
 - **Firebase JS SDK 10.14.1 は Google の配信元（www.gstatic.com）から版を固定して読み込みますが、ハッシュ（SRI）の確認はしていません**（ES モジュールの動的 import では SRI を付けられないため）。ログイン・記録のクラウド保存・短いリンク・不具合の送信で使います。今後、ビルドに取り込んで同じサイトから配る形に変える予定です。
 - `firebase-config.js` の値は「どのプロジェクトか」を示す公開の識別子で、秘密の鍵ではありません。読み書きできる範囲は `firestore.rules` で決めています。
 
@@ -42,6 +42,8 @@ Presented by Sakata
 
 - [pdf.js](https://github.com/mozilla/pdf.js)（Mozilla）— Apache License 2.0
 - [JSZip](https://github.com/Stuk/jszip) — MIT License
+- [html2canvas](https://github.com/niklasvh/html2canvas) — MIT License
+- [jsPDF](https://github.com/parallax/jsPDF) — MIT License
 - [SheetJS Community Edition](https://git.sheetjs.com/sheetjs/sheetjs) — Apache License 2.0
 - [Firebase JS SDK](https://github.com/firebase/firebase-js-sdk)（Google）— Apache License 2.0
 - QR Code Generator for JavaScript（Copyright (c) 2009 Kazuhiko Arase, <http://www.d-project.com/>）— MIT License（`source/vendor/qrcode.js` に同梱。「QR Code」は株式会社デンソーウェーブの登録商標です）

@@ -601,6 +601,7 @@ body.fb-open{overflow:hidden}
 .meetsel{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 8px}.meetsel select{max-width:100%;font-size:15px;padding:6px}
 .rb-pp{margin:8px 0;border:1px solid var(--line);border-radius:12px;padding:8px 10px;background:#fbfcfe}.rb-pp summary{cursor:pointer;min-height:32px}
 .pp-row{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;border-top:1px solid var(--line);padding:8px 0}.pp-row b{min-width:7em}.pp-row input{flex:1 1 240px;font-size:11px;font-family:monospace;padding:4px;border:1px solid var(--line);border-radius:6px}.pp-row small{color:var(--muted)}
+.kpi.go,.meetcard{cursor:pointer;transition:box-shadow .15s,transform .15s,border-color .15s}.kpi.go:hover,.meetcard:hover{box-shadow:0 4px 14px rgba(20,33,61,.16);transform:translateY(-1px)}.kpi.go:focus-visible,.meetcard:focus-visible{outline:3px solid #1f3a68;outline-offset:2px}.mc-go{margin-left:auto;font-size:12px;font-weight:700;color:#1f3a68;white-space:nowrap}.meetcard .card-h{flex-wrap:wrap}.allpb-chip{align-items:center;gap:8px;flex-wrap:wrap;background:#fff4e5;border:1px solid #f3c98b;border-radius:10px;padding:6px 10px;font-size:13px;font-weight:700}
 body.personal-on .tabs button[data-v="rank"],body.personal-on .tabs button[data-v="hist"]{display:none}
 .pmhome .evsum li{display:flex;flex-wrap:wrap;gap:2px 10px;align-items:baseline;padding:6px 0;border-top:1px solid var(--line)}
 .chartbox{display:flex;flex-direction:column;gap:4px}.chartopt{font-size:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
@@ -808,6 +809,10 @@ tr.rc.editing td{background:#fff3ec!important}
 .lp-pick .lp-ops{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}.lp-pick .lp-ops .btn{min-height:44px}
 .lp-pick ul{list-style:none;margin:0;padding:0}.lp-pick li label{display:flex;gap:10px;align-items:center;min-height:44px;border-bottom:1px solid #e3e7ee;font-size:15px}
 .lp-pick li input{width:22px;height:22px}.lp-pick .gr{color:#667;font-size:13px;margin-left:auto}
+.ms-done{background:#eefaf1;border:1px solid #9fd5ae;border-radius:10px;padding:10px 12px;margin:8px 0;font-size:14px}.ms-done input{display:block;width:100%;margin:6px 0;font-size:13px;padding:6px}.ms-done .rb-row{gap:8px;flex-wrap:wrap}.ms-done a.btn{text-decoration:none}
+.ms-grp{display:inline-flex;align-items:center;flex-wrap:wrap}
+.ms-note{background:#fff8e1;border:1px solid #f0d58a;color:#4a3b00;border-radius:8px;padding:8px 12px;margin:0 auto 10px;max-width:794px;font-size:13px;line-height:1.6}
+@media print{.ms-note{display:none!important}}
 @media print{
   @page{size:A4;margin:10mm}
   body.printing>*:not(#rbPrint){display:none!important}
@@ -822,7 +827,7 @@ tr.rc.editing td{background:#fff3ec!important}
 <body class="records">
 <header>
   <div class="hdr-meta">
-    <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／記録 v0.10.1</div>
+    <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／記録 v0.10.2</div>
     <div class="credit">Presented by Sakata</div>
     <div class="hdr-msg"><span class="hm-l">すべての陸上競技部顧問が、</span><span class="hm-l">少しでも楽になりますように。</span></div>
   </div>
@@ -836,7 +841,7 @@ tr.rc.editing td{background:#fff3ec!important}
   <p class="tagline">記録：大会の結果から、自校の記録と自己ベストをためていく</p>
   <nav class="pagenav" aria-label="ページ"><a href="./">🏁 大会準備</a><a href="records.html" class="on" aria-current="page">📒 記録</a><a href="check.html">✅ 照合</a></nav>
 </header>
-<div class="topbar"><details class="changelog" id="changelog"><summary><b>📰 更新情報</b>　<span class="small muted">最新：v0.22.3（2026/10/12）</span><span class="cl-new">NEW</span></summary><ol><li><div class="cl-h"><b>v0.22.3</b>2026/10/12</div><div class="cl-b">競技場の登録を専用の画面「🏟 競技場の設定」にしました（大会準備のボタンと、お知らせの「学校の設定」から開けます）。一覧のカードから編集・削除、「＋ 競技場を追加」で名前・住所・最寄り駅・行き方・集合場所・交通費を入れて保存します。お知らせでは「今回の競技場」を選ぶだけで、要項の競技場が未登録なら「登録する」から入れられます。この大会だけ直した内容は、登録した競技場には書き戻しません。</div></li><li><div class="cl-h"><b>v0.22.2</b>2026/10/12</div><div class="cl-b">保護者へのお知らせ：中心の表を「時間順の予定（種目ごと・出る人）」にし、出場選手表ははじめは出さないようにしました（文字が大きくなります）。要項の「期　日」「場　所」の書き方から日付・競技開始・競技場・住所・電話を読み取ります。学校の設定に「競技場リスト」（最寄り駅・行き方・集合場所・交通費）を作り、同じ競技場なら自動で入ります。全画面の画面に「← 戻る」を付け、ブラウザ・スマホの「戻る」でその画面だけ閉じるようにしました。読み込んだ内容はこのタブの中に控え、再読み込みしても戻ります（「最初から」・ログアウト・タブを閉じると消えます）。</div></li><li><div class="cl-h"><b>v0.22.1</b>2026/10/12</div><div class="cl-b">「保護者へのお知らせ」のデザインを新しくしました。ゴシック体・大会名の帯・日にちや集合時刻のカード・チェック欄つきの持ち物・番号つきの注意事項・しま模様の表にしました。レイアウトは「スタンダード」「カード」「ミニマル」、アクセントの色を選べ、「白黒印刷向け」にも切りかえられます。Word（.docx）も同じデザインです。</div></li><li><div class="cl-h"><b>v0.22</b>2026/10/12</div><div class="cl-b">「👪 保護者へのお知らせ」を作りました（試し版を正式に）。学校の設定（学校名・顧問・宛先・持ち物・注意事項・連絡先など）をひな形として保存し、大会名・日付・競技場・最寄り駅・開門は資料から、集合・解散の時刻は決めたルールで自動で入れます。レイアウトは「標準」「表中心」「すっきり」の3つ。自由欄の追加、A4 1枚に収める、PDF・印刷・Word（.docx）に対応しました。</div></li><li><div class="cl-h"><b>v0.21</b>2026/10/12</div><div class="cl-b">【試し版】大会準備の結果に「👪 保護者案内用の表」を足しました。保護者へのお知らせに貼る表だけを作ります（文面は学校で書いてください）。出場選手表（名前・学年・出場種目・リレーのチーム記号。男子と女子を左右に並べる）と、時間順の予定（時刻・招集・種目・出る人。「通過したら」も）を、白黒の表にします。「📋 コピー」で Word・Excel に罫線つきの表として貼り付けられ、PDF作成・印刷・Excelで保存もできます。学年の列はオン／オフでき、リレーの列はリレーがあるときだけ出ます。</div></li><li><div class="cl-h"><b>v0.20.2</b>2026/10/12</div><div class="cl-b">記録のページの「URLから読み込む」で、gold.jaic.org の速報ページ（競技一覧 kyougi.html）を入れると「📥 この大会の結果をまとめて取り込む」が出るようにしました。種目・組ごとの結果のページを同じ大会の中だけたどって全部集め（コンディションなどは飛ばす・同時に2件まで・途中でやめられる）、いつもどおり自校の記録だけを取り込みます。この速報の携帯向けの形（1位 (663) 13.56 …）も読めるようになり、タイムレースは総合順位も付きます。リンクの一覧は「1組」だけでなく「男子中学1年 100m タイムレース 1組」のように出します。記録のページは v0.10.1 です。</div></li><li><div class="cl-h"><b>v0.20.1</b>2026/10/12</div><div class="cl-b">パソコンの画面で、上の帯のロゴ・説明の文・ページの切り替えボタンの左端がそろうように直しました。記録のページの「URLから読み込む」で、見つかったリンクの件数が2回出ていたのを1回にしました。</div></li><li><div class="cl-h"><b>v0.20</b>2026/10/12</div><div class="cl-b">「🔗 URLから読み込む」ができるようになりました。大会準備（スタートリスト・タイムテーブル・競技注意事項・大会要項）、記録（結果のPDF・Webページ）、照合（スタートリストのPDF）で、アドレスを入れて「読み込む」を押すと、ファイルを入れたときと同じように読み取ります。大会のページのようにPDFや種目ごとのページへのリンクがたくさんあるときは、一覧から読み込むものを選べます。URLだけを貼り付けたときも、そのまま読み込めるようにしました。URLと取ってきた中身は LANE NOTE の中継（Cloudflare）を通りますが、保存はしません。記録のページは v0.10.0 です。</div></li><li><div class="cl-h"><b>v0.19</b>2026/10/11</div><div class="cl-b">新しいページ「✅ 照合」（エントリー照合）を作りました。大会に出したエントリーファイル（Excel・CSV）と届いたスタートリストのPDFを入れると、選手×種目ごとに「✅ 両方ある」「⚠️ エントリーしたのにスタートリストにない」「❓ スタートリストにだけある」を、確かめてほしいものから順に出します。中1_100 と 男子中学1年 100m のような種目の書き方の違いや、澤/沢・邊/辺・髙/高・﨑/崎、全角/半角などの名前の表記ゆれもそろえて比べます（表記ゆれで一致したものには印）。リレーはチームごとにメンバーを比べて別に出します。結果は画面で見る・PDF作成・印刷ができます。ファイルはこの端末の中だけで読み、どこにも送りません。</div></li><li><div class="cl-h"><b>v0.18.3</b>2026/10/11</div><div class="cl-b">上のナビは「大会準備」「記録」の2つだけにしました。「🔰 はじめての人はこちら」は更新情報・不具合・要望を送ると同じ白い控えめなボタンにして、今開いているページと間違えないようにしました。記録ページの「個人で使う」はチェックではなく「👤 個人で使う方はこちら／🏫 学校で使う方はこちら」のリンクで切り替えます。「📱 選手の個人ページを作る」は別の画面で選手を選んでからリンクを作るようにしました（中学/高校・男女でしぼれる・全員選択/全解除・1人ずつコピー・まとめてコピー）。</div></li><li><div class="cl-h"><b>記録 v0.9.5</b>2026/10/11</div><div class="cl-b">大会まとめの形を変えました。種目ごとに枠で囲み（紺の見出し＋氏名・学年・記録・風・順位）、A4やパソコンでは左右2列、スマホでは1列に並べます。枠はページの途中で切れません。PBを出した人だけ記録の横に赤い「PB −0.21」（前のPBとの差）、初めての記録は「初」の印が付きます。ラウンド/組と前回差の列はなくしました。</div></li><li><div class="cl-h"><b>記録 v0.9.4</b>2026/10/11</div><div class="cl-b">大会まとめを見やすい表にしました。種目・氏名・学年・ラウンド/組・記録・風・順位・PB/初・前回差の格子の表で、種目ごとにくくって（種目の欄はまとめて1つ）、種目の間は太い線で区切ります。PB更新の行は色付き、DNSなどは薄く表示します。「1枚にまとめる（縮小）」でも同じ表を使い、人数が多いときは左右2つの表に分けてA4の1枚に収めます（PB更新の一覧は表のPB印で分かるので、1枚のときは省きます）。</div></li><li><div class="cl-h"><b>記録 v0.9.3</b>2026/10/11</div><div class="cl-b">大会まとめから天気・気温を外しました（1日の中でばらつくため）。「1枚にまとめる（縮小）」を付けました。オンにすると2段組みの小さめの文字でA4の1枚に収め、入りきらないときは自動で縮めます（人数が多くて文字が小さくなったときは画面にお知らせが出ます）。あわせて、個人表・ランキングなどを印刷・PDFにしたとき、上の紺の見出しの帯と下の帯が消えていたのを直しました。</div></li><li><div class="cl-h"><b>記録 v0.9.2</b>2026/10/11</div><div class="cl-b">記録ページの「大会別」に「大会まとめ」を追加しました（👀 画面で見る／📄 PDF作成／🖨 印刷）。その大会に出たチーム全員の結果を種目ごとに、出場人数・記録数・PB更新数・初記録数、PB更新の一覧（どれだけ伸びたか）、PB・初記録の印、前回との差と一緒にまとめます。中学・高校・男女の絞り込みに合わせて出ます。</div></li><li><div class="cl-h"><b>v0.18.2</b>2026/10/11</div><div class="cl-b">記録用紙のマスを見ただけで分かるようにしました（「2年」「PB 12.10」「前回 11.98（参考）」＋小さく日付・大会名、DNSは「前回 DNS」を薄く）。見出しを「組／レーン／No.」と短くしてスマホで折り返さないようにし、凡例も書き直しました。</div></li><li><div class="cl-h"><b>v0.18.1</b>2026/10/11</div><div class="cl-b">大会準備の記録用紙で、スマホの画面だと「氏名」の列がつぶれて見えなかったのを直しました（列の幅を割合にして、氏名をいちばん広く）。「自己ベスト」の欄を「PB（これまでの公認ベスト）」と「前回大会（この種目のいちばん新しい記録）」の2列に分け、記録がないときは「―」と出します。印刷の見出しのアイコンが出ないときに壊れた画像が出ないようにしました。</div></li><li><div class="cl-h"><b>v0.18／記録 v0.9.1</b>2026/10/11</div><div class="cl-b">個人表・部内ランキング・歴代記録の書類を作り直しました（紺と赤のレーン帯の見出し、自己ベストのカード、目盛り付きの大きいグラフ、しま模様の表、PBの行に印、DNSなどは薄く表示）。新しいページ「🔰 はじめての人はこちら」に使い方とデータの取り扱いの全文をまとめ、大会準備と記録のページの長い説明は短い1行にしました。大会準備と記録のページの上の部分（版・ナビ・更新情報・はじめての人はこちら・不具合・要望を送る）を同じ形にそろえ、記録のページにも更新情報を出しました。大会準備の記録用紙（画面・印刷・PDF・Excel）に「自己ベスト」の欄を足しました（記録のページにためた公認の自己ベスト。参考記録のほうが良ければ小さく表示）。</div></li><li><div class="cl-h"><b>v0.17</b>2026/10/11</div><div class="cl-b">「ナンバーカード」タブの通販サイトへのおすすめ用品リンクと、その説明文を取りやめました。</div></li><li><div class="cl-h"><b>v0.17</b>2026/10/11</div><div class="cl-b">大会準備の「時間順」「記録用紙」の出力を「👀 画面で見る」「📄 PDF作成」「🖨 印刷」の3つのボタンに分けました。画面で見るは印刷画面を出さずにそのまま確認できます。PDF作成では「保存先で『PDFに保存』を選んでください」と案内します。</div></li><li><div class="cl-h"><b>記録 v0.9.0</b>2026/10/11</div><div class="cl-b">記録をPDF・印刷にできるようにしました（どれも「👀 画面で見る」「📄 PDF作成」「🖨 印刷」から選べます）。選手の個人表（自己ベスト・記録の一覧・グラフ）、選手を選んで1人1ページの個人表、部内ランキング・歴代記録（この種目／全種目）を、A4の印刷画面から「PDFに保存」できます。「ファイルから読み込む」ボタンの文字も真ん中にそろえました。</div></li><li><div class="cl-h"><b>v0.16／記録 v0.8.0</b>2026/10/11</div><div class="cl-b">準決勝・決勝など「通過したら」出るラウンドを、タイムテーブルから時間順・選手別・記録用紙・Excelに入れました（名前はカッコ付き・点線）。選手用リンクでは「通過！」「敗退」を押せます。記録ページで、選手ごとの「個人ページ」のリンク（自己ベスト・推移グラフ・最近の記録）を作れるようにしました。選手のページに、このスマホにだけ保存する体調メモ（体調・睡眠時間・ひとこと）を付けました。記録ページに、選手本人や保護者向けの「個人で使う」を付けました。</div></li><li><div class="cl-h"><b>v0.15／記録 v0.7.0</b>2026/10/11</div><div class="cl-b">選手のグラフに、DNS・失格などの記録なしの出場を × で出すようにしました（「DNS・失格なども表示」で切り替え）。「取り込み済みの大会」から大会ごとに削除できます。スマホのヘッダーで、右上の文字が背景のレーンの線に重ならないようにしました。外部の再監査の指摘8件（読み込み中にアカウントを切り替えたときの混入、ログアウト後に共有リンクの一覧が戻る件、ナンバー違い・種目の区分違いの記録が重複扱いで消える件、端末データを消したあとに控えが戻る件、電波がないときの控え、ログインの方式、保存した大会の期限、試験の設定）に対応しました。</div></li><li><div class="cl-h"><b>v0.14／記録 v0.6.0</b>2026/10/11</div><div class="cl-b">記録を1件ずつ入力・直す・消すことができるようになりました。共用のパソコンでも記録がほかの先生に移らないよう、ログイン・ログアウトまわりを直しました（外部の監査の指摘15件に対応）。不具合・要望を送るにはGoogleでのログインが必要になり、短いリンクは一覧から止められるようになりました。</div></li><li><div class="cl-h"><b>v0.13／記録 v0.5.0</b>2026/10/11</div><div class="cl-b">種目のプルダウンを区分ごと・陸上の種目順に並べました。Excel・CSVの取り込み、大会ごとの天気・気温、「不具合・要望を送る」フォームを付けました。</div></li><li><div class="cl-h"><b>v0.12／記録 v0.4.0</b>2026/10/11</div><div class="cl-b">本郷中と本郷高の記録が混ざらないように、中学・高校を分けてランキングや自己ベストを出すようにしました。「LANE LOG」の名前を「記録」に変えました。</div></li><li><div class="cl-h"><b>v0.11</b>2026/10/11</div><div class="cl-b">選手用リンクを作れるようにしました。選手は自分の出場だけが入ったページで、大会当日の予定を見られます（自分の予定も足せます）。</div></li><li><div class="cl-h"><b>v0.10</b>2026/10/11</div><div class="cl-b">Googleでログインしているときは、共有リンクを短く（QRも小さく）できるようにしました。</div></li><li><div class="cl-h"><b>記録 v0.3.0</b>2026/10/11</div><div class="cl-b">ホーム（最新の大会の自己ベスト更新）、選手のページと記録の推移グラフ、部内ランキング、歴代記録を付けました。</div></li><li><div class="cl-h"><b>記録 v0.2.1〜v0.2.4</b>2026/10/11</div><div class="cl-b">ファイル名や資料の見出しから大会名と日付を推測します。スマホでは一覧をカードの形にしました。試作中のお知らせを付け、名前を「LANE LOG」にしました。</div></li><li><div class="cl-h"><b>記録 v0.1.1〜v0.2</b>2026/10/10</div><div class="cl-b">大会ごとの削除と「今読み込んだ分の取り消し」を付けました。Googleでログインすると、記録をクラウドに保存して、どの端末からでも見られるようにしました。</div></li><li><div class="cl-h"><b>記録 v0.1</b>2026/10/10</div><div class="cl-b">記録のページ（当時の名前は「記録帳」）を作りました。結果のPDF・Webページから自校の記録を読み取ってため、自己ベストを出します。</div></li><li><div class="cl-h"><b>v0.9</b>2026/10/09</div><div class="cl-b">版の表示を整え、備考の「〃」・大会名・プログラム代に対応しました。ナンバーカードを全日程分まとめて出せるようにしました。</div></li></ol></details><a href="guide.html" class="tb-btn tb-guide">🔰 はじめての人はこちら</a><button type="button" class="tb-btn fb-link" data-feedback="1">🚨 不具合・要望を送る</button></div>
+<div class="topbar"><details class="changelog" id="changelog"><summary><b>📰 更新情報</b>　<span class="small muted">最新：v0.23（2026/10/12）</span><span class="cl-new">NEW</span></summary><ol><li><div class="cl-h"><b>v0.23</b>2026/10/12</div><div class="cl-b">「📄 PDF作成」を押すと、印刷の画面を出さずにPDFファイルをそのまま作って保存するようにしました（記録・大会準備・照合のすべて）。「記録」の大会まとめに「🔗 リンクで共有」を付けました（ログイン中だけ・ログインなしで見られる短いリンク・119日・作った短いリンクから止められます）。共有のボタンに、だれが見られるかの注意（ⓘ）を付けました。</div></li><li><div class="cl-h"><b>記録 v0.10.2</b>2026/10/12</div><div class="cl-b">記録のホーム：「最新の大会」「その前の大会」のカードを押すと、大会別でその大会を開くようにしました。上の数字（今シーズンの自己ベスト更新・選手・記録・大会）からも、それぞれの一覧へ移れます（自己ベスト更新は全記録で今シーズンの更新だけ表示）。タブの切り替えは履歴に入るので、ブラウザの「戻る」でホームへ戻れます。</div></li><li><div class="cl-h"><b>v0.22.3</b>2026/10/12</div><div class="cl-b">競技場の登録を専用の画面「🏟 競技場の設定」にしました（大会準備のボタンと、お知らせの「学校の設定」から開けます）。一覧のカードから編集・削除、「＋ 競技場を追加」で名前・住所・最寄り駅・行き方・集合場所・交通費を入れて保存します。お知らせでは「今回の競技場」を選ぶだけで、要項の競技場が未登録なら「登録する」から入れられます。この大会だけ直した内容は、登録した競技場には書き戻しません。</div></li><li><div class="cl-h"><b>v0.22.2</b>2026/10/12</div><div class="cl-b">保護者へのお知らせ：中心の表を「時間順の予定（種目ごと・出る人）」にし、出場選手表ははじめは出さないようにしました（文字が大きくなります）。要項の「期　日」「場　所」の書き方から日付・競技開始・競技場・住所・電話を読み取ります。学校の設定に「競技場リスト」（最寄り駅・行き方・集合場所・交通費）を作り、同じ競技場なら自動で入ります。全画面の画面に「← 戻る」を付け、ブラウザ・スマホの「戻る」でその画面だけ閉じるようにしました。読み込んだ内容はこのタブの中に控え、再読み込みしても戻ります（「最初から」・ログアウト・タブを閉じると消えます）。</div></li><li><div class="cl-h"><b>v0.22.1</b>2026/10/12</div><div class="cl-b">「保護者へのお知らせ」のデザインを新しくしました。ゴシック体・大会名の帯・日にちや集合時刻のカード・チェック欄つきの持ち物・番号つきの注意事項・しま模様の表にしました。レイアウトは「スタンダード」「カード」「ミニマル」、アクセントの色を選べ、「白黒印刷向け」にも切りかえられます。Word（.docx）も同じデザインです。</div></li><li><div class="cl-h"><b>v0.22</b>2026/10/12</div><div class="cl-b">「👪 保護者へのお知らせ」を作りました（試し版を正式に）。学校の設定（学校名・顧問・宛先・持ち物・注意事項・連絡先など）をひな形として保存し、大会名・日付・競技場・最寄り駅・開門は資料から、集合・解散の時刻は決めたルールで自動で入れます。レイアウトは「標準」「表中心」「すっきり」の3つ。自由欄の追加、A4 1枚に収める、PDF・印刷・Word（.docx）に対応しました。</div></li><li><div class="cl-h"><b>v0.21</b>2026/10/12</div><div class="cl-b">【試し版】大会準備の結果に「👪 保護者案内用の表」を足しました。保護者へのお知らせに貼る表だけを作ります（文面は学校で書いてください）。出場選手表（名前・学年・出場種目・リレーのチーム記号。男子と女子を左右に並べる）と、時間順の予定（時刻・招集・種目・出る人。「通過したら」も）を、白黒の表にします。「📋 コピー」で Word・Excel に罫線つきの表として貼り付けられ、PDF作成・印刷・Excelで保存もできます。学年の列はオン／オフでき、リレーの列はリレーがあるときだけ出ます。</div></li><li><div class="cl-h"><b>v0.20.2</b>2026/10/12</div><div class="cl-b">記録のページの「URLから読み込む」で、gold.jaic.org の速報ページ（競技一覧 kyougi.html）を入れると「📥 この大会の結果をまとめて取り込む」が出るようにしました。種目・組ごとの結果のページを同じ大会の中だけたどって全部集め（コンディションなどは飛ばす・同時に2件まで・途中でやめられる）、いつもどおり自校の記録だけを取り込みます。この速報の携帯向けの形（1位 (663) 13.56 …）も読めるようになり、タイムレースは総合順位も付きます。リンクの一覧は「1組」だけでなく「男子中学1年 100m タイムレース 1組」のように出します。記録のページは v0.10.1 です。</div></li><li><div class="cl-h"><b>v0.20.1</b>2026/10/12</div><div class="cl-b">パソコンの画面で、上の帯のロゴ・説明の文・ページの切り替えボタンの左端がそろうように直しました。記録のページの「URLから読み込む」で、見つかったリンクの件数が2回出ていたのを1回にしました。</div></li><li><div class="cl-h"><b>v0.20</b>2026/10/12</div><div class="cl-b">「🔗 URLから読み込む」ができるようになりました。大会準備（スタートリスト・タイムテーブル・競技注意事項・大会要項）、記録（結果のPDF・Webページ）、照合（スタートリストのPDF）で、アドレスを入れて「読み込む」を押すと、ファイルを入れたときと同じように読み取ります。大会のページのようにPDFや種目ごとのページへのリンクがたくさんあるときは、一覧から読み込むものを選べます。URLだけを貼り付けたときも、そのまま読み込めるようにしました。URLと取ってきた中身は LANE NOTE の中継（Cloudflare）を通りますが、保存はしません。記録のページは v0.10.0 です。</div></li><li><div class="cl-h"><b>v0.19</b>2026/10/11</div><div class="cl-b">新しいページ「✅ 照合」（エントリー照合）を作りました。大会に出したエントリーファイル（Excel・CSV）と届いたスタートリストのPDFを入れると、選手×種目ごとに「✅ 両方ある」「⚠️ エントリーしたのにスタートリストにない」「❓ スタートリストにだけある」を、確かめてほしいものから順に出します。中1_100 と 男子中学1年 100m のような種目の書き方の違いや、澤/沢・邊/辺・髙/高・﨑/崎、全角/半角などの名前の表記ゆれもそろえて比べます（表記ゆれで一致したものには印）。リレーはチームごとにメンバーを比べて別に出します。結果は画面で見る・PDF作成・印刷ができます。ファイルはこの端末の中だけで読み、どこにも送りません。</div></li><li><div class="cl-h"><b>v0.18.3</b>2026/10/11</div><div class="cl-b">上のナビは「大会準備」「記録」の2つだけにしました。「🔰 はじめての人はこちら」は更新情報・不具合・要望を送ると同じ白い控えめなボタンにして、今開いているページと間違えないようにしました。記録ページの「個人で使う」はチェックではなく「👤 個人で使う方はこちら／🏫 学校で使う方はこちら」のリンクで切り替えます。「📱 選手の個人ページを作る」は別の画面で選手を選んでからリンクを作るようにしました（中学/高校・男女でしぼれる・全員選択/全解除・1人ずつコピー・まとめてコピー）。</div></li><li><div class="cl-h"><b>記録 v0.9.5</b>2026/10/11</div><div class="cl-b">大会まとめの形を変えました。種目ごとに枠で囲み（紺の見出し＋氏名・学年・記録・風・順位）、A4やパソコンでは左右2列、スマホでは1列に並べます。枠はページの途中で切れません。PBを出した人だけ記録の横に赤い「PB −0.21」（前のPBとの差）、初めての記録は「初」の印が付きます。ラウンド/組と前回差の列はなくしました。</div></li><li><div class="cl-h"><b>記録 v0.9.4</b>2026/10/11</div><div class="cl-b">大会まとめを見やすい表にしました。種目・氏名・学年・ラウンド/組・記録・風・順位・PB/初・前回差の格子の表で、種目ごとにくくって（種目の欄はまとめて1つ）、種目の間は太い線で区切ります。PB更新の行は色付き、DNSなどは薄く表示します。「1枚にまとめる（縮小）」でも同じ表を使い、人数が多いときは左右2つの表に分けてA4の1枚に収めます（PB更新の一覧は表のPB印で分かるので、1枚のときは省きます）。</div></li><li><div class="cl-h"><b>記録 v0.9.3</b>2026/10/11</div><div class="cl-b">大会まとめから天気・気温を外しました（1日の中でばらつくため）。「1枚にまとめる（縮小）」を付けました。オンにすると2段組みの小さめの文字でA4の1枚に収め、入りきらないときは自動で縮めます（人数が多くて文字が小さくなったときは画面にお知らせが出ます）。あわせて、個人表・ランキングなどを印刷・PDFにしたとき、上の紺の見出しの帯と下の帯が消えていたのを直しました。</div></li><li><div class="cl-h"><b>記録 v0.9.2</b>2026/10/11</div><div class="cl-b">記録ページの「大会別」に「大会まとめ」を追加しました（👀 画面で見る／📄 PDF作成／🖨 印刷）。その大会に出たチーム全員の結果を種目ごとに、出場人数・記録数・PB更新数・初記録数、PB更新の一覧（どれだけ伸びたか）、PB・初記録の印、前回との差と一緒にまとめます。中学・高校・男女の絞り込みに合わせて出ます。</div></li><li><div class="cl-h"><b>v0.18.2</b>2026/10/11</div><div class="cl-b">記録用紙のマスを見ただけで分かるようにしました（「2年」「PB 12.10」「前回 11.98（参考）」＋小さく日付・大会名、DNSは「前回 DNS」を薄く）。見出しを「組／レーン／No.」と短くしてスマホで折り返さないようにし、凡例も書き直しました。</div></li><li><div class="cl-h"><b>v0.18.1</b>2026/10/11</div><div class="cl-b">大会準備の記録用紙で、スマホの画面だと「氏名」の列がつぶれて見えなかったのを直しました（列の幅を割合にして、氏名をいちばん広く）。「自己ベスト」の欄を「PB（これまでの公認ベスト）」と「前回大会（この種目のいちばん新しい記録）」の2列に分け、記録がないときは「―」と出します。印刷の見出しのアイコンが出ないときに壊れた画像が出ないようにしました。</div></li><li><div class="cl-h"><b>v0.18／記録 v0.9.1</b>2026/10/11</div><div class="cl-b">個人表・部内ランキング・歴代記録の書類を作り直しました（紺と赤のレーン帯の見出し、自己ベストのカード、目盛り付きの大きいグラフ、しま模様の表、PBの行に印、DNSなどは薄く表示）。新しいページ「🔰 はじめての人はこちら」に使い方とデータの取り扱いの全文をまとめ、大会準備と記録のページの長い説明は短い1行にしました。大会準備と記録のページの上の部分（版・ナビ・更新情報・はじめての人はこちら・不具合・要望を送る）を同じ形にそろえ、記録のページにも更新情報を出しました。大会準備の記録用紙（画面・印刷・PDF・Excel）に「自己ベスト」の欄を足しました（記録のページにためた公認の自己ベスト。参考記録のほうが良ければ小さく表示）。</div></li><li><div class="cl-h"><b>v0.17</b>2026/10/11</div><div class="cl-b">「ナンバーカード」タブの通販サイトへのおすすめ用品リンクと、その説明文を取りやめました。</div></li><li><div class="cl-h"><b>v0.17</b>2026/10/11</div><div class="cl-b">大会準備の「時間順」「記録用紙」の出力を「👀 画面で見る」「📄 PDF作成」「🖨 印刷」の3つのボタンに分けました。画面で見るは印刷画面を出さずにそのまま確認できます。PDF作成では「保存先で『PDFに保存』を選んでください」と案内します。</div></li><li><div class="cl-h"><b>記録 v0.9.0</b>2026/10/11</div><div class="cl-b">記録をPDF・印刷にできるようにしました（どれも「👀 画面で見る」「📄 PDF作成」「🖨 印刷」から選べます）。選手の個人表（自己ベスト・記録の一覧・グラフ）、選手を選んで1人1ページの個人表、部内ランキング・歴代記録（この種目／全種目）を、A4の印刷画面から「PDFに保存」できます。「ファイルから読み込む」ボタンの文字も真ん中にそろえました。</div></li><li><div class="cl-h"><b>v0.16／記録 v0.8.0</b>2026/10/11</div><div class="cl-b">準決勝・決勝など「通過したら」出るラウンドを、タイムテーブルから時間順・選手別・記録用紙・Excelに入れました（名前はカッコ付き・点線）。選手用リンクでは「通過！」「敗退」を押せます。記録ページで、選手ごとの「個人ページ」のリンク（自己ベスト・推移グラフ・最近の記録）を作れるようにしました。選手のページに、このスマホにだけ保存する体調メモ（体調・睡眠時間・ひとこと）を付けました。記録ページに、選手本人や保護者向けの「個人で使う」を付けました。</div></li><li><div class="cl-h"><b>v0.15／記録 v0.7.0</b>2026/10/11</div><div class="cl-b">選手のグラフに、DNS・失格などの記録なしの出場を × で出すようにしました（「DNS・失格なども表示」で切り替え）。「取り込み済みの大会」から大会ごとに削除できます。スマホのヘッダーで、右上の文字が背景のレーンの線に重ならないようにしました。外部の再監査の指摘8件（読み込み中にアカウントを切り替えたときの混入、ログアウト後に共有リンクの一覧が戻る件、ナンバー違い・種目の区分違いの記録が重複扱いで消える件、端末データを消したあとに控えが戻る件、電波がないときの控え、ログインの方式、保存した大会の期限、試験の設定）に対応しました。</div></li><li><div class="cl-h"><b>v0.14／記録 v0.6.0</b>2026/10/11</div><div class="cl-b">記録を1件ずつ入力・直す・消すことができるようになりました。共用のパソコンでも記録がほかの先生に移らないよう、ログイン・ログアウトまわりを直しました（外部の監査の指摘15件に対応）。不具合・要望を送るにはGoogleでのログインが必要になり、短いリンクは一覧から止められるようになりました。</div></li><li><div class="cl-h"><b>v0.13／記録 v0.5.0</b>2026/10/11</div><div class="cl-b">種目のプルダウンを区分ごと・陸上の種目順に並べました。Excel・CSVの取り込み、大会ごとの天気・気温、「不具合・要望を送る」フォームを付けました。</div></li><li><div class="cl-h"><b>v0.12／記録 v0.4.0</b>2026/10/11</div><div class="cl-b">本郷中と本郷高の記録が混ざらないように、中学・高校を分けてランキングや自己ベストを出すようにしました。「LANE LOG」の名前を「記録」に変えました。</div></li><li><div class="cl-h"><b>v0.11</b>2026/10/11</div><div class="cl-b">選手用リンクを作れるようにしました。選手は自分の出場だけが入ったページで、大会当日の予定を見られます（自分の予定も足せます）。</div></li><li><div class="cl-h"><b>v0.10</b>2026/10/11</div><div class="cl-b">Googleでログインしているときは、共有リンクを短く（QRも小さく）できるようにしました。</div></li><li><div class="cl-h"><b>記録 v0.3.0</b>2026/10/11</div><div class="cl-b">ホーム（最新の大会の自己ベスト更新）、選手のページと記録の推移グラフ、部内ランキング、歴代記録を付けました。</div></li><li><div class="cl-h"><b>記録 v0.2.1〜v0.2.4</b>2026/10/11</div><div class="cl-b">ファイル名や資料の見出しから大会名と日付を推測します。スマホでは一覧をカードの形にしました。試作中のお知らせを付け、名前を「LANE LOG」にしました。</div></li><li><div class="cl-h"><b>記録 v0.1.1〜v0.2</b>2026/10/10</div><div class="cl-b">大会ごとの削除と「今読み込んだ分の取り消し」を付けました。Googleでログインすると、記録をクラウドに保存して、どの端末からでも見られるようにしました。</div></li><li><div class="cl-h"><b>記録 v0.1</b>2026/10/10</div><div class="cl-b">記録のページ（当時の名前は「記録帳」）を作りました。結果のPDF・Webページから自校の記録を読み取ってため、自己ベストを出します。</div></li><li><div class="cl-h"><b>v0.9</b>2026/10/09</div><div class="cl-b">版の表示を整え、備考の「〃」・大会名・プログラム代に対応しました。ナンバーカードを全日程分まとめて出せるようにしました。</div></li></ol></details><a href="guide.html" class="tb-btn tb-guide">🔰 はじめての人はこちら</a><button type="button" class="tb-btn fb-link" data-feedback="1">🚨 不具合・要望を送る</button></div>
 <p class="beta-line">⚠️ 試作版です。内容は元資料でも確認してください</p>
 <main>
 <section class="box">
@@ -938,7 +943,7 @@ tr.rc.editing td{background:#fff3ec!important}
 </main>
 <footer><details class="about"><summary><b>この記録ページについて</b>（版・対応している形式・既知の制限）</summary>
   <ul>
-    <li><b>LANE NOTE（レーンノート）記録 試作版</b>　版：<span class="appver"></span>／記録 v0.10.1（2026年10月12日 作成）／ Presented by Sakata</li>
+    <li><b>LANE NOTE（レーンノート）記録 試作版</b>　版：<span class="appver"></span>／記録 v0.10.2（2026年10月12日 作成）／ Presented by Sakata</li>
     <li>読める形式：組ごとに2列で並ぶ結果PDF（「順位・レーン・ナンバー・氏名・所属・記録」の見出しがあるもの。北区・江東区・都高体連などで確認）／ 結果サイトのHTML（表のあるもの）・その貼り付け。</li>
     <li>Excel・CSV（v0.5）：見出し（氏名・種目・記録・日付など）を自動で見つけて取り込みます。日付は必須、大会名は任意（空なら「大会名なし（日付）」）。</li>
     <li>既知の制限：リレー・混成の得点・スキャン（画像）PDFは読みません。大会名・日付が資料に無いときは手で入れてください。風が読めない記録は公認ベストに数えません。</li>
@@ -1920,7 +1925,7 @@ if (typeof module !== 'undefined') module.exports = ResultParser;
 
 </script>
 <script>
-var APP_VERSION = "v0.22.3", REC_VERSION = "v0.10.1";
+var APP_VERSION = "v0.23", REC_VERSION = "v0.10.2";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>
@@ -2591,6 +2596,166 @@ var LaneOverlay = (function () {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
   return { watch: watch, _stack: stack };
 })();
+/* v0.23：共有ボタンの注意書き。PCはマウスを乗せると出る（title）。スマホは ⓘ を押すか、ボタンを長押しすると出る */
+var LaneShareTip = (function () {
+  var T = {
+    meet: 'リンクを知っている人は誰でもログインなしで見られます。チーム全員の名前と記録が入るので、部員の中だけで共有してください。119日で見られなくなります。大会準備ページの「作った短いリンク」からいつでも止められます。',
+    pp: 'リンクを知っている人は誰でもログインなしで見られます。その選手の名前と記録が入るので、本人と保護者だけに渡してください。短いリンクは119日で見られなくなります。大会準備ページの「作った短いリンク」からいつでも止められます。',
+    prep: 'リンクを知っている人は誰でもログインなしで見られます。自校の選手の名前と出場種目・時刻が入るので、部員と保護者の中だけで共有してください。短いリンクは119日で見られなくなります。大会準備ページの「作った短いリンク」からいつでも止められます。'
+  };
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  // ⓘ ボタンと、押すと出る説明（ボタンのすぐあとに置く）
+  function html(text) { return '<button type="button" class="sh-i" aria-label="共有についての注意" aria-expanded="false" title="' + esc(text) + '">ⓘ</button><span class="sh-tip" role="note" hidden>' + esc(text) + '</span>'; }
+  function toggle(i, show) {
+    var tip = i && i.nextElementSibling; if (!tip || !tip.classList.contains('sh-tip')) return;
+    var on = show == null ? tip.hidden : show; tip.hidden = !on; i.setAttribute('aria-expanded', on ? 'true' : 'false');
+  }
+  function attach(btn, text) {
+    if (!btn || btn.getAttribute('data-shtip')) return;
+    btn.setAttribute('data-shtip', '1'); btn.title = text; btn.insertAdjacentHTML('afterend', html(text));
+  }
+  document.addEventListener('click', function (e) { var i = e.target.closest && e.target.closest('.sh-i'); if (i) { e.preventDefault(); toggle(i); } });
+  // 長押し（スマホ）：0.5秒押したままなら説明を出し、そのあとの「押した」扱いは取り消す
+  var timer = null, longed = null;
+  document.addEventListener('touchstart', function (e) {
+    var b = e.target.closest && e.target.closest('[data-shtip]'); if (!b) return;
+    clearTimeout(timer); timer = setTimeout(function () { var i = b.nextElementSibling; if (i && i.classList.contains('sh-i')) { toggle(i, true); longed = b; } }, 500);
+  }, { passive: true });
+  ['touchend', 'touchmove', 'touchcancel'].forEach(function (t) { document.addEventListener(t, function () { clearTimeout(timer); }, { passive: true }); });
+  document.addEventListener('click', function (e) { if (longed && e.target.closest && e.target.closest('[data-shtip]') === longed) { e.preventDefault(); e.stopImmediatePropagation(); } longed = null; }, true);
+  document.addEventListener('contextmenu', function (e) { if (e.target.closest && e.target.closest('[data-shtip]')) e.preventDefault(); });
+  var st = document.createElement('style');
+  st.textContent = '.sh-i{border:1px solid #b9c3d6;background:#fff;color:#1f3a68;border-radius:50%;width:26px;height:26px;min-height:0;padding:0;font-size:14px;line-height:1;cursor:pointer;vertical-align:middle;margin-left:4px;flex:0 0 auto}' +
+    '.sh-tip{display:block;flex-basis:100%;background:#fff8e1;border:1px solid #f0d58a;color:#4a3b00;border-radius:8px;padding:8px 10px;font-size:13px;line-height:1.6;margin:6px 0;max-width:640px}.sh-tip[hidden]{display:none}';
+  (document.head || document.documentElement).appendChild(st);
+  return { T: T, html: html, attach: attach, toggle: toggle };
+})();
+
+/* v0.23 「📄 PDF作成」：印刷ダイアログを出さず、PDFファイルを作ってそのまま保存する。
+   ・印刷と同じHTMLを、画面の外の A4 幅の枠（iframe）に描き、html2canvas で画像にして jsPDF でページにする。
+   ・部品は押したときに CDN から読む（版を固定し、ハッシュで確認。確認できないときは読み込まない）。
+   ・ページの切れ目は、印刷の改ページ指定（break-before など）と、切ってはいけない箱（表の行・カードなど）を避けて決める。
+   ・canvas に描くので、日本語の文字もそのまま出る（PDF の中は画像。文字は選べない）。 */
+var LanePdf = (function () {
+  'use strict';
+  var LIB = {
+    h2c: { src: 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js', sri: 'sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H', ok: function () { return typeof window.html2canvas === 'function'; } },
+    jspdf: { src: 'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js', sri: 'sha384-en/ztfPSRkGfME4KIm05joYXynqzUgbsG5nMrj/xEFAHXkeZfO3yMK8QQ+mP7p1/', ok: function () { return !!(window.jspdf && window.jspdf.jsPDF); } }
+  };
+  var loading = {};
+  // html2canvas 1.4.1 は幅0の要素のグラデーションで非有限値を渡して止まるので、その色止めだけ無視する
+  function guardGradient() {
+    var G = window.CanvasGradient && CanvasGradient.prototype; if (!G || G.__laneSafe) return;
+    var orig = G.addColorStop; G.addColorStop = function (o, c) { if (!isFinite(o)) return; try { orig.call(this, o, c); } catch (e) {} }; G.__laneSafe = 1;
+  }
+  function load(k) {
+    guardGradient();
+    var L = LIB[k]; if (L.ok()) return Promise.resolve();
+    if (loading[k]) return loading[k];
+    loading[k] = new Promise(function (res, rej) {
+      var s = document.createElement('script'); s.src = L.src; s.integrity = L.sri; s.crossOrigin = 'anonymous'; s.async = true;
+      s.onload = function () { L.ok() ? res() : rej(new Error('PDFを作る部品を読み込めませんでした')); };
+      s.onerror = function () { delete loading[k]; s.remove(); rej(new Error('PDFを作る部品を読み込めませんでした（インターネット接続を確認してください）')); };
+      document.head.appendChild(s);
+    });
+    return loading[k];
+  }
+  var MM = 96 / 25.4;
+  // 印刷用のCSSを「いつも」にし、画面用のCSSは使わない
+  function printify(html) { return String(html).replace(/@media\s+print\b/g, '@media all').replace(/@media\s+screen\b/g, '@media not all'); }
+  /* ---- 進み具合の表示 ---- */
+  var toast = null;
+  function progress(msg) {
+    if (!toast) { toast = document.createElement('div'); toast.className = 'lpdf-toast'; toast.setAttribute('role', 'status'); toast.style.cssText = 'position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:3000;background:#14213d;color:#fff;font-weight:700;padding:10px 16px;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.3);font-size:14px;max-width:92vw'; document.body.appendChild(toast); }
+    if (msg == null) { toast.remove(); toast = null; return; }
+    toast.textContent = msg;
+  }
+  /* ---- ページの切れ目 ---- */
+  function cuts(doc, total, pageH) {
+    var win = doc.defaultView, top0 = doc.body.getBoundingClientRect().top, forced = [], avoid = [];
+    Array.prototype.forEach.call(doc.body.querySelectorAll('*'), function (el) {
+      var cs = win.getComputedStyle(el); if (cs.display === 'none' || cs.position === 'fixed') return;
+      var r = el.getBoundingClientRect(); if (!r.height) return;
+      var t = r.top - top0, b = r.bottom - top0;
+      if (/page|always/.test(cs.breakBefore + cs.pageBreakBefore) && t > 2) forced.push(t);
+      if (/page|always/.test(cs.breakAfter + cs.pageBreakAfter) && b < total - 2) forced.push(b);
+      if (/avoid/.test(cs.breakInside + cs.pageBreakInside) || /^(TR|LI|IMG|SVG|H1|H2|H3|H4|FIGURE)$/i.test(el.tagName)) avoid.push([t, b]);
+    });
+    forced.sort(function (a, b) { return a - b; });
+    var out = [], start = 0, guard = 0;
+    while (start < total - 1 && guard++ < 500) {
+      var lim = start + pageH, f = forced.filter(function (x) { return x > start + 2 && x <= lim + 0.5; })[0];
+      var c = f != null ? f : Math.min(lim, total);
+      if (f == null && c < total) {   // 箱の途中で切らない（ページの半分より上には戻さない）
+        for (var k = 0; k < 20; k++) { var moved = false; avoid.forEach(function (a) { if (a[0] < c - 0.5 && a[1] > c + 0.5 && a[0] > start + pageH * 0.4) { c = a[0]; moved = true; } }); if (!moved) break; }
+      }
+      out.push([start, c]); start = c;
+    }
+    return out;
+  }
+  function isIOS() { return /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
+  async function save(blob, filename) {
+    if (isIOS() && navigator.canShare && typeof File === 'function') {
+      try { var f = new File([blob], filename, { type: 'application/pdf' }); if (navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title: filename }); return 'share'; } } catch (e) { if (e && e.name === 'AbortError') return 'cancel'; }
+    }
+    var url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = filename; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove();
+    if (isIOS() && !('download' in a)) window.open(url, '_blank');
+    setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+    return 'download';
+  }
+  function safeName(s) { return String(s || 'LANE_NOTE').replace(/[\\/:*?"<>|\u0000-\u001f]+/g, '_').replace(/\s+/g, '').slice(0, 120) + (/\.pdf$/i.test(s) ? '' : '.pdf'); }
+  /* o: { html: 文書のHTML（<!doctype>から）, filename, margin: 余白mm（既定10）, onePage: 1枚に縮める, footer: 'LANE NOTE' など（英数字のみ）, scale } */
+  async function make(o) {
+    var margin = o.margin == null ? 10 : o.margin, cw = (210 - 2 * margin) * MM, ch = (297 - 2 * margin) * MM, frame = null;
+    progress('📄 PDFを作っています…');
+    try {
+      await Promise.all([load('h2c'), load('jspdf')]);
+      frame = document.createElement('iframe');
+      frame.setAttribute('aria-hidden', 'true'); frame.tabIndex = -1;
+      frame.style.cssText = 'position:fixed;left:-10000px;top:0;width:' + Math.ceil(cw) + 'px;height:' + Math.ceil(ch) + 'px;border:0;visibility:hidden';
+      document.body.appendChild(frame);
+      var html = printify(o.html).replace(/<\/head>/i, '<style>html,body{margin:0!important;padding:0!important;background:#fff!important;box-shadow:none!important;min-height:0!important;width:auto!important;max-width:none!important}' + (o.css || '') + '</style></head>');
+      await new Promise(function (res) { frame.onload = res; frame.srcdoc = html; setTimeout(res, 4000); });
+      var doc = frame.contentDocument; if (doc.fonts && doc.fonts.ready) { try { await doc.fonts.ready; } catch (e) { } }
+      await new Promise(function (r) { setTimeout(r, 60); });
+      var body = doc.body, total = Math.max(body.scrollHeight, doc.documentElement.scrollHeight);
+      frame.style.height = Math.ceil(total + 10) + 'px';
+      var zoom = 1;
+      if (o.onePage && total > ch) { zoom = ch / total; }
+      var pages = o.onePage ? [[0, total]] : cuts(doc, total, ch);
+      var jsPDF = window.jspdf.jsPDF, pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: true });
+      var scale = o.scale || 2;
+      for (var i = 0; i < pages.length; i++) {
+        progress('📄 PDFを作っています…（' + (i + 1) + '／' + pages.length + 'ページ）');
+        var y0 = pages[i][0], h = Math.max(1, pages[i][1] - y0);
+        var cv = await window.html2canvas(body, { scale: scale, backgroundColor: '#ffffff', useCORS: true, logging: false, x: 0, y: y0, width: Math.ceil(cw), height: Math.ceil(h), windowWidth: Math.ceil(cw), windowHeight: Math.ceil(total), scrollX: 0, scrollY: 0 });
+        if (i) pdf.addPage('a4', 'portrait');
+        var wmm = (210 - 2 * margin) * (o.onePage ? Math.min(1, zoom) : 1), hmm = h / MM * (o.onePage ? zoom : 1);
+        pdf.addImage(cv.toDataURL('image/jpeg', 0.92), 'JPEG', margin + ((210 - 2 * margin) - wmm) / 2, margin, wmm, hmm, undefined, 'FAST');
+        if (o.footer) { pdf.setFontSize(7); pdf.setTextColor(120); pdf.text(o.footer + (pages.length > 1 ? '   ' + (i + 1) + ' / ' + pages.length : ''), 210 - margin, 297 - Math.max(3, margin / 2), { align: 'right' }); }
+        cv.width = cv.height = 0;
+      }
+      var name = safeName(o.filename), blob = pdf.output('blob');
+      progress('✔ PDFを作りました（' + pages.length + 'ページ）');
+      var how = await save(blob, name);
+      setTimeout(function () { progress(null); }, 2500);
+      return { pages: pages.length, filename: name, blob: blob, how: how };
+    } catch (e) {
+      progress('✖ ' + (e && e.message || 'PDFを作れませんでした') + '。「🖨 印刷」から「PDFに保存」もできます。');
+      setTimeout(function () { progress(null); }, 7000);
+      throw e;
+    } finally { if (frame) frame.remove(); }
+  }
+  // いまのページの style をまとめて、本文（box の中身）だけの文書にする（記録・照合の印刷画面用）
+  // 注意：body に printing を付けると「body.printing>*:not(#…)」で html2canvas の複製が真っ白になるので付けない
+  function pageDoc(bodyHtml, bodyClass) {
+    bodyClass = String(bodyClass || '').replace(/\bprinting\b/g, '').trim();
+    var css = Array.prototype.map.call(document.querySelectorAll('style'), function (s) { return s.textContent; }).join('\n');
+    return '<!doctype html><html lang="ja"><head><meta charset="utf-8"><style>' + css + '</style></head><body class="' + (bodyClass || '') + '">' + bodyHtml + '</body></html>';
+  }
+  return { make: make, pageDoc: pageDoc, printify: printify, cuts: cuts, safeName: safeName, load: load, LIB: LIB };
+})();
 
 </script>
 <script>
@@ -2952,7 +3117,7 @@ var LaneOverlay = (function () {
   }
   // アカウントが変わったら、前の人の画面の中身（記録・読み込み途中の資料・入力欄）をすべて消す
   function resetView() {
-    ALL = []; batches = []; DONE = []; METS = {}; DIV_OV = {}; REVIEW = []; OFFLINE = false; MODE = { personal: false, name: '', team: '' }; PPL.links = {}; PPL.gen++; try { applyModeUi(); $('rbPPList').innerHTML = ''; $('rbPPNames').innerHTML = ''; $('rbPPScreen').hidden = true; document.body.classList.remove('pps-open'); status('rbPPMsg', '', ''); } catch (e) { }
+    ALL = []; batches = []; DONE = []; METS = {}; DIV_OV = {}; REVIEW = []; OFFLINE = false; MODE = { personal: false, name: '', team: '' }; PPL.links = {}; PPL.gen++; MSH = { key: '', url: '', name: '', busy: false, gen: MSH.gen + 1 }; try { applyModeUi(); $('rbPPList').innerHTML = ''; $('rbPPNames').innerHTML = ''; $('rbPPScreen').hidden = true; document.body.classList.remove('pps-open'); status('rbPPMsg', '', ''); } catch (e) { }
     try { $('rbPaste').value = ''; $('rbFile').value = ''; status('rbStatus', '', ''); var d = $('rbDone'); d.innerHTML = ''; d.className = 'status'; status('rbDataStatus', '', ''); } catch (e) { }
     if (typeof manualReset === 'function') manualReset();
     renderBatches(); applyInference(); render();
@@ -3356,7 +3521,7 @@ var LaneOverlay = (function () {
   }
   $('rmDelete').addEventListener('click', function () { if (EDIT_ID) deleteOne(EDIT_ID); });
   /* ---------- 一覧（v0.3：ホーム・選手・部内ランキング・大会別・歴代・全記録。選手のページは #athlete=… で開く） ---------- */
-  var view = 'home', sort = { ath: null, meet: null, all: null }, rankOpt = { season: 'now', grade: '', ev: '' }, histOpt = { ev: '' }, meetSel = '', chartOfficial = false, chartNm = true;
+  var allPB = false, view = 'home', sort = { ath: null, meet: null, all: null }, rankOpt = { season: 'now', grade: '', ev: '' }, histOpt = { ev: '' }, meetSel = '', chartOfficial = false, chartNm = true;
   var DIVKEY = 'lanenote-rec-div', DIV = 'all';
   try { DIV = localStorage.getItem(DIVKEY) || 'all'; } catch (e) { }
   function renderDiv() { document.querySelectorAll('#rbDiv button').forEach(function (b) { var on = b.getAttribute('data-div') === DIV; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); }); }
@@ -3398,14 +3563,35 @@ var LaneOverlay = (function () {
     applyInference(); render();
   });
   function setTab(v) { view = v; document.querySelectorAll('.tabs button').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-v') === v); }); }
-  document.querySelector('.tabs').addEventListener('click', function (e) {
-    var v = e.target.getAttribute('data-v'); if (!v) return; setTab(v);
-    if (curAthlete()) { history.pushState(null, '', location.pathname + location.search); }
+  /* v0.10.2 タブの切り替えは履歴に入れる（ブラウザの「戻る」でホームなどに戻れる） */
+  function navState() { return { rbTab: view, meet: meetSel || '', allPB: !!allPB }; }
+  function goView(v, o) {
+    o = o || {}; setTab(v); allPB = !!o.allPB; if (o.meet) meetSel = o.meet;
+    try { history.pushState(navState(), '', location.pathname + location.search); } catch (e) { }
     render();
+    var tb = document.querySelector('.tabbar'); window.scrollTo(0, $('rbView').getBoundingClientRect().top + window.scrollY - (tb ? tb.offsetHeight : 0) - 8);
+  }
+  try { if (!history.state || !history.state.rbTab) history.replaceState(Object.assign({}, history.state || {}, { rbTab: view, meet: '', allPB: false }), ''); } catch (e) { }
+  document.querySelector('.tabs').addEventListener('click', function (e) {
+    var v = e.target.getAttribute('data-v'); if (!v) return;
+    if (v === view && !curAthlete() && !allPB) return;
+    goView(v);
+  });
+  function homeGo(el) {
+    if (el.hasAttribute('data-gomeet')) { goView('meet', { meet: el.getAttribute('data-gomeet') }); return; }
+    var g = el.getAttribute('data-gokpi');
+    if (g === 'pb') goView('all', { allPB: true }); else goView(g);
+  }
+  $('rbView').addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return; var el = e.target.closest && e.target.closest('[data-gomeet],[data-gokpi]');
+    if (!el || e.target !== el) return; e.preventDefault(); homeGo(el);
   });
   function curAthlete() { var m = location.hash.match(/^#athlete=(.+)$/); if (!m) return ''; try { return decodeURIComponent(m[1]); } catch (e) { return ''; } }
   window.addEventListener('hashchange', function () { render(); if (curAthlete()) window.scrollTo(0, $('rbView').getBoundingClientRect().top + window.scrollY - document.querySelector('.tabbar').offsetHeight - 8); });
-  window.addEventListener('popstate', function () { render(); });
+  window.addEventListener('popstate', function (e) {
+    var st = e.state; if (st && st.rbTab) { setTab(st.rbTab); allPB = !!st.allPB; if (st.meet) meetSel = st.meet; }
+    render();
+  });
   $('rbQ').addEventListener('input', render); $('rbMine').addEventListener('change', render);
   // 読み直す：始めたときのアカウントの記録だけを画面に出す（途中で切り替わったら、何も反映しない）
   async function reload(sc) {
@@ -3482,8 +3668,12 @@ var LaneOverlay = (function () {
       render(); return;
     }
     var pl = e.target.closest('[data-pplink]'); if (pl) { openPPScreen([pl.getAttribute('data-pplink')]); makePPLinks([pl.getAttribute('data-pplink')]); return; }
+    if (e.target.closest('[data-msshare]')) { msShare(meetSel); return; }
+    var mc = e.target.closest('[data-mscopy]'); if (mc) { var mv = mc.getAttribute('data-mscopy'); copyT(mv === 'line' ? msLineText() : MSH.url, mc, mc.textContent); return; }
     var pb = e.target.closest('[data-print]'); if (pb) { startPrint(pb.getAttribute('data-print'), pb.getAttribute('data-key'), pb.getAttribute('data-act') || 'view'); return; }
-    var go = e.target.closest('[data-go]'); if (go) { setTab(go.getAttribute('data-go')); render(); return; }
+    var go = e.target.closest('[data-go]'); if (go) { goView(go.getAttribute('data-go')); return; }
+    if (e.target.closest('[data-allpb-off]')) { goView('all'); return; }
+    var hg = e.target.closest('[data-gomeet],[data-gokpi]'); if (hg && !e.target.closest('a,button,input,select,label')) { homeGo(hg); return; }
     var t = e.target.closest('th[data-sort]'); if (!t) return; var k = t.getAttribute('data-sort'), s = sort[view];
     sort[view] = s && s.k === k ? { k: k, d: -s.d } : { k: k, d: 1 }; render();
   });
@@ -3528,11 +3718,12 @@ var LaneOverlay = (function () {
     var aths = {}, meets = {}, seasonPB = 0, seasonPBAth = {};
     rows.forEach(function (r) { aths[R.athleteKey(r)] = 1; var k = r.date + '|' + r.meet; (meets[k] = meets[k] || []).push(r); var p = pd[r.id]; if (p && p.flag === 'PB' && R.seasonOf(r.date) === ns) { seasonPB++; seasonPBAth[R.athleteKey(r)] = 1; } });
     var mk = Object.keys(meets).sort().reverse();
-    var h = '<div class="kpis"><div class="kpi hot"><b>' + seasonPB + '</b><span>今シーズンの自己ベスト更新<small>（' + R.seasonLabel(ns) + '・' + Object.keys(seasonPBAth).length + '人）</small></span></div><div class="kpi"><b>' + Object.keys(aths).length + '</b><span>選手</span></div><div class="kpi"><b>' + rows.length + '</b><span>記録</span></div><div class="kpi"><b>' + mk.length + '</b><span>大会</span></div></div>';
+    var kp = function (go, cls, n, label, aria) { return '<div class="kpi go' + cls + '" role="link" tabindex="0" data-gokpi="' + go + '" aria-label="' + esc(aria) + '"><b>' + n + '</b><span>' + label + '</span></div>'; };
+    var h = '<div class="kpis">' + kp('pb', ' hot', seasonPB, '今シーズンの自己ベスト更新<small>（' + R.seasonLabel(ns) + '・' + Object.keys(seasonPBAth).length + '人）</small>', '今シーズンの自己ベスト更新 ' + seasonPB + '件を全記録で見る') + kp('ath', '', Object.keys(aths).length, '選手', '選手別を見る') + kp('all', '', rows.length, '記録', '全記録を見る') + kp('meet', '', mk.length, '大会', '大会別を見る') + '</div>';
     mk.slice(0, 2).forEach(function (k, i) {
       var list = meets[k], pbs = list.filter(function (r) { return pd[r.id] && pd[r.id].flag === 'PB'; }), firsts = list.filter(function (r) { return pd[r.id] && pd[r.id].flag === '初'; });
       pbs.sort(function (a, b) { return cmp(R.nk(a.name), R.nk(b.name)) || cmp(R.normEvent(a.event), R.normEvent(b.event)); });
-      h += '<div class="card"><div class="card-h"><span class="tag">' + (i ? 'その前の大会' : '最新の大会') + '</span><b>' + esc(list[0].meet) + '</b><span class="small muted">' + esc(list[0].date) + '・' + list.length + '件</span></div>' +
+      h += '<div class="card meetcard" role="link" tabindex="0" data-gomeet="' + esc(k) + '" aria-label="' + esc(list[0].meet + '（' + list[0].date + '）を大会別で見る') + '"><div class="card-h"><span class="tag">' + (i ? 'その前の大会' : '最新の大会') + '</span><b>' + esc(list[0].meet) + '</b><span class="small muted">' + esc(list[0].date) + '・' + list.length + '件</span><span class="mc-go">この大会を見る →</span></div>' +
         '<p class="small">自己ベスト更新 <b class="big-n">' + pbs.length + '</b>件' + (firsts.length ? '　初記録 ' + firsts.length + '件' : '') + '</p>' +
         (pbs.length ? '<ul class="pblist">' + pbs.map(function (r) { var p = pd[r.id]; return '<li>' + athLink(R.athleteKey(r), r.name || r.kana) + '<span class="ev">' + esc(evName(r)) + '</span><span class="lmk"><b>' + esc(r.mark) + '</b><span class="pb">PB</span></span><span class="prev">前のベスト ' + esc(p.prev.mark) + '<b class="up">' + esc(R.fmtImprovement(p.diff, p.lower)) + '</b></span></li>'; }).join('') + '</ul>' : '<p class="small muted">この大会では自己ベストの更新はありませんでした。</p>') + '</div>';
     });
@@ -3620,9 +3811,29 @@ var LaneOverlay = (function () {
   }
   if (typeof window !== 'undefined') window.__fitScale = fitScale;
   var PDF_HINT = '保存先で『PDFに保存』を選んでください';
+  var CUR_PRINT = { kind: '', key: '' };
   function doPrint(pdf) {
-    var h = $('rbPrintHint'); h.textContent = pdf ? '📄 ' + PDF_HINT : ''; h.hidden = !pdf;
-    setTimeout(function () { window.print(); }, pdf ? 400 : 0);
+    var h = $('rbPrintHint'); h.hidden = true; h.textContent = '';
+    if (pdf) return pdfRec();
+    window.print();
+  }
+  // v0.23 PDF作成：印刷ダイアログを出さずに PDF ファイルを作って保存する（ファイル名は「大会名_大会まとめ.pdf」など）
+  function pdfRecName() {
+    var k = CUR_PRINT.kind, key = CUR_PRINT.key || '', nm = '';
+    if (k === 'meet') nm = key.split('|').slice(1).join('|') + '_大会まとめ';
+    else if (k === 'ath') { var pf = R.athleteProfile(ALL, key); nm = (pf && pf.name ? pf.name : '選手') + '_個人表'; }
+    else if (k === 'pick') nm = (school() || '') + '_選択した個人表';
+    else if (k.indexOf('hist') === 0) nm = (school() || '') + '_歴代記録';
+    else nm = (school() || '') + '_部内ランキング';
+    return nm.replace(/^_/, '') + '.pdf';
+  }
+  function pdfRec() {
+    if (typeof LanePdf === 'undefined') { alert('PDFを作る部品がありません。「🖨 印刷」から「PDFに保存」を選んでください。'); return; }
+    var one = !!$('rbPrintBody').querySelector('.lp-one[data-fit]');
+    return LanePdf.make({ html: LanePdf.pageDoc('<div id="rbPrint"><div id="rbPrintBody">' + $('rbPrintBody').innerHTML + '</div></div>', ''), filename: pdfRecName(), margin: 10, footer: 'LANE NOTE', onePage: one && ONEPAGE,
+      css: '#rbPrint{position:static!important;overflow:visible!important;inset:auto!important;background:#fff!important}.lp-bar,#rbPrintHint{display:none!important}' +
+        /* html2canvas は段組み（columns）が苦手なので、同じ2列をグリッドで組む */
+        '#rbPrint .lp-boxes{columns:auto!important;display:grid!important;grid-template-columns:1fr 1fr;column-gap:4mm;align-items:start}#rbPrint .lp-box{display:block!important;overflow:visible!important}#rbPrint .lp-one .lp-hl ul{columns:auto!important;display:grid;grid-template-columns:1fr 1fr;column-gap:10px}' }).catch(function (e) { console.error(e); });
   }
   function printMeta(extra) {
     var o = { school: MODE.personal ? (MODE.team || MODE.name || '') : school(), date: LanePrint.today(), nog: NOG, spark: function (e) { return spark(e.allPoints, e.lower, false, e.noMarks, true); } };
@@ -3632,14 +3843,14 @@ var LaneOverlay = (function () {
   function openPrint(html, pick) {
     $('rbPrintBody').innerHTML = html; $('rbPrintGo').hidden = $('rbPrintPdf').hidden = !!pick; $('rbPrintHint').hidden = true; $('rbPrint').hidden = false; $('rbPrint').scrollTop = 0; document.body.classList.add('printing');
   }
-  function closePrint() { $('rbPrint').hidden = true; $('rbPrintBody').innerHTML = ''; document.body.classList.remove('printing'); }
+  function closePrint() { if (document.body.classList.contains('ms-view')) { location.replace(location.pathname); return; } $('rbPrint').hidden = true; $('rbPrintBody').innerHTML = ''; document.body.classList.remove('printing'); }
   function pickList() {
     var seen = {}, out = []; R.sortAthletes(R.computeBests(filtered()).bests).forEach(function (b) { if (!seen[b.key]) { seen[b.key] = 1; out.push(b); } });
     return out;
   }
   function athSheets(keys) { var o = printMeta(); return keys.map(function (k) { return LanePrint.athleteSheet(R, ALL, k, o); }).join(''); }
   function startPrint(kind, key, act) {
-    act = act || 'view'; PICK_ACT = act;
+    act = act || 'view'; PICK_ACT = act; CUR_PRINT = { kind: kind, key: key || '' };
     if (kind !== 'pick') { buildPrint(kind, key); if (act !== 'view') doPrint(act === 'pdf'); return; }
     buildPrint(kind, key);
   }
@@ -3716,12 +3927,17 @@ var LaneOverlay = (function () {
       var rs = rows.slice().sort(function (a, b) { return cmp(b.date, a.date) || cmp(a.meet, b.meet) || cmp(R.normEvent(a.event), R.normEvent(b.event)) || cmp(a.order || 0, b.order || 0); });
       var d2 = { date: function (r) { return r.date; }, meet: function (r) { return r.meet; }, event: function (r) { return R.normEvent(r.event); }, name: function (r) { return R.nk(r.name); }, grade: function (r) { return r.grade; }, mark: mv, rank: function (r) { return r.rank === '' ? 999 : +r.rank; } };
       var meetCtl = '';
+      if (view === 'all' && allPB) {   // ホームの「今シーズンの自己ベスト更新」から来たとき
+        var pdA = R.pbDetails(rows), nsA = nowSeason();
+        rs = rs.filter(function (r) { return pdA[r.id] && pdA[r.id].flag === 'PB' && R.seasonOf(r.date) === nsA; });
+        meetCtl = '<div class="rb-row allpb-chip"><span>🔥 今シーズン（' + esc(R.seasonLabel(nsA)) + '）の自己ベスト更新だけ表示中（' + rs.length + '件）</span><button type="button" class="btn sub" data-allpb-off="1">✕ すべての記録を表示</button></div>';
+      }
       if (view === 'meet') {
         var mks = Object.keys(meets).sort().reverse();
         if (mks.indexOf(meetSel) < 0) meetSel = mks[0];
         meetCtl = '<div class="meetsel"><label>大会 <select data-meetsel="1">' + mks.map(function (k) { var p = k.split('|'); return '<option value="' + esc(k) + '"' + (k === meetSel ? ' selected' : '') + '>' + esc(p[0] + '　' + p.slice(1).join('|') + '（' + meets[k] + '件）') + '</option>'; }).join('') + '</select></label></div>';
         rs = rs.filter(function (r) { return r.date + '|' + r.meet === meetSel; });
-        if (meetSel) meetCtl += '<div class="rb-row">' + ppBtns('meet', meetSel, '大会まとめ') + '<label class="lp-onechk"><input type="checkbox" data-onepage="1"' + (ONEPAGE ? ' checked' : '') + '> 1枚にまとめる（縮小）</label></div>';
+        if (meetSel) meetCtl += '<div class="rb-row">' + ppBtns('meet', meetSel, '大会まとめ') + msShareBtn() + '<label class="lp-onechk"><input type="checkbox" data-onepage="1"' + (ONEPAGE ? ' checked' : '') + '> 1枚にまとめる（縮小）</label></div>' + msPanel();
       }
       rs = sortRows(rs, view, d2);
       var grouped = view === 'meet' && !sort.meet, lastMeet = '';   // 大会別は見出しに大会名と日付を出すので、カードの中では繰り返さない
@@ -3847,6 +4063,116 @@ var LaneOverlay = (function () {
     await b.commit(); check(sc);
     return siteBase() + '?s=' + id;
   }
+  /* ---------- v0.23：大会まとめを短いリンクで共有（shares/{id} は同じ4項目・同じ形式。中身の k:'ms' で種類を見分ける） ---------- */
+  var MSH = { key: '', url: '', name: '', busy: false, gen: 0 }, MS_MAX = 190000;
+  var MS_TIP = 'リンクを知っている人は誰でもログインなしで見られます。チーム全員の名前と記録が入るので、部員の中だけで共有してください。119日で見られなくなります。大会準備ページの「作った短いリンク」からいつでも止められます。';
+  function tipHtml(t) { return typeof LaneShareTip !== 'undefined' ? LaneShareTip.html(t) : ''; }
+  var MS_SKIP = { ref: 1, raw: 1, src: 1, srcText: 1 };
+  // 記録1件を「文字・数字・真偽だけ」の配列にする（列名は K にまとめる）
+  function msPack(list) {
+    var K = [], ix = {};
+    list.forEach(function (r) { Object.keys(r).forEach(function (k) { var v = r[k]; if (!MS_SKIP[k] && ix[k] == null && (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean')) { ix[k] = K.length; K.push(k); } }); });
+    return { K: K, V: list.map(function (r) { return K.map(function (k) { var v = r[k]; return typeof v === 'string' ? v.slice(0, 300) : (typeof v === 'number' || typeof v === 'boolean') ? v : null; }); }) };
+  }
+  function msPayload(key) {
+    var rows = filtered(), mr = rows.filter(function (r) { return r.date + '|' + r.meet === key; }), ks = {}, eks = {}, mp = key.split('|');
+    if (!mr.length) return null;
+    mr.forEach(function (r) { ks[R.athleteKey(r)] = 1; eks[R.eventKey(r)] = 1; });
+    // 自己ベストの判定に要るのは、同じ選手・同じ種目の、この大会の日までの記録だけ
+    var hist = ALL.filter(function (r) { return ks[R.athleteKey(r)] && eks[R.eventKey(r)] && (r.date || '') <= mp[0]; });
+    return { v: 1, k: 'ms', n: mp.slice(1).join('|'), d: mp[0], sc: MODE.personal ? (MODE.team || MODE.name || '') : school(), cond: filterCond(), nog: NOG ? 1 : 0, g: new Date().toISOString(), r: msPack(mr), h: msPack(hist) };
+  }
+  function msUnpack(o, max) {
+    if (!o || !Array.isArray(o.K) || !Array.isArray(o.V)) return [];
+    var K = o.K.slice(0, 60).map(function (k) { return String(k).slice(0, 40); }).filter(function (k) { return /^[A-Za-z_][\w]*$/.test(k) && k !== '__proto__' && k !== 'constructor' && k !== 'prototype'; });
+    if (K.length !== Math.min(o.K.length, 60)) return [];
+    return o.V.slice(0, max).filter(Array.isArray).map(function (a) { var r = {}; K.forEach(function (k, i) { var v = a[i]; if (typeof v === 'string') r[k] = v.slice(0, 300); else if (typeof v === 'number' && isFinite(v) || typeof v === 'boolean') r[k] = v; }); return r; });
+  }
+  function msShareBtn() {
+    if (!USER || OFFLINE) return '';   // ログインしている人だけ（短いリンクはクラウドに置くため）
+    return '<span class="lp-grp ms-grp"><button class="btn sub lp-btn" type="button" data-msshare="1" data-shtip="1" title="' + esc(MS_TIP) + '"' + (MSH.busy ? ' disabled' : '') + '>' + (MSH.busy ? '作っています…' : '🔗 リンクで共有') + '</button>' + tipHtml(MS_TIP) + '</span>';
+  }
+  function msLineText() { return '【' + MSH.name + '】大会まとめ（LANE NOTE）\n' + MSH.url + '\n※部員の中だけで見てください。119日で見られなくなります。'; }
+  function msPanel() {
+    if (!MSH.url || MSH.key !== meetSel) return '';
+    var sub = MSH.name + '（大会まとめ）', mail = 'mailto:?subject=' + encodeURIComponent(sub) + '&body=' + encodeURIComponent(sub + '\n' + MSH.url + '\n\n※部員の中だけで見てください。119日で見られなくなります。');
+    return '<div class="ms-done" role="status"><b>✔ 共有リンクを作りました</b>（119日間・ログインなしで見られます）<input readonly value="' + esc(MSH.url) + '" aria-label="大会まとめの共有リンク" onclick="this.select()">' +
+      '<div class="rb-row"><button class="btn sub" type="button" data-mscopy="url">📋 コピー</button><button class="btn sub" type="button" data-mscopy="line">💬 LINE用にコピー</button><a class="btn sub" href="' + esc(mail) + '">✉ メールで送る</a></div>' +
+      '<p class="small muted">止めるときは、大会準備ページの「作った短いリンク」から。</p></div>';
+  }
+  async function msShare(key) {
+    if (!key || MSH.busy) return;
+    var sc = scope(), gen = ++MSH.gen;
+    if (!sc.uid || OFFLINE) { status('rbDataStatus', 'ⓘ リンクで共有するには、Googleでログインしてください。', 'ng'); return; }
+    if (!confirm('この大会のまとめを、短いリンクで共有します。\n\n' + MS_TIP + '\n\n作りますか？')) return;
+    var o = msPayload(key); if (!o) { status('rbDataStatus', '✖ この大会の記録が（いまの絞り込みでは）ありません。', 'ng'); return; }
+    MSH.busy = true; render();
+    try {
+      var str = await encodePP(o);
+      if (str.length > MS_MAX) throw new Error('記録が多すぎて1つのリンクに入りません（' + str.length + '文字・上限190000）。絞り込み（中学/高校・男女）を変えて試してください');
+      var url = await msShort(str, '大会まとめ：' + o.n, sc);
+      if (gen !== MSH.gen) return;
+      MSH = { key: key, url: url, name: o.n, busy: false, gen: gen };
+      status('rbDataStatus', '✔ 「' + esc(o.n) + '」の共有リンクを作りました。', 'ok');
+    } catch (e) {
+      MSH.busy = false;
+      if (isAbort(e)) { status('rbDataStatus', 'ログインしているアカウントが変わったので、リンクを作るのを止めました。', 'ng'); }
+      else status('rbDataStatus', '✖ リンクを作れませんでした：' + esc(e.message || e), 'ng');
+    }
+    render();
+  }
+  // records.html?s=… にする（大会まとめはこのページで開く）。アカウント（uid＋世代）に固定する
+  async function msShort(str, label, sc) {
+    var u = await ppShort(str, label, sc); if (!u) throw new Error('ログインしていません');
+    return u.replace(/\?s=/, 'records.html?s=');
+  }
+  /* 見る側：records.html?s=<id>（ログイン不要・読み取りだけ） */
+  async function msInflate(str) {
+    var m = /^1\.([A-Za-z0-9_-]+)$/.exec(str || ''); if (!m || str.length > 400000) throw new Error('リンクの形式が違います');
+    if (typeof DecompressionStream === 'undefined') throw new Error('このブラウザは展開に対応していません（新しいChrome／Safari／Edgeを使ってください）');
+    var b = m[1].replace(/-/g, '+').replace(/_/g, '/'); while (b.length % 4) b += '=';
+    var bin = atob(b), u8 = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    var rd = new Blob([u8]).stream().pipeThrough(new DecompressionStream('deflate-raw')).getReader(), parts = [], n = 0;
+    for (;;) { var x = await rd.read(); if (x.done) break; n += x.value.length; if (n > 4 * 1048576) { try { rd.cancel(); } catch (e) { } throw new Error('リンクの中身が大きすぎます'); } parts.push(x.value); }
+    var all = new Uint8Array(n), o = 0; parts.forEach(function (p) { all.set(p, o); o += p.length; });
+    return JSON.parse(new TextDecoder().decode(all));
+  }
+  function msSheet(o, made, exp) {
+    if (!o || o.v !== 1 || o.k !== 'ms') throw new Error('大会まとめのリンクではありません');
+    var str_ = function (v, n) { return typeof v === 'string' ? v.slice(0, n || 120) : ''; };
+    var recs = msUnpack(o.r, 3000), hist = msUnpack(o.h, 20000);
+    if (!recs.length) throw new Error('リンクの中身に記録がありません');
+    var meet = str_(o.n), d = str_(o.d, 20), when = made ? new Date(made) : (o.g ? new Date(o.g) : null);
+    var fmt = function (t) { return t && !isNaN(t) ? t.getFullYear() + '/' + (t.getMonth() + 1) + '/' + t.getDate() + ' ' + t.getHours() + ':' + String(t.getMinutes()).padStart(2, '0') : ''; };
+    var note = '<div class="ms-note" role="note">📸 <b>' + (fmt(when) ? esc(fmt(when)) + ' 時点の' : '') + 'コピー</b>です（読み取り専用）。あとで記録を直しても、このリンクの中身は変わりません。' + (exp ? '<br>' + esc(fmt(new Date(exp)).replace(/ .*/, '')) + ' まで見られます。' : '') + '</div>';
+    return note + LanePrint.meetSheet(R, recs, hist, { school: str_(o.sc, 80), date: LanePrint.today(), nog: !!o.nog, meet: meet, meetDate: d, cond: str_(o.cond, 40), one: false, spark: function (e) { return spark(e.allPoints, e.lower, false, e.noMarks, true); } });
+  }
+  async function msOpenFromQuery() {
+    var m = /[?&]s=([A-Za-z0-9]{6,40})(?:&|$)/.exec(location.search); if (!m) return false;
+    var id = m[1];
+    document.body.classList.add('ms-view');
+    openPrint('<p class="small muted" style="background:#fff;padding:14px;border-radius:8px">読み込んでいます…</p>');
+    $('rbPrintGo').hidden = $('rbPrintPdf').hidden = true;
+    try {
+      await loadFirebase();
+      var d;
+      try { d = await FB.F.getDoc(FB.F.doc(FB.fs, 'shares', id)); }
+      catch (e) { if (/permission-denied/.test(String(e && e.code))) throw new Error('このリンクは有効期限が切れたか、作った先生が共有を止めました'); throw new Error('通信できませんでした（電波の良いところでもう一度開いてください）'); }
+      if (!d.exists()) throw new Error('このリンクは見つかりませんでした（共有が止められたか、期限切れの可能性があります）');
+      var x = d.data(), ms = function (t) { return t && t.toMillis ? t.toMillis() : null; }, made = ms(x.createdAt), exp = ms(x.expiresAt);
+      var until = Math.min(exp || Infinity, made ? made + 120 * 864e5 : Infinity);
+      if (until < Date.now()) throw new Error('このリンクは有効期限が切れています');
+      var o = await msInflate(x.data);
+      if (o && o.k === 'pp' || o && o.k === 'p' || o && Array.isArray(o.r) && !o.r.K) { location.replace(siteBase() + '?s=' + id); return true; }   // 大会準備・個人ページのリンクは元のページで開く
+      $('rbPrintBody').innerHTML = msSheet(o, made, isFinite(until) ? until : null);
+      $('rbPrintGo').hidden = $('rbPrintPdf').hidden = false;
+      CUR_PRINT = { kind: 'meet', key: (o.d || '') + '|' + (o.n || '') };
+      document.title = (o.n || '大会まとめ') + '｜LANE NOTE';
+    } catch (e) {
+      $('rbPrintBody').innerHTML = '<div class="warn" style="background:#fff;padding:14px;border-radius:8px"><b>このリンクは開けません。</b><br>' + esc(e.message || e) + '</div>';
+    }
+    return true;
+  }
   // 大会準備のページで作った、同じ名前の選手用リンク（期限内でいちばん新しいもの）→「大会当日の予定」へのリンクに使う
   async function ppSchedules(sc) {
     need(sc); if (!sc.uid) return [];
@@ -3929,7 +4255,11 @@ var LaneOverlay = (function () {
       Object.keys(PPL.links).map(function (k) { return PPL.links[k].name + '：' + PPL.links[k].url; }).join('\n');
     copyT(t, $('rbPPCopy'), '📋 まとめてコピー（LINE用）');
   });
-  window.__recApp = { openPPScreen: openPPScreen, ppNames: ppNames, ppPayload: ppPayload, encodePP: encodePP, makePPLinks: makePPLinks, getMode: function () { return MODE; }, isMe: isMe };
+  window.__recApp = { goView: goView, getView: function () { return { view: view, meetSel: meetSel, allPB: allPB }; }, openPPScreen: openPPScreen, ppNames: ppNames, ppPayload: ppPayload, encodePP: encodePP, makePPLinks: makePPLinks, getMode: function () { return MODE; }, isMe: isMe,
+    ms: { payload: msPayload, sheet: msSheet, inflate: msInflate, share: msShare, open: msOpenFromQuery, state: function () { return MSH; }, tip: function () { return MS_TIP; } },
+    _cloud: function (fb, user) { FB = fb; USER = user; OFFLINE = false; render(); } };
+  if (typeof LaneShareTip !== 'undefined') LaneShareTip.attach($('rbPPOpen'), LaneShareTip.T.pp);
+  msOpenFromQuery();   // v0.23：?s=… は大会まとめの共有リンク（ログイン不要で見るだけ）
   if (CLOUD_READY) initCloud(); else { renderAuth(); reload(); }
 })();
 

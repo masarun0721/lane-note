@@ -356,7 +356,7 @@
   }
   // アカウントが変わったら、前の人の画面の中身（記録・読み込み途中の資料・入力欄）をすべて消す
   function resetView() {
-    ALL = []; batches = []; DONE = []; METS = {}; DIV_OV = {}; REVIEW = []; OFFLINE = false; MODE = { personal: false, name: '', team: '' }; PPL.links = {}; PPL.gen++; try { applyModeUi(); $('rbPPList').innerHTML = ''; $('rbPPNames').innerHTML = ''; $('rbPPScreen').hidden = true; document.body.classList.remove('pps-open'); status('rbPPMsg', '', ''); } catch (e) { }
+    ALL = []; batches = []; DONE = []; METS = {}; DIV_OV = {}; REVIEW = []; OFFLINE = false; MODE = { personal: false, name: '', team: '' }; PPL.links = {}; PPL.gen++; MSH = { key: '', url: '', name: '', busy: false, gen: MSH.gen + 1 }; try { applyModeUi(); $('rbPPList').innerHTML = ''; $('rbPPNames').innerHTML = ''; $('rbPPScreen').hidden = true; document.body.classList.remove('pps-open'); status('rbPPMsg', '', ''); } catch (e) { }
     try { $('rbPaste').value = ''; $('rbFile').value = ''; status('rbStatus', '', ''); var d = $('rbDone'); d.innerHTML = ''; d.className = 'status'; status('rbDataStatus', '', ''); } catch (e) { }
     if (typeof manualReset === 'function') manualReset();
     renderBatches(); applyInference(); render();
@@ -760,7 +760,7 @@
   }
   $('rmDelete').addEventListener('click', function () { if (EDIT_ID) deleteOne(EDIT_ID); });
   /* ---------- 一覧（v0.3：ホーム・選手・部内ランキング・大会別・歴代・全記録。選手のページは #athlete=… で開く） ---------- */
-  var view = 'home', sort = { ath: null, meet: null, all: null }, rankOpt = { season: 'now', grade: '', ev: '' }, histOpt = { ev: '' }, meetSel = '', chartOfficial = false, chartNm = true;
+  var allPB = false, view = 'home', sort = { ath: null, meet: null, all: null }, rankOpt = { season: 'now', grade: '', ev: '' }, histOpt = { ev: '' }, meetSel = '', chartOfficial = false, chartNm = true;
   var DIVKEY = 'lanenote-rec-div', DIV = 'all';
   try { DIV = localStorage.getItem(DIVKEY) || 'all'; } catch (e) { }
   function renderDiv() { document.querySelectorAll('#rbDiv button').forEach(function (b) { var on = b.getAttribute('data-div') === DIV; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); }); }
@@ -802,14 +802,35 @@
     applyInference(); render();
   });
   function setTab(v) { view = v; document.querySelectorAll('.tabs button').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-v') === v); }); }
-  document.querySelector('.tabs').addEventListener('click', function (e) {
-    var v = e.target.getAttribute('data-v'); if (!v) return; setTab(v);
-    if (curAthlete()) { history.pushState(null, '', location.pathname + location.search); }
+  /* v0.10.2 タブの切り替えは履歴に入れる（ブラウザの「戻る」でホームなどに戻れる） */
+  function navState() { return { rbTab: view, meet: meetSel || '', allPB: !!allPB }; }
+  function goView(v, o) {
+    o = o || {}; setTab(v); allPB = !!o.allPB; if (o.meet) meetSel = o.meet;
+    try { history.pushState(navState(), '', location.pathname + location.search); } catch (e) { }
     render();
+    var tb = document.querySelector('.tabbar'); window.scrollTo(0, $('rbView').getBoundingClientRect().top + window.scrollY - (tb ? tb.offsetHeight : 0) - 8);
+  }
+  try { if (!history.state || !history.state.rbTab) history.replaceState(Object.assign({}, history.state || {}, { rbTab: view, meet: '', allPB: false }), ''); } catch (e) { }
+  document.querySelector('.tabs').addEventListener('click', function (e) {
+    var v = e.target.getAttribute('data-v'); if (!v) return;
+    if (v === view && !curAthlete() && !allPB) return;
+    goView(v);
+  });
+  function homeGo(el) {
+    if (el.hasAttribute('data-gomeet')) { goView('meet', { meet: el.getAttribute('data-gomeet') }); return; }
+    var g = el.getAttribute('data-gokpi');
+    if (g === 'pb') goView('all', { allPB: true }); else goView(g);
+  }
+  $('rbView').addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return; var el = e.target.closest && e.target.closest('[data-gomeet],[data-gokpi]');
+    if (!el || e.target !== el) return; e.preventDefault(); homeGo(el);
   });
   function curAthlete() { var m = location.hash.match(/^#athlete=(.+)$/); if (!m) return ''; try { return decodeURIComponent(m[1]); } catch (e) { return ''; } }
   window.addEventListener('hashchange', function () { render(); if (curAthlete()) window.scrollTo(0, $('rbView').getBoundingClientRect().top + window.scrollY - document.querySelector('.tabbar').offsetHeight - 8); });
-  window.addEventListener('popstate', function () { render(); });
+  window.addEventListener('popstate', function (e) {
+    var st = e.state; if (st && st.rbTab) { setTab(st.rbTab); allPB = !!st.allPB; if (st.meet) meetSel = st.meet; }
+    render();
+  });
   $('rbQ').addEventListener('input', render); $('rbMine').addEventListener('change', render);
   // 読み直す：始めたときのアカウントの記録だけを画面に出す（途中で切り替わったら、何も反映しない）
   async function reload(sc) {
@@ -886,8 +907,12 @@
       render(); return;
     }
     var pl = e.target.closest('[data-pplink]'); if (pl) { openPPScreen([pl.getAttribute('data-pplink')]); makePPLinks([pl.getAttribute('data-pplink')]); return; }
+    if (e.target.closest('[data-msshare]')) { msShare(meetSel); return; }
+    var mc = e.target.closest('[data-mscopy]'); if (mc) { var mv = mc.getAttribute('data-mscopy'); copyT(mv === 'line' ? msLineText() : MSH.url, mc, mc.textContent); return; }
     var pb = e.target.closest('[data-print]'); if (pb) { startPrint(pb.getAttribute('data-print'), pb.getAttribute('data-key'), pb.getAttribute('data-act') || 'view'); return; }
-    var go = e.target.closest('[data-go]'); if (go) { setTab(go.getAttribute('data-go')); render(); return; }
+    var go = e.target.closest('[data-go]'); if (go) { goView(go.getAttribute('data-go')); return; }
+    if (e.target.closest('[data-allpb-off]')) { goView('all'); return; }
+    var hg = e.target.closest('[data-gomeet],[data-gokpi]'); if (hg && !e.target.closest('a,button,input,select,label')) { homeGo(hg); return; }
     var t = e.target.closest('th[data-sort]'); if (!t) return; var k = t.getAttribute('data-sort'), s = sort[view];
     sort[view] = s && s.k === k ? { k: k, d: -s.d } : { k: k, d: 1 }; render();
   });
@@ -932,11 +957,12 @@
     var aths = {}, meets = {}, seasonPB = 0, seasonPBAth = {};
     rows.forEach(function (r) { aths[R.athleteKey(r)] = 1; var k = r.date + '|' + r.meet; (meets[k] = meets[k] || []).push(r); var p = pd[r.id]; if (p && p.flag === 'PB' && R.seasonOf(r.date) === ns) { seasonPB++; seasonPBAth[R.athleteKey(r)] = 1; } });
     var mk = Object.keys(meets).sort().reverse();
-    var h = '<div class="kpis"><div class="kpi hot"><b>' + seasonPB + '</b><span>今シーズンの自己ベスト更新<small>（' + R.seasonLabel(ns) + '・' + Object.keys(seasonPBAth).length + '人）</small></span></div><div class="kpi"><b>' + Object.keys(aths).length + '</b><span>選手</span></div><div class="kpi"><b>' + rows.length + '</b><span>記録</span></div><div class="kpi"><b>' + mk.length + '</b><span>大会</span></div></div>';
+    var kp = function (go, cls, n, label, aria) { return '<div class="kpi go' + cls + '" role="link" tabindex="0" data-gokpi="' + go + '" aria-label="' + esc(aria) + '"><b>' + n + '</b><span>' + label + '</span></div>'; };
+    var h = '<div class="kpis">' + kp('pb', ' hot', seasonPB, '今シーズンの自己ベスト更新<small>（' + R.seasonLabel(ns) + '・' + Object.keys(seasonPBAth).length + '人）</small>', '今シーズンの自己ベスト更新 ' + seasonPB + '件を全記録で見る') + kp('ath', '', Object.keys(aths).length, '選手', '選手別を見る') + kp('all', '', rows.length, '記録', '全記録を見る') + kp('meet', '', mk.length, '大会', '大会別を見る') + '</div>';
     mk.slice(0, 2).forEach(function (k, i) {
       var list = meets[k], pbs = list.filter(function (r) { return pd[r.id] && pd[r.id].flag === 'PB'; }), firsts = list.filter(function (r) { return pd[r.id] && pd[r.id].flag === '初'; });
       pbs.sort(function (a, b) { return cmp(R.nk(a.name), R.nk(b.name)) || cmp(R.normEvent(a.event), R.normEvent(b.event)); });
-      h += '<div class="card"><div class="card-h"><span class="tag">' + (i ? 'その前の大会' : '最新の大会') + '</span><b>' + esc(list[0].meet) + '</b><span class="small muted">' + esc(list[0].date) + '・' + list.length + '件</span></div>' +
+      h += '<div class="card meetcard" role="link" tabindex="0" data-gomeet="' + esc(k) + '" aria-label="' + esc(list[0].meet + '（' + list[0].date + '）を大会別で見る') + '"><div class="card-h"><span class="tag">' + (i ? 'その前の大会' : '最新の大会') + '</span><b>' + esc(list[0].meet) + '</b><span class="small muted">' + esc(list[0].date) + '・' + list.length + '件</span><span class="mc-go">この大会を見る →</span></div>' +
         '<p class="small">自己ベスト更新 <b class="big-n">' + pbs.length + '</b>件' + (firsts.length ? '　初記録 ' + firsts.length + '件' : '') + '</p>' +
         (pbs.length ? '<ul class="pblist">' + pbs.map(function (r) { var p = pd[r.id]; return '<li>' + athLink(R.athleteKey(r), r.name || r.kana) + '<span class="ev">' + esc(evName(r)) + '</span><span class="lmk"><b>' + esc(r.mark) + '</b><span class="pb">PB</span></span><span class="prev">前のベスト ' + esc(p.prev.mark) + '<b class="up">' + esc(R.fmtImprovement(p.diff, p.lower)) + '</b></span></li>'; }).join('') + '</ul>' : '<p class="small muted">この大会では自己ベストの更新はありませんでした。</p>') + '</div>';
     });
@@ -1024,9 +1050,29 @@
   }
   if (typeof window !== 'undefined') window.__fitScale = fitScale;
   var PDF_HINT = '保存先で『PDFに保存』を選んでください';
+  var CUR_PRINT = { kind: '', key: '' };
   function doPrint(pdf) {
-    var h = $('rbPrintHint'); h.textContent = pdf ? '📄 ' + PDF_HINT : ''; h.hidden = !pdf;
-    setTimeout(function () { window.print(); }, pdf ? 400 : 0);
+    var h = $('rbPrintHint'); h.hidden = true; h.textContent = '';
+    if (pdf) return pdfRec();
+    window.print();
+  }
+  // v0.23 PDF作成：印刷ダイアログを出さずに PDF ファイルを作って保存する（ファイル名は「大会名_大会まとめ.pdf」など）
+  function pdfRecName() {
+    var k = CUR_PRINT.kind, key = CUR_PRINT.key || '', nm = '';
+    if (k === 'meet') nm = key.split('|').slice(1).join('|') + '_大会まとめ';
+    else if (k === 'ath') { var pf = R.athleteProfile(ALL, key); nm = (pf && pf.name ? pf.name : '選手') + '_個人表'; }
+    else if (k === 'pick') nm = (school() || '') + '_選択した個人表';
+    else if (k.indexOf('hist') === 0) nm = (school() || '') + '_歴代記録';
+    else nm = (school() || '') + '_部内ランキング';
+    return nm.replace(/^_/, '') + '.pdf';
+  }
+  function pdfRec() {
+    if (typeof LanePdf === 'undefined') { alert('PDFを作る部品がありません。「🖨 印刷」から「PDFに保存」を選んでください。'); return; }
+    var one = !!$('rbPrintBody').querySelector('.lp-one[data-fit]');
+    return LanePdf.make({ html: LanePdf.pageDoc('<div id="rbPrint"><div id="rbPrintBody">' + $('rbPrintBody').innerHTML + '</div></div>', ''), filename: pdfRecName(), margin: 10, footer: 'LANE NOTE', onePage: one && ONEPAGE,
+      css: '#rbPrint{position:static!important;overflow:visible!important;inset:auto!important;background:#fff!important}.lp-bar,#rbPrintHint{display:none!important}' +
+        /* html2canvas は段組み（columns）が苦手なので、同じ2列をグリッドで組む */
+        '#rbPrint .lp-boxes{columns:auto!important;display:grid!important;grid-template-columns:1fr 1fr;column-gap:4mm;align-items:start}#rbPrint .lp-box{display:block!important;overflow:visible!important}#rbPrint .lp-one .lp-hl ul{columns:auto!important;display:grid;grid-template-columns:1fr 1fr;column-gap:10px}' }).catch(function (e) { console.error(e); });
   }
   function printMeta(extra) {
     var o = { school: MODE.personal ? (MODE.team || MODE.name || '') : school(), date: LanePrint.today(), nog: NOG, spark: function (e) { return spark(e.allPoints, e.lower, false, e.noMarks, true); } };
@@ -1036,14 +1082,14 @@
   function openPrint(html, pick) {
     $('rbPrintBody').innerHTML = html; $('rbPrintGo').hidden = $('rbPrintPdf').hidden = !!pick; $('rbPrintHint').hidden = true; $('rbPrint').hidden = false; $('rbPrint').scrollTop = 0; document.body.classList.add('printing');
   }
-  function closePrint() { $('rbPrint').hidden = true; $('rbPrintBody').innerHTML = ''; document.body.classList.remove('printing'); }
+  function closePrint() { if (document.body.classList.contains('ms-view')) { location.replace(location.pathname); return; } $('rbPrint').hidden = true; $('rbPrintBody').innerHTML = ''; document.body.classList.remove('printing'); }
   function pickList() {
     var seen = {}, out = []; R.sortAthletes(R.computeBests(filtered()).bests).forEach(function (b) { if (!seen[b.key]) { seen[b.key] = 1; out.push(b); } });
     return out;
   }
   function athSheets(keys) { var o = printMeta(); return keys.map(function (k) { return LanePrint.athleteSheet(R, ALL, k, o); }).join(''); }
   function startPrint(kind, key, act) {
-    act = act || 'view'; PICK_ACT = act;
+    act = act || 'view'; PICK_ACT = act; CUR_PRINT = { kind: kind, key: key || '' };
     if (kind !== 'pick') { buildPrint(kind, key); if (act !== 'view') doPrint(act === 'pdf'); return; }
     buildPrint(kind, key);
   }
@@ -1120,12 +1166,17 @@
       var rs = rows.slice().sort(function (a, b) { return cmp(b.date, a.date) || cmp(a.meet, b.meet) || cmp(R.normEvent(a.event), R.normEvent(b.event)) || cmp(a.order || 0, b.order || 0); });
       var d2 = { date: function (r) { return r.date; }, meet: function (r) { return r.meet; }, event: function (r) { return R.normEvent(r.event); }, name: function (r) { return R.nk(r.name); }, grade: function (r) { return r.grade; }, mark: mv, rank: function (r) { return r.rank === '' ? 999 : +r.rank; } };
       var meetCtl = '';
+      if (view === 'all' && allPB) {   // ホームの「今シーズンの自己ベスト更新」から来たとき
+        var pdA = R.pbDetails(rows), nsA = nowSeason();
+        rs = rs.filter(function (r) { return pdA[r.id] && pdA[r.id].flag === 'PB' && R.seasonOf(r.date) === nsA; });
+        meetCtl = '<div class="rb-row allpb-chip"><span>🔥 今シーズン（' + esc(R.seasonLabel(nsA)) + '）の自己ベスト更新だけ表示中（' + rs.length + '件）</span><button type="button" class="btn sub" data-allpb-off="1">✕ すべての記録を表示</button></div>';
+      }
       if (view === 'meet') {
         var mks = Object.keys(meets).sort().reverse();
         if (mks.indexOf(meetSel) < 0) meetSel = mks[0];
         meetCtl = '<div class="meetsel"><label>大会 <select data-meetsel="1">' + mks.map(function (k) { var p = k.split('|'); return '<option value="' + esc(k) + '"' + (k === meetSel ? ' selected' : '') + '>' + esc(p[0] + '　' + p.slice(1).join('|') + '（' + meets[k] + '件）') + '</option>'; }).join('') + '</select></label></div>';
         rs = rs.filter(function (r) { return r.date + '|' + r.meet === meetSel; });
-        if (meetSel) meetCtl += '<div class="rb-row">' + ppBtns('meet', meetSel, '大会まとめ') + '<label class="lp-onechk"><input type="checkbox" data-onepage="1"' + (ONEPAGE ? ' checked' : '') + '> 1枚にまとめる（縮小）</label></div>';
+        if (meetSel) meetCtl += '<div class="rb-row">' + ppBtns('meet', meetSel, '大会まとめ') + msShareBtn() + '<label class="lp-onechk"><input type="checkbox" data-onepage="1"' + (ONEPAGE ? ' checked' : '') + '> 1枚にまとめる（縮小）</label></div>' + msPanel();
       }
       rs = sortRows(rs, view, d2);
       var grouped = view === 'meet' && !sort.meet, lastMeet = '';   // 大会別は見出しに大会名と日付を出すので、カードの中では繰り返さない
@@ -1251,6 +1302,116 @@
     await b.commit(); check(sc);
     return siteBase() + '?s=' + id;
   }
+  /* ---------- v0.23：大会まとめを短いリンクで共有（shares/{id} は同じ4項目・同じ形式。中身の k:'ms' で種類を見分ける） ---------- */
+  var MSH = { key: '', url: '', name: '', busy: false, gen: 0 }, MS_MAX = 190000;
+  var MS_TIP = 'リンクを知っている人は誰でもログインなしで見られます。チーム全員の名前と記録が入るので、部員の中だけで共有してください。119日で見られなくなります。大会準備ページの「作った短いリンク」からいつでも止められます。';
+  function tipHtml(t) { return typeof LaneShareTip !== 'undefined' ? LaneShareTip.html(t) : ''; }
+  var MS_SKIP = { ref: 1, raw: 1, src: 1, srcText: 1 };
+  // 記録1件を「文字・数字・真偽だけ」の配列にする（列名は K にまとめる）
+  function msPack(list) {
+    var K = [], ix = {};
+    list.forEach(function (r) { Object.keys(r).forEach(function (k) { var v = r[k]; if (!MS_SKIP[k] && ix[k] == null && (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean')) { ix[k] = K.length; K.push(k); } }); });
+    return { K: K, V: list.map(function (r) { return K.map(function (k) { var v = r[k]; return typeof v === 'string' ? v.slice(0, 300) : (typeof v === 'number' || typeof v === 'boolean') ? v : null; }); }) };
+  }
+  function msPayload(key) {
+    var rows = filtered(), mr = rows.filter(function (r) { return r.date + '|' + r.meet === key; }), ks = {}, eks = {}, mp = key.split('|');
+    if (!mr.length) return null;
+    mr.forEach(function (r) { ks[R.athleteKey(r)] = 1; eks[R.eventKey(r)] = 1; });
+    // 自己ベストの判定に要るのは、同じ選手・同じ種目の、この大会の日までの記録だけ
+    var hist = ALL.filter(function (r) { return ks[R.athleteKey(r)] && eks[R.eventKey(r)] && (r.date || '') <= mp[0]; });
+    return { v: 1, k: 'ms', n: mp.slice(1).join('|'), d: mp[0], sc: MODE.personal ? (MODE.team || MODE.name || '') : school(), cond: filterCond(), nog: NOG ? 1 : 0, g: new Date().toISOString(), r: msPack(mr), h: msPack(hist) };
+  }
+  function msUnpack(o, max) {
+    if (!o || !Array.isArray(o.K) || !Array.isArray(o.V)) return [];
+    var K = o.K.slice(0, 60).map(function (k) { return String(k).slice(0, 40); }).filter(function (k) { return /^[A-Za-z_][\w]*$/.test(k) && k !== '__proto__' && k !== 'constructor' && k !== 'prototype'; });
+    if (K.length !== Math.min(o.K.length, 60)) return [];
+    return o.V.slice(0, max).filter(Array.isArray).map(function (a) { var r = {}; K.forEach(function (k, i) { var v = a[i]; if (typeof v === 'string') r[k] = v.slice(0, 300); else if (typeof v === 'number' && isFinite(v) || typeof v === 'boolean') r[k] = v; }); return r; });
+  }
+  function msShareBtn() {
+    if (!USER || OFFLINE) return '';   // ログインしている人だけ（短いリンクはクラウドに置くため）
+    return '<span class="lp-grp ms-grp"><button class="btn sub lp-btn" type="button" data-msshare="1" data-shtip="1" title="' + esc(MS_TIP) + '"' + (MSH.busy ? ' disabled' : '') + '>' + (MSH.busy ? '作っています…' : '🔗 リンクで共有') + '</button>' + tipHtml(MS_TIP) + '</span>';
+  }
+  function msLineText() { return '【' + MSH.name + '】大会まとめ（LANE NOTE）\n' + MSH.url + '\n※部員の中だけで見てください。119日で見られなくなります。'; }
+  function msPanel() {
+    if (!MSH.url || MSH.key !== meetSel) return '';
+    var sub = MSH.name + '（大会まとめ）', mail = 'mailto:?subject=' + encodeURIComponent(sub) + '&body=' + encodeURIComponent(sub + '\n' + MSH.url + '\n\n※部員の中だけで見てください。119日で見られなくなります。');
+    return '<div class="ms-done" role="status"><b>✔ 共有リンクを作りました</b>（119日間・ログインなしで見られます）<input readonly value="' + esc(MSH.url) + '" aria-label="大会まとめの共有リンク" onclick="this.select()">' +
+      '<div class="rb-row"><button class="btn sub" type="button" data-mscopy="url">📋 コピー</button><button class="btn sub" type="button" data-mscopy="line">💬 LINE用にコピー</button><a class="btn sub" href="' + esc(mail) + '">✉ メールで送る</a></div>' +
+      '<p class="small muted">止めるときは、大会準備ページの「作った短いリンク」から。</p></div>';
+  }
+  async function msShare(key) {
+    if (!key || MSH.busy) return;
+    var sc = scope(), gen = ++MSH.gen;
+    if (!sc.uid || OFFLINE) { status('rbDataStatus', 'ⓘ リンクで共有するには、Googleでログインしてください。', 'ng'); return; }
+    if (!confirm('この大会のまとめを、短いリンクで共有します。\n\n' + MS_TIP + '\n\n作りますか？')) return;
+    var o = msPayload(key); if (!o) { status('rbDataStatus', '✖ この大会の記録が（いまの絞り込みでは）ありません。', 'ng'); return; }
+    MSH.busy = true; render();
+    try {
+      var str = await encodePP(o);
+      if (str.length > MS_MAX) throw new Error('記録が多すぎて1つのリンクに入りません（' + str.length + '文字・上限190000）。絞り込み（中学/高校・男女）を変えて試してください');
+      var url = await msShort(str, '大会まとめ：' + o.n, sc);
+      if (gen !== MSH.gen) return;
+      MSH = { key: key, url: url, name: o.n, busy: false, gen: gen };
+      status('rbDataStatus', '✔ 「' + esc(o.n) + '」の共有リンクを作りました。', 'ok');
+    } catch (e) {
+      MSH.busy = false;
+      if (isAbort(e)) { status('rbDataStatus', 'ログインしているアカウントが変わったので、リンクを作るのを止めました。', 'ng'); }
+      else status('rbDataStatus', '✖ リンクを作れませんでした：' + esc(e.message || e), 'ng');
+    }
+    render();
+  }
+  // records.html?s=… にする（大会まとめはこのページで開く）。アカウント（uid＋世代）に固定する
+  async function msShort(str, label, sc) {
+    var u = await ppShort(str, label, sc); if (!u) throw new Error('ログインしていません');
+    return u.replace(/\?s=/, 'records.html?s=');
+  }
+  /* 見る側：records.html?s=<id>（ログイン不要・読み取りだけ） */
+  async function msInflate(str) {
+    var m = /^1\.([A-Za-z0-9_-]+)$/.exec(str || ''); if (!m || str.length > 400000) throw new Error('リンクの形式が違います');
+    if (typeof DecompressionStream === 'undefined') throw new Error('このブラウザは展開に対応していません（新しいChrome／Safari／Edgeを使ってください）');
+    var b = m[1].replace(/-/g, '+').replace(/_/g, '/'); while (b.length % 4) b += '=';
+    var bin = atob(b), u8 = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    var rd = new Blob([u8]).stream().pipeThrough(new DecompressionStream('deflate-raw')).getReader(), parts = [], n = 0;
+    for (;;) { var x = await rd.read(); if (x.done) break; n += x.value.length; if (n > 4 * 1048576) { try { rd.cancel(); } catch (e) { } throw new Error('リンクの中身が大きすぎます'); } parts.push(x.value); }
+    var all = new Uint8Array(n), o = 0; parts.forEach(function (p) { all.set(p, o); o += p.length; });
+    return JSON.parse(new TextDecoder().decode(all));
+  }
+  function msSheet(o, made, exp) {
+    if (!o || o.v !== 1 || o.k !== 'ms') throw new Error('大会まとめのリンクではありません');
+    var str_ = function (v, n) { return typeof v === 'string' ? v.slice(0, n || 120) : ''; };
+    var recs = msUnpack(o.r, 3000), hist = msUnpack(o.h, 20000);
+    if (!recs.length) throw new Error('リンクの中身に記録がありません');
+    var meet = str_(o.n), d = str_(o.d, 20), when = made ? new Date(made) : (o.g ? new Date(o.g) : null);
+    var fmt = function (t) { return t && !isNaN(t) ? t.getFullYear() + '/' + (t.getMonth() + 1) + '/' + t.getDate() + ' ' + t.getHours() + ':' + String(t.getMinutes()).padStart(2, '0') : ''; };
+    var note = '<div class="ms-note" role="note">📸 <b>' + (fmt(when) ? esc(fmt(when)) + ' 時点の' : '') + 'コピー</b>です（読み取り専用）。あとで記録を直しても、このリンクの中身は変わりません。' + (exp ? '<br>' + esc(fmt(new Date(exp)).replace(/ .*/, '')) + ' まで見られます。' : '') + '</div>';
+    return note + LanePrint.meetSheet(R, recs, hist, { school: str_(o.sc, 80), date: LanePrint.today(), nog: !!o.nog, meet: meet, meetDate: d, cond: str_(o.cond, 40), one: false, spark: function (e) { return spark(e.allPoints, e.lower, false, e.noMarks, true); } });
+  }
+  async function msOpenFromQuery() {
+    var m = /[?&]s=([A-Za-z0-9]{6,40})(?:&|$)/.exec(location.search); if (!m) return false;
+    var id = m[1];
+    document.body.classList.add('ms-view');
+    openPrint('<p class="small muted" style="background:#fff;padding:14px;border-radius:8px">読み込んでいます…</p>');
+    $('rbPrintGo').hidden = $('rbPrintPdf').hidden = true;
+    try {
+      await loadFirebase();
+      var d;
+      try { d = await FB.F.getDoc(FB.F.doc(FB.fs, 'shares', id)); }
+      catch (e) { if (/permission-denied/.test(String(e && e.code))) throw new Error('このリンクは有効期限が切れたか、作った先生が共有を止めました'); throw new Error('通信できませんでした（電波の良いところでもう一度開いてください）'); }
+      if (!d.exists()) throw new Error('このリンクは見つかりませんでした（共有が止められたか、期限切れの可能性があります）');
+      var x = d.data(), ms = function (t) { return t && t.toMillis ? t.toMillis() : null; }, made = ms(x.createdAt), exp = ms(x.expiresAt);
+      var until = Math.min(exp || Infinity, made ? made + 120 * 864e5 : Infinity);
+      if (until < Date.now()) throw new Error('このリンクは有効期限が切れています');
+      var o = await msInflate(x.data);
+      if (o && o.k === 'pp' || o && o.k === 'p' || o && Array.isArray(o.r) && !o.r.K) { location.replace(siteBase() + '?s=' + id); return true; }   // 大会準備・個人ページのリンクは元のページで開く
+      $('rbPrintBody').innerHTML = msSheet(o, made, isFinite(until) ? until : null);
+      $('rbPrintGo').hidden = $('rbPrintPdf').hidden = false;
+      CUR_PRINT = { kind: 'meet', key: (o.d || '') + '|' + (o.n || '') };
+      document.title = (o.n || '大会まとめ') + '｜LANE NOTE';
+    } catch (e) {
+      $('rbPrintBody').innerHTML = '<div class="warn" style="background:#fff;padding:14px;border-radius:8px"><b>このリンクは開けません。</b><br>' + esc(e.message || e) + '</div>';
+    }
+    return true;
+  }
   // 大会準備のページで作った、同じ名前の選手用リンク（期限内でいちばん新しいもの）→「大会当日の予定」へのリンクに使う
   async function ppSchedules(sc) {
     need(sc); if (!sc.uid) return [];
@@ -1333,6 +1494,10 @@
       Object.keys(PPL.links).map(function (k) { return PPL.links[k].name + '：' + PPL.links[k].url; }).join('\n');
     copyT(t, $('rbPPCopy'), '📋 まとめてコピー（LINE用）');
   });
-  window.__recApp = { openPPScreen: openPPScreen, ppNames: ppNames, ppPayload: ppPayload, encodePP: encodePP, makePPLinks: makePPLinks, getMode: function () { return MODE; }, isMe: isMe };
+  window.__recApp = { goView: goView, getView: function () { return { view: view, meetSel: meetSel, allPB: allPB }; }, openPPScreen: openPPScreen, ppNames: ppNames, ppPayload: ppPayload, encodePP: encodePP, makePPLinks: makePPLinks, getMode: function () { return MODE; }, isMe: isMe,
+    ms: { payload: msPayload, sheet: msSheet, inflate: msInflate, share: msShare, open: msOpenFromQuery, state: function () { return MSH; }, tip: function () { return MS_TIP; } },
+    _cloud: function (fb, user) { FB = fb; USER = user; OFFLINE = false; render(); } };
+  if (typeof LaneShareTip !== 'undefined') LaneShareTip.attach($('rbPPOpen'), LaneShareTip.T.pp);
+  msOpenFromQuery();   // v0.23：?s=… は大会まとめの共有リンク（ログイン不要で見るだけ）
   if (CLOUD_READY) initCloud(); else { renderAuth(); reload(); }
 })();

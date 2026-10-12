@@ -108,14 +108,17 @@ await check('印刷（時間順）：仮のラウンドは tbody.tent・カッ�
 await check('記録用紙（印刷）にも仮のラウンド（レーンは「未定」）', () => {
   w.print = () => {}; $('btnRec').click(); const tb = $('recSheet').querySelectorAll('tbody.pg.tent'); assert.equal(tb.length, 2); assert.match(tb[1].textContent, /（見本 次郎）|（山田 太郎）/); assert.match(tb[0].textContent, /未定/);
 });
-await check('v0.17 大会準備の出力：「👀 画面で見る」は印刷ダイアログなしで重ねて表示・「📄 PDF作成」は案内つきで印刷・「🖨 印刷」はそのまま印刷', async () => {
+await check('v0.17 大会準備の出力：「👀 画面で見る」は印刷ダイアログなしで重ねて表示・「📄 PDF作成」はPDFファイルを直接作る・「🖨 印刷」はそのまま印刷', async () => {
   let n = 0; w.print = () => { n++; };
   $('btnPrintView').click(); assert.equal($('docView').hidden, false); assert.equal(n, 0); assert.match($('docFrame').getAttribute('srcdoc') || $('docFrame').srcdoc, /id="printTime"/); assert.match($('docTitle').textContent, /時間順/);
   $('docClose').click(); assert.equal($('docView').hidden, true);
   $('btnRecView').click(); await delay(100); assert.match($('docFrame').srcdoc, /<body class="print-rec">/); assert.equal(n, 0); $('docClose').click();
-  $('btnPrintPdf').click(); assert.equal($('pdfHint').hidden, false); assert.match($('pdfHint').textContent, /保存先で『PDFに保存』を選んでください/); await delay(500); assert.equal(n, 1);
-  $('btnPrint').click(); assert.equal(n, 2); assert.equal($('pdfHint').hidden, true);
-  $('btnRecPdf').click(); await delay(500); assert.equal(n, 3); $('btnRec').click(); assert.equal(n, 4);
+  // v0.23：「📄 PDF作成」は印刷ダイアログを出さず、PDFファイルを直接作る（LanePdf.make に渡す）
+  const made = []; w.LanePdf = { make: async o => { made.push(o); return { pages: 1 }; }, pageDoc: h => h };
+  $('btnPrintPdf').click(); await delay(100); assert.equal(n, 0); assert.equal(made.length, 1); assert.match(made[0].filename, /時間順\.pdf$/); assert.match(made[0].html, /id="printTime"/);
+  $('btnPrint').click(); assert.equal(n, 1);
+  $('btnRecPdf').click(); await delay(100); assert.equal(n, 1); assert.equal(made.length, 2); assert.match(made[1].filename, /記録用紙\.pdf$/); $('btnRec').click(); assert.equal(n, 2);
+  delete w.LanePdf;
 });
 await check('Excel（時間順・選手別）：ラウンドに「（通過したら）」、名前はカッコ付き', () => {
   const t = app.tableData('time', true), a = app.tableData('ath', true);

@@ -48,6 +48,7 @@ __BASE_CSS__
 .meetsel{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 8px}.meetsel select{max-width:100%;font-size:15px;padding:6px}
 .rb-pp{margin:8px 0;border:1px solid var(--line);border-radius:12px;padding:8px 10px;background:#fbfcfe}.rb-pp summary{cursor:pointer;min-height:32px}
 .pp-row{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;border-top:1px solid var(--line);padding:8px 0}.pp-row b{min-width:7em}.pp-row input{flex:1 1 240px;font-size:11px;font-family:monospace;padding:4px;border:1px solid var(--line);border-radius:6px}.pp-row small{color:var(--muted)}
+.kpi.go,.meetcard{cursor:pointer;transition:box-shadow .15s,transform .15s,border-color .15s}.kpi.go:hover,.meetcard:hover{box-shadow:0 4px 14px rgba(20,33,61,.16);transform:translateY(-1px)}.kpi.go:focus-visible,.meetcard:focus-visible{outline:3px solid #1f3a68;outline-offset:2px}.mc-go{margin-left:auto;font-size:12px;font-weight:700;color:#1f3a68;white-space:nowrap}.meetcard .card-h{flex-wrap:wrap}.allpb-chip{align-items:center;gap:8px;flex-wrap:wrap;background:#fff4e5;border:1px solid #f3c98b;border-radius:10px;padding:6px 10px;font-size:13px;font-weight:700}
 body.personal-on .tabs button[data-v="rank"],body.personal-on .tabs button[data-v="hist"]{display:none}
 .pmhome .evsum li{display:flex;flex-wrap:wrap;gap:2px 10px;align-items:baseline;padding:6px 0;border-top:1px solid var(--line)}
 .chartbox{display:flex;flex-direction:column;gap:4px}.chartopt{font-size:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
@@ -255,6 +256,10 @@ tr.rc.editing td{background:#fff3ec!important}
 .lp-pick .lp-ops{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}.lp-pick .lp-ops .btn{min-height:44px}
 .lp-pick ul{list-style:none;margin:0;padding:0}.lp-pick li label{display:flex;gap:10px;align-items:center;min-height:44px;border-bottom:1px solid #e3e7ee;font-size:15px}
 .lp-pick li input{width:22px;height:22px}.lp-pick .gr{color:#667;font-size:13px;margin-left:auto}
+.ms-done{background:#eefaf1;border:1px solid #9fd5ae;border-radius:10px;padding:10px 12px;margin:8px 0;font-size:14px}.ms-done input{display:block;width:100%;margin:6px 0;font-size:13px;padding:6px}.ms-done .rb-row{gap:8px;flex-wrap:wrap}.ms-done a.btn{text-decoration:none}
+.ms-grp{display:inline-flex;align-items:center;flex-wrap:wrap}
+.ms-note{background:#fff8e1;border:1px solid #f0d58a;color:#4a3b00;border-radius:8px;padding:8px 12px;margin:0 auto 10px;max-width:794px;font-size:13px;line-height:1.6}
+@media print{.ms-note{display:none!important}}
 @media print{
   @page{size:A4;margin:10mm}
   body.printing>*:not(#rbPrint){display:none!important}
@@ -428,6 +433,7 @@ __PRINT__
 <script>
 __URLLOAD__
 __OVERLAY__
+__PDFMAKE__
 </script>
 <script>
 __RECAPP__

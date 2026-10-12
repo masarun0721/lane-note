@@ -386,9 +386,16 @@
     if (kind === 'rec') buildRecSheet();
     DOCKIND = kind;
     if (act === 'view') { pdfHint(false); $('docTitle').textContent = kind === 'rec' ? '📝 記録用紙' : '🕒 出場一覧（時間順）'; $('docFrame').srcdoc = docHtml(kind); $('docView').hidden = false; return; }
-    pdfHint(act === 'pdf');
+    if (act === 'pdf') { pdfHint(false); return pdfFile(docHtml(kind), (kind === 'rec' ? '記録用紙' : '時間順'), 9); }
     var go = function () { if (kind === 'rec') printRec(); else window.print(); };
-    if (act === 'pdf') setTimeout(go, 400); else go();
+    go();
+  }
+  // v0.23 PDF作成：印刷ダイアログを出さずに PDF ファイルを作って保存する
+  function pdfName(kind) { return [$('meetName').value || '', state.teams.join('・')].filter(Boolean).join('_') + '_' + kind + '.pdf'; }
+  function pdfFile(html, kind, margin, more) {
+    if (typeof LanePdf === 'undefined') { alert('PDFを作る部品がありません。「🖨 印刷」から「PDFに保存」を選んでください。'); return; }
+    var o = { html: html, filename: pdfName(kind), margin: margin, footer: 'LANE NOTE' }; for (var k in more || {}) o[k] = more[k];
+    return LanePdf.make(o).catch(function (e) { console.error(e); });
   }
   function recAoa() {
     var h = recHead();
@@ -1107,6 +1114,7 @@
   }
   function printParent(pdf) {
     if (ntTimer) ntRender();
+    if (pdf) return pdfFile(ntDoc(NT.fit && ntFit ? ntFit : null), '保護者へのお知らせ', 11, { onePage: !!NT.fit, footer: '' });
     var f = $('pvFrame'); if (!f.contentWindow) return;
     var d = f.contentDocument; if (d) d.documentElement.style.zoom = '';
     pdfHint(!!pdf);
@@ -1264,6 +1272,7 @@
   function sList(a, max) { if (a == null) return []; if (!Array.isArray(a) || a.length > max) throw new Error('リンクの中身の形が違います'); return a; }
   function validatePayload(o) {
     if (!o || typeof o !== 'object' || o.v !== 1) throw new Error('リンクの中身を読めませんでした');
+    if (o.k === 'ms') return { v: 1, k: 'ms' };   // v0.23：記録ページの大会まとめ（中身は記録ページで確かめて出す）
     if (o.k === 'pp') return LanePersonal.sanitize(o);   // v0.16：選手の個人ページ（記録ページで作る）
     if (o.k === 'p') {
       if (!o.a || typeof o.a !== 'object') throw new Error('リンクの中身を読めませんでした');
@@ -1556,7 +1565,7 @@
   var viewing = null;
   async function openViewerStr(str, fromLink, shareId, exp) {
     var o;
-    try { o = await decodePayload(str); if (o.k === 'p') { openPlayer(o, str, shareId || sid(str), exp); return; } if (o.k === 'pp') { openPersonal(o, str, shareId || sid(str), exp); return; } } catch (e) { document.body.classList.add('viewer-mode'); $('viewer').hidden = false; $('vBody').innerHTML = '<p class="warn">リンクを読めませんでした：' + esc(e.message) + '（リンクが途中で切れている可能性があります）</p>'; $('vTitle').textContent = 'LANE NOTE 閲覧'; return; }
+    try { o = await decodePayload(str); if (o.k === 'ms') { if (shareId) location.replace('records.html?s=' + encodeURIComponent(shareId)); return; } if (o.k === 'p') { openPlayer(o, str, shareId || sid(str), exp); return; } if (o.k === 'pp') { openPersonal(o, str, shareId || sid(str), exp); return; } } catch (e) { document.body.classList.add('viewer-mode'); $('viewer').hidden = false; $('vBody').innerHTML = '<p class="warn">リンクを読めませんでした：' + esc(e.message) + '（リンクが途中で切れている可能性があります）</p>'; $('vTitle').textContent = 'LANE NOTE 閲覧'; return; }
     viewing = { str: str, o: o, shareId: shareId && /^[A-Za-z0-9]{6,40}$/.test(shareId) ? shareId : null, exp: exp || null };
     document.body.classList.add('viewer-mode'); $('viewer').hidden = false;
     $('vTitle').textContent = o.n || '（大会名なし）';
@@ -1580,6 +1589,7 @@
   function closeViewer() { document.body.classList.remove('viewer-mode'); $('viewer').hidden = true; viewing = null; if (/^#d=/.test(location.hash) || /[?&]s=/.test(location.search)) history.replaceState(null, '', location.pathname); renderSaved(); }
   function setupShare() {
     $('btnShare').addEventListener('click', openShare);
+    if (window.LaneShareTip) { LaneShareTip.attach($('btnShare'), LaneShareTip.T.prep); LaneShareTip.attach($('btnPlayers'), LaneShareTip.T.prep); }
     $('shareClose').addEventListener('click', function () { $('shareDlg').hidden = true; });
     $('shareDlg').addEventListener('click', function (e) { if (e.target === $('shareDlg')) $('shareDlg').hidden = true; });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') $('shareDlg').hidden = true; });
@@ -1872,5 +1882,5 @@
     $('teamList').dataset.q = ''; ruleState = {}; renderRuleMarks(); renderFeePrices(); renderDateMark(); updateTeams(); render();
     window.scrollTo(0, 0);
   }
-  window.__meetApp = { openVenues: openVenues, ssSave: ssSave, ssRestore: ssRestore, ssClear: ssClear, resetAll: resetAll, openPersonal: openPersonal, openPlayers: openPlayers, openPlayer: openPlayer, encodePayload: encodePayload, decodePayload: decodePayload, payloadFromState: payloadFromState, openShare: openShare, refreshPrint: refreshPrint, tableData: tableData, feeData: feeData, totalText: totalText, safeCell: safeCell, state: state, handleFile: handleFile, render: render, updateTeams: updateTeams };
+  window.__meetApp = { pdfName: pdfName, openVenues: openVenues, ssSave: ssSave, ssRestore: ssRestore, ssClear: ssClear, resetAll: resetAll, openPersonal: openPersonal, openPlayers: openPlayers, openPlayer: openPlayer, encodePayload: encodePayload, decodePayload: decodePayload, payloadFromState: payloadFromState, openShare: openShare, refreshPrint: refreshPrint, tableData: tableData, feeData: feeData, totalText: totalText, safeCell: safeCell, state: state, handleFile: handleFile, render: render, updateTeams: updateTeams };
 })();

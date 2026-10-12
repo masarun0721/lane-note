@@ -51,9 +51,11 @@ try {
     $('rbPrintGo').click(); await delay(20); assert.equal(printed, 1); assert.equal($('rbPrintHint').hidden, true);
     $('rbPrintClose').click(); assert.equal($('rbPrint').hidden, true); assert(!w.document.body.classList.contains('printing'));
   });
-  await check('「📄 PDF作成」は開いて印刷し、『PDFに保存』の案内を出す／「🖨 印刷」は案内なしで印刷', async () => {
-    printed = 0; $('rbView').querySelector('[data-print="ath"][data-act="pdf"]').click(); await delay(500);
-    assert.equal(printed, 1); assert.equal($('rbPrintHint').hidden, false); assert.match($('rbPrintHint').textContent, /保存先で『PDFに保存』を選んでください/); $('rbPrintClose').click();
+  await check('v0.23「📄 PDF作成」は印刷ダイアログなしでPDFファイルを直接作る（名前は「選手名_個人表.pdf」）／「🖨 印刷」は案内なしで印刷', async () => {
+    const made = []; w.LanePdf = { make: async o => { made.push(o); return { pages: 1 }; }, pageDoc: h => '<html><body>' + h + '</body></html>' };
+    printed = 0; $('rbView').querySelector('[data-print="ath"][data-act="pdf"]').click(); await delay(100);
+    assert.equal(printed, 0); assert.equal(made.length, 1); assert.match(made[0].filename, /山田太郎_個人表\.pdf$|山田 太郎_個人表\.pdf$/); assert.match(made[0].html, /lp-page/); $('rbPrintClose').click();
+    delete w.LanePdf; printed = 1;
     $('rbView').querySelector('[data-print="ath"][data-act="print"]').click(); await delay(30); assert.equal(printed, 2); assert.equal($('rbPrintHint').hidden, true); $('rbPrintClose').click();
   });
   w.location.hash = ''; t.setTab('ath'); await delay(60);

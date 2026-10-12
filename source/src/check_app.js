@@ -203,8 +203,16 @@
   function openPrint(act) {
     if (!st.res) return;
     $('ckPrintBody').innerHTML = sheet(); $('ckPrint').hidden = false; document.body.classList.add('printing');
-    var h = $('ckPrintHint'); h.hidden = act !== 'pdf'; h.textContent = '📄 保存先で『PDFに保存』を選んでください';
-    if (act !== 'view') setTimeout(function () { window.print(); }, act === 'pdf' ? 400 : 0);
+    var h = $('ckPrintHint'); h.hidden = true;
+    if (act === 'pdf') { pdfCheck(); return; }
+    if (act !== 'view') window.print();
+  }
+  // v0.23 PDF作成：印刷ダイアログを出さずに PDF ファイルを作って保存する
+  function pdfCheck() {
+    if (typeof LanePdf === 'undefined') { alert('PDFを作る部品がありません。「🖨 印刷」から「PDFに保存」を選んでください。'); return; }
+    var meet = (st.slName || '').replace(/\.pdf$/i, '');
+    return LanePdf.make({ html: LanePdf.pageDoc('<div id="ckPrint"><div id="ckPrintBody">' + sheet() + '</div></div>', ''), filename: [meet, st.teams.join('・')].filter(Boolean).join('_') + '_エントリー照合.pdf', margin: 10, footer: 'LANE NOTE',
+      css: '#ckPrint{position:static!important;overflow:visible!important;inset:auto!important;background:#fff!important}.cp-bar,#ckPrintHint{display:none!important}' }).catch(function (e) { console.error(e); });
   }
   function closePrint() { $('ckPrint').hidden = true; $('ckPrintBody').innerHTML = ''; document.body.classList.remove('printing'); }
   var urlUi = null;

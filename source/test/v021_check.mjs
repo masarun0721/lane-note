@@ -197,5 +197,8 @@ await check('ビルド結果：版 v0.22・試し版の印なし・使い方に�
   const I = fs.readFileSync(path.join(OUT, 'index.html'), 'utf8'), G = fs.readFileSync(path.join(OUT, 'guide.html'), 'utf8');
   assert.match(I, /v0\.22/); assert.match(I, /id="btnParent"[^>]*>👪 保護者へのお知らせ</); assert.doesNotMatch(I, /class="trial">試し版/); assert.match(I, /var LaneNotice/); assert.match(G, /id="g11"[^<]*<\/span>👪 保護者へのお知らせ/);
 });
+await check('v0.23 共有ボタンの注意書き（大会準備の共有・選手用リンク）：title と ⓘ', () => {
+  for (const id of ['btnShare', 'btnPlayers']) { const b = w.document.getElementById(id); assert.match(b.title, /リンクを知っている人は誰でもログインなしで見られます。.*119日で見られなくなります。大会準備ページの「作った短いリンク」からいつでも止められます。/); assert.ok(b.nextElementSibling.classList.contains('sh-i')); }
+});
 console.log(`${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
