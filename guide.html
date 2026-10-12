@@ -589,7 +589,7 @@ footer a{color:var(--navy)}
 .p-name{word-break:keep-all;overflow-wrap:anywhere}.p-pb{word-break:keep-all;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media screen and (max-width:600px){.prec .pcols th{font-size:9px;padding:2px 0;white-space:nowrap;line-height:1.1;letter-spacing:-.3px}.prec .p-name b{font-size:12px}.prec td{font-size:10px}.prec .p-pbv{font-size:11px}.prec .p-pbr{font-size:8px}.prec .p-bib,.prec .p-pos b{font-size:10px}.prec .p-pl{display:none}.prec .p-bib{white-space:nowrap;letter-spacing:-.5px}.prec .p-gr{white-space:nowrap;letter-spacing:-.5px}.prec .p-ref{display:block}.prec col:nth-child(1){width:4%!important}.prec col:nth-child(2){width:8%!important}.prec col:nth-child(3){width:8%!important}.prec col:nth-child(4){width:20%!important}.prec col:nth-child(5){width:6%!important}.prec col:nth-child(6){width:14%!important}.prec col:nth-child(7){width:18%!important}.prec col:nth-child(8){width:10%!important}.prec col:nth-child(9){width:6%!important}.prec col:nth-child(10){width:6%!important}}
 .p-pb{font-variant-numeric:tabular-nums;font-size:11px;line-height:1.25}.p-pbv{display:block}.p-pbr{display:block;font-size:9px;color:#666}.p-pbv{white-space:nowrap}.p-ref{font-size:.8em;font-weight:normal;color:#8a5a00}.p-bad .p-ref{display:none}
-.guide-cta{display:inline-block;background:#d7263d;color:#fff!important;font-weight:800;border-radius:999px;padding:6px 14px;text-decoration:none;margin:4px 0;font-size:14px}.use-count{text-align:center;font-size:12px;color:#8a93a3;margin:18px 0 4px}.privacy-line{font-size:13px;background:#eef8f0;border-radius:8px;padding:8px 10px;margin:8px 0 0}.quick{line-height:1.8}
+.guide-cta{display:inline-block;background:#d7263d;color:#fff!important;font-weight:800;border-radius:999px;padding:6px 14px;text-decoration:none;margin:4px 0;font-size:14px}.privacy-line{font-size:13px;background:#eef8f0;border-radius:8px;padding:8px 10px;margin:8px 0 0}.quick{line-height:1.8}
 .pagenav{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .pagenav a{display:inline-block;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.45);border-radius:999px;padding:3px 12px;font-size:13px;text-decoration:none}
 .pagenav a.on{background:#fff;color:var(--navy);font-weight:700}
@@ -610,6 +610,9 @@ footer a{color:var(--navy)}
 .fb-btns{display:flex;gap:10px;margin-top:10px}.fb-btns .btn{min-height:44px;flex:1}
 body.fb-open{overflow:hidden}
 .logo-home{display:inline-block;cursor:pointer;color:inherit;text-decoration:none;border-radius:8px}.logo-home:focus-visible{outline:3px solid #fff;outline-offset:2px}
+/* v0.25.5：利用回数はヘッダーの空いているレーン（白線の間）に右寄せで置く。position:absolute なので出ても下の並びは動かない */
+@media screen{.hdr-meta>div.use-count{position:absolute;right:0;top:96px;height:24px;line-height:22px;font-size:11.5px;font-weight:700;letter-spacing:.04em;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.55);font-variant-numeric:tabular-nums;white-space:nowrap}}
+@media screen and (max-width:720px){header>.hdr-meta{position:relative}.hdr-meta>div.use-count{top:120px;font-size:11px}}
 
 .g-toc{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}.g-toc a{background:#fff;border:1px solid #c9d2e0;border-radius:999px;padding:6px 12px;font-size:14px;color:var(--navy);text-decoration:none;font-weight:700}
 .g-card h2{font-size:18px}.g-card h3{font-size:15px;color:var(--navy);margin:12px 0 4px}
@@ -642,7 +645,7 @@ body.fb-open{overflow:hidden}
 <body>
 <header>
   <div class="hdr-meta">
-    <div class="hdr-ver" aria-label="バージョン">v0.25.4</div>
+    <div class="hdr-ver" aria-label="バージョン">v0.25.5</div>
     <div class="credit">Presented by Sakata</div>
     <div class="hdr-msg"><span class="hm-l">すべての陸上競技部顧問が、</span><span class="hm-l">少しでも楽になりますように。</span></div>
   </div>
@@ -704,7 +707,7 @@ body.fb-open{overflow:hidden}
 <section class="box g-card" id="mode"><h2><span class="no" id="g12">12</span>👤 顧問モード／選手モード</h2><p>はじめて開いたときに「🧑‍🏫 顧問・コーチの方」か「👟 選手・保護者の方」かを選びます。選んだモードはこの端末（ブラウザ）にだけ覚えます。上の「モード」ボタンでいつでも切りかえられます。ログインは要りません。</p><ul><li><b>顧問モード</b>：今までどおり、大会準備・記録・照合・保護者へのお知らせなど、すべての機能が使えます。</li><li><b>選手モード</b>：次の大会の予定と招集時刻、自己ベスト、体調メモ、自分の記録をつける（「個人で使う」）、先生からもらったリンクの一覧を1つの画面にまとめます。もらったリンクは一度開くと自動でここに入ります。</li></ul></section>
 <section class="box g-card" id="talk"><h2><span class="no" id="g13">13</span>💬 選手とのやり取り（使いたい先生だけ）</h2><p>はじめは<b>オフ</b>です。オフのあいだは、選手の画面にやり取りの欄は出ません。</p><ol class="g-steps"><li>記録ページで Google にログインし、「💬 選手とのやり取り」を開いて「選手とのやり取りを使う」にチェックします。</li><li>やり取りしたい選手だけ「使う」を押します。その選手専用のリンク（119日まで）ができます。「💬 開く」からリンクをコピーして、本人にだけ送ります（v0.25 から、個人ページのリンクには入りません）。v0.24 で作ったやり取りは「旧形式・停止中」と出るので、「🔁 安全に作り直す」で新しいリンクにしてください。</li><li>「先生からのひとこと」を書くと、選手の画面のいちばん上に出ます。選手は返信できます（続けて送るときは3秒あける・1人1000件まで）。体調メモを先生に送る機能は、安全のため止めています（体調メモはスマホの中だけ）。</li><li>「⏸ 停止」で選手から見えなくなります（再開できます）。「🗑 削除」は、先に投稿を止めてから、ひとこと・返信を全部消します（同じリンクは二度と使えません）。期限（119日）が過ぎたものは、先生がこの画面を開いたときに自動で中身を消します。チェックを外すと、全員分がすぐ止まります。</li></ul><p class="g-tip">⚠️ 選手はログインなしでリンクだけで使います。<b>リンクを知っている人は、その選手として書きこめます</b>。本人にだけ送ってください。ほかの選手のやり取りは見えません。共用のスマホでは、選手モードのホームの「この端末から全部消す」で消せます。あとで、選手もログインして使う形を選べるようにする予定です。</p></section>
 <section class="box" id="disclaimer"><h2>⚠ 試作版について・免責</h2><p>機能や画面は予告なく変わることがあります。記録が消えたり読み取りを間違えたりする可能性があるので、大事な記録は元の結果資料でも確認してください。</p><div class="notice">⚠ <b>試作版です。</b><button type="button" class="fb-link" data-feedback="1">📮 不具合・要望を送る</button>　本ツールはPDFの文字を読み取って自動で整理しているだけです。内容は必ず元のスタートリスト・タイムテーブル等と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div></section>
-<p class="small muted" style="text-align:center">LANE NOTE v0.25.4</p>
+<p class="small muted" style="text-align:center">LANE NOTE v0.25.5</p>
 </div>
 <div id="gBtn" hidden>
 <section class="box g-card" id="manual"><h2>📖 マニュアル</h2><p>LANE NOTE で「何ができるか」を、やりたいこと別にまとめました。まず自分に近いものを選んでください。下には、画面ごとのボタンの説明があります。絵は架空のデータで撮った実際の画面です（押すと大きく表示）。</p>
