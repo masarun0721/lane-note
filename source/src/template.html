@@ -588,7 +588,7 @@ footer a{color:var(--navy)}
 .p-name{word-break:keep-all;overflow-wrap:anywhere}.p-pb{word-break:keep-all;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media screen and (max-width:600px){.prec .pcols th{font-size:9px;padding:2px 0;white-space:nowrap;line-height:1.1;letter-spacing:-.3px}.prec .p-name b{font-size:12px}.prec td{font-size:10px}.prec .p-pbv{font-size:11px}.prec .p-pbr{font-size:8px}.prec .p-bib,.prec .p-pos b{font-size:10px}.prec .p-pl{display:none}.prec .p-bib{white-space:nowrap;letter-spacing:-.5px}.prec .p-gr{white-space:nowrap;letter-spacing:-.5px}.prec .p-ref{display:block}.prec col:nth-child(1){width:4%!important}.prec col:nth-child(2){width:8%!important}.prec col:nth-child(3){width:8%!important}.prec col:nth-child(4){width:20%!important}.prec col:nth-child(5){width:6%!important}.prec col:nth-child(6){width:14%!important}.prec col:nth-child(7){width:18%!important}.prec col:nth-child(8){width:10%!important}.prec col:nth-child(9){width:6%!important}.prec col:nth-child(10){width:6%!important}}
 .p-pb{font-variant-numeric:tabular-nums;font-size:11px;line-height:1.25}.p-pbv{display:block}.p-pbr{display:block;font-size:9px;color:#666}.p-pbv{white-space:nowrap}.p-ref{font-size:.8em;font-weight:normal;color:#8a5a00}.p-bad .p-ref{display:none}
-.guide-cta{display:inline-block;background:#d7263d;color:#fff!important;font-weight:800;border-radius:999px;padding:6px 14px;text-decoration:none;margin:4px 0;font-size:14px}.privacy-line{font-size:13px;background:#eef8f0;border-radius:8px;padding:8px 10px;margin:8px 0 0}.quick{line-height:1.8}
+.guide-cta{display:inline-block;background:#d7263d;color:#fff!important;font-weight:800;border-radius:999px;padding:6px 14px;text-decoration:none;margin:4px 0;font-size:14px}.use-count{text-align:center;font-size:12px;color:#8a93a3;margin:18px 0 4px}.privacy-line{font-size:13px;background:#eef8f0;border-radius:8px;padding:8px 10px;margin:8px 0 0}.quick{line-height:1.8}
 .pagenav{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .pagenav a{display:inline-block;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.45);border-radius:999px;padding:3px 12px;font-size:13px;text-decoration:none}
 .pagenav a.on{background:#fff;color:var(--navy);font-weight:700}
@@ -697,7 +697,7 @@ body.fb-open{overflow:hidden}
 </div>
 <section class="box howto">
   <div class="quick"><b>使い方</b>：①スタートリストとタイムテーブルのPDFを入れる → ②学校・クラブ名を入れる → ③時間順・選手別・記録用紙ができる</div>
-  <p class="privacy-line" id="dataPolicy">🔒 PDF本文はサーバーへ送りません。共有リンクを作ったときだけ、その中身を保存します。「URLから読み込む」のときは、URLと中身が LANE NOTE の中継を通ります（保存しません）。詳しくは <a href="guide.html#data">はじめての人はこちら（データの取り扱い）</a></p>
+  <p class="privacy-line" id="dataPolicy">🔒 PDF本文はサーバーへ送りません。共有リンクを作ったときだけ、その中身を保存します。「URLから読み込む」のときは、URLと中身が LANE NOTE の中継を通ります（保存しません）。利用回数だけを数えます（個人の情報は集めません）。詳しくは <a href="guide.html#data">はじめての人はこちら（データの取り扱い）</a></p>
 </section>
 
 <section class="box" id="inputs">
@@ -797,6 +797,7 @@ body.fb-open{overflow:hidden}
 <div id="pdfHint" class="noprint" role="status" hidden></div>
 <div id="printTime" class="psheet"></div>
 <div id="recSheet" class="psheet"></div>
+<p class="use-count" id="useCount" hidden></p>
 </main>
 <!-- v0.24.2：モードを選ぶ画面は main の外に置く（選手モードでは main の中のほかの要素を隠すため、中にあると開けなかった） -->
 __MODEPICK__

@@ -1868,6 +1868,25 @@
     document.addEventListener('change', function (e) { if (!e.target.closest('[role=dialog]')) ssSave(); });
     var c = $('ssClearBtn'); if (c) c.addEventListener('click', resetAll);
   });
+  /* v0.25.4：利用カウンター（stats/counter の n だけ。個人の情報は送らない）。1端末1日1回だけ +1、失敗したら表示を隠すだけ */
+  var COUNT_KEY = 'lanenote.count.v1';
+  async function useCounter() {
+    var el = $('useCount'); if (!el || !CLOUD_OK) return;
+    try {
+      var F = (await loadFirebase()).F, ref = F.doc(FB.fs, 'stats', 'counter'), d = new Date();
+      var day = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'), last = null;
+      try { last = localStorage.getItem(COUNT_KEY); } catch (e) { }
+      if (last !== day) {
+        try { await F.updateDoc(ref, { n: F.increment(1) }); }
+        catch (e) { if (e && e.code === 'not-found') await F.setDoc(ref, { n: 1 }); else throw e; }
+        try { localStorage.setItem(COUNT_KEY, day); } catch (e) { }
+      }
+      var snap = await F.getDoc(ref), n = snap.exists() ? snap.data().n : null;
+      if (typeof n !== 'number' || !isFinite(n) || n < 1) { el.hidden = true; return; }
+      el.textContent = 'これまでの利用 ' + Math.floor(n).toLocaleString('ja-JP') + '回'; el.hidden = false;
+    } catch (e) { el.hidden = true; }
+  }
+  window.addEventListener('load', function () { setTimeout(useCounter, 1200); });
   function resetAll() {
     if (!confirm('読み込んだPDF・学校・クラブ名・設定・枚数をすべて消して、新しい大会を始めます。よろしいですか？')) return;
     ssClear(); var sn = $('ssNote'); if (sn) sn.hidden = true;

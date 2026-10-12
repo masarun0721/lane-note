@@ -198,6 +198,21 @@ service cloud.firestore {
       }
     }
     // v0.24 talks ここまで
+    // v0.25.4 stats ここから
+    // 利用カウンター：誰でも読める。書けるのは「ちょうど1増やす」だけ（項目は整数 n の1つだけ・削除不可）。文書がないときだけ n=1 で作れる
+    match /stats/{sid} {
+      allow get: if sid == 'counter';
+      allow list: if false;
+      allow create: if sid == 'counter'
+        && request.resource.data.keys().hasOnly(['n'])
+        && request.resource.data.n is int && request.resource.data.n == 1;
+      allow update: if sid == 'counter'
+        && request.resource.data.keys().hasOnly(['n'])
+        && request.resource.data.n is int && resource.data.n is int
+        && request.resource.data.n == resource.data.n + 1;
+      allow delete: if false;
+    }
+    // v0.25.4 stats ここまで
     match /feedback/{id} {
       // Behaviour change: signed-out and Firebase-anonymous users cannot submit.
       allow create: if googleUser() && validFeedback(request.resource.data);

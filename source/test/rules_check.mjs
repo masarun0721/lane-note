@@ -146,5 +146,24 @@ try {
    const n=(await getDoc(doc(alice,'talks/'+X))).data().n;if(n!==0)throw new Error('n が変わった '+n);await assertSucceeds(post(anon,X));});
  await test('R252: 作成時も n は整数だけ',async()=>{const pre='projects/'+projectId+'/databases/(default)/documents/talks/'+T('R252c');const st=await restCommit([{update:{name:pre,fields:{n:{doubleValue:0}}}}]);if(st===200)throw new Error('通った');});
  await test('TALK: 顧問の設定と一覧（settings/talk・talkIndex）は本人だけ',async()=>{await assertSucceeds(setDoc(doc(alice,'users/alice/settings/talk'),{enabled:true}));await assertSucceeds(setDoc(doc(alice,'users/alice/talkIndex/'+TID),{name:'架空',closed:true,purged:false}));await assertFails(getDocs(collection(bob,'users/alice/talkIndex')));await assertFails(setDoc(doc(bob,'users/alice/settings/talk'),{enabled:false}));});
+ // v0.25.4 利用カウンター
+ {const {increment}=await import('firebase/firestore');const C='stats/counter';
+ await test('STATS: 文書がないときに n=2 では作れない',()=>assertFails(setDoc(doc(anon,C),{n:2})));
+ await test('STATS: 余分な項目つきでは作れない',()=>assertFails(setDoc(doc(anon,C),{n:1,x:'a'})));
+ await test('STATS: 文書がないときは n=1 で作れる（ログインなし）',()=>assertSucceeds(setDoc(doc(anon,C),{n:1})));
+ await test('STATS: あるときに n=1 で作り直せない（上書き）',()=>assertFails(setDoc(doc(anon,C),{n:1})));
+ await test('STATS: 誰でも読める',()=>assertSucceeds(getDoc(doc(anon,C))));
+ await test('STATS: increment(1) はできる（ログインなし）',()=>assertSucceeds(updateDoc(doc(anon,C),{n:increment(1)})));
+ await test('STATS: increment(1) はできる（Google）',()=>assertSucceeds(updateDoc(doc(alice,C),{n:increment(1)})));
+ await test('STATS: increment(2) は拒否',()=>assertFails(updateDoc(doc(anon,C),{n:increment(2)})));
+ await test('STATS: increment(-1) は拒否',()=>assertFails(updateDoc(doc(anon,C),{n:increment(-1)})));
+ await test('STATS: increment(0.5) は拒否',()=>assertFails(updateDoc(doc(anon,C),{n:increment(0.5)})));
+ await test('STATS: 値の上書き（n=1000）は拒否',()=>assertFails(setDoc(doc(anon,C),{n:1000})));
+ await test('STATS: 値の上書き（n=0）は拒否',()=>assertFails(updateDoc(doc(anon,C),{n:0})));
+ await test('STATS: 他の項目を足すのは拒否',()=>assertFails(updateDoc(doc(anon,C),{n:increment(1),ua:'x'})));
+ await test('STATS: 他の項目だけ書くのも拒否',()=>assertFails(updateDoc(doc(anon,C),{ua:'x'})));
+ await test('STATS: 削除は拒否（ログインなし・Google）',async()=>{await assertFails(deleteDoc(doc(anon,C)));await assertFails(deleteDoc(doc(alice,C)));});
+ await test('STATS: 一覧・ほかの文書は不可',async()=>{await assertFails(getDocs(collection(anon,'stats')));await assertFails(setDoc(doc(anon,'stats/other'),{n:1}));await assertFails(getDoc(doc(anon,'stats/other')));});
+ await test('STATS: 値は 3 のまま',async()=>{const v=(await getDoc(doc(anon,C))).data();if(v.n!==3||Object.keys(v).length!==1)throw new Error(JSON.stringify(v));});}
 } finally { await env.cleanup(); }
 console.log(`\n${passed} passed, ${failed} failed`); process.exit(failed?1:0);
