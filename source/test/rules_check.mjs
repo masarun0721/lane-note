@@ -132,6 +132,19 @@ try {
    await assertFails(getDoc(doc(anon,'talks/'+X)));
    await assertFails(getDocs(query(collection(bob,'talks/'+X+'/msgs'),limit(50))));});
  await test('C301: 閉じたあとに残ったメッセージ（競合の残り）も顧問が後から消せる',async()=>{const X=T('Race');await tseed(X,{closed:true,active:false,name:'',note:''});await seedMsg(X,'m9');await assertSucceeds(deleteDoc(doc(alice,'talks/'+X+'/msgs/m9')));});
+ // v0.25.2：Astra 再確認 R251・R252（準備が成功したことを先に確かめてから、目的の結果を直接確かめる）
+ await test('R251: ひとことがある会話も、アプリと同じ閉じ方（noteAt も更新）で閉じられ、選手は読めなくなる',async()=>{const X=T('R251');await assertSucceeds(setDoc(doc(alice,'talks/'+X),mkTalk()));await assertSucceeds(updateDoc(doc(alice,'talks/'+X),{note:'架空のひとこと',noteAt:serverTimestamp()}));await assertSucceeds(post(anon,X));
+   await assertFails(updateDoc(doc(alice,'talks/'+X),{closed:true,active:false,name:'',note:''}));
+   await assertSucceeds(updateDoc(doc(alice,'talks/'+X),{closed:true,active:false,name:'',note:'',noteAt:serverTimestamp()}));
+   await assertFails(getDoc(doc(anon,'talks/'+X)));await assertFails(post(anon,X));await assertSucceeds(deleteDoc(doc(alice,'talks/'+X+'/msgs/m1')));});
+ async function restCommit(writes){const r=await fetch('http://127.0.0.1:8089/v1/projects/'+projectId+'/databases/(default)/documents:commit',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({writes})});return r.status;}
+ await test('R252: 小数型のカウンター（REST の doubleValue 1.0）は拒否・その後も通常の投稿ができる',async()=>{const X=T('R252');const EXP=fut(DAY);await tseed(X,{expiresAt:EXP});const t={expiresAt:EXP};const pre='projects/'+projectId+'/databases/(default)/documents/talks/'+X;
+   const w=mid=>[{update:{name:pre,fields:{n:{doubleValue:1}}},updateMask:{fieldPaths:['n']},updateTransforms:[{fieldPath:'lastAt',setToServerValue:'REQUEST_TIME'}]},{update:{name:pre+'/msgs/'+mid,fields:{from:{stringValue:'p'},body:{stringValue:'架空'},purgeAt:{timestampValue:t.expiresAt.toDate().toISOString()}}},updateTransforms:[{fieldPath:'createdAt',setToServerValue:'REQUEST_TIME'}]}];
+   const ctl=await restCommit([{update:{name:pre,fields:{n:{integerValue:'1'}}},updateMask:{fieldPaths:['n']},updateTransforms:[{fieldPath:'lastAt',setToServerValue:'REQUEST_TIME'}]},w('m1')[1]]);
+   if(ctl!==200)throw new Error('対照（整数）が通らない '+ctl);
+   await env.withSecurityRulesDisabled(c=>deleteDoc(doc(c.firestore(),'talks/'+X+'/msgs/m1')));await tseed(X,{expiresAt:EXP});for(const mid of ['m1','m1.0']){const st=await restCommit(w(mid));if(st===200)throw new Error('小数型が通った '+mid);}
+   const n=(await getDoc(doc(alice,'talks/'+X))).data().n;if(n!==0)throw new Error('n が変わった '+n);await assertSucceeds(post(anon,X));});
+ await test('R252: 作成時も n は整数だけ',async()=>{const pre='projects/'+projectId+'/databases/(default)/documents/talks/'+T('R252c');const st=await restCommit([{update:{name:pre,fields:{n:{doubleValue:0}}}}]);if(st===200)throw new Error('通った');});
  await test('TALK: 顧問の設定と一覧（settings/talk・talkIndex）は本人だけ',async()=>{await assertSucceeds(setDoc(doc(alice,'users/alice/settings/talk'),{enabled:true}));await assertSucceeds(setDoc(doc(alice,'users/alice/talkIndex/'+TID),{name:'架空',closed:true,purged:false}));await assertFails(getDocs(collection(bob,'users/alice/talkIndex')));await assertFails(setDoc(doc(bob,'users/alice/settings/talk'),{enabled:false}));});
 } finally { await env.cleanup(); }
 console.log(`\n${passed} passed, ${failed} failed`); process.exit(failed?1:0);

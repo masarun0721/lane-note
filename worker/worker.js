@@ -53,9 +53,11 @@ export default {
     if (request.method === "OPTIONS") return new Response(null, { status: okOrigin ? 204 : 403, headers: h });
     if (request.method !== "GET") return txt("GET only", 405, h);
     if (!okOrigin) return txt("forbidden", 403, h);
+    // v0.25.2：環境変数 REQUIRE_LIMITER="1" のときは、LIMITER の設定がなければ 503（費用の上限を必須にする）
+    if (env && env.REQUIRE_LIMITER === "1" && !(env.LIMITER && env.LIMITER.limit)) return txt("limiter not configured", 503, h);
     if (env && env.LIMITER && env.LIMITER.limit) {
       const ip = request.headers.get("CF-Connecting-IP") || "unknown";
-      try { const r = await env.LIMITER.limit({ key: ip }); if (!r.success) return txt("too many requests", 429, h); } catch { /* 束縛がなければ素通り */ }
+      try { const r = await env.LIMITER.limit({ key: ip }); if (!r || !r.success) return txt("too many requests", 429, h); } catch { return txt("limiter unavailable", 503, h); }   // v0.25.2：制限の仕組みが故障したら通さない
     }
     let t = checkTarget(new URL(request.url).searchParams.get("url") || "");
     if (t.err) return txt(t.err, t.err === "host not allowed" ? 403 : 400, h);

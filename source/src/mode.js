@@ -28,6 +28,7 @@ var LaneMode = (function () {
   }
   /* C306：共用のスマホ向け。選手モードで保存したものを全部消す */
   function wipeDevice() {
+    if (window.LaneTalk) LaneTalk.clearDevice();   // R253：読み込み中のやり取りを無効にしてから消す
     try { var ks = []; for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && (k.indexOf(PKEY) === 0 || k === 'lanenote.talks.v1' || k === 'lanenote.talksent.v1' || k === 'lanenote.cond.v1')) ks.push(k); } ks.forEach(function (k) { localStorage.removeItem(k); }); } catch (e) { }
   }
   function forget(id) { try { localStorage.removeItem(PKEY + id); } catch (e) { } }

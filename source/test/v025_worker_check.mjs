@@ -42,5 +42,6 @@ await test('形式：画像などは 415・GET 以外は 405', async () => {
   reply = () => new Response('x', { headers: { 'Content-Type': 'image/svg+xml' } }); assert.equal((await worker.fetch(req('https://gold.jaic.org/x.svg'))).status, 415);
   assert.equal((await worker.fetch(new Request('https://worker.invalid/?url=x', { method: 'POST', headers: { Origin: OK } }))).status, 405);
 });
+await test('v0.25.2：LIMITER が例外なら 503（通さない）・REQUIRE_LIMITER=1 で設定なしも 503', async () => { assert.equal((await worker.fetch(req('https://gold.jaic.org/'), { LIMITER: { limit: async () => { throw new Error('down'); } } })).status, 503); assert.equal((await worker.fetch(req('https://gold.jaic.org/'), { REQUIRE_LIMITER: '1' })).status, 503); assert.equal(seen.length, 0); });
 await test('回数制限：LIMITER があれば 429', async () => { const env = { LIMITER: { limit: async () => ({ success: false }) } }; assert.equal((await worker.fetch(req('https://gold.jaic.org/'), env)).status, 429); assert.equal(seen.length, 0); });
 console.log(pass + ' passed, ' + fail + ' failed'); if (fail) process.exit(1);

@@ -107,6 +107,7 @@ service cloud.firestore {
         && d.noteAt == request.time
         && d.active == true
         && d.closed == false
+        && d.n is int
         && d.n == 0
         && d.lastAt == request.time
         && d.createdAt == request.time
@@ -130,8 +131,9 @@ service cloud.firestore {
     function validCounter(tid, d, old) {
       return d.diff(old).affectedKeys().hasOnly(['n', 'lastAt'])
         && talkOpen(old)
-        && old.n is int && old.n < 1000
-        && d.n == old.n + 1
+        // R252：小数型（1.0 など）は受け付けない。前も後も整数・0〜1000
+        && old.n is int && old.n >= 0 && old.n < 1000
+        && d.n is int && d.n == old.n + 1 && d.n <= 1000
         && d.lastAt == request.time
         && (old.n == 0 || request.time > old.lastAt + duration.value(3, 's'))
         && existsAfter(/databases/$(database)/documents/talks/$(tid)/msgs/$('m' + string(d.n)));

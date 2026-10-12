@@ -23,6 +23,9 @@ var LaneTalk = (function () {
   function remember(tid, name) { if (!validId(tid)) return; var m = ls(SKEY); m[tid] = { name: String(name || '').slice(0, 60), at: new Date().toISOString() }; ls(SKEY, m); }
   function forget(tid) { var m = ls(SKEY); delete m[tid]; ls(SKEY, m); }
   function saved() { var m = ls(SKEY); return Object.keys(m).filter(validId).sort(function (a, b) { return (m[b].at || '') < (m[a].at || '') ? -1 : 1; }); }
+  /* R253：この端末の「消去の世代」。全部消したら進め、読み込み中の結果は保存も表示もしない（ほかのタブで消したときも） */
+  var DEV = 0;
+  try { window.addEventListener('storage', function (e) { if (e.key === null || e.key === SKEY) DEV++; }); } catch (e) { }
   var FBP = null;
   async function fb() {   // 選手側：ログインなしで Firestore だけ使う
     if (FBP) return FBP;
@@ -77,7 +80,7 @@ var LaneTalk = (function () {
   async function renderPlayer(box, tid, opts) {
     opts = opts || {};
     if (!box) return false;
-    var gen = (box.__tkGen = (box.__tkGen || 0) + 1);
+    var gen = (box.__tkGen = (box.__tkGen || 0) + 1), dev = DEV;
     if (!validId(tid)) { box.hidden = true; return false; }
     var r;
     try { var x = await fb(); r = await readTalk(x.F, x.fs, tid); }
@@ -88,7 +91,7 @@ var LaneTalk = (function () {
       if (opts.onGone) opts.onGone(e);
       return false;
     }
-    if (gen !== box.__tkGen) return false;
+    if (gen !== box.__tkGen || dev !== DEV || (opts.alive && !opts.alive())) return false;
     remember(tid, r.talk.name);
     box.hidden = false;
     var older = [];
@@ -106,7 +109,7 @@ var LaneTalk = (function () {
       try {
         var x = await fb();
         await postMsg(x.F, x.fs, tid, data);
-        if (gen !== box.__tkGen) return;
+        if (gen !== box.__tkGen || dev !== DEV) return;
         renderPlayer(box, tid, opts);
       } catch (e) { if (gen === box.__tkGen) { btn.disabled = false; msg.textContent = '送れませんでした（' + postErr(e) + '）'; } }
     }
@@ -131,8 +134,9 @@ var LaneTalk = (function () {
   async function renderHomeCard(box, extra) {
     if (!box) return;
     var ids = saved(); (extra || []).forEach(function (t) { if (validId(t) && ids.indexOf(t) < 0) ids.push(t); });
-    for (var i = 0; i < ids.length; i++) { if (await renderPlayer(box, ids[i])) return; }
-    box.hidden = true;
+    var dev = DEV, alive = function () { return dev === DEV && box.isConnected !== false; };
+    for (var i = 0; i < ids.length; i++) { if (!alive()) return; if (await renderPlayer(box, ids[i], { alive: alive })) return; }
+    if (alive()) box.hidden = true;
   }
   /* ?t=<tid> のリンクを開いたとき */
   function initLink() {
@@ -147,7 +151,7 @@ var LaneTalk = (function () {
 
   /* ---------- 顧問側（records.html）。FB={F,fs}・sc={uid,epoch}・check(sc) を呼ぶ側が渡す ---------- */
   /* この端末から、やり取りのリンクと送った記録を全部消す（C306） */
-  function clearDevice() { try { localStorage.removeItem(SKEY); localStorage.removeItem(SENTKEY); } catch (e) {} }
+  function clearDevice() { DEV++; try { localStorage.removeItem(SKEY); localStorage.removeItem(SENTKEY); } catch (e) {} }
   function T(FB, sc, check) {
     if (!sc || !sc.uid) throw new Error('Googleでログインすると使えます');
     var F = FB.F, fs = FB.fs, uid = sc.uid;
@@ -180,28 +184,37 @@ var LaneTalk = (function () {
       remove: async function (id) {
         ok();
         var b = F.writeBatch(fs);
-        b.update(F.doc(fs, 'talks', id), { closed: true, active: false, name: '', note: '' });
+        b.update(F.doc(fs, 'talks', id), { closed: true, active: false, name: '', note: '', noteAt: F.serverTimestamp() });   // R251：ひとことを消すときは noteAt も更新（ルールの条件）
         b.set(F.doc(fs, 'users', uid, 'talkIndex', id), { closed: true, active: false, name: '', akey: '' }, { merge: true });
         try { await b.commit(); } catch (e) { if (!e || e.code !== 'permission-denied') throw e; ok(); var c = await F.getDoc(F.doc(fs, 'talks', id)); if (c.exists() && !(c.data() || {}).closed) throw e; }
-        ok(); await this.purge(id);
+        ok(); return await this.purge(id);
       },
+      /* R254：空になったのを確かめたときだけ purged:true。1回の上限（50件×100回）に届いたら未完了のまま false を返し、次に開いたときに続ける */
       purge: async function (id) {
         for (var round = 0; round < 100; round++) {
           ok(); var s = await F.getDocs(F.query(F.collection(fs, 'talks', id, 'msgs'), F.limit(PAGE))); ok();
           var ids = []; s.forEach(function (d) { ids.push(d.id); });
-          if (!ids.length) break;
+          if (!ids.length) { ok(); await F.setDoc(F.doc(fs, 'users', uid, 'talkIndex', id), { purged: true }, { merge: true }); ok(); return true; }
           var b = F.writeBatch(fs); ids.forEach(function (m) { b.delete(F.doc(fs, 'talks', id, 'msgs', m)); }); await b.commit();
         }
-        ok(); await F.setDoc(F.doc(fs, 'users', uid, 'talkIndex', id), { purged: true }, { merge: true }); ok();
+        return false;
       },
       /* 期限切れ・閉じたのに消し終わっていないものを片づける（C307：顧問がやり取りの画面を開いたとき） */
+      /* 1件失敗しても、ほかの片づけは続ける（R251）。戻り値は消し終わった件数。失敗・未完了は this.lastSweep に残す */
       sweep: async function (list) {
-        var now = Date.now(), done = 0;
+        var now = Date.now(), done = 0, left = 0, errs = 0;
         for (var i = 0; i < list.length; i++) {
           var t = list[i]; if (t.purged) continue;
-          if (t.closed) { await this.purge(t.id); done++; }
-          else if (t.exp && t.exp < now) { await this.remove(t.id); done++; }
+          try {
+            var r = null;
+            if (t.closed) r = await this.purge(t.id);
+            else if (t.exp && t.exp < now) r = await this.remove(t.id);
+            else continue;
+            if (r) done++; else left++;
+          } catch (e) { if (e && e.code === 'auth-context-changed') throw e; errs++; }
         }
+        this.lastSweep = { done: done, left: left, errors: errs };
+        if (errs && !done && !left) { var er = new Error('片づけに失敗しました'); er.code = 'sweep-failed'; throw er; }
         return done;
       },
       dropIndex: async function (id) { ok(); await F.deleteDoc(F.doc(fs, 'users', uid, 'talkIndex', id)); ok(); }

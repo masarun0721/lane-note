@@ -356,7 +356,7 @@
   }
   // アカウントが変わったら、前の人の画面の中身（記録・読み込み途中の資料・入力欄）をすべて消す
   function resetView() {
-    ALL = []; batches = []; DONE = []; METS = {}; DIV_OV = {}; REVIEW = []; OFFLINE = false; MODE = { personal: false, name: '', team: '' }; PPL.links = {}; PPL.gen++; MSH = { key: '', url: '', name: '', busy: false, gen: MSH.gen + 1 }; if (TK) { TK = { on: false, idx: [], cur: '', gen: TK.gen + 1 }; } try { $('rbTalkScreen').hidden = true; $('rbTalkThread').hidden = true; } catch (e) { } try { applyModeUi(); $('rbPPList').innerHTML = ''; $('rbPPNames').innerHTML = ''; $('rbPPScreen').hidden = true; document.body.classList.remove('pps-open'); status('rbPPMsg', '', ''); } catch (e) { }
+    ALL = []; batches = []; DONE = []; METS = {}; DIV_OV = {}; REVIEW = []; OFFLINE = false; MODE = { personal: false, name: '', team: '' }; PPL.links = {}; PPL.gen++; MSH = { key: '', url: '', name: '', busy: false, gen: MSH.gen + 1 }; if (TK) { TK = { on: false, idx: [], cur: '', gen: TK.gen + 1 }; } try { $('rbTalkScreen').hidden = true; $('rbTalkThread').hidden = true; $('rbTalkThread').innerHTML = ''; $('rbTalkList').innerHTML = ''; status('rbTalkMsg', '', ''); } catch (e) { }   /* R255：前のアカウントの会話・招待URLを DOM に残さない */ try { applyModeUi(); $('rbPPList').innerHTML = ''; $('rbPPNames').innerHTML = ''; $('rbPPScreen').hidden = true; document.body.classList.remove('pps-open'); status('rbPPMsg', '', ''); } catch (e) { }
     try { $('rbPaste').value = ''; $('rbFile').value = ''; status('rbStatus', '', ''); var d = $('rbDone'); d.innerHTML = ''; d.className = 'status'; status('rbDataStatus', '', ''); } catch (e) { }
     if (typeof manualReset === 'function') manualReset();
     renderBatches(); applyInference(); render();
@@ -1500,7 +1500,7 @@
     $('rbTalkOn').disabled = false; $('rbTalkOn').checked = TK.on; status('rbTalkMsg', '', ''); renderTalkList();
     // C307：期限切れ・削除の途中で止まったものを片づける（始めたときの uid・世代に固定：A01）
     if (TK.idx.some(function (x) { return !x.purged && (x.closed || (x.exp && x.exp < Date.now())); })) {
-      try { var n = await api.sweep(TK.idx); if (!tkAlive(sc, gen)) return; if (n) { var idx2 = await api.index(); if (!tkAlive(sc, gen)) return; TK.idx = idx2; renderTalkList(); status('rbTalkMsg', '🧹 期限切れ・削除済みのやり取り ' + n + '件の中身を消しました。', 'ok'); } }
+      try { var n = await api.sweep(TK.idx); if (!tkAlive(sc, gen)) return; var ls0 = api.lastSweep || {}; if (ls0.left || ls0.errors) status('rbTalkMsg', '⚠️ 片づけが終わっていないやり取りがあります（次に開いたときに続けます）', 'ng'); if (n) { var idx2 = await api.index(); if (!tkAlive(sc, gen)) return; TK.idx = idx2; renderTalkList(); status('rbTalkMsg', '🧹 期限切れ・削除済みのやり取り ' + n + '件の中身を消しました。', 'ok'); } }
       catch (e) { if (isAbort(e) || !tkAlive(sc, gen)) return; status('rbTalkMsg', '⚠️ 期限切れのやり取りの片づけが途中で止まりました（次に開いたときに続けます）', 'ng'); }
     }
   }
@@ -1557,11 +1557,11 @@
     else if (g('data-tkact')) { var on = g('data-on') === '1'; if (!on && !confirm('このやり取りを停止します。選手の画面から欄が消えます（再開できます）。よろしいですか？')) return;
       tkRun(function (api) { return api.setActive(g('data-tkact'), on); }, on ? '✔ 再開しました' : '✔ 停止しました').then(function (ok) { if (ok && TK.cur === g('data-tkact')) openThread(TK.cur); }); }
     else if (g('data-tkrm')) { if (!confirm('このやり取り（ひとこと・返信・送られた体調メモ）を全部削除します。先に投稿を止めてから消します。元に戻せません。リンクも使えなくなります。よろしいですか？')) return;
-      var rid = g('data-tkrm'); tkRun(function (api) { return api.remove(rid); }, '✔ 削除しました').then(function (ok) { if (ok && TK.cur === rid) { TK.cur = ''; $('rbTalkThread').hidden = true; } }); }
+      var rid = g('data-tkrm'); tkRun(function (api) { return api.remove(rid).then(function (done) { if (!done) throw new Error('投稿は止めました。メッセージが多いので削除は途中です（次に開いたときに続けます）'); }); }, '✔ 削除しました（投稿を止めて、中身を全部消しました）').then(function (ok) { if (ok && TK.cur === rid) { TK.cur = ''; $('rbTalkThread').hidden = true; } }); }
     else if (g('data-tkmore')) moreThread(g('data-tkmore'), b);
     else if (g('data-tkrenew')) { var oid = g('data-tkrenew'), ra = tkAthletes().filter(function (x) { return x.key === g('data-key'); })[0]; if (!ra) return;
       if (!confirm('v0.24 で作ったやり取りを閉じて中身を消し、新しいリンクを作ります。新しいリンクを選手に送り直してください。よろしいですか？')) return; b.disabled = true;
-      tkRun(async function (api) { await api.remove(oid); await api.create(ra.key, ra.name); }, '✔ 作り直しました。「💬 開く」で新しいリンクをコピーして、本人にだけ送ってください。'); }
+      tkRun(async function (api) { if (!(await api.remove(oid))) throw new Error('古いやり取りの削除が途中です（次に開いたときに続けます）。もう一度押してください'); await api.create(ra.key, ra.name); }, '✔ 作り直しました。「💬 開く」で新しいリンクをコピーして、本人にだけ送ってください。'); }
     else if (g('data-tkclose')) { TK.cur = ''; $('rbTalkThread').hidden = true; }
     else if (g('data-tkcopy')) copyT($('rbTkLink').value, b, '📋 リンクをコピー');
     else if (g('data-tknote')) { var nid = g('data-tknote'), v = $('rbTkNote').value.trim(); tkRun(function (api) { return api.setNote(nid, v); }, '✔ ひとことを保存しました').then(function (ok) { if (ok && TK.cur === nid) openThread(nid); }); }
