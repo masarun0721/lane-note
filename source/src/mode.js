@@ -133,3 +133,41 @@ var LaneMode = (function () {
   }
   return { get: get, set: set, apply: apply, init: init, savedLinks: savedLinks, sharedView: sharedView, renderHome: renderHome, KEY: KEY, wipeDevice: wipeDevice };
 })();
+/* v0.26.26 日付の入力欄（input type=date）：続けて打ちやすく
+   ・年を4けたまでにする（min=2000-01-01・max=2099-12-31。Chrome などは年を4けた打つと月へ進む。6けたの年「202604」にならない）
+   ・「20260403」「2026/4/3」「2026-4-3」「4/3」（今年）「0403」を貼り付けると、その日付が入る。カレンダーはそのまま使える
+   ・あとから画面に出てくる日付欄にも自動で付ける */
+var LaneDate = (function () {
+  'use strict';
+  var MIN = '2000-01-01', MAX = '2099-12-31';
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function ok(y, m, d) { if (y < 2000 || y > 2099 || m < 1 || m > 12 || d < 1) return ''; var t = new Date(y, m - 1, d); return t.getMonth() === m - 1 ? y + '-' + pad(m) + '-' + pad(d) : ''; }
+  function parse(s, now) {
+    s = String(s || '').replace(/[０-９／．－]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); }).trim();
+    var y0 = (now || new Date()).getFullYear(), m;
+    if ((m = s.match(/^(\d{4})(\d{2})(\d{2})$/))) return ok(+m[1], +m[2], +m[3]);
+    if ((m = s.match(/^(\d{4})\s*[\/\-.年]\s*(\d{1,2})\s*[\/\-.月]\s*(\d{1,2})\s*日?$/))) return ok(+m[1], +m[2], +m[3]);
+    if ((m = s.match(/^(\d{1,2})\s*[\/\-.月]\s*(\d{1,2})\s*日?$/))) return ok(y0, +m[1], +m[2]);
+    if ((m = s.match(/^(\d{2})(\d{2})$/))) return ok(y0, +m[1], +m[2]);
+    return '';
+  }
+  function fix(el) {
+    if (!el || el.type !== 'date' || el.__lnDate) return; el.__lnDate = 1;
+    if (!el.getAttribute('min')) el.setAttribute('min', MIN);
+    if (!el.getAttribute('max')) el.setAttribute('max', MAX);
+    el.addEventListener('paste', function (e) {
+      var t = (e.clipboardData || window.clipboardData); t = t && t.getData ? t.getData('text') : '';
+      var v = parse(t); if (!v) return;
+      e.preventDefault(); el.value = v;
+      el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  }
+  function scan(root) { if (!root || !root.querySelectorAll) return; if (root.matches && root.matches('input[type=date]')) fix(root); Array.prototype.forEach.call(root.querySelectorAll('input[type=date]'), fix); }
+  function init() {
+    scan(document);
+    if (typeof MutationObserver === 'function') new MutationObserver(function (ms) { ms.forEach(function (m) { Array.prototype.forEach.call(m.addedNodes, function (n) { if (n.nodeType === 1) scan(n); }); }); }).observe(document.documentElement, { childList: true, subtree: true });
+  }
+  if (typeof document !== 'undefined') { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init(); }
+  return { parse: parse, fix: fix, scan: scan, MIN: MIN, MAX: MAX };
+})();
+if (typeof window !== 'undefined') window.LaneDate = LaneDate;

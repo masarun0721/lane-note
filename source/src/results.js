@@ -145,7 +145,7 @@ var ResultParser = (function () {
     return { name: s.slice(0, s.length - m[0].length).trim(), grade: g, paren: p };
   }
   // v0.26.5：末尾の「・3」（速報の地区・支部番号。gold.jaic.org で「立教池袋            ・3」）も取る
-  function normSchool(s) { return nk(s).replace(/\s+/g, '').replace(/^\d+・/, '').replace(/^(東京)?[・]/, '').replace(/[・･]\d{1,2}$/, ''); }
+  function normSchool(s) { return nk(s).replace(/^\s*\d{1,2}\s+(?=\D)/, '').replace(/\s+/g, '').replace(/^\d+・/, '').replace(/^(東京)?[・]/, '').replace(/[・･]\d{1,2}$/, ''); }
   var SUF = /(高等学校|中学校|中等教育学校|高校|中学|学園|学院)?$/;
   function schoolBase(s) { var cy = cyuTeam(s); if (cy) s = cy; return normSchool(s).replace(/(高等学校|中学校|高校|中学|高|中)$/, ''); }
   /* v0.26.23（私学が読み込めない）：学校名の書き方の違いをそろえてから比べる
@@ -383,7 +383,8 @@ var ResultParser = (function () {
       var w = mk.wind != null ? mk.wind : (map.wind != null ? get(map.wind) : wind);
       if (/跳|投/.test(ev) && map.wind == null && mk.wind == null) w = '';
       if (!mark || STATUS.test(mark)) w = '';
-      var team = get(map.team);
+      // v0.26.26：東京都高体連（tokyokotairenrikujo.jp）の速報は所属の欄が「2<br>本郷」（上に支部の番号）。番号の行は所属にしない
+      var team = String(get(map.team)).replace(/^\s*\d{1,2}[\s\u3000]+(?=\D)/, '').replace(/\s*\n\s*/g, ' ').trim();
       var hc = map.heat != null ? (get(map.heat).match(/\d+/) || [''])[0] : ''; var r = { event: ev, round: round, heat: hc ? +hc : heat, rank: /^\d+$/.test(get(map.rank)) ? +get(map.rank) : '', lane: /^\d+$/.test(get(map.lane)) ? +get(map.lane) : '', bib: get(map.bib), name: g.name.replace(/\s+/g, ' '), kana: kana, grade: g.grade || get(map.grade), team: team, mark: mark, wind: (w || '').replace('±', '').replace(/[()（）]/g, ''), comment: cmt };
       if (opt.school && !matchSchool(team, opt.school)) return;
       var probs = []; if (badMark) { probs.push('記録の形（「' + r.mark + '」）'); r.mark = ''; } else if (!r.mark) probs.push('記録'); if (!r.event) probs.push('種目'); if (r.mark && !STATUS.test(r.mark) && windApplies(r.event) && r.wind === '') probs.push('風');
