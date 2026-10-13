@@ -118,6 +118,28 @@
     FB = { A: m[1], F: m[2], auth: m[1].getAuth(app), fs: m[2].getFirestore(app) };
     return FB;
   }
+  /* v0.25.4（v0.25.8 で記録のページ＝トップへ移動）：利用カウンター（stats/counter の n だけ。個人の情報は送らない）。1端末1日1回だけ +1、失敗したら表示を隠すだけ */
+  var COUNT_KEY = 'lanenote.count.v1';
+  async function useCounter() {
+    var el = $('useCount'); if (!el || !CLOUD_READY) return;
+    try {
+      var F = (await loadFirebase()).F, ref = F.doc(FB.fs, 'stats', 'counter'), d = new Date();
+      var day = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'), last = null;
+      try { last = localStorage.getItem(COUNT_KEY); } catch (e) { }
+      if (last !== day) {
+        try { await F.updateDoc(ref, { n: F.increment(1) }); }
+        catch (e) { if (e && e.code === 'not-found') await F.setDoc(ref, { n: 1 }); else throw e; }
+        try { localStorage.setItem(COUNT_KEY, day); } catch (e) { }
+      }
+      var snap = await F.getDoc(ref), n = snap.exists() ? snap.data().n : null;
+      if (typeof n !== 'number' || !isFinite(n) || n < 1) { el.hidden = true; return; }
+      /* v0.25.6：「2026.10.13-」のあとに、数字を1けたずつレーン番号板のような四角に入れる */
+      var num = String(Math.floor(n)); el.textContent = ''; var lb = document.createElement('span'); lb.className = 'uc-from'; lb.textContent = '2026.10.13-'; lb.setAttribute('aria-hidden', 'true'); el.appendChild(lb);
+      for (var i = 0; i < num.length; i++) { var dg = document.createElement('span'); dg.className = 'uc-d'; dg.textContent = num[i]; dg.setAttribute('aria-hidden', 'true'); el.appendChild(dg); }
+      el.setAttribute('role', 'img'); el.setAttribute('aria-label', '2026年10月13日からの利用 ' + num + '回'); el.hidden = false;
+    } catch (e) { el.hidden = true; }
+  }
+  window.addEventListener('load', function () { setTimeout(useCounter, 1200); });
   /* v0.14（監査F03）：読み書きは「始めたときのアカウント（uid）と認証の世代」に固定する。途中でログアウト・切り替えがあったら、続きをやめる */
   var authEpoch = 0;
   function scope() { var uid = USER ? USER.uid : null; return { uid: uid, epoch: authEpoch, dbName: uid ? 'lanenote-cache-' + uid : LOCAL_DB }; }

@@ -283,13 +283,14 @@ tr.rc.editing td{background:#fff3ec!important}
     <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／記録 __REC_VERSION__</div>
     <div class="credit">Presented by Sakata</div>
     <div class="hdr-msg"><span class="hm-l">すべての陸上競技部顧問が、</span><span class="hm-l">少しでも楽になりますように。</span></div>
+    <div class="use-count" id="useCount" hidden></div>
   </div>
   <div class="brand">
     <h1 class="logo"><a class="logo-home" href="./" aria-label="ホームへ" title="ホームへ">__LOGO_DARK__<span class="vh">LANE NOTE（レーンノート）記録</span></a></h1>
     <span class="badge">試作版</span>
   </div>
   <p class="tagline">記録：大会の結果から、自校の記録と自己ベストをためていく</p>
-  <nav class="pagenav" aria-label="ページ"><a href="./">🏁 大会準備</a><a href="records.html" class="on" aria-current="page">📒 記録</a><a href="check.html">✅ 照合</a></nav>
+  <nav class="pagenav" aria-label="ページ"><a href="records.html" class="on" aria-current="page">📒 記録</a><a href="index.html">🏁 大会準備</a><a href="check.html">✅ 照合</a></nav>
 </header>
 <div class="topbar">__CHANGELOG__<a href="guide.html" class="tb-btn tb-guide">🔰 はじめての人はこちら</a><a href="guide.html#manual" class="tb-btn tb-guide tb-manual">📖 マニュアル</a><button type="button" class="tb-btn fb-link" data-feedback="1">🚨 不具合・要望を送る</button>__MODEBTN__</div>
 __MODEPICK__
@@ -297,7 +298,7 @@ __MODEPICK__
 <main>
 <section class="box">
   <h2><span class="no">1</span>学校・クラブ名と結果の資料</h2>
-  <p class="privacy-line">🔒 ログインすると自分専用のクラウドに保存（ほかの人には見えません）。ログインなしはこの端末だけ。「URLから読み込む」のときは、URLと中身が LANE NOTE の中継を通ります（保存しません）。詳しくは <a href="guide.html#data">はじめての人はこちら</a></p>
+  <p class="privacy-line">🔒 ログインすると自分専用のクラウドに保存（ほかの人には見えません）。ログインなしはこの端末だけ。「URLから読み込む」のときは、URLと中身が LANE NOTE の中継を通ります（保存しません）。利用回数だけを数えます（個人の情報は集めません）。詳しくは <a href="guide.html#data">はじめての人はこちら</a></p>
   <div class="rb-row" id="rbAuth" style="margin:10px 0;align-items:center">
     <span id="rbAuthInfo" class="small"></span>
     <button class="btn" id="rbSignIn" type="button" hidden>Googleでログイン</button>

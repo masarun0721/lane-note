@@ -7,6 +7,7 @@ import {fileURLToPath} from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const rules = fs.readFileSync(path.join(here, '../../firestore.rules'), 'utf8');
 const app = fs.readFileSync(path.join(here, '../src/app.js'), 'utf8'), fb = fs.readFileSync(path.join(here, '../src/feedback.js'), 'utf8');
+const recApp = fs.readFileSync(path.join(here, '../src/records_app.js'), 'utf8');   // v0.25.8：利用カウンターは記録のページ（トップ）へ移した
 let pass = 0, fail = 0, skip = 0; const SKIP = Symbol('skip'); const ok = (n, f) => { try { if (f() === SKIP) { skip++; console.log('  SKIP', n); return; } pass++; console.log('  ok', n); } catch (e) { fail++; console.log('  NG', n, '\n    ', e.message); } };
 const body = rules.replace(/\/\/.*$/gm, '');
 ok('日本語の見出しがある', () => assert.match(rules.split('\n').slice(0, 4).join('\n'), /LANE NOTE firestore\.rules/));
@@ -15,7 +16,7 @@ ok('shares の get は期限内だけ（expiresAt と createdAt+120日）', () =
 ok('shares の list・update は不可、作成は Google ログイン本人', () => { assert.match(body, /allow list: if false/); assert.match(body, /allow update: if false/); assert.match(body, /allow create: if googleUser\(\) && validShareId/); });
 ok('feedback は Google ログイン必須・読めない（F05）', () => { assert.match(body, /match \/feedback\/\{id\}[\s\S]*allow create: if googleUser\(\) && validFeedback/); assert.match(body, /allow read, update, delete: if false/); });
 ok('v0.24 talks：一覧不可・作成は Google 本人・選手は from:p だけ・直すのは不可', () => { assert.match(body, /match \/talks\/\{tid\}[\s\S]*allow list: if false/); assert.match(body, /allow create: if googleUser\(\) && validTalkId/); assert.match(body, /request\.resource\.data\.from == 'p'/); assert.match(body, /match \/msgs\/\{mid\}[\s\S]*allow update: if false/); });
-ok('v0.25.4 stats：読めるのは counter だけ・+1 だけ・削除と一覧は不可', () => { assert.match(body, /match \/stats\/\{sid\}[\s\S]*allow list: if false[\s\S]*request\.resource\.data\.n == resource\.data\.n \+ 1[\s\S]*allow delete: if false/); assert.match(app, /F\.increment\(1\)/); });
+ok('v0.25.4 stats：読めるのは counter だけ・+1 だけ・削除と一覧は不可', () => { assert.match(body, /match \/stats\/\{sid\}[\s\S]*allow list: if false[\s\S]*request\.resource\.data\.n == resource\.data\.n \+ 1[\s\S]*allow delete: if false/); assert.match(recApp, /F\.increment\(1\)/); assert.doesNotMatch(app, /stats', 'counter/); });
 ok('最後に全部を断る', () => assert.match(body, /match \/\{document=\*\*\} \{\s*allow read, write: if false;/));
 ok('最終案（/workspace の firestore.rules.final）と本文が同じ（比較元が無ければ SKIP）', () => {
   const f = '/workspace/astra_audit/firestore.rules.final'; if (!fs.existsSync(f)) return SKIP;

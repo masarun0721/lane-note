@@ -1310,6 +1310,8 @@
     var t = e.target, tag = t && t.tagName; if (tag === 'INPUT' || tag === 'TEXTAREA' || (t && t.isContentEditable)) return;
     var s = (e.clipboardData && e.clipboardData.getData('text')) || ''; if (isUrlOnly(s)) showUrlNote(s);
   });
+  /* v0.25.8：トップ（/）は記録のページへ移るので、大会準備のまま URL を戻すときは index.html にする */
+  function selfPath() { return /\/$/.test(location.pathname) ? location.pathname + 'index.html' : location.pathname; }
   function shareBase() { return /^https?:$/.test(location.protocol) ? location.origin + location.pathname : SHARE_BASE; }
   /* カード表示（スマホ・閲覧モード共通）。中身はすべて esc() で文字として出す */
   function cardsTimeHtml(rows) {
@@ -1586,7 +1588,7 @@
       $('vMeta').textContent += viewing.shareId ? '　（保存しました：元のリンクの期限まで。止められたリンクは、次に電波のあるところで開いたときに消えます）' : '　（保存しました：長いリンクからのコピーなので、この端末で消すまで残ります）';
     } catch (e) { alert('保存できませんでした（ブラウザの設定・プライベートモード・容量の可能性）：' + e.message); }
   }
-  function closeViewer() { document.body.classList.remove('viewer-mode'); $('viewer').hidden = true; viewing = null; if (/^#d=/.test(location.hash) || /[?&]s=/.test(location.search)) history.replaceState(null, '', location.pathname); renderSaved(); if (window.LaneMode) LaneMode.apply(); }
+  function closeViewer() { document.body.classList.remove('viewer-mode'); $('viewer').hidden = true; viewing = null; if (/^#d=/.test(location.hash) || /[?&]s=/.test(location.search)) history.replaceState(null, '', selfPath()); renderSaved(); if (window.LaneMode) LaneMode.apply(); }
   function setupShare() {
     $('btnShare').addEventListener('click', openShare);
     if (window.LaneShareTip) { LaneShareTip.attach($('btnShare'), LaneShareTip.T.prep); LaneShareTip.attach($('btnPlayers'), LaneShareTip.T.prep); }
@@ -1801,7 +1803,7 @@
       if (!PP || !confirm('この記録のページを、このスマホから削除します（体調メモは残ります。体調メモはページの中の「体調メモを全部削除」で消せます）。よろしいですか？')) return;
       try { localStorage.removeItem(PKEY + PP.id); } catch (e) { }
       PP = null; $('ppTalk').hidden = true; $('ppTalk').innerHTML = ''; $('ppBody').innerHTML = '<div class="pp-snap">このスマホから削除しました。もう一度見るには、先生のリンクを開き直してください。</div>'; $('ppForget').hidden = true;
-      history.replaceState(null, '', location.pathname);
+      history.replaceState(null, '', selfPath());
     });
     $('btnPlayers').addEventListener('click', openPlayers);
     $('plClose').addEventListener('click', function () { $('playerDlg').hidden = true; });
@@ -1817,7 +1819,7 @@
       ['pvName', 'pvMeet', 'pvNext', 'pvList'].forEach(function (k) { $(k).innerHTML = ''; });
       $('pvForm').hidden = true; $('pvForget').hidden = true;
       $('pvNext').innerHTML = '<div class="pv-nn">このスマホから予定を消しました。</div>';
-      history.replaceState(null, '', location.pathname);
+      history.replaceState(null, '', selfPath());
     });
   }
   var INIT_STATUS = {};
@@ -1868,28 +1870,6 @@
     document.addEventListener('change', function (e) { if (!e.target.closest('[role=dialog]')) ssSave(); });
     var c = $('ssClearBtn'); if (c) c.addEventListener('click', resetAll);
   });
-  /* v0.25.4：利用カウンター（stats/counter の n だけ。個人の情報は送らない）。1端末1日1回だけ +1、失敗したら表示を隠すだけ */
-  var COUNT_KEY = 'lanenote.count.v1';
-  async function useCounter() {
-    var el = $('useCount'); if (!el || !CLOUD_OK) return;
-    try {
-      var F = (await loadFirebase()).F, ref = F.doc(FB.fs, 'stats', 'counter'), d = new Date();
-      var day = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'), last = null;
-      try { last = localStorage.getItem(COUNT_KEY); } catch (e) { }
-      if (last !== day) {
-        try { await F.updateDoc(ref, { n: F.increment(1) }); }
-        catch (e) { if (e && e.code === 'not-found') await F.setDoc(ref, { n: 1 }); else throw e; }
-        try { localStorage.setItem(COUNT_KEY, day); } catch (e) { }
-      }
-      var snap = await F.getDoc(ref), n = snap.exists() ? snap.data().n : null;
-      if (typeof n !== 'number' || !isFinite(n) || n < 1) { el.hidden = true; return; }
-      /* v0.25.6：「2026.10.13-」のあとに、数字を1けたずつレーン番号板のような四角に入れる */
-      var num = String(Math.floor(n)); el.textContent = ''; var lb = document.createElement('span'); lb.className = 'uc-from'; lb.textContent = '2026.10.13-'; lb.setAttribute('aria-hidden', 'true'); el.appendChild(lb);
-      for (var i = 0; i < num.length; i++) { var dg = document.createElement('span'); dg.className = 'uc-d'; dg.textContent = num[i]; dg.setAttribute('aria-hidden', 'true'); el.appendChild(dg); }
-      el.setAttribute('role', 'img'); el.setAttribute('aria-label', '2026年10月13日からの利用 ' + num + '回'); el.hidden = false;
-    } catch (e) { el.hidden = true; }
-  }
-  window.addEventListener('load', function () { setTimeout(useCounter, 1200); });
   function resetAll() {
     if (!confirm('読み込んだPDF・学校・クラブ名・設定・枚数をすべて消して、新しい大会を始めます。よろしいですか？')) return;
     ssClear(); var sn = $('ssNote'); if (sn) sn.hidden = true;

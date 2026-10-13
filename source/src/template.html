@@ -2,6 +2,8 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
+<script>/* v0.25.8：トップ（/）をそのまま開いたら記録のページへ。共有リンク（?s= ?t= #p= #d= など）・選手モード・index.html は今までどおり大会準備のページ */
+(function () { try { if (/^https?:$/.test(location.protocol) && /\/$/.test(location.pathname) && !location.search && !location.hash && localStorage.getItem('lanenote.mode.v1') !== 'player') location.replace('records.html'); } catch (e) { } })();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LANE NOTE（レーンノート）試作版</title>
 <link rel="icon" type="image/svg+xml" href="__FAVICON__">
@@ -631,14 +633,13 @@ body.fb-open{overflow:hidden}
     <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／記録 __REC_VERSION__</div>
     <div class="credit">Presented by Sakata</div>
     <div class="hdr-msg"><span class="hm-l">すべての陸上競技部顧問が、</span><span class="hm-l">少しでも楽になりますように。</span></div>
-    <div class="use-count" id="useCount" hidden></div>
   </div>
   <div class="brand">
     <h1 class="logo"><a class="logo-home" href="./" aria-label="ホームへ" title="ホームへ">__LOGO_DARK__<span class="vh">LANE NOTE（レーンノート）</span></a></h1>
     <span class="badge">試作版</span>
   </div>
   <p class="tagline">大会準備：スタートリストから、自校の出場一覧・記録用紙・ナンバーカードまで</p>
-  <nav class="pagenav" aria-label="ページ"><a href="./" class="on" aria-current="page">🏁 大会準備</a><a href="records.html">📒 記録</a><a href="check.html">✅ 照合</a></nav>
+  <nav class="pagenav" aria-label="ページ"><a href="records.html">📒 記録</a><a href="index.html" class="on" aria-current="page">🏁 大会準備</a><a href="check.html">✅ 照合</a></nav>
 </header>
 <div class="topbar">__CHANGELOG__<a href="guide.html" class="tb-btn tb-guide">🔰 はじめての人はこちら</a><a href="guide.html#manual" class="tb-btn tb-guide tb-manual">📖 マニュアル</a><button type="button" class="tb-btn fb-link" data-feedback="1">🚨 不具合・要望を送る</button>__MODEBTN__</div>
 <p class="beta-line">⚠️ 試作版です。内容は元資料でも確認してください</p>
@@ -712,7 +713,7 @@ body.fb-open{overflow:hidden}
 </div>
 <section class="box howto">
   <div class="quick"><b>使い方</b>：①スタートリストとタイムテーブルのPDFを入れる → ②学校・クラブ名を入れる → ③時間順・選手別・記録用紙ができる</div>
-  <p class="privacy-line" id="dataPolicy">🔒 PDF本文はサーバーへ送りません。共有リンクを作ったときだけ、その中身を保存します。「URLから読み込む」のときは、URLと中身が LANE NOTE の中継を通ります（保存しません）。利用回数だけを数えます（個人の情報は集めません）。詳しくは <a href="guide.html#data">はじめての人はこちら（データの取り扱い）</a></p>
+  <p class="privacy-line" id="dataPolicy">🔒 PDF本文はサーバーへ送りません。共有リンクを作ったときだけ、その中身を保存します。「URLから読み込む」のときは、URLと中身が LANE NOTE の中継を通ります（保存しません）。詳しくは <a href="guide.html#data">はじめての人はこちら（データの取り扱い）</a></p>
 </section>
 
 <section class="box" id="inputs">

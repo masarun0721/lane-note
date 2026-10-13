@@ -60,13 +60,13 @@ await check('v0.24.1：記録・照合・はじめての人のページにも同
   const B = f => fs.readFileSync(path.join(here, '../../' + f), 'utf8');
   for (const f of ['index.html', 'records.html', 'check.html', 'guide.html']) { const h = B(f); assert.equal((h.match(/id="modeSw"/g) || []).length, 1, f); assert.ok(h.includes('id="modePick"'), f); assert.ok(h.includes('var LaneMode'), f); assert.ok(!h.includes('__MODE'), f); }
 });
-await check('v0.24.1：ほかのページで選手モードを選ぶとトップ（選手ホーム）へ・はじめての質問は出さない・記録ページは隠さない', async () => {
+await check('v0.24.1：ほかのページで選手モードを選ぶと大会準備（index.html・選手ホーム）へ・はじめての質問は出さない・記録ページは隠さない', async () => {
   const h = '<body><button id="modeSw"></button>' + src('mode_pick.html').split('\n').slice(1).join('\n') + '<main><p id="x">記録</p></main></body>';
   const d = new JSDOM(h, { url: 'http://127.0.0.1/lane-note/records.html', runScripts: 'outside-only' }), w = d.window; let went = '';
-  w.scrollTo = () => {}; w.eval(src('mode.js').replace("location.href = './'", "window.__go = './'")); w.LaneMode.init();
+  w.scrollTo = () => {}; w.eval(src('mode.js').replace("location.href = 'index.html'", "window.__go = 'index.html'")); w.LaneMode.init();
   assert.equal(w.document.getElementById('modePick').hidden, true, '最初に聞かない');
   w.document.getElementById('modeSw').click(); assert.equal(w.document.getElementById('modePick').hidden, false);
-  w.document.querySelector('[data-mode="player"]').click(); assert.equal(w.__go, './'); assert.equal(w.localStorage.getItem('lanenote.mode.v1'), 'player');
+  w.document.querySelector('[data-mode="player"]').click(); assert.equal(w.__go, 'index.html'); assert.equal(w.localStorage.getItem('lanenote.mode.v1'), 'player');
   w.LaneMode.apply(); assert.ok(!w.document.body.classList.contains('ln-player')); assert.match(w.document.getElementById('modeSw').textContent, /選手モード/);
 });
 console.log(pass + ' passed, ' + fail + ' failed'); if (fail) process.exit(1);

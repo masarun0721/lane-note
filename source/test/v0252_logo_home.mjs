@@ -21,10 +21,11 @@ for (const [wn, vp] of [['PC', { width: 1280, height: 900 }], ['スマホ', { wi
     if (a.label !== 'ホームへ' || a.cur !== 'pointer' || a.href !== './') throw new Error(JSON.stringify(a));
     if (!a.vis) { if (pg.includes('?') || pg.includes('#p')) { pass++; console.log('  ok', name, '（共有の画面はヘッダーなし）'); await p.close(); continue; } throw new Error('ロゴが見えない'); }
     await Promise.all([p.waitForNavigation({ waitUntil: 'domcontentloaded' }), p.click('header .logo-home')]); await sleep(400);
-    const st = await p.evaluate(() => ({ path: location.pathname, q: location.search + location.hash, home: !document.getElementById('phome').hidden, inputs: !!document.getElementById('inputs') && getComputedStyle(document.getElementById('inputs')).display !== 'none' }));
-    if (st.path !== '/' || st.q) throw new Error('ホームに移らない ' + JSON.stringify(st));
-    if (mode === 'player' && !st.home) throw new Error('選手ホームが出ない');
-    if (mode === 'coach' && (st.home || !st.inputs)) throw new Error('大会準備のトップが出ない ' + JSON.stringify(st));
+    await sleep(600);   // v0.25.8：顧問モードはトップ（/）から記録のページへ移る
+    const st = await p.evaluate(() => ({ path: location.pathname, q: location.search + location.hash, home: !!document.getElementById('phome') && !document.getElementById('phome').hidden, rec: document.body.classList.contains('records') }));
+    if (st.q) throw new Error('ホームに移らない ' + JSON.stringify(st));
+    if (mode === 'player' && (st.path !== '/' || !st.home)) throw new Error('選手ホームが出ない ' + JSON.stringify(st));
+    if (mode === 'coach' && (st.path !== '/records.html' || !st.rec)) throw new Error('トップ（記録のページ）が出ない ' + JSON.stringify(st));
     pass++; console.log('  ok', name);
   } catch (e) { fail++; console.log('  NG', name, e.message); }
   await p.close();

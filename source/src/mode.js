@@ -45,7 +45,7 @@ var LaneMode = (function () {
   function choose(m) {
     var was = get(); set(m); $('modePick').hidden = true; document.body.classList.remove('mp-open');
     // v0.24.1：大会準備以外のページで選手モードにしたら、選手モードのホーム（トップ）へ移る
-    if (m === 'player' && !$('phome')) { location.href = './'; return; }
+    if (m === 'player' && !$('phome')) { location.href = 'index.html'; return; }
     apply(); if (m !== was) window.scrollTo(0, 0);
   }
   function openPick(first) {
@@ -123,7 +123,7 @@ var LaneMode = (function () {
       if (e.target.closest('#mpClose')) { $('modePick').hidden = true; document.body.classList.remove('mp-open'); }
     });
     window.addEventListener('hashchange', apply);
-    if ($('phome') && !get() && !sharedView()) openPick(true);   // はじめての質問はトップだけ
+    if (($('phome') || document.body.classList.contains('records')) && !get() && !sharedView()) openPick(true);   // はじめての質問はトップ（v0.25.8 から記録のページ）と大会準備だけ
     apply();
   }
   return { get: get, set: set, apply: apply, init: init, savedLinks: savedLinks, sharedView: sharedView, renderHome: renderHome, KEY: KEY, wipeDevice: wipeDevice };
