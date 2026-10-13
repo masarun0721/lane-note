@@ -14,7 +14,6 @@ __BASE_CSS__
 .g-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}.g-mini{border:1px solid var(--line);border-top:4px solid var(--navy);border-radius:8px;padding:8px 10px}.g-mini p{margin:4px 0 0;font-size:14px}
 .g-card details{border-top:1px solid var(--line);padding:8px 0}.g-card summary{font-weight:700;cursor:pointer;min-height:32px}
 .g-card .privacy ul{padding-left:1.2em}.g-card .privacy li{margin:6px 0}
-.g-topbar{justify-content:flex-end}
 .g-hero{background:#fff;border:2px solid var(--navy);border-radius:16px;padding:16px 18px;margin:0 0 14px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
 .g-hero h2{margin:0 0 6px;font-size:24px;color:var(--navy);line-height:1.35}.g-hero p{margin:0 0 12px;font-size:15px;line-height:1.7}
 .g-tabs{display:flex;gap:8px;flex-wrap:wrap}.g-tab{flex:1 1 160px;text-align:center;min-height:48px;display:flex;align-items:center;justify-content:center;border-radius:12px;border:2px solid var(--navy);color:var(--navy);font-weight:800;text-decoration:none;font-size:16px;background:#fff}
@@ -36,7 +35,7 @@ __BASE_CSS__
 @media (max-width:640px){.bx-list li{grid-template-columns:1fr}.g-hero h2{font-size:20px}}
 </style>
 </head>
-<body>
+<body class="guide">
 <header>
   <div class="hdr-meta">
     <div class="hdr-ver" aria-label="バージョン">__VERSION__</div>
@@ -50,7 +49,7 @@ __BASE_CSS__
   <p class="tagline">はじめての人はこちら：使い方・マニュアル・データの取り扱い</p>
   <nav class="pagenav" aria-label="ページ"><a href="records.html">📒 記録</a><a href="index.html">🏁 大会準備</a><a href="check.html">✅ 照合</a><a href="guide.html" class="on" aria-current="page">🔰 はじめての人</a><a href="guide.html#manual">📖 マニュアル</a></nav>
 </header>
-<div class="topbar g-topbar">__TOPLINKS__ __MODEBTN__</div>
+__TOPBAR__
 __MODEPICK__
 <main>
 <section class="g-hero" aria-labelledby="gHeroT">
@@ -145,5 +144,6 @@ __OVERLAY__
   window.addEventListener('hashchange', show); show();
 })();
 </script>
+__FBSCRIPTS__
 </body>
 </html>

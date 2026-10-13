@@ -19,7 +19,8 @@ for (const [wn, vp] of [['PC', { width: 1280, height: 900 }], ['スマホ', { wi
         await p.setRequestInterception(true); p.on('request', r => r.url().startsWith(B) ? r.continue() : r.abort());   // 外には出ない
         await p.setViewport(vp); await p.goto(B + pg); await p.evaluate(m => localStorage.setItem('lanenote.mode.v1', m), from);
         await p.goto(B + pg, { waitUntil: 'domcontentloaded' }); await sleep(300);
-        await p.click('#modeSw'); await sleep(200);
+        await p.evaluate(() => { const m = document.querySelector('#lnNav .pn-menu'); if (m && getComputedStyle(m).display !== 'none') m.click(); }); await sleep(150); await p.click('#modeSw');   // v0.26.22：スマホは「≡ メニュー」の中
+        await sleep(200);
         const vis = await p.$eval('#modePick', e => { const r = e.getBoundingClientRect(); return !e.hidden && getComputedStyle(e).display !== 'none' && r.width > 0 && r.height > 0; });
         if (!vis) throw new Error('選ぶ画面が見えない');
         const nav = to === 'player' && pg !== 'index.html' ? p.waitForNavigation({ waitUntil: 'domcontentloaded' }) : null;

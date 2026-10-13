@@ -9,7 +9,7 @@ const src = f => fs.readFileSync(path.join(SRC, f), 'utf8');
 let pass = 0, fail = 0; const delay = (ms = 30) => new Promise(r => setTimeout(r, ms));
 async function check(n, f) { try { await f(); pass++; console.log('  ok', n); } catch (e) { fail++; console.log('  NG', n, '\n    ', e && e.stack || e); } }
 const [MB, MP] = (() => { const t = src('mode_pick.html'), i = t.indexOf('\n'); return [t.slice(0, i), t.slice(i + 1)]; })();
-const tpl = src('template.html').replace('__MODEBTN__', MB).replace('__MODEPICK__', MP).replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '').replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '').replace(/__[A-Z_0-9]+__/g, '');
+const tpl = src('template.html').replace('__TOPBAR__', MB).replace('__MODEBTN__', MB).replace('__MODEPICK__', MP).replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '').replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '').replace(/__[A-Z_0-9]+__/g, '');
 function page(url, ls = {}) {
   const d = new JSDOM(tpl, { url, runScripts: 'outside-only' }), w = d.window;
   for (const k in ls) w.localStorage.setItem(k, ls[k]);

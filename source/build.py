@@ -13,7 +13,7 @@ import base64, hashlib, html as htmlmod, json, pathlib, re, sys
 ROOT = pathlib.Path(__file__).resolve().parent
 S = ROOT / 'src'
 SHARE_BASE = 'https://masarun0721.github.io/lane-note/'   # 共有リンク・QRの公開アドレス（file:// で開いたとき用）
-VERSION = 'v0.26.21'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
+VERSION = 'v0.26.22'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
 # 作成日は版番号から取れないので固定（ビルドした日で変わると、公開時の一致検査ができないため）
 BUILD_DATE = '2026年10月12日'
 REC_VERSION = 'v0.11.1'   # LANE LOG（records.html）だけの版
@@ -59,7 +59,7 @@ def build():
     rep = {
         '__PARSER__': text('src/parser.js'), '__RESULTS__': text('src/results.js'), '__LOGIC__': text('src/logic.js'), '__PLAYER__': text('src/player.js'), '__PERSONAL__': text('src/personal.js'), '__MODE__': text('src/mode.js'), '__TALK__': text('src/talk.js'),
         '__ZEKKEN__': text('src/zekken.js'), '__APP__': text('src/app.js'), '__PARENT__': text('src/parent.js'), '__NOTICE__': text('src/notice.js'), '__URLLOAD__': text('src/urlload.js'), '__OVERLAY__': text('src/overlay.js'), '__PDFMAKE__': text('src/pdfmake.js'), '__FEEDBACK__': text('src/feedback.js'),
-        '__AUTHCOMMON__': text('src/auth_common.js'), '__CHANGELOG__': changelog_html(),
+        '__AUTHCOMMON__': text('src/auth_common.js'),
         '__KOSHI_B64__': b64('templates/koshi_template.docx'), '__MUNE_B64__': b64('templates/mune_template.docx'),
         '__LOGO_DARK__': logo_inline('logo/option_A_dark.svg'),
         '__FAVICON__': 'data:image/svg+xml;base64,' + b64('logo/option_A_icon.svg'),
@@ -69,14 +69,20 @@ def build():
         '__PRINT_ICON__': 'data:image/svg+xml;base64,' + b64('logo/option_A_icon_mono.svg'),
     }
     for k, v in rep.items():
-        assert k in html, k
+        assert k in html or k == '__MODEBTN__', k
         html = html.replace(k, v)
     rec = build_records(html)
     guide = build_guide()
     chk = build_check()
     trial = build_try()
     # v0.26.10：全ページの見出しに「3分体験」「チーム」（チームは選手モードでは出さない）。チームの設定は team.html（記録のページと同じ部品で、チームの欄だけを出す）
-    html, rec, guide, chk = [x.replace('__TOPLINKS__', TOPLINKS) for x in (html, rec, guide, chk)]
+    html, rec, chk = [with_nav(x.replace('__TOPBAR__', topbar()), c) for x, c in ((html, 'index'), (rec, 'records'), (chk, 'check'))]
+    guide = with_nav(guide, 'guide').replace('__TOPBAR__', topbar()).replace('__FBSCRIPTS__', fb_scripts())
+    # 3分体験は Firebase・中継を読み込まない（v0.26.6）。「不具合・要望を送る」は記録のページで開く（?fb=1）
+    trial = with_nav(trial, 'try').replace('__TOPBAR__', topbar()).replace('__FBSCRIPTS__', '')
+    trial = trial.replace('<button type="button" class="tb-btn fb-link" data-feedback="1" data-tb="feedback">🚨 不具合・要望を送る</button>', '<a href="records.html?fb=1" class="tb-btn fb-link" data-tb="feedback">🚨 不具合・要望を送る</a>', 1)
+    assert 'records.html?fb=1' in trial
+    trial = trial.replace('__MODEPICK__', MODEPICK).replace('__MODE__', text('src/mode.js'))
     team = build_team(rec)
     # v0.14（監査F13）：Service Worker のキャッシュ名に版とページの中身のハッシュを入れる（公開のたびに古いページが入れ替わる）
     h = hashlib.sha256((html + rec + guide + chk + trial + team).encode('utf-8')).hexdigest()[:10]
@@ -92,7 +98,7 @@ def build_intro():
     rep = {'__FAVICON__': 'data:image/svg+xml;base64,' + b64('logo/option_A_icon.svg'), '__LOGO_DARK__': logo_inline('logo/option_A_dark.svg'),
            '__VERSION__': VERSION, '__SITE__': SHARE_BASE, '__QRCODE__': text('vendor/qrcode.js')}
     for k, v in rep.items():
-        assert k in g, k
+        assert k in g or k == '__MODEBTN__', k
         g = g.replace(k, v)
     return g
 
@@ -107,7 +113,7 @@ def build_try():
            '__PARSER__': text('src/parser.js'), '__LOGIC__': text('src/logic.js'), '__RESULTS__': text('src/results.js'),
            '__TRYSAMPLE__': text('src/try_sample.js'), '__TRYAPP__': text('src/try_app.js')}
     for k, v in rep.items():
-        assert k in g, k
+        assert k in g or k == '__MODEBTN__', k
         g = g.replace(k, v)
     return g
 
@@ -120,9 +126,9 @@ def build_check():
            '__FAVICON__': 'data:image/svg+xml;base64,' + b64('logo/option_A_icon.svg'),
            '__APPLE_ICON__': 'data:image/png;base64,' + b64('logo/png/option_A_icon_180.png'), '__VERSION__': VERSION, '__MODEBTN__': MODEBTN, '__MODEPICK__': MODEPICK, '__MODE__': text('src/mode.js'), '__MODEBTN__': MODEBTN, '__MODEPICK__': MODEPICK, '__MODE__': text('src/mode.js'), '__REC_VERSION__': REC_VERSION,
            '__PARSER__': text('src/parser.js'), '__LOGIC__': text('src/logic.js'), '__ENTRY__': text('src/entry.js'), '__CHECKAPP__': text('src/check_app.js'), '__URLLOAD__': text('src/urlload.js'), '__OVERLAY__': text('src/overlay.js'), '__PDFMAKE__': text('src/pdfmake.js'),
-           '__AUTHCOMMON__': text('src/auth_common.js'), '__FEEDBACK__': text('src/feedback.js'), '__CHANGELOG__': changelog_html()}
+           '__AUTHCOMMON__': text('src/auth_common.js'), '__FEEDBACK__': text('src/feedback.js')}
     for k, v in rep.items():
-        assert k in g, k
+        assert k in g or k == '__MODEBTN__', k
         g = g.replace(k, v)
     return g
 
@@ -191,14 +197,69 @@ def build_guide():
            '__FAVICON__': 'data:image/svg+xml;base64,' + b64('logo/option_A_icon.svg'),
            '__APPLE_ICON__': 'data:image/png;base64,' + b64('logo/png/option_A_icon_180.png'), '__VERSION__': VERSION, '__MODEBTN__': MODEBTN, '__MODEPICK__': MODEPICK, '__MODE__': text('src/mode.js'), '__BUTTONS__': buttons_html(), '__OVERLAY__': text('src/overlay.js')}
     for k, v in rep.items():
-        assert k in g, k
+        assert k in g or k == '__MODEBTN__', k
         g = g.replace(k, v)
     return g
 
 
-TOPLINKS = ('<a href="try.html" class="tb-btn tb-guide tb-try">⏱ 3分体験</a>'
-            '<a href="team.html" class="tb-btn tb-guide tb-team">👥 チーム</a>'
-            '<style>body.ln-player .tb-team{display:none!important}</style>')
+# v0.26.22：見出しの下のボタンの列は、全ページこの1か所から作る（同じ並び・同じ見た目。今いるページは強調）
+#   チームは選手モードでは出さない（body.ln-player）。intro.html は印刷して配るA4 1枚なので、ボタンの列は付けない
+NAV_MAIN = [('records', 'records.html', '📒 記録'), ('index', 'index.html', '🏁 大会準備'), ('check', 'check.html', '✅ 照合')]
+NAV_SUB = [('guide', 'guide.html', 'tb-begin', '🔰 はじめての人はこちら'), ('try', 'try.html', 'tb-try', '⏱ 3分体験'),
+           ('team', 'team.html', 'tb-team', '👥 チーム'), ('manual', 'guide.html#manual', 'tb-manual', '📖 マニュアル')]
+NAV_CSS = (
+    '<style>'
+    '.pagenav.ln-nav{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;margin-top:10px;position:relative}'
+    '.ln-nav a,.ln-nav .pn-b,.ln-nav .tb-btn{display:inline-flex;align-items:center;gap:4px;min-height:30px;box-sizing:border-box;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.45);border-radius:999px;padding:3px 12px;font-size:13px;font-weight:600;text-decoration:none;cursor:pointer;font-family:inherit;line-height:1.3;white-space:nowrap}'
+    '.ln-nav a,.ln-nav .pn-b,.ln-nav .tb-btn{transition:none!important}.ln-nav a:not(.on),.ln-nav .pn-b,.ln-nav .tb-btn:not(.on){color:#fff!important;background:rgba(255,255,255,.14)!important}.ln-nav .pn-sub .pn-b,.ln-nav .pn-sub a:not(.on),.ln-nav .pn-sub .tb-btn:not(.on){background:rgba(255,255,255,.10)!important}'
+    '.ln-nav a.on,.ln-nav .tb-btn.on{background:#fff!important;color:#1f3a68!important;border-color:#fff!important;font-weight:800}'
+    '.ln-nav .tb-btn.mode-sw small{font-size:11px;opacity:.8;margin-left:4px}'
+    '.ln-nav .cl-new{background:#e4572e;color:#fff;border-radius:999px;font-size:10px;padding:0 6px;font-weight:800}'
+    '.ln-nav .pn-sub{display:contents}.ln-nav .pn-menu{display:none}'
+    'body.ln-player .ln-nav .pn-main,body.ln-player .ln-nav .tb-team,body.ln-player .ln-nav [data-tb="changelog"]{display:none!important}'
+    '#lnTopbar{max-width:1100px;margin:8px auto 0;padding:0 10px}#lnTopbar .changelog:not([open]){display:none}'
+    '#lnTopbar .changelog summary{display:none}#lnTopbar .changelog{background:#fff;border:1px solid #c9d2e0;border-radius:10px;padding:8px 12px;margin:0}'
+    '@media screen and (max-width:720px){'
+    '.pagenav.ln-nav{gap:6px}.ln-nav .pn-main,.ln-nav .pn-menu{padding:3px 9px;font-size:13px}.ln-nav .pn-menu{display:inline-flex}'
+    '.ln-nav .pn-sub{display:none;flex-basis:100%;flex-direction:column;align-items:stretch;gap:6px;box-sizing:border-box;max-width:100%;background:rgba(15,22,40,.92);border:1px solid rgba(255,255,255,.35);border-radius:12px;padding:10px}'
+    '.ln-nav.open .pn-sub{display:flex}.ln-nav .pn-sub>*{justify-content:flex-start;min-height:40px;font-size:15px}}'
+    '@media print{.ln-nav{display:none!important}}'
+    '</style>')
+NAV_JS = ('<script>(function () { var n = document.currentScript.parentNode, m = n.querySelector(".pn-menu");'
+          ' m.addEventListener("click", function (e) { e.stopPropagation(); var o = n.classList.toggle("open"); m.setAttribute("aria-expanded", o); });'
+          ' document.addEventListener("click", function (e) { if (!n.contains(e.target) && n.classList.contains("open")) { n.classList.remove("open"); m.setAttribute("aria-expanded", "false"); } });'
+          ' document.addEventListener("keydown", function (e) { if (e.key === "Escape" && n.classList.contains("open")) { n.classList.remove("open"); m.setAttribute("aria-expanded", "false"); m.focus(); } });'
+          ' n.querySelector("[data-tb=changelog]").addEventListener("click", function () { var d = document.getElementById("changelog"); n.classList.remove("open"); if (!d) { location.href = "index.html#changelog"; return; } d.open = !d.open; if (d.open) d.scrollIntoView({ block: "start", behavior: "smooth" }); });'
+          ' if (location.hash === "#changelog") { var d0 = document.getElementById("changelog"); if (d0) d0.open = true; } })();</script>')
+
+
+def hdrnav(cur=''):
+    """v0.26.22：全ページ共通の見出し（ヘッダー）のボタン。PCは全部ならべ、スマホは 記録・大会準備・照合 ＋「≡ メニュー」（中身は全ページ同じ）"""
+    on = lambda k: (' class="on" aria-current="page"' if k == cur else '')
+    h = '<nav class="pagenav ln-nav" id="lnNav" aria-label="ページ" data-nav="v0.26.22">'
+    h += ''.join('<a href="%s" class="pn-main%s" data-tb="%s"%s>%s</a>' % (href, ' on' if k == cur else '', k, ' aria-current="page"' if k == cur else '', label) for k, href, label in NAV_MAIN)
+    h += '<button type="button" class="pn-b pn-menu" aria-expanded="false" aria-controls="lnNavSub">≡ メニュー</button><div class="pn-sub" id="lnNavSub">'
+    h += '<button type="button" class="pn-b" data-tb="changelog">📰 更新情報<span class="cl-new">NEW</span></button>'
+    for k, href, cls, label in NAV_SUB:
+        h += '<a href="%s" class="tb-btn tb-guide %s%s" data-tb="%s"%s>%s</a>' % (href, cls, ' on' if k == cur else '', k, ' aria-current="page"' if k == cur else '', label)
+    h += '<button type="button" class="tb-btn fb-link" data-feedback="1" data-tb="feedback">🚨 不具合・要望を送る</button>' + MODEBTN + '</div>' + NAV_CSS + NAV_JS + '</nav>'
+    return h
+
+
+def topbar(cur=''):
+    """更新情報の中身（ボタンはヘッダーの「📰 更新情報」。閉じているときは出さない）"""
+    return '<div class="topbar" id="lnTopbar">' + changelog_html() + '</div>'
+
+
+def with_nav(page, cur):
+    page, n = re.subn(r'<nav class="pagenav" aria-label="ページ">.*?</nav>', lambda m: hdrnav(cur), page, count=1, flags=re.S)
+    assert n == 1, cur
+    return page
+
+
+def fb_scripts():
+    """不具合・要望を送る（ボタンの列にあるので、どのページでも使えるように）"""
+    return '<script src="firebase-config.js"></script>\n<script>\n' + text('src/auth_common.js') + '\n</script>\n<script>\n' + text('src/feedback.js') + '\n</script>'
 
 
 def build_team(rec):
@@ -206,7 +267,9 @@ def build_team(rec):
     assert '<body class="records">' in rec and '<title>' in rec
     t = rec.replace('<body class="records">', '<body class="records team-page">', 1)
     t = re.sub(r'<title>[^<]*</title>', '<title>LANE NOTE チームの設定</title>', t, count=1)
-    t = t.replace('<a href="team.html" class="tb-btn tb-guide tb-team">', '<a href="team.html" class="tb-btn tb-guide tb-team on" aria-current="page">', 1)
+    t = t.replace('<a href="records.html" class="pn-main on" data-tb="records" aria-current="page">', '<a href="records.html" class="pn-main" data-tb="records">', 1)
+    t = t.replace('<a href="team.html" class="tb-btn tb-guide tb-team" data-tb="team">', '<a href="team.html" class="tb-btn tb-guide tb-team on" data-tb="team" aria-current="page">', 1)
+    assert 'tb-team on' in t
     return t
 
 
@@ -220,10 +283,10 @@ def build_records(index_html):
         '__LOGO_DARK__': logo_inline('logo/option_A_dark.svg'),
         '__FAVICON__': 'data:image/svg+xml;base64,' + b64('logo/option_A_icon.svg'),
         '__APPLE_ICON__': 'data:image/png;base64,' + b64('logo/png/option_A_icon_180.png'),
-        '__VERSION__': VERSION, '__MODEBTN__': MODEBTN, '__MODEPICK__': MODEPICK, '__MODE__': text('src/mode.js'), '__REC_VERSION__': REC_VERSION, '__BUILD_DATE__': REC_BUILD_DATE, '__CHANGELOG__': changelog_html(),
+        '__VERSION__': VERSION, '__MODEBTN__': MODEBTN, '__MODEPICK__': MODEPICK, '__MODE__': text('src/mode.js'), '__REC_VERSION__': REC_VERSION, '__BUILD_DATE__': REC_BUILD_DATE,
     }
     for k, v in rep.items():
-        assert k in rec, k
+        assert k in rec or k == '__MODEBTN__', k
         rec = rec.replace(k, v)
     return rec
 

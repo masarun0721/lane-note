@@ -23,7 +23,7 @@ __BASE_CSS__
 @media print{.tr-noprint,header,.tr-steps{display:none!important}.tr-demo{position:static}}
 </style>
 </head>
-<body>
+<body class="trypage">
 <header>
   <div class="hdr-meta">
     <div class="hdr-ver" aria-label="バージョン">__VERSION__</div>
@@ -37,6 +37,8 @@ __BASE_CSS__
   <p class="tagline">3分体験：架空のサンプルで、できあがりまでを試せます</p>
   <nav class="pagenav" aria-label="ページ"><a href="records.html">📒 記録</a><a href="index.html">🏁 大会準備</a><a href="check.html">✅ 照合</a><a href="guide.html">🔰 はじめての人</a><a href="try.html" class="on" aria-current="page">⏱ 3分体験</a></nav>
 </header>
+__TOPBAR__
+__MODEPICK__
 <main>
 <div class="tr-demo" id="trDemo" role="note">🧪 体験中：ここに出る選手・学校・大会は<b>すべて架空のサンプル</b>です。ログインは不要で、何も保存せず、クラウドにも送りません（ページを閉じると消えます）。</div>
 <ol class="tr-steps" id="trSteps" aria-label="進み具合"><li>① 選ぶ</li><li>② 資料を入れる</li><li>③ 学校名</li><li>④ できあがり</li></ol>
@@ -57,5 +59,10 @@ __TRYSAMPLE__
 <script>
 __TRYAPP__
 </script>
+<script>
+__MODE__
+document.addEventListener('DOMContentLoaded', function () { LaneMode.init(); });
+</script>
+__FBSCRIPTS__
 </body>
 </html>

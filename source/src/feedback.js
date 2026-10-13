@@ -6,7 +6,7 @@
   var FB_VER = '10.14.1', KINDS = ['不具合', '要望', 'その他'];
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
   function cfg() { var c = window.LANE_FIREBASE_CONFIG; return c && c.apiKey && !/^YOUR_|^__/.test(c.apiKey) && c.projectId ? c : null; }
-  function pageName() { return document.body.classList.contains('check') ? 'エントリー照合' : document.body.classList.contains('records') ? '記録' : '大会準備'; }
+  function pageName() { var c = document.body.classList; if (c.contains('team-page')) return 'チーム'; if (c.contains('guide')) return 'はじめての人・マニュアル'; if (c.contains('trypage')) return '3分体験'; return c.contains('check') ? 'エントリー照合' : document.body.classList.contains('records') ? '記録' : '大会準備'; }
   function version() { return (window.APP_VERSION || '') + (window.REC_VERSION && document.body.classList.contains('records') ? '／記録 ' + window.REC_VERSION : ''); }
   function curTab() { var b = document.querySelector('.tabs button.on'); return b ? b.textContent.trim().slice(0, 30) : ''; }
   function info() {
@@ -92,6 +92,8 @@
       st('✖ 送信できませんでした：' + (perm ? 'Googleでログインし直してから、もう一度送ってください' : esc(err && err.message || err)) + '<br><small>通信を確かめて、もう一度押してください。</small>', 'ng');
     }
   }
+  // v0.26.22：3分体験のページから来たとき（records.html?fb=1）はフォームを開き、?fb=1 はアドレス欄から消す
+  if (/[?&]fb=1(&|$)/.test(location.search)) { try { history.replaceState(null, '', location.pathname + location.search.replace(/([?&])fb=1(&|$)/, '$1').replace(/[?&]$/, '') + location.hash); } catch (e) { } setTimeout(function () { open(); }, 0); }
   document.addEventListener('click', function (e) { var a = e.target.closest && e.target.closest('[data-feedback]'); if (!a) return; e.preventDefault(); open(); });
   window.LaneFeedback = { open: open, info: info };
 })();

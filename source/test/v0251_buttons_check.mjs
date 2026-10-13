@@ -27,9 +27,9 @@ check('guide.html にマニュアル・目次・全部のボタン・絵が入�
   imgs.forEach(f => assert.ok(fs.existsSync(path.join(R, f)), f));
   data.purposes.forEach(u => assert.ok(u.shots && u.shots.length, u.q) || u.shots.forEach(([n]) => { assert.ok(g.includes('img/manual/' + n + '_pc.webp')); assert.ok(g.includes('img/manual/' + n + '_sp.webp')); }));
   assert.match(g, /id="mzView" hidden/); assert.match(g, /LaneOverlay\.watch\(\[\{ id: 'mzView', close: 'mzClose' \}\]\)/);
-  assert.match(g, /<nav class="pagenav"[^>]*>.*class="on" aria-current="page">🔰 はじめての人<\/a><a href="guide.html#manual">📖 マニュアル<\/a>/);
+  assert.match(g, /<nav class="pagenav ln-nav"[^>]*>.*tb-begin on" data-tb="guide" aria-current="page">🔰 はじめての人はこちら<\/a>.*<a href="guide.html#manual" class="tb-btn tb-guide tb-manual" data-tb="manual">📖 マニュアル<\/a>/);
 });
 check('各ページから「📖 マニュアル」へ行ける・「はじめての人はこちら」は選択中に見せない', () => {
-  for (const f of ['index.html', 'records.html', 'check.html']) { const h = fs.readFileSync(path.join(R, f), 'utf8'); assert.match(h, /href="guide\.html#manual" class="tb-btn tb-guide tb-manual">📖 マニュアル</, f); assert.doesNotMatch(h, /class="[^"]*tb-guide[^"]*\bon\b/, f); assert.doesNotMatch(h, /pagenav[^\n]*guide\.html[^"]*" class="on"/, f); }
+  for (const f of ['index.html', 'records.html', 'check.html']) { const h = fs.readFileSync(path.join(R, f), 'utf8'); assert.match(h, /href="guide\.html#manual" class="tb-btn tb-guide tb-manual" data-tb="manual">📖 マニュアル</, f); assert.doesNotMatch(h, /class="[^"]*tb-guide[^"]*\bon\b/, f); }
 });
 console.log(pass + ' passed, ' + fail + ' failed'); if (fail) process.exit(1);

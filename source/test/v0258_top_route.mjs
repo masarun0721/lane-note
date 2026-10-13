@@ -20,7 +20,7 @@ async function at(u, mode) {
 }
 let r = await at('', ''); ok('はじめての人：トップ → 記録のページ・モードを聞く', r.path === '/records.html' && r.rec && r.pick, JSON.stringify(r));
 r = await at('', 'coach'); ok('顧問モード：トップ → 記録のページ', r.path === '/records.html' && r.rec && !r.pick, JSON.stringify(r));
-ok('ナビは 記録・大会準備・照合 の順', r.nav === 'records.html:📒 記録|index.html:🏁 大会準備|check.html:✅ 照合', r.nav);
+ok('ナビは 記録・大会準備・照合 の順', r.nav.startsWith('records.html:📒 記録|index.html:🏁 大会準備|check.html:✅ 照合|'), r.nav);
 ok('ロゴはトップ（./）へ', r.logo === './', r.logo);
 r = await at('', 'player'); ok('選手モード：トップは選手のホームのまま', r.path === '/' && r.prep && r.player, JSON.stringify(r));
 r = await at('index.html', 'coach'); ok('index.html は大会準備のページ', r.path === '/index.html' && r.prep && !r.rec, JSON.stringify(r));
