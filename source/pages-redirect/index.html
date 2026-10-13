@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>LANE NOTE</title>
+<script>
+/* GitHub Pages（/lane-note/）から Firebase Hosting へ。検索とハッシュは残す。 */
+(function () {
+  var prefix = '/lane-note';
+  var path = location.pathname || '/';
+  if (path === prefix || path === prefix + '/' || path === prefix + '/index.html') path = '/';
+  else if (path.indexOf(prefix + '/') === 0) path = path.slice(prefix.length);
+  location.replace('https://lane-note.web.app' + path + location.search + location.hash);
+})();
+</script>
+<p><a href="https://lane-note.web.app/">LANE NOTE はこちら</a></p>
