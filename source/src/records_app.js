@@ -1108,7 +1108,7 @@
       wb = XLSX.read(txt.replace(/^\ufeff/, ''), { type: 'string', raw: true });
     } else { var ab = await f.arrayBuffer(); check(sc); wb = XLSX.read(new Uint8Array(ab), { type: 'array' }); }
     var b = { src: f.name, kind: 'Excel', xl: { wb: wb, sheet: wb.SheetNames[0] }, meta: {} };
-    loadXlSheet(b); addBatchIn(b, sc);
+    xlMulti(b); loadXlSheet(b); addBatchIn(b, sc);
   }
   function loadXlSheet(b) {
     var ws = b.xl.wb.Sheets[b.xl.sheet];
@@ -1117,10 +1117,80 @@
     b.xl.txt = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' });
     b.xl.hr = Math.max(0, R.findHeaderRow(b.xl.txt));
     b.xl.map = R.mapHeaders(b.xl.txt[b.xl.hr] || []);
+    // v0.26.27 種目の列が無いときは、シート名を種目にする（「100」→ 100m）
+    if (!b.xl.rescue) b.xl.def = { meet: '', date: '', event: b.xl.map.event == null ? R.sheetEvent(b.xl.sheet) : '' };
     xlRun(b);
   }
+  /* v0.26.27 種目ごとにシートを分けたExcel（シート名＝種目、1枚に表がいくつも並ぶシートも）をまとめて読む */
+  function xlSheetData(wb, n) {
+    var ws = wb.Sheets[n];
+    return { name: n, aoa: XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' }), text: XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' }) };
+  }
+  function xlMulti(b) {
+    var wb = b.xl.wb, sh = wb.SheetNames.map(function (n) { return xlSheetData(wb, n); });
+    if (sh.reduce(function (m, x) { return m + x.aoa.length; }, 0) > LIMITS.rows) return;
+    var res = R.importWorkbook(sh, { school: school() });
+    var blocks = res.reduce(function (m, x) { return m + x.blocks.length; }, 0), got = res.some(function (x) { return x.recs.length || x.relays.length; });
+    if (!got || (sh.length < 2 && blocks < 2 && !res.some(function (x) { return x.blocks.some(function (k) { return k.event && k.map.event == null; }); }))) return;
+    if (MODE.personal) res.forEach(function (x) { x.recs = x.recs.filter(wantRec); x.relays = []; });
+    var k = 0; res.forEach(function (x) { x.recs.concat(x.relays).forEach(function (r) { r._k = ++k; }); });
+    b.xl.multi = { sheets: res, skip: {}, over: {}, chk: {}, k: k };
+  }
+  function xlMultiPick(b) {
+    // v0.26.27 重複：入力済み（同じ人・種目・日付・記録）は最初からチェックなし、重複かもは印だけ付けて先生が決める
+    var m = b.xl.multi, items = [], q = school();
+    m.sheets.forEach(function (x, i) {
+      if (m.skip[i]) return;
+      x.recs.forEach(function (r) { if (!r._k) r._k = ++m.k; items.push({ r: r, rel: false, sh: x.name }); });
+      if (q) x.relays.forEach(function (c) { if (!c._k) c._k = ++m.k; items.push({ r: c, rel: true, sh: x.name, p: { name: q + ' リレー', team: q, event: c.event, date: c.date, meet: c.meet, mark: c.mark } }); });
+    });
+    var st = R.dupCheck(items.map(function (it) { return it.p || it.r; }), ALL), n = { add: 0, dup: 0, maybe: 0 };
+    items.forEach(function (it, i) { it.st = st[i].st; it.why = st[i].why; it.on = m.chk[it.r._k] != null ? m.chk[it.r._k] : it.st !== 'dup'; n[it.st || 'add']++; });
+    var on = items.filter(function (it) { return it.on; });
+    return { recs: on.filter(function (it) { return !it.rel; }).map(function (it) { return it.r; }), relays: on.filter(function (it) { return it.rel; }).map(function (it) { return it.r; }), items: items, n: n, relaysAll: m.sheets.reduce(function (a, x, i) { return m.skip[i] ? a : a.concat(x.relays); }, []) };
+  }
+  function xlRelayRecs(list) {
+    var out = [], errs = [], q = school();
+    list.forEach(function (c) {
+      var res = R.relayRecord({ event: c.event, team: q, mark: c.mark, round: '', rank: '', date: c.date, meet: c.meet || '大会名なし（' + c.date + '）', legs: c.runners.length === 4 ? c.runners.map(function (r) { return r.name; }) : [] });
+      if (!res.rec) { errs.push(c.event + ' ' + c.mark + '：' + res.errors.join('・')); return; }
+      var r = res.rec; delete r.manual; out.push(r);
+    });
+    return { recs: out, errs: errs };
+  }
+  function renderXlMulti(b) {
+    var x = b.xl, m = x.multi, pick = xlMultiPick(b), q = school(), bad = [];
+    var rows = m.sheets.map(function (s, i) {
+      var on = !m.skip[i], evs = s.blocks.map(function (k) { return (k.label && k.label !== s.name ? esc(k.label) + '→' : '') + (k.event ? esc(k.event) : k.map.event != null ? '（種目の列）' : '<b class="ng">？</b>'); }).join('・');
+      if (on) s.bad.forEach(function (r) { bad.push('「' + esc(s.name) + '」' + r.row + '行目：' + esc(r.warn || r.why || '')); });
+      return '<tr' + (on ? '' : ' class="muted"') + '><td><label><input type="checkbox" data-xskip="' + i + '"' + (on ? ' checked' : '') + '> ' + esc(s.name) + '</label></td><td>' + (evs || '—') + '</td><td style="text-align:right">' + s.recs.length + '</td><td style="text-align:right">' + (s.relays.length || '') + '</td><td style="text-align:right">' + (s.bad.length || '') + '</td><td>' + (s.note ? '<small class="ng">' + esc(s.note) + '</small> ' : '') + (m.over[s.name] ? '<small>列を選び直しました</small> ' : '') + '<button class="btn sub small" type="button" data-xpick="' + i + '">列を選ぶ</button></td></tr>';
+    }).join('');
+    var meets = {}; pick.recs.forEach(function (r) { meets[r.date + '|' + r.meet] = 1; });
+    var nRel = q ? pick.relays.length : 0, total = pick.recs.length + nRel, N = pick.n;
+    var flag = pick.items.filter(function (it) { return it.st; }), fresh = pick.items.filter(function (it) { return !it.st; });
+    var row = function (it) { var r = it.p || it.r; return '<tr class="xd-' + (it.st || 'new') + '"><td><input type="checkbox" data-xrec="' + it.r._k + '"' + (it.on ? ' checked' : '') + '></td><td>' + (it.st === 'dup' ? '<b class="muted">入力済み</b>' : it.st === 'maybe' ? '<b class="ng">重複かも</b>' : '新しい') + (it.why ? '<br><small class="muted">' + esc(it.why) + '</small>' : '') + '</td><td>' + esc(r.date) + '</td><td>' + esc(r.meet) + '</td><td>' + esc(r.event) + '</td><td>' + esc(r.name) + '</td><td>' + esc(it.r.grade || '') + '</td><td>' + esc(r.mark) + '</td><td>' + esc(it.r.wind || '') + '</td></tr>'; };
+    return '<div class="rb-batch xl xlm" data-b="' + b.id + '"><h3>📊 Excel：' + esc(b.src) + '</h3>' +
+      '<p class="small">シートごと（シート名＝種目）に記録を分けたExcelとして読みました。<b>取り込まないシートはチェックを外してください。</b>種目の列が無いときはシート名（1枚に表が並ぶシートは、表の左のセル）を種目にしています。読み違いがあるシートは「列を選ぶ」で直せます。</p>' +
+      '<div class="tblwrap"><table class="rbt xlsheets"><tr><th>シート</th><th>種目</th><th>記録</th><th>リレー</th><th>読めない行</th><th></th></tr>' + rows + '</table></div>' +
+      (pick.relaysAll.length ? '<p class="small">🏃 リレー ' + pick.relaysAll.length + '件' + (q ? '：チーム名は「' + esc(q) + '」、走順は表の1走〜4走のまま入れます。' : '：<b class="ng">学校・クラブ名を設定すると入ります</b>（今は入れません）。') + '</p>' : '') +
+      (bad.length ? '<details class="small"><summary class="ng">読めない行 ' + bad.length + '件（取り込みません）</summary><p>' + bad.slice(0, 50).join('<br>') + (bad.length > 50 ? '<br>…' : '') + '</p></details>' : '') +
+      '<div class="rb-row xlw"><span class="small"><b>天気（任意）</b>：この取り込みの大会すべてに付けます</span>' + weatherInputs(b.meta, 'data-f') + '</div>' +
+      '<p class="small xdcount">新しい記録 <b>' + N.add + '件</b>・入力済み <b>' + N.dup + '件</b>（最初からチェックなし）・重複かも <b class="' + (N.maybe ? 'ng' : '') + '">' + N.maybe + '件</b>' + (N.maybe ? '（チェックを見て決めてください）' : '') + '</p>' +
+      '<p class="small">取り込む記録：<b>' + total + '件</b>（個人 ' + pick.recs.length + '件' + (nRel ? '・リレー ' + nRel + '件' : '') + '・' + Object.keys(meets).length + '大会）</p>' +
+      (pick.items.length ? '<div class="tblwrap"><table class="rbt xdup"><tr><th></th><th>状態</th><th>日付</th><th>大会</th><th>種目</th><th>氏名</th><th>学年</th><th>記録</th><th>風</th></tr>' + flag.slice(0, 200).map(row).join('') + fresh.slice(0, 15).map(row).join('') + '</table></div>' + (fresh.length > 15 ? '<p class="muted small">新しい記録 ほか ' + (fresh.length - 15) + '件（全部チェックあり）</p>' : '') : '') +
+      '<div class="rb-row" style="margin-top:8px"><button class="btn" data-save="' + b.id + '" type="button"' + (total ? '' : ' disabled') + '>記録に保存（' + total + '件）</button><button class="btn sub" data-del="' + b.id + '" type="button">取り消す</button></div><div class="status" data-st="' + b.id + '"></div></div>';
+  }
+  function xlBack(b) {   // 列を選び直したシートを、一覧に戻す
+    var x = b.xl, m = x.multi, i = m.sheets.map(function (s) { return s.name; }).indexOf(x.sheet);
+    if (i >= 0) {
+      var res = x.res, s = m.sheets[i];
+      m.over[x.sheet] = 1;
+      m.sheets[i] = { name: s.name, blocks: [{ label: '', event: x.map.event == null ? x.def.event : '', map: x.map, recs: res.recs, relays: [], bad: res.bad }], recs: res.recs, relays: [], bad: res.bad, note: res.recs.length ? '' : '記録が読めません' };
+    }
+    x.pick = false;
+  }
   function xlRun(b) {
-    b.xl.res = R.importRows(b.xl.aoa, b.xl.map, { text: b.xl.txt, headerRow: b.xl.hr, school: school(), def: b.xl.rescue ? b.xl.def : null });
+    b.xl.res = R.importRows(b.xl.aoa, b.xl.map, { text: b.xl.txt, headerRow: b.xl.hr, school: school(), def: b.xl.rescue || (b.xl.def && b.xl.def.event) ? b.xl.def : null });
     if (MODE.personal) b.xl.res.recs = b.xl.res.recs.filter(wantRec);
     // v0.26.7 救済：所属の列があるときは、学校・クラブ名の選手だけにする（大会全体の表を貼っても、ほかの学校の記録は入れない）
     else if (b.xl.rescue && b.xl.map.team != null && school()) { b.xl.all = b.xl.res.recs.length; b.xl.res.recs = b.xl.res.recs.filter(wantRec); }
@@ -1144,13 +1214,15 @@
     if (x.rescue) n = Math.min(30, x.txt.slice(Math.max(0, x.hr), Math.max(0, x.hr) + 20).reduce(function (m, r) { return Math.max(m, r.length); }, n));
     var opts = function (f) { var cur = x.map[f]; var o = '<option value="">（使わない）</option>'; for (var i = 0; i < n; i++) o += '<option value="' + i + '"' + (cur === i ? ' selected' : '') + '>' + colName(i) + '列：' + esc(String(hdr[i] == null ? '' : hdr[i]).slice(0, 14) || '（見出しなし）') + '</option>'; return o; };
     var meets = {}; res.recs.forEach(function (r) { var k = r.date + '|' + r.meet; meets[k] = (meets[k] || 0) + 1; });
-    var miss = XL_FIELDS.filter(function (f) { return XL_REQ[f] && x.map[f] == null && !(x.rescue && (f === 'date' || f === 'event') && x.def[f]); });
+    var miss = XL_FIELDS.filter(function (f) { return XL_REQ[f] && x.map[f] == null && !(x.def && (x.rescue ? f === 'date' || f === 'event' : f === 'event') && x.def[f]); });
     return '<div class="rb-batch xl" data-b="' + b.id + '"><h3>' + (x.rescue ? '🧩 表：' : '📊 Excel：') + esc(b.src) + '</h3>' +
-      '<div class="rb-row">' + (x.wb.SheetNames.length > 1 ? '<label>シート <select data-xsheet="1">' + x.wb.SheetNames.map(function (s) { return '<option' + (s === x.sheet ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '</select></label>' : '') +
+      '<div class="rb-row">' + (x.multi ? '<b>シート「' + esc(x.sheet) + '」の列を選ぶ</b>' : '') + (x.wb.SheetNames.length > 1 && !x.multi ? '<label>シート <select data-xsheet="1">' + x.wb.SheetNames.map(function (s) { return '<option' + (s === x.sheet ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '</select></label>' : '') +
       '<label>見出しの行 <select data-xhr="1">' + (x.rescue ? '<option value="-1"' + (x.hr < 0 ? ' selected' : '') + '>見出しの行なし（1行目から記録）</option>' : '') + x.txt.slice(0, 15).map(function (r, i) { return '<option value="' + i + '"' + (i === x.hr ? ' selected' : '') + '>' + (i + 1) + '行目：' + esc(r.filter(function (c) { return c !== ''; }).slice(0, 4).join('・').slice(0, 24)) + '</option>'; }).join('') + '</select></label></div>' +
       (x.rescue ? '<p class="rb-rescue small">🧩 <b>列を自分で選んで読み取ります。</b>下の表の見本を見ながら「氏名はこの列」「記録はこの列」のように選んでください。表に大会名・日付・種目の列が無いときは、ここに入れると全部の行に使います。</p>' +
         '<div class="rb-row"><label>大会名 <input type="text" data-xdef="meet" value="' + esc(x.def.meet) + '" size="28"></label><label>日付 <input type="date" data-xdef="date" value="' + esc(x.def.date) + '"></label><label>種目（全部同じとき） <input type="text" data-xdef="event" value="' + esc(x.def.event) + '" size="14" placeholder="例：男子100m"></label></div>' +
         '<div class="tblwrap"><table class="rbt rb-sample"><tr>' + Array.apply(null, Array(n)).map(function (_, i) { return '<th>' + colName(i) + '列</th>'; }).join('') + '</tr>' + x.txt.slice(Math.max(0, x.hr), Math.max(0, x.hr) + 4).map(function (r) { return '<tr>' + Array.apply(null, Array(n)).map(function (_, i) { return '<td>' + esc(String(r[i] == null ? '' : r[i]).slice(0, 20)) + '</td>'; }).join('') + '</tr>'; }).join('') + '</table></div>' : '') +
+      (x.multi ? '<div class="rb-row"><button class="btn sub" type="button" data-xback="' + b.id + '">← シートごとの一覧に戻る（このシートは、ここで選んだ列で読みます）</button></div>' : '') +
+      (!x.rescue && x.map.event == null ? '<div class="rb-row"><label>種目（種目の列が無いので、全部の行に使います） <input type="text" data-xdef="event" value="' + esc((x.def && x.def.event) || '') + '" size="14" placeholder="例：男子100m"></label></div>' : '') +
       '<p class="small">列の割り当て（自動で見つけました。違うところは選び直してください）。<b>＊は必須</b>。大会名が空の行は「大会名なし（日付）」になり、あとから直せます。</p>' +
       '<div class="xlmap">' + XL_FIELDS.map(function (f) { return '<label class="' + (x.map[f] == null ? (XL_REQ[f] && miss.indexOf(f) >= 0 ? 'need' : 'off') : 'got') + '"><span>' + R.FIELD_LABELS[f] + (XL_REQ[f] ? '＊' : '') + '</span><select data-xmap="' + f + '">' + opts(f) + '</select></label>'; }).join('') + '</div>' +
       (miss.length ? '<p class="status ng">✖ 「' + miss.map(function (f) { return R.FIELD_LABELS[f]; }).join('」「') + '」の列を選んでください。</p>' : '') +
@@ -1164,7 +1236,9 @@
     var box = e.target.closest('.xl[data-b]'); if (!box) return;
     var b = batches.filter(function (x) { return x.id === +box.getAttribute('data-b'); })[0]; if (!b || !b.xl) return;
     var t = e.target;
-    if (t.hasAttribute('data-xsheet')) { b.xl.sheet = t.value; loadXlSheet(b); }
+    if (t.hasAttribute('data-xrec')) { b.xl.multi.chk[+t.getAttribute('data-xrec')] = t.checked; }
+    else if (t.hasAttribute('data-xskip')) { b.xl.multi.skip[+t.getAttribute('data-xskip')] = !t.checked; }
+    else if (t.hasAttribute('data-xsheet')) { b.xl.sheet = t.value; loadXlSheet(b); }
     else if (t.hasAttribute('data-xhr')) { b.xl.hr = +t.value; b.xl.map = b.xl.hr < 0 ? b.xl.map : R.mapHeaders(b.xl.txt[b.xl.hr] || []); xlRun(b); }
     else if (t.hasAttribute('data-xdef')) { b.xl.def[t.getAttribute('data-xdef')] = t.value.trim(); xlRun(b); }
     else if (t.hasAttribute('data-xmap')) { var f = t.getAttribute('data-xmap'); if (t.value === '') delete b.xl.map[f]; else { Object.keys(b.xl.map).forEach(function (k) { if (b.xl.map[k] === +t.value) delete b.xl.map[k]; }); b.xl.map[f] = +t.value; } xlRun(b); }
@@ -1280,7 +1354,7 @@
   }
   function renderBatches() {
     $('rbBatches').innerHTML = batches.map(function (b) {
-      if (b.xl) return renderXl(b);
+      if (b.xl) return b.xl.multi && !b.xl.pick ? renderXlMulti(b) : renderXl(b);
       if (b.error) return '<div class="rb-batch"><h3>✖ ' + esc(b.src) + '</h3><p class="status ng">' + esc(b.error) + '</p><button class="btn sub" data-del="' + b.id + '" type="button">閉じる</button></div>';
       var rs = batchRecs(b), ws = batchWarns(b);
       return '<div class="rb-batch" data-b="' + b.id + '"><h3>' + esc(b.kind) + '：' + esc(b.src) + '</h3>' +
@@ -1315,6 +1389,12 @@
     }
     if (del) { batches = batches.filter(function (b) { return b.id !== +del; }); renderBatches(); return; }
     var rsc = e.target.getAttribute('data-rescue');
+    var xp = e.target.getAttribute('data-xpick'), xbk = e.target.getAttribute('data-xback');
+    if (xp || xbk) {
+      var xb = batches.filter(function (x) { return x.id === +(e.target.closest('[data-b]') || {}).getAttribute('data-b'); })[0]; if (!xb || !xb.xl.multi) return;
+      try { if (xp) { xb.xl.pick = true; xb.xl.sheet = xb.xl.multi.sheets[+xp].name; loadXlSheet(xb); } else xlBack(xb); } catch (x) { alert(x.message); return; }
+      renderBatches(); return;
+    }
     if (rsc) { var rb = batches.filter(function (x) { return x.id === +rsc; })[0]; if (rb) { try { if (!rescueFrom(rb)) alert('表の形（列）が見つかりませんでした'); } catch (x) { alert(x.message); } } return; }
     if (!sv) return;
     var b = batches.filter(function (x) { return x.id === +sv; })[0], st = document.querySelector('[data-st="' + sv + '"]');
@@ -1345,7 +1425,11 @@
   function hasW(m) { return !!(m.weather || (m.temp !== undefined && m.temp !== '') || (m.humidity !== undefined && m.humidity !== '')); }
   async function saveBatchWeather(b, keys, sc) { if (!hasW(b.meta)) return; for (var i = 0; i < keys.length; i++) { try { await saveMeet(keys[i], b.meta, sc); } catch (e) { if (isAbort(e)) throw e; } } }
   async function saveXl(b, st) {
-    var sc = b.sc, now = new Date().toISOString(), rs = b.xl.res.recs.map(function (r, i) { var o = Object.assign({}, r); delete o.warn; delete o.row; o.src = b.src; o.order = i; o.savedAt = now; o.id = R.recId(o.meet, o.date, o); return o; });
+    var src = b.xl.res.recs, rel = { recs: [], errs: [] };
+    if (b.xl.multi && !b.xl.pick) { var pk = xlMultiPick(b); src = pk.recs; if (school()) rel = xlRelayRecs(pk.relays); }
+    if (rel.errs.length) { st.className = 'status ng'; st.textContent = '✖ リレー：' + rel.errs.slice(0, 3).join(' / '); return; }
+    src = src.concat(rel.recs);
+    var sc = b.sc, now = new Date().toISOString(), rs = src.map(function (r, i) { var o = Object.assign({}, r); delete o.warn; delete o.row; delete o._k; o.src = b.src; o.order = i; o.savedAt = now; o.id = R.recId(o.meet, o.date, o); return o; });
     try {
       var res = await putMany(rs, sc), keys = {}; rs.forEach(function (r) { keys[r.date + '|' + r.meet] = 1; });
       await saveBatchWeather(b, Object.keys(keys), sc);

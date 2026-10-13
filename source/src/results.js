@@ -1079,11 +1079,103 @@ var ResultParser = (function () {
     if (!r.meet && r.date) r.meet = '大会名なし（' + r.date + '）';
     return { rec: r, errors: errs };
   }
+  /* v0.26.27 種目ごとにシートを分けたExcel：シート名・ブロック名 → 種目（100 → 100m・110H → 110mH・110JH → 110mJH・3000SC → 3000mSC・4×100 → 4×100mR）。種目に見えない名前（Sheet1 など）は '' */
+  function sheetEvent(name) {
+    var s = nk(String(name || '')).replace(/\s+/g, '').replace(/[xX＊*]/g, '×');
+    if (!s || /^(sheet|シート|ｼｰﾄ)\d*$/i.test(s) || /^(記録|一覧|まとめ|名簿|集計)/.test(s)) return '';
+    if (/^\d×\d{3,4}/.test(s)) return relayEvent(s);
+    var m = s.match(/^(男子|女子)?(\d{2,5})(m|M)?(JH|H|SC|W|mW)?$/);
+    if (m) return (m[1] || '') + m[2] + 'm' + (m[4] ? m[4].replace(/^m/, '') : '');
+    if (/(跳|投|種競技|走|H$|SC$)/.test(s) || /^\d/.test(s)) return s;
+    return '';
+  }
+  var BLOCK_HEAD = /^(氏名|名前|選手名|1走|１走|第1走者)$/;
+  function cellS(v) { return nk(String(v == null ? '' : v)).replace(/[\s　]/g, ''); }
+  /* シートの中の表（ブロック）を見つける。1枚に「名前…」の見出しが横・縦にいくつも並ぶ形にも対応。
+     返り値：[{ hr, c0, c1, r1, label, relay }]（hr=見出しの行、c0〜c1=列、hr+1〜r1=記録の行、label=見出しのすぐ左（または上）のセル） */
+  function sheetBlocks(aoa) {
+    var out = [], used = {};
+    for (var r = 0; r < aoa.length; r++) {
+      var row = aoa[r] || [];
+      for (var c = 0; c < row.length; c++) {
+        if (used[r + ',' + c]) continue;
+        var s = cellS(row[c]); if (!BLOCK_HEAD.test(s) && !(mapHeaders([row[c]]).mark != null && /^\d走/.test(cellS(row[c + 1])))) continue;
+        // 見出しの並び：左右に、見出しらしいセルが続くところまで
+        var isH = function (v) { var t = cellS(v); return t !== '' && (Object.keys(mapHeaders([v])).length > 0 || /^\d走|^第\d走/.test(t)); };
+        var c0 = c; while (c0 > 0 && isH(row[c0 - 1])) c0--;
+        var c1 = c; while (c1 + 1 < row.length && isH(row[c1 + 1])) c1++;
+        var hdr = row.slice(c0, c1 + 1), map = mapHeaders(hdr), relay = hdr.some(function (v) { return /^(1走|第1走者)$/.test(cellS(v)); });
+        if (map.mark == null || (map.name == null && !relay)) continue;
+        for (var k = c0; k <= c1; k++) used[r + ',' + k] = 1;
+        var label = c0 > 0 ? String(row[c0 - 1] == null ? '' : row[c0 - 1]).trim() : '';
+        if (!label && r > 0) { var up = aoa[r - 1] || []; label = String(up[c0] == null ? '' : up[c0]).trim(); if (up.slice(c0 + 1, c1 + 1).some(function (v) { return cellS(v) !== ''; })) label = ''; }
+        var r1 = r;
+        for (var i = r + 1; i < aoa.length; i++) {
+          var cs = (aoa[i] || []).slice(c0, c1 + 1);
+          if (!cs.some(function (v) { return cellS(v) !== ''; })) break;
+          if (cs.some(function (v) { return BLOCK_HEAD.test(cellS(v)); })) break;
+          r1 = i;
+        }
+        out.push({ hr: r, c0: c0, c1: c1, r1: r1, label: label, relay: relay });
+        c = c1;
+      }
+    }
+    return out;
+  }
+  /* 1つのブロックを読む。opt：{ text, sheet, school, map（列を選び直したとき）} → { event, label, recs, bad, relays } */
+  function importBlock(aoa, bl, opt) {
+    opt = opt || {}; var txt = opt.text || aoa;
+    var cut = function (a) { return a.slice(bl.hr, bl.r1 + 1).map(function (r) { return (r || []).slice(bl.c0, bl.c1 + 1); }); };
+    var sa = cut(aoa), st = cut(txt), map = opt.map || mapHeaders(sa[0]);
+    var ev = (bl.label && sheetEvent(bl.label)) || sheetEvent(opt.sheet) || (bl.label && /[跳投走]/.test(bl.label) ? bl.label : '');
+    if (bl.relay) {
+      var legs = []; sa[0].forEach(function (v, i) { var m = cellS(v).match(/^第?(\d)走/); if (m) legs[+m[1] - 1] = i; });
+      var rev = ev && isRelay(ev) ? ev : relayEvent(bl.label || opt.sheet || '') || ev, relays = [], bad = [];
+      for (var i = 1; i < sa.length; i++) {
+        var row = sa[i], tr = st[i] || [];
+        var mark = normImportMark(map.mark == null ? '' : row[map.mark], rev, map.mark == null ? '' : tr[map.mark]);
+        var date = parseDateCell(map.date == null ? '' : row[map.date]) || parseDateCell(map.date == null ? '' : tr[map.date]);
+        var runners = legs.map(function (k) { return { name: nk(String(row[k] == null ? '' : row[k])).replace(/\s+/g, ' ').trim(), bib: '', kana: '', grade: '' }; });
+        var c = { event: rev, team: opt.school || '', mark: mark, rank: '', round: '', heat: '', lane: '', comment: '', runners: runners.filter(function (x) { return x.name; }).length ? runners : [], date: date, meet: map.meet == null ? '' : String(row[map.meet] || '').trim(), row: bl.hr + i + 1 };
+        if (!markValue(mark) || !date || !isRelay(rev)) bad.push({ row: bl.hr + i + 1, why: !isRelay(rev) ? '種目' : !markValue(mark) ? (/^(DQ|DNS|DNF|NM|失格|棄権|欠場|途中棄権)/i.test(nk(String(mark || '')).trim()) ? nk(String(mark)).trim() + '（記録なし）' : '記録') : '日付' }); else relays.push(c);
+      }
+      return { event: rev, label: bl.label, recs: [], bad: bad, relays: relays, map: map };
+    }
+    var res = importRows(sa, map, { text: st, headerRow: 0, school: opt.school, def: map.event == null ? { event: ev } : null });
+    res.recs.forEach(function (r) { r.row += bl.hr; }); res.bad.forEach(function (x) { x.row += bl.hr; });
+    return { event: map.event == null ? ev : '', label: bl.label, recs: res.recs, bad: res.bad, relays: [], map: map };
+  }
+  /* ブック全体：sheets=[{ name, aoa, text }] → [{ name, blocks:[…importBlock], recs, relays, bad, note }] */
+  function importWorkbook(sheets, opt) {
+    opt = opt || {};
+    return sheets.map(function (sh) {
+      var bls = sheetBlocks(sh.text || sh.aoa), blocks = bls.map(function (bl) { return Object.assign(importBlock(sh.aoa, bl, { text: sh.text, sheet: sh.name, school: opt.school }), { at: bl }); });
+      var o = { name: sh.name, blocks: blocks, recs: [], relays: [], bad: [], note: '' };
+      blocks.forEach(function (b) { o.recs = o.recs.concat(b.recs); o.relays = o.relays.concat(b.relays); o.bad = o.bad.concat(b.bad); });
+      if (!bls.length) o.note = (sh.aoa || []).some(function (r) { return (r || []).some(function (v) { return cellS(v) !== ''; }); }) ? '「名前」「タイム（記録）」の見出しが見つかりません' : '空のシート';
+      else if (blocks.some(function (b) { return !b.event && b.map.event == null; })) o.note = '種目が分かりません（シート名か、表の左のセルに種目名を入れてください）';
+      return o;
+    });
+  }
+  /* v0.26.27 取り込む前の重複の確かめ：recs を、もう入っている記録 have（と、この取り込みの前の行）と比べる。
+     'dup'＝入力済み（同じ人・種目・日付・記録）、'maybe'＝重複かも（同じ人・種目・記録で日付か大会名が違う／無い、または同じ日・種目で記録が違う）、''＝新しい記録 */
+  function dupCheck(recs, have) {
+    var ek = function (r) { return eventKey(r).replace(/男子|女子|混合/g, ''); }, mv = function (r) { var m = markValue(r.mark); return m ? String(m.v) : nk(String(r.mark || '')).trim(); };
+    var idx = {}, add = function (r) { var k = nameKey(r.name || '') + '|' + ek(r); (idx[k] = idx[k] || []).push({ date: r.date || '', meet: nk(String(r.meet || '')).replace(/\s+/g, ''), mv: mv(r) }); };
+    (have || []).forEach(add);
+    return (recs || []).map(function (r) {
+      var k = nameKey(r.name || '') + '|' + ek(r), list = idx[k] || [], d = r.date || '', m = mv(r), mt = nk(String(r.meet || '')).replace(/\s+/g, ''), out = { st: '', why: '' };
+      if (nameKey(r.name || '') && list.some(function (x) { return x.date && x.date === d && x.mv === m; })) out = { st: 'dup', why: '同じ人・種目・日付・記録' };
+      else if (list.some(function (x) { return x.mv === m && (x.date !== d || !x.date || !d || x.meet !== mt); })) out = { st: 'maybe', why: '同じ人・種目・記録（日付か大会名が違う）' };
+      else if (list.some(function (x) { return d && x.date === d && x.mv !== m; })) out = { st: 'maybe', why: '同じ日・種目で記録が違う' };
+      add(r); return out;
+    });
+  }
   return { parsePdf: parsePdf, parseCells: parseCells, goldMobileStream: goldMobileStream, parsePlain: parsePlain, textToStream: textToStream, normEvent: normEvent, markValue: markValue, windApplies: windApplies, windClass: windClass, windNum: windNum,
     computeBests: computeBests, baseEvent: baseEvent, learnGenders: learnGenders, isRelay: isRelay, relayEvent: relayEvent, relayTeamBase: relayTeamBase, matchRelayTeam: matchRelayTeam, parseRelayGold: parseRelayGold, parseRelayPdf: parseRelayPdf, mergeRelays: mergeRelays, legsText: legsText, parseLegs: parseLegs, relayRecord: relayRecord, pbLookup: pbLookup, nameKey: nameKey, athleteKey: athleteKey, matchSchool: matchSchool, cleanMark: cleanMark, isTag: isTag, canonSchool: canonSchool, cyuTeam: cyuTeam, recId: recId, recIdLegacy: recIdLegacy, recIdV6: recIdV6, identityKey: identityKey, fullIdentity: fullIdentity, looseIdentity: looseIdentity, manualRecord: manualRecord, sanitizeRecord: sanitizeRecord, validDate: validDate, normManualWind: normManualWind, dedupe: dedupe, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
     guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText,
     eventCat: eventCat, divisionOf: divisionOf, divLabel: divLabel, eventKey: eventKey, eventKeyLabel: eventKeyLabel, shownWind: shownWind, hasMark: hasMark, sortAthletes: sortAthletes, kanaKey: kanaKey,
     setDivisionHints: setDivisionHints, rawDivisionOf: rawDivisionOf, genderOf: genderOf, divGroup: divGroup, disciplineOrder: disciplineOrder, groupEvents: groupEvents, gendersIn: gendersIn, GROUPS: GROUPS,
-    personKey: personKey, inferDivisions: inferDivisions, mapHeaders: mapHeaders, findHeaderRow: findHeaderRow, parseDateCell: parseDateCell, normImportMark: normImportMark, importRows: importRows, splitTable: splitTable, isTable: isTable, FIELD_LABELS: FIELD_LABELS, isFieldEvent: isFieldEvent };
+    personKey: personKey, inferDivisions: inferDivisions, mapHeaders: mapHeaders, findHeaderRow: findHeaderRow, parseDateCell: parseDateCell, normImportMark: normImportMark, dupCheck: dupCheck, sheetEvent: sheetEvent, sheetBlocks: sheetBlocks, importBlock: importBlock, importWorkbook: importWorkbook, importRows: importRows, splitTable: splitTable, isTable: isTable, FIELD_LABELS: FIELD_LABELS, isFieldEvent: isFieldEvent };
 })();
 if (typeof module !== 'undefined') module.exports = ResultParser;
