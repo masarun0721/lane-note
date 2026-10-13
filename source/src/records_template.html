@@ -41,6 +41,9 @@ __BASE_CSS__
 .xlmap label{display:flex;flex-direction:column;font-size:12.5px;font-weight:700;border:1px solid var(--line);border-radius:8px;padding:5px 6px;background:#fff}
 .xlmap label.got{border-color:#9cc9a8;background:#f2fbf4}.xlmap label.need{border-color:#e08b7a;background:#fff2ef}.xlmap label.off{color:var(--muted)}
 .xlmap select{font-size:14px;padding:4px;margin-top:2px;max-width:100%}
+@media (max-width:640px){.xlmap{grid-template-columns:1fr 1fr;gap:4px}.xlmap label{padding:3px 5px;font-size:12px}.xlmap select{font-size:13px;padding:2px;min-height:36px}
+  .xl .rb-row label{display:flex;flex-wrap:wrap;align-items:center;gap:4px;font-size:13px}.xl .rb-row input[type=text]{flex:1 1 140px;min-width:0}.xl .rb-rescue{padding:6px 8px}.xl .rb-rescue p{font-size:12.5px}
+  .xl .xlw{font-size:12px}.xl .rb-sample td,.xl .rb-sample th{padding:3px 4px}}
 .review{background:#fffaf0;border-color:#f0c36d}.review summary{cursor:pointer;font-size:15px}
 .rv{display:inline-block;background:#e67e22;color:#fff;font-size:12px;font-weight:800;border-radius:6px;padding:1px 7px}
 .rvlist{list-style:none;margin:6px 0 0;padding:0}.rvlist li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-top:1px solid #f3dfb5}
@@ -60,7 +63,7 @@ body.personal-on .tabs button[data-v="rank"],body.personal-on .tabs button[data-
 .ev-only select{font-size:15px}
 .rb-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .rb-row input[type=text],.rb-row input[type=date],.rb-row select{font-size:15px;padding:6px 8px;border:1px solid #c9d2e0;border-radius:8px}
-.rb-rescue{background:#fff8e1;border:1px solid #e0c060;border-radius:8px;padding:8px 10px;margin:8px 0}.rb-rescue p{margin:0 0 6px}.rb-sample td,.rb-sample th{font-size:12px;white-space:nowrap}
+.adm-row{display:block;margin:.3em 0}.rl-list{padding-left:1.4em}.rl-list li{margin:6px 0}.rl-leg{display:inline-block;background:#eef2f8;border-radius:6px;padding:0 6px;margin:1px 0}.rl-ev{margin:10px 0 2px}.rl-legs input{width:8.5em}.rl-form{border-top:1px dashed #ccd;margin-top:8px;padding-top:6px}.pbt{font-size:11px;background:#c8452b;color:#fff;border-radius:4px;padding:0 4px}#tpHead{display:none}body:not(.team-page) #tpGate{display:none!important}body.team-page #tpHead{display:block}body.team-page main>:not(.box:first-of-type),body.team-page .tagline,body.team-page .beta-line{display:none!important}body.team-page main>.box:first-of-type>:not(#rbAuth):not(#rbAuthStatus):not(#rbTeam):not(#tpHead):not(#tpGate){display:none!important}.tm-mini{align-items:center;gap:8px;margin:6px 0}.tb-team.on{background:var(--navy);color:#fff!important}.rb-rescue{background:#fff8e1;border:1px solid #e0c060;border-radius:8px;padding:8px 10px;margin:8px 0}.rb-rescue p{margin:0 0 6px}.rb-sample td,.rb-sample th{font-size:12px;white-space:nowrap}
 #rbPaste{width:100%;min-height:110px;font-size:13px;border:1px solid #c9d2e0;border-radius:8px;padding:8px;font-family:inherit}
 .rb-batch{border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:12px;background:#fffdfb}
 .rb-batch h3{margin:0 0 6px;font-size:15px}
@@ -304,11 +307,13 @@ tr.rc.editing td{background:#fff3ec!important}
   <p class="tagline">記録：大会の結果から、自校の記録と自己ベストをためていく</p>
   <nav class="pagenav" aria-label="ページ"><a href="records.html" class="on" aria-current="page">📒 記録</a><a href="index.html">🏁 大会準備</a><a href="check.html">✅ 照合</a></nav>
 </header>
-<div class="topbar">__CHANGELOG__<a href="guide.html" class="tb-btn tb-guide">🔰 はじめての人はこちら</a><a href="try.html" class="tb-btn tb-guide tb-try">⏱ 3分体験</a><a href="guide.html#manual" class="tb-btn tb-guide tb-manual">📖 マニュアル</a><button type="button" class="tb-btn fb-link" data-feedback="1">🚨 不具合・要望を送る</button>__MODEBTN__</div>
+<div class="topbar">__CHANGELOG__<a href="guide.html" class="tb-btn tb-guide">🔰 はじめての人はこちら</a>__TOPLINKS__<a href="guide.html#manual" class="tb-btn tb-guide tb-manual">📖 マニュアル</a><button type="button" class="tb-btn fb-link" data-feedback="1">🚨 不具合・要望を送る</button>__MODEBTN__</div>
 __MODEPICK__
 <p class="beta-line">⚠️ 試作版です。内容は元資料でも確認してください</p>
 <main>
 <section class="box">
+  <div id="tpHead"><h2>👥 チームの設定</h2><p class="small">チームを作る・参加コードで入る、メンバーと役割、参加コード、引き継ぎ、見える人とリンクをここで扱います。<a href="records.html">📒 記録のページへ戻る</a></p></div>
+  <p id="tpGate" class="tm-warn">チームの設定は、顧問・マネージャーの方が<b>Googleでログイン</b>してから使います（選手・保護者の方は使いません）。</p>
   <h2><span class="no">1</span>学校・クラブ名と結果の資料</h2>
   <p class="privacy-line">🔒 ログインすると自分専用のクラウドに保存（ほかの人には見えません。「チームで共有」を使ったときだけ、そのチームのメンバーに見えます）。ログインなしはこの端末だけ。「URLから読み込む」のときは、URLと中身が LANE NOTE の中継を通ります（保存しません）。利用回数だけを数えます（個人の情報は集めません）。詳しくは <a href="guide.html#data">はじめての人はこちら</a></p>
   <div class="rb-row" id="rbAuth" style="margin:10px 0;align-items:center">
@@ -431,6 +436,7 @@ __FEEDBACK__
 </script>
 <script>
 __RESULTS__
+__ROSTER__
 </script>
 <script>
 var APP_VERSION = "__VERSION__", REC_VERSION = "__REC_VERSION__";

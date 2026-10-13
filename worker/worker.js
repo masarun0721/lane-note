@@ -52,6 +52,8 @@ export default {
     const h = baseHeaders(okOrigin ? origin : ALLOWED_ORIGINS[0]);
     if (request.method === "OPTIONS") return new Response(null, { status: okOrigin ? 204 : 403, headers: h });
     if (request.method !== "GET") return txt("GET only", 405, h);
+    // v0.26.9 非常停止：Cloudflare の環境変数 RELAY_OFF を "1" にすると、中継を止める（コードの再デプロイなしで切りかえられる）
+    if (env && env.RELAY_OFF === "1") return txt("paused", 503, h);
     if (!okOrigin) return txt("forbidden", 403, h);
     // v0.25.2：環境変数 REQUIRE_LIMITER="1" のときは、LIMITER の設定がなければ 503（費用の上限を必須にする）
     if (env && env.REQUIRE_LIMITER === "1" && !(env.LIMITER && env.LIMITER.limit)) return txt("limiter not configured", 503, h);

@@ -15,7 +15,8 @@
     login: 'ログインが必要なページのようです。そのページを開いてPDFをダウンロードし、枠に入れてください',
     blocked: 'このアドレスは読み込めません',
     host: 'このサイトは LANE NOTE の中継に登録されていないので読み込めません。ページを開いてPDFを保存し、枠に入れてください（よく使うサイトなら「不具合・要望を送る」で知らせてください）',
-    many: '短い時間に何度も読み込んだので、少し待ってからもう一度ためしてください'
+    many: '短い時間に何度も読み込んだので、少し待ってからもう一度ためしてください',
+    paused: 'いまは管理者が「URLから読み込む」を一時停止しています。PDFをダウンロードして、枠に入れてください'
   };
   function isUrlOnly(t) { return /^\s*https?:\/\/\S+\s*$/i.test(String(t || '')); }
   function normUrl(s) {
@@ -70,6 +71,7 @@
     if (res.status === 415) throw err('type');
     if (res.status === 401 || res.status === 407) throw err('login');
     if (res.status === 429) throw err('many');
+    if (res.status === 503) { var t5 = await safeText(res); throw err(/paused/.test(t5) ? 'paused' : 'net'); }
     if (res.status === 403) { var t3 = await safeText(res); throw err(/host not allowed/.test(t3) ? 'host' : /forbidden/.test(t3) ? 'net' : 'login'); }
     if (res.status === 404 || res.status === 410) throw err('notfound');
     if (res.status === 400) { var bt = await safeText(res); throw err(/blocked/.test(bt) ? 'blocked' : 'bad'); }
@@ -209,6 +211,9 @@
   /* 画面の部品
      mount(el, { id, targets:[{k,label,re}], accept:['pdf'] or ['pdf','html'], multiple, onFiles(filesByTarget, ctx) , begin() → ctx })
      targets が2つ以上のときは、リンクごとに「どこに入れるか」を選ぶ */
+  // v0.26.9：管理者が「URLから読み込む」を止めているとき（config/flags の relay=false）。空文字で再開
+  var PAUSED = '';
+  function setPaused(msg) { PAUSED = String(msg || ''); }
   function mount(el, o) {
     var id = o.id, multi = o.targets.length > 1, acceptHtml = o.accept.indexOf('html') >= 0;
     el.classList.add('url-load');
@@ -227,6 +232,7 @@
     }
     async function go(url) {
       if (busy) return; url = url != null ? url : $('Url').value;
+      if (PAUSED) { st(PAUSED, 'ng'); return; }
       var u = normUrl(url); if (!u) { st('✖ ' + MSG.bad, 'ng'); return; }
       $('Url').value = u; $('Links').hidden = true; $('Links').innerHTML = '';
       var ctx = o.begin ? o.begin() : null;   // 記録：押した時点の scope を最後まで持ち回る（A01）
@@ -329,7 +335,7 @@
     }
     return { go: go, offer: offer, setTarget: function (k) { if (multi) $('Tgt').value = k; } };
   }
-  var api = { PROXY: PROXY, MAX: MAX, MSG: MSG, isUrlOnly: isUrlOnly, normUrl: normUrl, sniff: sniff, decodeHtml: decodeHtml, fetchUrl: fetchUrl, toFile: toFile, findLinks: findLinks, guessTarget: guessTarget, isMeetPage: isMeetPage, crawlMeet: crawlMeet, MAX_CRAWL: MAX_CRAWL, fileName: fileName, mount: mount };
+  var api = { PROXY: PROXY, MAX: MAX, MSG: MSG, isUrlOnly: isUrlOnly, normUrl: normUrl, sniff: sniff, decodeHtml: decodeHtml, fetchUrl: fetchUrl, toFile: toFile, findLinks: findLinks, guessTarget: guessTarget, isMeetPage: isMeetPage, crawlMeet: crawlMeet, setPaused: setPaused, MAX_CRAWL: MAX_CRAWL, fileName: fileName, mount: mount };
   if (typeof module === 'object' && module.exports) module.exports = api;
   root.LaneUrl = api;
 })(typeof window !== 'undefined' ? window : globalThis);

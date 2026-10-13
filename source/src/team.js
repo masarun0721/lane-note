@@ -33,7 +33,7 @@ var LaneTeam = (function () {
   function strip(r) { var o = {}; Object.keys(r || {}).forEach(function (k) { if (META.indexOf(k) < 0) o[k] = r[k]; }); return o; }
   function docId(id) { return String(id).replace(/\//g, '∕'); }
   /* v0.26.1（C404）：記録の形（firestore.rules の validRecShape と同じ）。決まった項目だけを残し、型と長さを確かめる */
-  var STR = { id: 400, name: 120, kana: 120, grade: 120, team: 120, event: 120, round: 120, mark: 120, wind: 120, comment: 300, meet: 120, date: 120, src: 300, savedAt: 120, updatedAt: 120, lane: 120, bib: 120, sex: 120, dupOf: 400, warn: 300 };
+  var STR = { id: 400, name: 120, kana: 120, grade: 120, team: 120, event: 120, round: 120, mark: 120, wind: 120, comment: 300, meet: 120, date: 120, src: 300, savedAt: 120, updatedAt: 120, lane: 120, bib: 120, sex: 120, dupOf: 400, warn: 300, aid: 11, legs: 300 };
   var NUM = ['heat', 'rank', 'overall', 'order'];
   // 正しい形に直せないときは null（del=true のときは必須項目なしで、使える項目だけ残す）
   function shape(r, del) {
@@ -97,16 +97,21 @@ var LaneTeam = (function () {
     }
     async function codes(t) {
       ok(); var s = await srvDocs(col('teams', t, 'codes')); ok(); var out = {};
-      s.forEach(function (x) { var v = x.data(), me = v.mexp ? v.mexp.toMillis() : null; out[v.role] = { code: codeStr(t, x.id, me), id: x.id, mexp: me }; });
+      s.forEach(function (x) { var v = x.data(), me = v.mexp ? v.mexp.toMillis() : null; out[v.role] = { code: codeStr(t, x.id, me), id: x.id, mexp: me, exp: v.exp ? v.exp.toMillis() : null, max: v.max || null, used: v.used || 0, approve: !!v.approve }; });
       return out;
     }
     // 作り直す：同じ役割の古いコードを消して、新しいコードを1つ作る（古いコードはもう使えない）
-    async function regen(t, role, mexpMs) {
+    // v0.26.9 opt：{ exp:コードの期限(ms), max:使える回数, approve:顧問の承認が要る }
+    async function regen(t, role, mexpMs, opt) {
+      opt = opt || {};
       ok(); var s = await srvDocs(col('teams', t, 'codes')); ok();
       var b = F.writeBatch(fs);
       s.forEach(function (x) { if ((x.data() || {}).role === role) b.delete(x.ref); });
       var sec = newSecret(), v = { role: role, createdAt: F.serverTimestamp(), by: uid }, me = null;
       if (role === 'manager') { me = snapEnd(mexpMs || schoolYearEnd()); v.mexp = F.Timestamp.fromMillis(me); }
+      if (opt.exp) v.exp = F.Timestamp.fromMillis(snapEnd(opt.exp));
+      if (opt.max) { v.max = Math.max(1, Math.min(100, Math.floor(opt.max))); v.used = 0; }
+      if (opt.approve) v.approve = true;
       b.set(d('teams', t, 'codes', sec), v);
       await commit(b);
       return codeStr(t, sec, me);
@@ -119,19 +124,28 @@ var LaneTeam = (function () {
       catch (e) { if (e && e.code === 'permission-denied') { var er = new Error('続けて試すことはできません。10秒ほど待ってから、もう一度押してください'); er.code = 'too-fast'; throw er; } throw e; }
       var v = { role: c.role, name: myName, joinedAt: F.serverTimestamp() };   // v0.26.1（C401）：秘密は members に入れない（joinTries だけ）
       if (c.role === 'manager') v.expiresAt = F.Timestamp.fromMillis(c.mexp);
-      try { await F.setDoc(d('teams', c.team, 'members', uid), v); ok(); }
-      catch (e) { if (e && e.code === 'permission-denied') { var e2 = new Error('このコードでは入れませんでした（コードのまちがい・作り直された・期限の書きかえ などが考えられます）'); e2.code = 'bad-code'; throw e2; } throw e; }
+      // v0.26.9：承認が要るコード・回数の制限があるコードかは、入ってみないとわからない（コードの中身は顧問しか読めない）。
+      //   ふつう → 回数つき → 承認つき → 承認＋回数つき の順に試す（ルールが合うものだけ通す）
+      var tries = [{ pend: false, used: false }, { pend: false, used: true }, { pend: true, used: false }, { pend: true, used: true }], done = null, last = null;
+      for (var i = 0; i < tries.length && !done; i++) {
+        var tr = tries[i], mv = Object.assign({}, v); if (tr.pend) { mv.role = 'pending'; mv.want = c.role; }
+        var b = F.writeBatch(fs); b.set(d('teams', c.team, 'members', uid), mv);
+        if (tr.used) b.update(d('teams', c.team, 'codes', c.secret), { used: F.increment(1) });
+        try { await b.commit(); ok(); done = tr; } catch (e) { if (!(e && (e.code === 'permission-denied' || e.code === 'not-found'))) throw e; last = e; }
+      }
+      if (!done) { var e2 = new Error('このコードでは入れませんでした（コードのまちがい・作り直された・期限切れ・使える回数を使い切った・期限の書きかえ などが考えられます）'); e2.code = 'bad-code'; throw e2; }
+      if (done.pend) { await F.setDoc(d('users', uid, 'teams', c.team), { name: '', role: 'pending', at: new Date().toISOString() }); ok(); return { team: c.team, role: 'pending', want: c.role, name: '' }; }
       var a = await srvDoc(d('teams', c.team)); ok();
       await F.setDoc(d('users', uid, 'teams', c.team), { name: a.data().name, role: c.role, at: new Date().toISOString() }); ok();
       return { team: c.team, role: c.role, name: a.data().name };
     }
     async function members(t) {
       ok(); var s = await srvDocs(col('teams', t, 'members')); ok(); var out = [];
-      s.forEach(function (x) { var v = x.data(); out.push({ uid: x.id, role: v.role, name: v.name, expiresAt: v.expiresAt ? v.expiresAt.toMillis() : null, joinedAt: v.joinedAt ? v.joinedAt.toMillis() : null }); });
+      s.forEach(function (x) { var v = x.data(); out.push({ uid: x.id, role: v.role, want: v.want || '', name: v.name, expiresAt: v.expiresAt ? v.expiresAt.toMillis() : null, joinedAt: v.joinedAt ? v.joinedAt.toMillis() : null }); });
       return out.sort(function (a, b) { return (a.role === b.role ? 0 : a.role === 'coach' ? -1 : 1) || (a.joinedAt || 0) - (b.joinedAt || 0); });
     }
     async function setRole(t, who, role, expMs) {
-      var v = { role: role }; v.expiresAt = role === 'manager' ? F.Timestamp.fromMillis(expMs || schoolYearEnd()) : F.deleteField();
+      var v = { role: role, want: F.deleteField() }; v.expiresAt = role === 'manager' ? F.Timestamp.fromMillis(expMs || schoolYearEnd()) : F.deleteField();
       ok(); await F.updateDoc(d('teams', t, 'members', who), v); ok();
     }
     // v0.26.1（C402）：外す・外した印・その役割のコードの作り直しを、1回のまとめ書きで（途中で失敗しても、どれかだけが残らない）
@@ -148,6 +162,10 @@ var LaneTeam = (function () {
       b.set(d('teams', t, 'codes', sec), v);
       await commit(b);
     }
+    // v0.26.9 承認待ちの人：承認（want の役割にする）・断る（消す）
+    async function approve(t, who, m) { return setRole(t, who, m.want, m.want === 'manager' ? m.expiresAt : null); }
+    async function reject(t, who) { ok(); await F.deleteDoc(d('teams', t, 'members', who)); ok(); }
+    async function myStatus(t) { ok(); var m = await srvDoc(d('teams', t, 'members', uid)); ok(); return m.exists() ? m.data().role : null; }
     async function banned(t) { ok(); var s = await srvDocs(col('teams', t, 'banned')); ok(); var out = []; s.forEach(function (x) { var v = x.data(); out.push({ uid: x.id, name: v.name, at: v.at ? v.at.toMillis() : null }); }); return out; }
     async function unban(t, who) { ok(); await F.deleteDoc(d('teams', t, 'banned', who)); ok(); }
     async function leave(t) { ok(); await F.deleteDoc(d('teams', t, 'members', uid)); ok(); await F.deleteDoc(d('users', uid, 'teams', t)); ok(); }
@@ -215,7 +233,7 @@ var LaneTeam = (function () {
       catch (e) { if (e && e.code === 'bad-record') { var e2 = new Error('この変更は、元の内容の形が正しくないため、そのままでは戻せません（元の内容は変更履歴に残っています）'); e2.code = 'bad-record'; throw e2; } throw e; }
     }
     return { myTeams: myTeams, info: info, createTeam: createTeam, codes: codes, regen: regen, join: join, members: members, setRole: setRole, remove: remove, leave: leave, forget: forget, transfer: transfer, rename: rename,
-      banned: banned, unban: unban, repair: repair, getRecords: getRecords, put: put, edit: edit, del: del, confirm: confirm, history: history, revert: revert, write: write };
+      banned: banned, unban: unban, approve: approve, reject: reject, myStatus: myStatus, repair: repair, getRecords: getRecords, put: put, edit: edit, del: del, confirm: confirm, history: history, revert: revert, write: write };
   }
   return { make: make, shape: shape, validRec: validRec, parseCode: parseCode, ymd: ymd, snapEnd: snapEnd, codeStr: codeStr, schoolYearEnd: schoolYearEnd, strip: strip, newSecret: newSecret, META: META };
 })();

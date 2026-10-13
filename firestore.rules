@@ -16,6 +16,12 @@ rules_version = '2';
 //   記録（teams/{T}/records）は書くたびに変更履歴（teams/{T}/hist）を同じまとめ書きで残す（前と後の中身をルールで照合）。消すのは「削除の印」だけ。
 //   マネージャーが書いた記録は必ず「未確認」（_st:'pending'）。「確認済み」（'ok'）にできるのは顧問だけ。
 //   チームの持ち主（ownerUid）を変えられるのは持ち主だけで、渡す相手はチームの顧問だけ。
+// ・v0.26.11 記録に aid（選手台帳のID・A＋10文字）と legs（リレーの走順・300文字まで）を追加
+// ・v0.26.9 安全面：
+//   config/flags（機能の一時停止）：だれでも読める。書けるのは管理者（admins/{uid} がある人。admins は Firebase コンソールでだけ作る）。
+//     talk=false でやり取り（選手の読み書き・新しい会話）、share=false で短いリンクの新規作成、counter=false で利用カウンターを止める（記録はそのまま見られる）。
+//     relay（URLから読み込む）は画面で止める（中継そのものは Worker の環境変数 RELAY_OFF=1 で止める）。
+//   参加コードの制限：期限（exp）・使える回数（max／used）・顧問の承認（approve）。承認が要るコードで入った人は role:'pending'（何も読めない）で、顧問が承認すると want の役割になる。
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() {
@@ -77,6 +83,25 @@ service cloud.firestore {
         && d.uid == request.auth.uid;
     }
 
+    // v0.26.9 flags ここから 機能の一時停止（config/flags）。文書が無い・項目が無いときは「使える」
+    function flagsPath() {
+      return /databases/$(database)/documents/config/flags;
+    }
+    function featureOn(k) {
+      return !exists(flagsPath()) || get(flagsPath()).data.get(k, true) != false;
+    }
+    function isAdmin() {
+      return googleUser() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+    function validFlags(d) {
+      return d.keys().hasOnly(['talk', 'relay', 'counter', 'share', 'note', 'at', 'by'])
+        && d.keys().hasAll(['talk', 'relay', 'counter', 'share', 'at', 'by'])
+        && d.talk is bool && d.relay is bool && d.counter is bool && d.share is bool
+        && optionalText(d, 'note', 200)
+        && d.at == request.time
+        && d.by == request.auth.uid;
+    }
+    // v0.26.9 flags ここまで
     // v0.24 talks ここから（v0.25 で作り直し：Astra 第3回監査 C301・C303・C304・C307）
     function validTalkId(id) {
       return id.matches('^[A-Za-z0-9]{20}$');
@@ -97,7 +122,8 @@ service cloud.firestore {
         && d.expiresAt is timestamp
         && request.time < d.expiresAt
         && request.time < d.createdAt + duration.value(120, 'd')
-        && teamOn(d.ownerUid);
+        && teamOn(d.ownerUid)
+        && featureOn('talk');
     }
     function talkOwner(d) {
       return signedIn() && d.ownerUid == request.auth.uid;
@@ -184,6 +210,23 @@ service cloud.firestore {
     function validName(n) {
       return n is string && n.size() >= 1 && n.size() <= 40;
     }
+    // v0.26.9 参加コードの制限：期限（exp）・回数（max/used）。承認が要るコード（approve）は role:'pending' で入る
+    function codeOk(c, after) {
+      return (!('exp' in c) || request.time < c.exp)
+        && (!('max' in c) || (after.get('used', -1) == c.get('used', 0) + 1 && after.used <= c.max));
+    }
+    function validCodeNew(d) {
+      return d.keys().hasAll(['role', 'createdAt', 'by'])
+        && d.keys().hasOnly(['role', 'createdAt', 'by', 'mexp', 'exp', 'max', 'used', 'approve'])
+        && d.role in ['coach', 'manager']
+        && d.createdAt == request.time
+        && d.by == request.auth.uid
+        && (d.role == 'coach' ? !('mexp' in d) : validMexp(d.mexp))
+        && (!('exp' in d) || (d.exp is timestamp && d.exp > request.time && d.exp <= request.time + duration.value(400, 'd')))
+        && (!('max' in d) || (d.max is int && d.max >= 1 && d.max <= 100 && d.used is int && d.used == 0))
+        && (!('used' in d) || 'max' in d)
+        && (!('approve' in d) || d.approve is bool);
+    }
     // マネージャーの期限は「今より後・400日以内」
     function validMexp(x) {
       return x is timestamp && x > request.time && x <= request.time + duration.value(400, 'd');
@@ -201,7 +244,7 @@ service cloud.firestore {
     }
     function validRecShape(rid, d) {
       return d.keys().hasOnly(['id', 'name', 'kana', 'grade', 'team', 'event', 'round', 'mark', 'wind', 'comment', 'meet', 'date', 'src', 'savedAt', 'updatedAt', 'lane', 'bib', 'sex', 'dupOf', 'warn',
-          'heat', 'rank', 'overall', 'order', 'manual', '_by', '_at', '_st', '_h', '_del'])
+          'heat', 'rank', 'overall', 'order', 'manual', '_by', '_at', '_st', '_h', '_del', 'aid', 'legs'])
         && d.id is string && d.id.size() >= 1 && d.id.size() <= 400
         && rid == d.id.replace('/', '∕')
         && (d.get('_del', false) == true
@@ -213,7 +256,8 @@ service cloud.firestore {
         && optStr(d, 'date', 120) && optStr(d, 'src', 300) && optStr(d, 'savedAt', 120) && optStr(d, 'updatedAt', 120) && optStr(d, 'lane', 120)
         && optStr(d, 'bib', 120) && optStr(d, 'sex', 120) && optStr(d, 'dupOf', 400) && optStr(d, 'warn', 300)
         && optNum(d, 'heat') && optNum(d, 'rank') && optNum(d, 'overall') && optNum(d, 'order')
-        && (!('manual' in d) || d.manual is bool);
+        && (!('manual' in d) || d.manual is bool)
+        && (!('aid' in d) || (d.aid is string && d.aid.matches('^A[A-Za-z0-9]{10}$'))) && optStr(d, 'legs', 300);   // v0.26.11 選手台帳のID・リレーの走順
     }
     function validTeamRecord(t, rid, d) {
       return validRecShape(rid, d)
@@ -261,7 +305,8 @@ service cloud.firestore {
       allow get: if validShareId(shareId) && shareReadable(resource.data);
       allow list: if false;
       allow create: if googleUser() && validShareId(shareId)
-        && validShare(request.resource.data);
+        && validShare(request.resource.data)
+        && featureOn('share');
       allow update: if false;
       // Owners can delete even after expiry. No client may change ownership.
       allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
@@ -271,7 +316,7 @@ service cloud.firestore {
       allow get: if validTalkId(tid) && (talkOpen(resource.data) || talkOwner(resource.data));
       allow list: if false;
       // 一度使ったIDは本体を消さない（閉じた印として残す）ので、同じIDで作り直せない（C301）
-      allow create: if googleUser() && validTalkId(tid) && validTalkNew(request.resource.data);
+      allow create: if googleUser() && validTalkId(tid) && validTalkNew(request.resource.data) && featureOn('talk');
       allow update: if validTalkId(tid) && (
         (talkOwner(resource.data) && validTalkManage(request.resource.data, resource.data))
         || validCounter(tid, request.resource.data, resource.data));
@@ -328,13 +373,15 @@ service cloud.firestore {
         function joinTry() {
           return get(/databases/$(database)/documents/joinTries/$(uid)).data;
         }
-        allow get, list: if activeMember(t);
+        allow list: if activeMember(t);
+        // v0.26.9：承認待ち（pending）の本人は、自分の文書だけ読める（承認されたかを知るため）
+        allow get: if activeMember(t) || (signedIn() && uid == request.auth.uid);
         // ① チームを作った本人（顧問）② 参加コードで入る本人（直前に joinTries にそのコードを書いてあること）
         // v0.26.1（C401）：参加の秘密は members に入れない（全員が読めるため）。照合は本人だけが読める joinTries の code を使う
         // v0.26.1（C402）：外された人（banned）は、顧問が「再参加を許可」するまで入れない
         allow create: if googleUser() && validTeamId(t) && uid == request.auth.uid
           && request.resource.data.keys().hasAll(['role', 'name', 'joinedAt'])
-          && request.resource.data.keys().hasOnly(['role', 'name', 'joinedAt', 'expiresAt'])
+          && request.resource.data.keys().hasOnly(['role', 'name', 'joinedAt', 'expiresAt', 'want'])
           && validName(request.resource.data.name)
           && request.resource.data.joinedAt == request.time
           && (
@@ -345,15 +392,23 @@ service cloud.firestore {
               && joinTry().team == t
               && request.time < joinTry().lastAt + duration.value(2, 'm')
               && exists(/databases/$(database)/documents/teams/$(t)/codes/$(joinTry().code))
-              && get(/databases/$(database)/documents/teams/$(t)/codes/$(joinTry().code)).data.role == request.resource.data.role
-              && (request.resource.data.role == 'coach'
+              && codeOk(get(/databases/$(database)/documents/teams/$(t)/codes/$(joinTry().code)).data,
+                        getAfter(/databases/$(database)/documents/teams/$(t)/codes/$(joinTry().code)).data)
+              && (get(/databases/$(database)/documents/teams/$(t)/codes/$(joinTry().code)).data.get('approve', false) == true
+                  ? (request.resource.data.role == 'pending'
+                     && request.resource.data.want == get(/databases/$(database)/documents/teams/$(t)/codes/$(joinTry().code)).data.role)
+                  : (get(/databases/$(database)/documents/teams/$(t)/codes/$(joinTry().code)).data.role == request.resource.data.role
+                     && !('want' in request.resource.data)))
+              && (get(/databases/$(database)/documents/teams/$(t)/codes/$(joinTry().code)).data.role == 'coach'
                   ? !('expiresAt' in request.resource.data)
                   : request.resource.data.expiresAt == get(/databases/$(database)/documents/teams/$(t)/codes/$(joinTry().code)).data.mexp))
           );
         // 顧問：ほかの人の役割・期限を変えられる（持ち主は顧問のまま）。本人：名前だけ
         allow update: if (isCoach(t) && uid != request.auth.uid
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'expiresAt'])
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'expiresAt', 'want'])
             && request.resource.data.role in ['coach', 'manager']
+            && !('want' in request.resource.data)
+            && (resource.data.role != 'pending' || request.resource.data.role == resource.data.want)
             && (request.resource.data.role == 'coach' || request.resource.data.expiresAt is timestamp)
             && (request.resource.data.role == 'coach' || request.resource.data.expiresAt <= request.time + duration.value(400, 'd'))
             && uid != teamOwnerUid(t) && uid != getAfter(teamDoc(t)).data.ownerUid)
@@ -364,6 +419,7 @@ service cloud.firestore {
         // v0.26.1（C402）：顧問が外すときは、同じまとめ書きで banned に入れる（外したあと同じコードで戻れない）。C406：処理後の持ち主も外せない
         allow delete: if uid != teamOwnerUid(t) && uid != getAfter(teamDoc(t)).data.ownerUid
           && ((isCoach(t) && uid != request.auth.uid && existsAfter(/databases/$(database)/documents/teams/$(t)/banned/$(uid)))
+              || (isCoach(t) && resource.data.role == 'pending')
               || (signedIn() && uid == request.auth.uid));
       }
       // v0.26.1（C402）：外した人の印。顧問だけが見る・作る・消す（消す＝再参加を許可）
@@ -381,14 +437,17 @@ service cloud.firestore {
       // 参加コード（文書のIDが秘密の24文字）：顧問だけが見る・作る・消す
       match /codes/{code} {
         allow get, list: if isCoach(t);
-        allow create: if isCoach(t) && code.matches('^[A-Za-z0-9]{24}$')
-          && request.resource.data.keys().hasAll(['role', 'createdAt', 'by'])
-          && request.resource.data.keys().hasOnly(['role', 'createdAt', 'by', 'mexp'])
-          && request.resource.data.role in ['coach', 'manager']
-          && request.resource.data.createdAt == request.time
-          && request.resource.data.by == request.auth.uid
-          && (request.resource.data.role == 'coach' ? !('mexp' in request.resource.data) : validMexp(request.resource.data.mexp));
-        allow update: if false;
+        allow create: if isCoach(t) && code.matches('^[A-Za-z0-9]{24}$') && validCodeNew(request.resource.data);
+        // v0.26.9：回数の制限があるコードは、入る本人が同じまとめ書きで used を1増やす（ほかの項目は変えられない）
+        allow update: if signedIn() && 'max' in resource.data
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['used'])
+          && request.resource.data.used is int
+          && request.resource.data.used == resource.data.used + 1
+          && request.resource.data.used <= resource.data.max
+          && get(/databases/$(database)/documents/joinTries/$(request.auth.uid)).data.team == t
+          && get(/databases/$(database)/documents/joinTries/$(request.auth.uid)).data.code == code
+          && !exists(memberPath(t, request.auth.uid))
+          && existsAfter(memberPath(t, request.auth.uid));
         allow delete: if isCoach(t);
       }
       // 記録：メンバー（顧問・期限内のマネージャー）が読み書き。書くたびに履歴。消すのは「削除の印」（_del）だけ
@@ -439,11 +498,11 @@ service cloud.firestore {
       allow get: if sid == 'counter';
       allow list: if false;
       // v0.26.1（C407）：全体で2秒に1回まで（at＝前に数えた時刻）。水増し・書き込み回数の上限を決める（1日最大43200回）
-      allow create: if sid == 'counter'
+      allow create: if sid == 'counter' && featureOn('counter')
         && request.resource.data.keys().hasOnly(['n', 'at'])
         && request.resource.data.n is int && request.resource.data.n == 1
         && request.resource.data.at == request.time;
-      allow update: if sid == 'counter'
+      allow update: if sid == 'counter' && featureOn('counter')
         && request.resource.data.keys().hasOnly(['n', 'at'])
         && request.resource.data.n is int && resource.data.n is int
         && request.resource.data.n == resource.data.n + 1
@@ -452,6 +511,18 @@ service cloud.firestore {
       allow delete: if false;
     }
     // v0.25.4 stats ここまで
+    // v0.26.9 flags ここから だれでも読める・管理者だけが書ける。管理者の印（admins）はコンソールでだけ作る
+    match /config/{cid} {
+      allow get: if cid == 'flags';
+      allow list: if false;
+      allow create, update: if cid == 'flags' && isAdmin() && validFlags(request.resource.data);
+      allow delete: if false;
+    }
+    match /admins/{uid} {
+      allow get: if signedIn() && uid == request.auth.uid;
+      allow list, write: if false;
+    }
+    // v0.26.9 flags ここまで
     match /feedback/{id} {
       // Behaviour change: signed-out and Firebase-anonymous users cannot submit.
       allow create: if googleUser() && validFeedback(request.resource.data);

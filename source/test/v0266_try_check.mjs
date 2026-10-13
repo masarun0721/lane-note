@@ -38,4 +38,6 @@ await check('サンプルにいない学校名は、やさしく知らせて先�
   d.getElementById('trSchool').value = '架空第一高'; d.getElementById('trMake').click(); d.querySelector('[data-go="restart"]').click(); assert(d.getElementById('trPrep'));
 });
 await check('記録・大会準備・はじめての人のページから3分体験へ行ける', () => { for (const f of ['records.html', 'index.html', 'guide.html']) assert(fs.readFileSync(path.join(OUT, f), 'utf8').includes('href="try.html"'), f); });
+await check('v0.26.8 sw.js：3分体験も初回に保存する（電波なしでも開ける）', () => { const SW = fs.readFileSync(path.join(OUT, 'sw.js'), 'utf8'); assert.match(SW, /\.\/try\.html/); assert.match(SW, /getPage\(TRY\)/); });
+await check('v0.26.8 列を選ぶ画面：スマホでは2列で詰めて並べる', () => { const R = fs.readFileSync(path.join(OUT, 'records.html'), 'utf8'); assert.match(R, /@media \(max-width:640px\)\{\.xlmap\{grid-template-columns:1fr 1fr/); });
 console.log(ok + ' passed, ' + ng + ' failed'); if (ng) process.exit(1);

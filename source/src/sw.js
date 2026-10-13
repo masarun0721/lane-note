@@ -10,6 +10,8 @@ var REC = new URL('./records.html', self.location).href;
 var INDEX = new URL('./index.html', self.location).href;   // v0.25.8：大会準備のページ（トップ / は記録のページへ移る）
 var GUIDE = new URL('./guide.html', self.location).href;   // v0.18：はじめての人はこちら
 var CHECK = new URL('./check.html', self.location).href;   // v0.19：エントリー照合
+var TRY = new URL('./try.html', self.location).href;   // v0.26.8：3分体験
+var TEAMP = new URL('./team.html', self.location).href;   // v0.26.10：チームの設定
 function getPage(u) { return fetch(new Request(u, { cache: 'reload', credentials: 'same-origin' })).then(function (res) { if (!res || !res.ok) throw new Error('page fetch failed: ' + (res && res.status)); return res; }); }
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) {
@@ -21,6 +23,10 @@ self.addEventListener('install', function (e) {
       return getPage(GUIDE).then(function (res) { return c.put(GUIDE, res); }, function () { });
     }).then(function () {
       return getPage(CHECK).then(function (res) { return c.put(CHECK, res); }, function () { });
+    }).then(function () {
+      return getPage(TRY).then(function (res) { return c.put(TRY, res); }, function () { });
+    }).then(function () {
+      return getPage(TEAMP).then(function (res) { return c.put(TEAMP, res); }, function () { });
     });
   }).then(function () { return self.skipWaiting(); }));
 });
@@ -33,14 +39,15 @@ function offlineRecords() {
 self.addEventListener('fetch', function (e) {
   var r = e.request, u = new URL(r.url);
   if (r.method !== 'GET' || u.origin !== self.location.origin || r.mode !== 'navigate') return;
-  e.respondWith(fetch(r).then(function (res) {
+  // v0.26.10：ブラウザのHTTPキャッシュ（GitHub Pages は最大10分）に残った古いページを出さないよう、毎回サーバーに確かめる
+  e.respondWith(fetch(r, { cache: 'no-cache' }).then(function (res) {
     if (res && res.ok) { var cp = res.clone(); e.waitUntil(caches.open(CACHE).then(function (c) { return c.put(u.origin + u.pathname, cp); })); }
     return res;
   }).catch(function () {
     return caches.open(CACHE).then(function (c) {
       return c.match(u.origin + u.pathname).then(function (m) {
         if (m) return m;
-        if (/records\.html$/.test(u.pathname)) return offlineRecords();
+        if (/(records|team)\.html$/.test(u.pathname)) return offlineRecords();
         return c.match(PAGE);
       });
     });

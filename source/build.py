@@ -13,7 +13,7 @@ import base64, hashlib, html as htmlmod, json, pathlib, re, sys
 ROOT = pathlib.Path(__file__).resolve().parent
 S = ROOT / 'src'
 SHARE_BASE = 'https://masarun0721.github.io/lane-note/'   # 共有リンク・QRの公開アドレス（file:// で開いたとき用）
-VERSION = 'v0.26.7'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
+VERSION = 'v0.26.13'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
 # 作成日は版番号から取れないので固定（ビルドした日で変わると、公開時の一致検査ができないため）
 BUILD_DATE = '2026年10月12日'
 REC_VERSION = 'v0.11.1'   # LANE LOG（records.html）だけの版
@@ -75,12 +75,26 @@ def build():
     guide = build_guide()
     chk = build_check()
     trial = build_try()
+    # v0.26.10：全ページの見出しに「3分体験」「チーム」（チームは選手モードでは出さない）。チームの設定は team.html（記録のページと同じ部品で、チームの欄だけを出す）
+    html, rec, guide, chk = [x.replace('__TOPLINKS__', TOPLINKS) for x in (html, rec, guide, chk)]
+    team = build_team(rec)
     # v0.14（監査F13）：Service Worker のキャッシュ名に版とページの中身のハッシュを入れる（公開のたびに古いページが入れ替わる）
-    h = hashlib.sha256((html + rec + guide + chk + trial).encode('utf-8')).hexdigest()[:10]
+    h = hashlib.sha256((html + rec + guide + chk + trial + team).encode('utf-8')).hexdigest()[:10]
     sw = text('src/sw.js')
     assert '__CACHE__' in sw
     sw = sw.replace('__CACHE__', 'lanenote-page-%s-r%s-%s' % (VERSION, REC_VERSION, h))
-    return html, sw, rec, text('src/firebase-config.js'), guide, chk, trial
+    return html, sw, rec, text('src/firebase-config.js'), guide, chk, trial, team, build_intro()
+
+
+def build_intro():
+    """v0.26.13 導入説明（intro.html）：A4 1枚。印刷・PDFにして配る"""
+    g = text('src/intro_template.html')
+    rep = {'__FAVICON__': 'data:image/svg+xml;base64,' + b64('logo/option_A_icon.svg'), '__LOGO_DARK__': logo_inline('logo/option_A_dark.svg'),
+           '__VERSION__': VERSION, '__SITE__': SHARE_BASE, '__QRCODE__': text('vendor/qrcode.js')}
+    for k, v in rep.items():
+        assert k in g, k
+        g = g.replace(k, v)
+    return g
 
 
 def build_try():
@@ -182,13 +196,27 @@ def build_guide():
     return g
 
 
+TOPLINKS = ('<a href="try.html" class="tb-btn tb-guide tb-try">⏱ 3分体験</a>'
+            '<a href="team.html" class="tb-btn tb-guide tb-team">👥 チーム</a>'
+            '<style>body.ln-player .tb-team{display:none!important}</style>')
+
+
+def build_team(rec):
+    """v0.26.10 チームの設定ページ（team.html）：records.html と同じ中身に team-page の印をつけ、チームの欄だけを見せる"""
+    assert '<body class="records">' in rec and '<title>' in rec
+    t = rec.replace('<body class="records">', '<body class="records team-page">', 1)
+    t = re.sub(r'<title>[^<]*</title>', '<title>LANE NOTE チームの設定</title>', t, count=1)
+    t = t.replace('<a href="team.html" class="tb-btn tb-guide tb-team">', '<a href="team.html" class="tb-btn tb-guide tb-team on" aria-current="page">', 1)
+    return t
+
+
 def build_records(index_html):
     """LANE LOGのページ。見た目は大会準備のページと同じCSSを使う（template.html の <style> をそのまま入れる）"""
     base = text('src/template.html')
     css = base[base.index('<style>') + 7:base.index('</style>')]
     rec = text('src/records_template.html')
     rep = {
-        '__BASE_CSS__': css, '__RESULTS__': text('src/results.js'), '__RECAPP__': text('src/records_app.js'), '__URLLOAD__': text('src/urlload.js'), '__OVERLAY__': text('src/overlay.js'), '__PDFMAKE__': text('src/pdfmake.js'), '__PERSONAL__': text('src/personal.js'), '__TALK__': text('src/talk.js'), '__TEAM__': text('src/team.js'), '__PRINT__': text('src/print.js'), '__SHARE_BASE__': SHARE_BASE, '__FEEDBACK__': text('src/feedback.js'), '__AUTHCOMMON__': text('src/auth_common.js'),
+        '__BASE_CSS__': css, '__RESULTS__': text('src/results.js'), '__RECAPP__': text('src/records_app.js'), '__URLLOAD__': text('src/urlload.js'), '__OVERLAY__': text('src/overlay.js'), '__PDFMAKE__': text('src/pdfmake.js'), '__PERSONAL__': text('src/personal.js'), '__TALK__': text('src/talk.js'), '__TEAM__': text('src/team.js'), '__ROSTER__': text('src/roster.js'), '__PRINT__': text('src/print.js'), '__SHARE_BASE__': SHARE_BASE, '__FEEDBACK__': text('src/feedback.js'), '__AUTHCOMMON__': text('src/auth_common.js'),
         '__LOGO_DARK__': logo_inline('logo/option_A_dark.svg'),
         '__FAVICON__': 'data:image/svg+xml;base64,' + b64('logo/option_A_icon.svg'),
         '__APPLE_ICON__': 'data:image/png;base64,' + b64('logo/png/option_A_icon_180.png'),
@@ -200,7 +228,7 @@ def build_records(index_html):
     return rec
 
 
-OUTPUTS = ('index.html', 'sw.js', 'records.html', 'firebase-config.js', 'guide.html', 'check.html', 'try.html')   # 公開するファイル（--check もこれらを確かめる）
+OUTPUTS = ('index.html', 'sw.js', 'records.html', 'firebase-config.js', 'guide.html', 'check.html', 'try.html', 'team.html', 'intro.html')   # 公開するファイル（--check もこれらを確かめる）
 
 
 def write(out, *bodies):
