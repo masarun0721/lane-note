@@ -20,7 +20,7 @@ ok('v0.25.4 stats：読めるのは counter だけ・+1 だけ・削除と一覧
 ok('最後に全部を断る', () => assert.match(body, /match \/\{document=\*\*\} \{\s*allow read, write: if false;/));
 ok('最終案（/workspace の firestore.rules.final）と本文が同じ（比較元が無ければ SKIP）', () => {
   const f = '/workspace/astra_audit/firestore.rules.final'; if (!fs.existsSync(f)) return SKIP;
-  const strip = s => s.replace(/^\/\/.*$/gm, '').replace(/\s+/g, ' ').trim(); assert.equal(strip(rules.replace(/\/\/ v0\.24 talks ここから[\s\S]*?\/\/ v0\.24 talks ここまで\n/g, '').replace(/ *\/\/ v0\.25\.4 stats ここから[\s\S]*?\/\/ v0\.25\.4 stats ここまで\n/g, '')), strip(fs.readFileSync(f, 'utf8')));
+  const strip = s => s.replace(/^\/\/.*$/gm, '').replace(/\s+/g, ' ').trim(); assert.equal(strip(rules.replace(/\/\/ v0\.24 talks ここから[\s\S]*?\/\/ v0\.24 talks ここまで\n/g, '').replace(/ *\/\/ v0\.25\.4 stats ここから[\s\S]*?\/\/ v0\.25\.4 stats ここまで\n/g, '').replace(/ *\/\/ v0\.26 teams ここから[\s\S]*?\/\/ v0\.26 teams ここまで\n/g, '')), strip(fs.readFileSync(f, 'utf8')));
 });
 ok('アプリ：短いリンクの期限はルールの120日より短い（119日）', () => assert.match(app, /SHARE_DAYS = 119/));
 ok('アプリ：短いリンクの中身は 190000 文字まで・ID は10文字', () => { assert.match(app, /str\.length > 190000/); assert.match(app, /while \(out\.length < 10\)/); });

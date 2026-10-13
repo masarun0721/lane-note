@@ -192,7 +192,7 @@ await check('まとめて取り込むは「やめる」で止まり、何も取�
   d.querySelector('#ruLinks [data-stop]').click(); await delay(400);
   assert.match(d.getElementById('ruSt').textContent, /やめました/); assert.equal(d.getElementById('rbBatches').children.length, 0);
   const out = await L.crawlMeet({ url: G + 'kyougi.html', kind: 'html', html: many[G + 'kyougi.html'] }, { fetch: fakeFetch(many), delay: 0, max: 10 });
-  assert.equal(out.requests, 10); assert(out.failed.some(f => /上限/.test(f.error)));
+  assert.equal(out.requests, 10); assert(out.rest.length > 0 && !out.failed.length);
 });
 
 console.log('[v0.20-4] ビルド結果');

@@ -11,7 +11,8 @@ function expect(out, id, want) { const got = new RegExp('^(CONFIRMED|PASS) ' + i
   if (got === want) { pass++; console.log('  ok', id, want === 'FAIL' ? '（再現しない＝直った）' : '（安全側の対照が通る）'); } else { fail++; console.log('  NG', id, '期待', want, '実際', got); } }
 console.log('[v0.25 Astra 第3回の再現テスト]');
 const ui = run('ui_repro.mjs');
-expect(ui, 'U01', 'FAIL'); expect(ui, 'U06', 'FAIL'); ['U02', 'U03', 'U04', 'U05'].forEach(u => expect(ui, u, 'CONFIRMED'));
+// v0.26.2（Q251）：U01・U06 は ui_safe.mjs で安全な状態を直接 assert（PASS が必要。FAIL を合格にしない）
+const safe = run('ui_safe.mjs'); expect(safe, 'U01', 'CONFIRMED'); expect(safe, 'U06', 'CONFIRMED'); ['U02', 'U03', 'U04', 'U05'].forEach(u => expect(ui, u, 'CONFIRMED'));
 const wk = run('worker_repro.mjs');
 if (/^CONFIRMED W01:/m.test(wk) || !/403 !== 200/.test(wk)) { fail++; console.log('  NG W01 が再現する（Origin なしで任意のサイトにつながる）'); } else { pass++; console.log('  ok W01（再現しない。W02〜W09 は v025_worker_check.mjs で個別に確認）'); }
 // v0.25.2（Astra 再確認 Q251）：talks_repro（T系）は v0.24 形式の準備が v0.25 のルールで先に拒否されるため、

@@ -127,8 +127,8 @@
       var day = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'), last = null;
       try { last = localStorage.getItem(COUNT_KEY); } catch (e) { }
       if (last !== day) {
-        try { await F.updateDoc(ref, { n: F.increment(1) }); }
-        catch (e) { if (e && e.code === 'not-found') await F.setDoc(ref, { n: 1 }); else throw e; }
+        try { await F.updateDoc(ref, { n: F.increment(1), at: F.serverTimestamp() }); }
+        catch (e) { if (e && e.code === 'not-found') await F.setDoc(ref, { n: 1, at: F.serverTimestamp() }); else if (!(e && e.code === 'permission-denied')) throw e; }   // v0.26.1（C407）：全体で2秒に1回まで。ほかの人とぶつかったときは数えずに表示だけ
         try { localStorage.setItem(COUNT_KEY, day); } catch (e) { }
       }
       var snap = await F.getDoc(ref), n = snap.exists() ? snap.data().n : null;
@@ -142,9 +142,11 @@
   window.addEventListener('load', function () { setTimeout(useCounter, 1200); });
   /* v0.14（監査F03）：読み書きは「始めたときのアカウント（uid）と認証の世代」に固定する。途中でログアウト・切り替えがあったら、続きをやめる */
   var authEpoch = 0;
-  function scope() { var uid = USER ? USER.uid : null; return { uid: uid, epoch: authEpoch, dbName: uid ? 'lanenote-cache-' + uid : LOCAL_DB }; }
+  /* v0.26：チームで共有。TEAM＝いま選んでいるチーム（なければ自分だけ）。チームを切りかえるときも authEpoch を進め、途中の読み書きは中止する（A01） */
+  var TEAM = null;
+  function scope() { var uid = USER ? USER.uid : null; return { uid: uid, epoch: authEpoch, team: uid && TEAM ? { id: TEAM.id, role: TEAM.role } : null, dbName: uid ? 'lanenote-cache-' + uid : LOCAL_DB }; }
   function check(sc) {
-    if (sc.epoch !== authEpoch || sc.uid !== (USER ? USER.uid : null)) { var e = new Error('ログインしているアカウントが変わったため、処理を中止しました'); e.code = 'auth-context-changed'; throw e; }
+    if (sc.epoch !== authEpoch || sc.uid !== (USER ? USER.uid : null) || (sc.team ? sc.team.id : null) !== (USER && TEAM ? TEAM.id : null)) { var e = new Error('ログインしているアカウントが変わったため、処理を中止しました'); e.code = 'auth-context-changed'; throw e; }
   }
   function isAbort(e) { return e && e.code === 'auth-context-changed'; }
   // v0.7（再監査A01）：scope を省略して「今のユーザー」を取り直す経路は残さない（呼び出し側がイベントの先頭で固定して渡す）
@@ -192,6 +194,7 @@
   function ovKey(uid) { return uid ? 'lanenote-rec-divov-' + uid : 'lanenote-rec-divov'; }
   async function loadSide(sc) {
     check(sc);
+    if (sc.team) return teamSide(sc);
     var m0 = lsGet(metsKey(sc.uid), {}), o0 = lsGet(ovKey(sc.uid), {});
     if (!sc.uid || OFFLINE) return { mets: m0, ov: o0 };
     try {
@@ -206,11 +209,14 @@
   async function saveMeet(key, w, sc) {
     need(sc);
     var p = key.split('|'), o = { key: key, date: p[0], meet: p.slice(1).join('|'), weather: w.weather || '', temp: w.temp === '' || w.temp == null || isNaN(+w.temp) ? null : +w.temp, humidity: w.humidity === '' || w.humidity == null || isNaN(+w.humidity) ? null : +w.humidity, updatedAt: new Date().toISOString() };
-    METS[key] = o; if (!noCache(sc)) lsSet(metsKey(sc.uid), METS);
+    METS[key] = o;
+    if (sc.team) { await FB.F.setDoc(FB.F.doc(FB.fs, 'teams', sc.team.id, 'meets', docId(key)), o); check(sc); return; }
+    if (!noCache(sc)) lsSet(metsKey(sc.uid), METS);
     if (sc.uid) { await FB.F.setDoc(FB.F.doc(FB.fs, 'users', sc.uid, 'meets', docId(key)), o); check(sc); }
   }
   async function saveOverrides(sc) {
     need(sc);
+    if (sc.team) { await FB.F.setDoc(FB.F.doc(FB.fs, 'teams', sc.team.id, 'settings', 'divOverrides'), { map: DIV_OV, updatedAt: new Date().toISOString() }); check(sc); return; }
     if (!noCache(sc)) lsSet(ovKey(sc.uid), DIV_OV);
     if (sc.uid) { await FB.F.setDoc(FB.F.doc(FB.fs, 'users', sc.uid, 'settings', 'divOverrides'), { map: DIV_OV, updatedAt: new Date().toISOString() }); check(sc); }
   }
@@ -232,6 +238,7 @@
   async function getAll(sc) {
     need(sc);
     if (!sc.uid) return lgetAll(sc.dbName, sc);
+    if (sc.team) return teamGetAll(sc);
     var snap;
     try { snap = await serverDocs(colFor(sc.uid)); }
     catch (e) {
@@ -255,7 +262,7 @@
      ・IDは同じだが中身が違う（古いIDがぶつかった別の選手・区分）→ 落とさず、新しいIDを付けて入れる
      ・古い記録にナンバーが無いなど、同じか別か決められない → 自動で捨てず入れて「要確認（重複かも）」にする */
   function hasOwn(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
-  async function putMany(list, sc) {
+  async function putMany(list, sc, act) {
     need(sc);
     var existing = ALL.slice();
     if (!sc.uid || OFFLINE) existing = existing.concat(await lgetAll(sc.dbName, sc));
@@ -273,6 +280,7 @@
       index(r); add.push(r);
     });
     if (add.length) {
+      if (sc.team) { var tr = await LT(sc).put(sc.team.id, sc.team.role, add, act, list.length === 1 ? { strict: true } : null); check(sc); return { added: tr.written, dup: list.length - add.length, bad: tr.skipped, review: review, ids: add.map(function (r) { return r.id; }) }; }
       if (sc.uid) await cloudPut(add, sc);
       if (!noCache(sc)) await ltx('readwrite', function (s) { add.forEach(function (r) { s.put(r); }); }, sc.dbName, sc);
     }
@@ -281,12 +289,14 @@
   }
   async function delIds(ids, sc) {
     need(sc);
+    if (sc.team) { await LT(sc).del(sc.team.id, sc.team.role, ids); check(sc); return; }
     if (sc.uid) await cloudDel(ids, sc);
     await ltx('readwrite', function (s) { ids.forEach(function (id) { s.delete(id); }); }, sc.dbName, sc);
   }
   // v0.6：1件を直す（IDが変わるときは、古いほうを消して新しいほうを入れる）
   async function replaceRecord(oldId, rec, sc) {
     need(sc);
+    if (sc.team) { await LT(sc).edit(sc.team.id, sc.team.role, oldId, rec); check(sc); return; }
     if (sc.uid) {
       var b = FB.F.writeBatch(FB.fs), c = colFor(sc.uid);
       if (oldId !== rec.id) b.delete(FB.F.doc(c, docId(oldId)));
@@ -297,6 +307,7 @@
   }
   async function clearAll(sc) {
     need(sc);
+    if (sc.team) throw new Error('チームの記録は、まとめて全部は消せません（大会ごとに消すか、1件ずつ消してください。消したものは変更履歴から戻せます）');
     if (sc.uid) {
       var ids = []; (await serverDocs(colFor(sc.uid))).forEach(function (d) { var x = d.data(); ids.push(x && x.id != null ? String(x.id) : d.id); }); check(sc);
       await cloudDel(ids, sc);
@@ -305,7 +316,7 @@
   }
   // v0.14（監査F07）：クラウドに置いたものを全部消す（記録・天気・中学/高校の選択）
   async function clearCloudSide(sc) {
-    check(sc); if (!sc.uid) return;
+    check(sc); if (!sc.uid || sc.team) return;
     var keys = []; (await serverDocs(colFor(sc.uid, 'meets'))).forEach(function (d) { keys.push(d.id); }); check(sc);
     var b = FB.F.writeBatch(FB.fs);
     keys.forEach(function (k) { b.delete(FB.F.doc(FB.fs, 'users', sc.uid, 'meets', k)); });
@@ -315,12 +326,180 @@
     METS = {}; DIV_OV = {}; lsSet(metsKey(sc.uid), {}); lsSet(ovKey(sc.uid), {});
   }
 
+  /* ---------- v0.26：チームで共有（teams/{T}）。権限は firestore.rules が決める。ここは表示と、ルールに合う読み書きだけ ---------- */
+  var TEAMS = [], TEAM_LOST = '', QUAR = [], TM = { members: null, codes: null, hist: null, banned: null, busy: false, open: {} };
+  function teamKey(uid) { return 'lanenote.team.v1.' + uid; }
+  function myDisplayName() { return String((USER && (USER.displayName || String(USER.email || '').split('@')[0])) || 'メンバー').slice(0, 40); }
+  function LT(sc) { return LaneTeam.make({ F: FB.F, fs: FB.fs, uid: sc.uid, name: myDisplayName(), check: function () { check(sc); } }); }
+  // チームを選ぶ前（ログイン直後）用：アカウントと世代だけを確かめる
+  function LTu(uid, ep) { return LaneTeam.make({ F: FB.F, fs: FB.fs, uid: uid, name: myDisplayName(), check: function () { if (ep !== authEpoch || !USER || USER.uid !== uid) { var e = new Error('ログインしているアカウントが変わったため、処理を中止しました'); e.code = 'auth-context-changed'; throw e; } } }); }
+  function roleLabel(r) { return r === 'coach' ? '顧問' : r === 'manager' ? 'マネージャー' : r; }
+  function jDate(ms) { if (!ms) return ''; var d = new Date(ms + 9 * 3600e3); return d.getUTCFullYear() + '年' + (d.getUTCMonth() + 1) + '月' + d.getUTCDate() + '日'; }
+  function jDateTime(ms) { if (!ms) return ''; var d = new Date(ms + 9 * 3600e3); return (d.getUTCMonth() + 1) + '/' + d.getUTCDate() + ' ' + ('0' + d.getUTCHours()).slice(-2) + ':' + ('0' + d.getUTCMinutes()).slice(-2); }
+  function isoDay(ms) { var d = new Date(ms + 9 * 3600e3); return d.getUTCFullYear() + '-' + ('0' + (d.getUTCMonth() + 1)).slice(-2) + '-' + ('0' + d.getUTCDate()).slice(-2); }
+  function dayMs(v) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || ''); return m ? Date.UTC(+m[1], m[2] - 1, +m[3], 23, 59, 59) - 9 * 3600e3 : 0; }
+  async function pickTeam(uid) {
+    var ep = authEpoch, api = LTu(uid, ep); TEAMS = await api.myTeams(); TEAM_LOST = '';
+    var sel = ''; try { sel = localStorage.getItem(teamKey(uid)) || ''; } catch (e) { }
+    if (!sel || !TEAMS.some(function (x) { return x.id === sel; })) return;
+    var inf = null; try { inf = await api.info(sel); } catch (e) { if (isAbort(e)) throw e; inf = null; }
+    if (ep !== authEpoch) return;
+    if (!inf || (inf.role === 'manager' && inf.expiresAt && inf.expiresAt < Date.now())) { TEAM_LOST = (TEAMS.filter(function (x) { return x.id === sel; })[0] || {}).name || 'チーム'; return; }
+    TEAM = inf;
+  }
+  async function teamGetAll(sc) {
+    var list;
+    try { list = await LT(sc).getRecords(sc.team.id); }
+    catch (e) { if (isAbort(e)) throw e; if (isPerm(e)) { TEAM_LOST = TEAM ? TEAM.name : 'チーム'; throw new Error('チームの記録を読めません（チームから外されたか、マネージャーの期限が過ぎた可能性があります）。保存先を「自分だけ」に戻してください'); } throw e; }
+    check(sc); OFFLINE = false;
+    QUAR = list.filter(function (r) { return !LaneTeam.validRec(r); });   // v0.26.1（C404）：形が正しくない記録は表示に入れず、別に知らせる
+    list = list.filter(function (r) { return LaneTeam.validRec(r); });
+    return list.map(function (r) { var o = LaneTeam.strip(r); if (r._st === 'pending') o._st = 'pending'; if (r._by) o._by = r._by; return o; });
+  }
+  async function teamSide(sc) {
+    var m = {}, o = {};
+    try {
+      var snap = await serverDocs(FB.F.collection(FB.fs, 'teams', sc.team.id, 'meets')); check(sc);
+      snap.forEach(function (d) { var x = d.data(); if (x && x.key) m[x.key] = x; });
+      var ov = await (FB.F.getDocFromServer || FB.F.getDoc)(FB.F.doc(FB.fs, 'teams', sc.team.id, 'settings', 'divOverrides')); check(sc);
+      o = ov.exists() && ov.data().map || {};
+    } catch (e) { if (isAbort(e)) throw e; }
+    return { mets: m, ov: o };
+  }
+  async function switchTeam(id) {
+    if (!USER) return;
+    try { if (id) localStorage.setItem(teamKey(USER.uid), id); else localStorage.removeItem(teamKey(USER.uid)); } catch (e) { }
+    authEpoch++; resetTeamState();
+    resetView();
+    try { await pickTeam(USER.uid); } catch (e) { if (!isAbort(e)) status('rbTeamStatus', '✖ ' + esc(e.message), 'ng'); }
+    renderTeam(); renderAuth(); await reload(scope());
+  }
+  function renderTeamPend() { var p = document.querySelector('#rbTeam .tm-pend'); if (p && TEAM && !TM.busy) { var n = pendingList().length, cur = +(p.getAttribute('data-n') || -1); if (cur !== n) { renderTeam(); var q = document.querySelector('#rbTeam .tm-pend'); if (q) q.setAttribute('data-n', n); } } }
+  function pendingList() { return ALL.filter(function (r) { return r._st === 'pending'; }); }
+  function recLabel(r) { if (!r) return '（なし）'; return [r.name, r.event, r.mark, r.meet].filter(Boolean).join('・'); }
+  var ACTS = { add: '追加', edit: '修正', del: '削除', revert: '取り消し', confirm: '確認済みに', migrate: 'コピー' };
+  function renderTeam() {
+    var box = $('rbTeam'); if (!box) return;
+    if (!USER || !CLOUD_READY) { box.hidden = true; box.innerHTML = ''; return; }
+    box.hidden = false;
+    var sel = '<label>保存先 <select id="rbTeamSel"><option value="">👤 自分だけ（今までどおり）</option>' + TEAMS.map(function (x) { return '<option value="' + esc(x.id) + '"' + (TEAM && TEAM.id === x.id ? ' selected' : '') + '>👥 ' + esc(x.name) + '（' + esc(roleLabel(x.role)) + '）</option>'; }).join('') + '</select></label>';
+    var h = '<h3>👥 チームで共有</h3><p class="small muted">顧問・マネージャーが、それぞれ<b>自分のGoogleアカウント</b>で同じチームの記録を使えます。アカウントやパスワードを共有する必要はありません。</p><div class="rb-row">' + sel + '</div>';
+    if (TEAM_LOST && !TEAM) h += '<p class="tm-warn">⚠ 「' + esc(TEAM_LOST) + '」は今は使えません（チームから外されたか、マネージャーの期限が過ぎました）。必要なら顧問に新しい参加コードをもらってください。 <button type="button" class="btn sub sm" data-tm="forget">一覧から消す</button></p>';
+    if (!TEAM) {
+      h += '<div class="tm-grid"><div class="tm-card"><b>➕ チームを作る</b>（顧問の方）<div class="rb-row"><input type="text" id="rbTeamName" maxlength="40" placeholder="例：本郷高校陸上部"><button type="button" class="btn" data-tm="create">チームを作る</button></div></div>' +
+        '<div class="tm-card"><b>🔑 参加コードで入る</b>（顧問・マネージャーの方）<div class="rb-row"><input type="text" id="rbTeamCode" placeholder="顧問からもらった長いコード" autocomplete="off" spellcheck="false"><button type="button" class="btn" data-tm="join">参加する</button></div></div></div>';
+    } else {
+      var me = TEAM.role === 'coach' ? '🧑‍🏫 顧問' + (TEAM.owner ? '（このチームの持ち主）' : '') : '📋 マネージャー（' + jDate(TEAM.expiresAt) + 'まで）';
+      var pend = pendingList();
+      if (QUAR.length) h += '<p class="tm-warn">⚠ 形が正しくない記録が ' + QUAR.length + '件あるため、表示から外しています（ほかの記録はそのまま使えます）。 <button type="button" class="btn sub sm" data-tm="quarDel">削除の印を付ける</button></p>';
+      h += '<p class="tm-me">あなたは <b>' + esc(me) + '</b>。記録の追加・修正は「変更履歴」に残り、あとから元に戻せます。' + (TEAM.role === 'manager' ? '<br>マネージャーが入れた記録は、顧問が確認するまで <span class="pend">未確認</span> と表示されます。やり取り・体調メモ・チームの設定は顧問だけが使えます。' : '') + '</p>';
+      h += '<div class="tm-pend">' + (pend.length ? '<span class="pend">未確認</span> ' + pend.length + '件' + (TEAM.role === 'coach' ? ' <button type="button" class="btn sm" data-tm="confirmAll">内容を見て、すべて確認済みにする</button>' : '') + '<ul class="tm-plist">' + pend.slice(0, 30).map(function (r) { return '<li>' + esc(recLabel(r)) + (TEAM.role === 'coach' ? ' <button type="button" class="btn sub sm" data-tm="confirm" data-id="' + esc(r.id) + '">確認済みにする</button>' : '') + '</li>'; }).join('') + '</ul>' : '✔ 未確認の記録はありません') + '</div>';
+      h += '<details data-tmd="members"' + (TM.open['members'] ? ' open' : '') + '><summary><b>👥 メンバー</b></summary><div id="rbTeamMembers">' + membersHtml() + '</div></details>';
+      if (TEAM.role === 'coach') h += '<details data-tmd="codes"' + (TM.open['codes'] ? ' open' : '') + '><summary><b>🔑 参加コード</b>（顧問だけに見えます）</summary><div id="rbTeamCodes">' + codesHtml() + '</div></details>';
+      h += '<details data-tmd="hist"' + (TM.open['hist'] ? ' open' : '') + '><summary><b>🕘 変更履歴</b>（だれが・いつ・何を）</summary><div id="rbTeamHist">' + histHtml() + '</div></details>';
+      h += '<details><summary><b>📦 自分の記録をこのチームへコピー</b></summary><p class="small">「自分だけ」に保存してある記録を、このチームにコピーします。同じ記録は重ねません。自分だけの記録はそのまま残ります。</p><button type="button" class="btn sub" data-tm="migrate">コピーする（確認が出ます）</button></details>';
+      if (TEAM.owner) h += '<details><summary><b>🤝 引き継ぎ（持ち主を渡す）</b></summary><p class="small">異動などのときに、このチームの持ち主を、ほかの顧問に渡します。渡したあとも、あなたは顧問として残ります。</p><div class="rb-row"><select id="rbTeamTo">' + ((TM.members || []).filter(function (m) { return m.role === 'coach' && m.uid !== USER.uid; }).map(function (m) { return '<option value="' + esc(m.uid) + '">' + esc(m.name) + '</option>'; }).join('') || '<option value="">（先に「メンバー」を開いてください／ほかの顧問がいません）</option>') + '</select><button type="button" class="btn sub" data-tm="transfer">持ち主を渡す</button></div></details>';
+      if (!TEAM.owner) h += '<p><button type="button" class="btn sub sm" data-tm="leave">このチームから抜ける</button></p>';
+    }
+    var old = $('rbTeamStatus'), keepH = old ? old.innerHTML : '', keepC = old ? old.className : 'status';   // 描き直してもお知らせは残す
+    h += '<div class="' + esc(keepC) + '" id="rbTeamStatus" aria-live="polite">' + keepH + '</div>';
+    box.innerHTML = h;
+    var tb = $('rbTalkBox'); if (tb) tb.hidden = !!(TEAM && TEAM.role === 'manager');
+  }
+  function membersHtml() {
+    if (!TM.members) return '<p class="small muted">開くと読み込みます…</p>';
+    var coach = TEAM.role === 'coach';
+    return '<ul class="tm-mlist">' + TM.members.map(function (m) {
+      var self = m.uid === USER.uid, own = m.uid === TEAM.ownerUid, exp = m.role === 'manager' ? '（' + jDate(m.expiresAt) + 'まで' + (m.expiresAt && m.expiresAt < Date.now() ? '・<b class="ng">期限切れ</b>' : '') + '）' : '';
+      var ctl = coach && !self && !own ? ' <select data-tmrole="' + esc(m.uid) + '" aria-label="' + esc(m.name) + 'の役割"><option value="coach"' + (m.role === 'coach' ? ' selected' : '') + '>顧問</option><option value="manager"' + (m.role === 'manager' ? ' selected' : '') + '>マネージャー</option></select>' +
+        (m.role === 'manager' ? ' <input type="date" data-tmexp="' + esc(m.uid) + '" value="' + esc(isoDay(m.expiresAt || LaneTeam.schoolYearEnd())) + '" aria-label="期限">' : '') +
+        ' <button type="button" class="btn sub sm" data-tm="saveRole" data-id="' + esc(m.uid) + '">変更</button> <button type="button" class="btn sub sm tm-x" data-tm="remove" data-id="' + esc(m.uid) + '">外す</button>' : '';
+      return '<li><b>' + esc(m.name) + '</b>' + (self ? '（あなた）' : '') + ' ' + esc(roleLabel(m.role)) + (own ? '・持ち主' : '') + exp + ctl + '</li>';
+    }).join('') + '</ul>' + (coach && TM.banned && TM.banned.length ? '<p class="small"><b>外した人</b>（同じコードでは戻れません）</p><ul class="tm-mlist">' + TM.banned.map(function (x) { return '<li>' + esc(x.name) + ' <button type="button" class="btn sub sm" data-tm="unban" data-id="' + esc(x.uid) + '">再参加を許可</button></li>'; }).join('') + '</ul>' : '');
+  }
+  function codesHtml() {
+    if (!TM.codes) return '<p class="small muted">開くと読み込みます…</p>';
+    var c = TM.codes, row = function (role, title, note) {
+      var x = c[role];
+      return '<div class="tm-code"><b>' + title + '</b> <span class="small muted">' + note + '</span><br>' + (x ? '<code>' + esc(x.code) + '</code> <button type="button" class="btn sub sm" data-tm="copy" data-code="' + esc(x.code) + '">📋 コピー</button>' : '（なし）') +
+        (role === 'manager' ? '<br><label class="small">マネージャーの期限 <input type="date" id="rbTeamMexp" value="' + esc(isoDay(x && x.mexp || LaneTeam.schoolYearEnd())) + '"></label>' : '') +
+        ' <button type="button" class="btn sub sm" data-tm="regen" data-role="' + role + '">作り直す（古いコードは使えなくなる）</button></div>';
+    };
+    return '<p class="small">コードを知っている人は、だれでもこのチームに入れます。<b>LINEのグループなどに貼らず、入ってほしい人にだけ</b>渡してください。入ってもらったら「作り直す」と安心です。</p>' +
+      row('coach', '🧑‍🏫 顧問用', '（すべての機能・メンバーの管理）') + row('manager', '📋 マネージャー用', '（記録・大会の入力だけ。期限が来ると自動で使えなくなります）');
+  }
+  function histHtml() {
+    if (!TM.hist) return '<p class="small muted">開くと読み込みます…</p>';
+    if (!TM.hist.length) return '<p class="small muted">まだありません。</p>';
+    return '<ul class="tm-hlist">' + TM.hist.map(function (h, i) {
+      var r = h.after && !h.after._del ? h.after : h.before;
+      var mm = (TM.members || []).filter(function (m) { return m.uid === h.uid; })[0], who = mm ? mm.name + '（' + roleLabel(mm.role) + '）' : h.name + '（今はメンバーではない人）';
+      return '<li><span class="tm-ht">' + esc(jDateTime(h.at)) + '</span> <b>' + esc(who) + '</b> が <b>' + esc(ACTS[h.act] || h.act) + '</b>：' + esc(recLabel(r)) + (h.act === 'edit' && h.before ? '<br><span class="small muted">前：' + esc(recLabel(h.before)) + '</span>' : '') +
+        ' <button type="button" class="btn sub sm" data-tm="revert" data-i="' + i + '">この変更を取り消す</button></li>';
+    }).join('') + '</ul>';
+  }
+  async function tmLoad(what, sc) {
+    var api = LT(sc), t = sc.team.id, tm = TM, v, v2 = null;   // 読み終わってから、同じ人・同じチーム・同じ世代かを確かめて入れる（C403）
+    if (what === 'members') { v = await api.members(t); if (sc.team.role === 'coach') v2 = await api.banned(t); }
+    if (what === 'codes') v = await api.codes(t);
+    if (what === 'hist') { v = await api.history(t, 50); if (!tm.members) v2 = await api.members(t); }
+    check(sc); if (tm !== TM) return;
+    TM[what] = v; if (what === 'members') TM.banned = v2; if (what === 'hist' && v2) TM.members = v2;
+  }
+  if ($('rbTeam')) {
+    $('rbTeam').addEventListener('toggle', async function (e) {
+      var d = e.target; if (!d.matches || !d.matches('details[data-tmd]') || !TEAM) return;
+      var sc = scope(), todo = [];
+      // 開いている欄をまとめて覚える（読み込みのあと描き直しても、開いたまま）
+      $('rbTeam').querySelectorAll('details[data-tmd]').forEach(function (x) { var k = x.getAttribute('data-tmd'), was = !!TM.open[k]; TM.open[k] = x.open; if (x.open && (!was || !TM[k])) todo.push(k); });   // 開くたびに読み直す
+      if (!todo.length) return;
+      try { for (var i = 0; i < todo.length; i++) await tmLoad(todo[i], sc); renderTeam(); } catch (x) { if (isAbort(x)) return; status('rbTeamStatus', '✖ 読めませんでした：' + esc(x.message), 'ng'); }
+    }, true);
+    $('rbTeam').addEventListener('change', function (e) { if (e.target.id === 'rbTeamSel') switchTeam(e.target.value); });
+    $('rbTeam').addEventListener('click', async function (e) {
+      var b = e.target.closest('[data-tm]'); if (!b || !USER || TM.busy) return;
+      var a = b.getAttribute('data-tm'), sc = scope(), id = b.getAttribute('data-id'), msg = '', tm0 = TM;
+      if (a === 'copy') { try { await navigator.clipboard.writeText(b.getAttribute('data-code')); status('rbTeamStatus', '✔ コピーしました。入ってほしい人にだけ渡してください。', 'ok'); } catch (x) { status('rbTeamStatus', 'コピーできませんでした。コードを長押しして選んでください。', 'ng'); } return; }
+      tm0.busy = true; b.disabled = true;
+      try {
+        if (a === 'create') {
+          var nm = ($('rbTeamName').value || '').trim(); if (!nm) throw new Error('チーム名を入れてください');
+          if (!confirm('「' + nm + '」を作ります。あなたが顧問（持ち主）になります。')) return;
+          var t = await LTu(sc.uid, sc.epoch).createTeam(nm); TM.busy = false; await switchTeam(t); status('rbTeamStatus', '✔ チームを作りました。「参加コード」を開くと、ほかの顧問・マネージャーに渡すコードが見られます。', 'ok'); return;
+        }
+        if (a === 'join') {
+          var r = await LTu(sc.uid, sc.epoch).join($('rbTeamCode').value); TM.busy = false; await switchTeam(r.team); status('rbTeamStatus', '✔ 「' + esc(r.name) + '」に ' + roleLabel(r.role) + ' として入りました。', 'ok'); return;
+        }
+        if (a === 'forget') { var sid = ''; try { sid = localStorage.getItem(teamKey(sc.uid)) || ''; } catch (x) { } if (sid) await LTu(sc.uid, sc.epoch).forget(sid); TM.busy = false; await switchTeam(''); return; }
+        if (!sc.team) return;
+        var api = LT(sc), T = sc.team.id;
+        if (a === 'confirm') { await api.confirm(T, [id]); msg = '✔ 確認済みにしました。'; await reload(sc); }
+        if (a === 'confirmAll') { var ids = pendingList().map(function (r) { return r.id; }); if (!confirm('未確認の記録 ' + ids.length + '件を、すべて確認済みにします。内容は見ましたか？')) return; await api.confirm(T, ids); msg = '✔ ' + ids.length + '件を確認済みにしました。'; await reload(sc); }
+        if (a === 'regen') { var role = b.getAttribute('data-role'), me = role === 'manager' ? dayMs(($('rbTeamMexp') || {}).value) || LaneTeam.schoolYearEnd() : null; if (me && me < Date.now()) throw new Error('期限は今日より後の日にしてください'); if (!confirm('今の' + roleLabel(role) + '用コードを使えなくして、新しいコードを作ります。')) return; await api.regen(T, role, me); await tmLoad('codes', sc); msg = '✔ 新しいコードを作りました。古いコードはもう使えません。'; }
+        if (a === 'unban') { if (!confirm('この人がもう一度参加コードで入れるようにします（入るには新しいコードが必要です）。')) return; await api.unban(T, id); await tmLoad('members', sc); msg = '✔ 再参加を許可しました。'; }
+        if (a === 'quarDel') { var qi = QUAR.map(function (r) { return r._doc; }).filter(Boolean); if (!confirm('形が正しくない記録 ' + qi.length + '件に削除の印を付けます（元の内容は変更履歴に残りますが、形が正しくないため、そのままでは戻せません）。')) return; var qr = await api.repair(T, sc.team.role, qi); msg = qr.written === qi.length ? '✔ 削除の印を付けました（' + qr.written + '件）。' : '⚠ ' + qr.written + '/' + qi.length + '件だけ削除の印を付けました。'; await reload(sc); }
+        if (a === 'saveRole') { var rs = document.querySelector('[data-tmrole="' + id + '"]').value, ex = document.querySelector('[data-tmexp="' + id + '"]'), ms = rs === 'manager' ? (ex ? dayMs(ex.value) : 0) || LaneTeam.schoolYearEnd() : null; await api.setRole(T, id, rs, ms); await tmLoad('members', sc); msg = '✔ 変更しました。'; }
+        if (a === 'remove') { var who = (TM.members || []).filter(function (m) { return m.uid === id; })[0]; if (!confirm((who ? who.name : 'この人') + ' をチームから外します。外した人は、すぐにチームの記録を見られなくなります。\n同じコードで戻れないよう、その役割の参加コードも作り直します。')) return; await api.remove(T, id); await tmLoad('members', sc); TM.codes = null; msg = '✔ 外しました。参加コードも作り直しました。もう一度入れるときは、下の「外した人」で「再参加を許可」を押してから、新しいコードを渡してください。'; }
+        if (a === 'transfer') { var to = ($('rbTeamTo') || {}).value; if (!to) throw new Error('渡す相手の顧問を選んでください'); if (!confirm('このチームの持ち主を渡します。渡したあとは、相手が持ち主になります（あなたは顧問のまま）。')) return; await api.transfer(T, to); TM.busy = false; await switchTeam(T); status('rbTeamStatus', '✔ 持ち主を渡しました。', 'ok'); return; }
+        if (a === 'leave') { if (!confirm('このチームから抜けます。抜けると、チームの記録は見られなくなります（自分だけの記録はそのまま）。')) return; await api.leave(T); TM.busy = false; await switchTeam(''); status('rbTeamStatus', '✔ チームから抜けました。', 'ok'); return; }
+        if (a === 'revert') { var h = TM.hist[+b.getAttribute('data-i')]; if (!h || !confirm('この変更を取り消して、その前の状態に戻します（戻したことも履歴に残ります）。')) return; var rv = await api.revert(T, sc.team.role, h); await tmLoad('hist', sc); msg = rv && rv.written === 1 && !rv.skipped ? '✔ 取り消しました。' : '⚠ 取り消せませんでした（戻す記録が見つかりません）。'; await reload(sc); }   // v0.26.3（R262-01）：本当に1件書けたときだけ成功と表示
+        if (a === 'migrate') {
+          var snap = await serverDocs(colFor(sc.uid)); check(sc); var mine = []; snap.forEach(function (d) { mine.push(d.data()); });
+          if (!mine.length) throw new Error('自分だけの記録はありません');
+          if (!confirm('自分だけに保存してある記録 ' + mine.length + '件を、チーム「' + TEAM.name + '」にコピーします。同じ記録は重ねません。自分だけの記録は消えません。' + (sc.team.role === 'manager' ? '\nコピーした記録は「未確認」になります。' : ''))) return;
+          var res = await putMany(mine, sc, 'migrate'); msg = '✔ ' + res.added + '件をコピーしました' + (res.dup ? '（' + res.dup + '件は同じ記録があるので重ねませんでした）' : '') + '。'; await reload(sc);
+        }
+        check(sc); renderTeam(); if (msg) status('rbTeamStatus', msg, 'ok');
+      } catch (x) { if (isAbort(x)) return; renderTeam(); status('rbTeamStatus', '✖ できませんでした：' + esc(x.code === 'permission-denied' ? 'この操作の権限がありません（役割・期限を確かめてください）' : x.message), 'ng'); }
+      finally { tm0.busy = false; b.disabled = false; }
+    });
+  }
   /* ---------- v0.14（監査F02）：ログインしていないときにこの端末へ保存した記録は、ログインしても自動では移さない。
      件数と移し先を見せて、「移す（端末からは消す）」「移さずに端末に残す」「端末から消す」を選んでもらう ---------- */
   var GUEST_N = 0, GUEST_SKIP = {};
   async function checkGuest(sc) {
     check(sc); GUEST_N = 0;
-    if (sc.uid && !GUEST_SKIP[sc.uid]) { var l = []; try { l = await lgetAll(LOCAL_DB, sc); } catch (e) { if (isAbort(e)) throw e; } check(sc); GUEST_N = l.length; }
+    if (sc.uid && !sc.team && !GUEST_SKIP[sc.uid]) { var l = []; try { l = await lgetAll(LOCAL_DB, sc); } catch (e) { if (isAbort(e)) throw e; } check(sc); GUEST_N = l.length; }
     renderGuest();
   }
   function renderGuest() {
@@ -383,11 +562,19 @@
     if (typeof manualReset === 'function') manualReset();
     renderBatches(); applyInference(); render();
   }
+  function resetTeamState() {   // v0.26.1（C403）：前の人のチームの中身（コード・メンバー・履歴）をメモリと画面から消す
+    TEAM = null; TEAMS = []; TEAM_LOST = ''; QUAR = []; TM = { members: null, codes: null, hist: null, banned: null, busy: false, open: {} };
+    var bx = $('rbTeam'); if (bx) { bx.innerHTML = ''; bx.hidden = true; }
+  }
   async function onAuth(u) {
+    resetTeamState();
     var prev = USER ? USER.uid : null;
     authEpoch++; USER = u || null;
     if (prev !== (USER ? USER.uid : null)) resetView();
+    var sc0e = authEpoch;
     GUEST_N = 0; renderAuth(); renderGuest();
+    if (USER && typeof LaneTeam !== 'undefined' && $('rbTeam')) { try { await pickTeam(USER.uid); } catch (e) { if (isAbort(e)) return; TEAM = null; renderTeam(); status('rbTeamStatus', '✖ チームを読めませんでした（自分だけの記録を出します）：' + esc(e.message), 'ng'); } if (sc0e !== authEpoch) return; }
+    renderTeam();
     var sc = scope();
     try { if (sc.uid) await checkGuest(sc); await reload(sc); }
     catch (e) { if (!isAbort(e)) status('rbAuthStatus', '✖ ' + esc(e.message), 'ng'); }
@@ -684,7 +871,7 @@
       DONE.push(b); batches = batches.filter(function (x) { return x !== b; }); renderBatches();
       $('rbPaste').value = ''; $('rbFile').value = ''; status('rbStatus', '', '');
       var done = $('rbDone'); done.className = 'status ok rb-done';
-      done.innerHTML = '✔ <b>' + esc(b.meta.name) + ' 完了（' + res.added + '件保存）</b>' + (res.dup ? '<br><small>' + res.dup + '件はすでに保存済みなので重ねませんでした</small>' : '') +
+      done.innerHTML = '✔ <b>' + esc(b.meta.name) + ' 完了（' + res.added + '件保存）</b>' + (res.dup ? '<br><small>' + res.dup + '件はすでに保存済みなので重ねませんでした</small>' : '') + (res.bad ? '<br><small class="ng">' + res.bad + '件は形が正しくない（長すぎるなど）ため保存しませんでした</small>' : '') +
         (res.review ? '<br><small class="ng">⚠ ' + res.review + '件は、前に保存した記録（ナンバーなし）と同じかもしれません。下の「要確認」で確かめてください。</small>' : '') + '<br><small>続けて次の大会の資料を入れられます。</small>' + (b.addedIds.length ? ' <button class="btn sub" type="button" data-undo="' + b.id + '">今の分を取り消す（' + b.addedIds.length + '件）</button>' : '');
       await reload(sc);
     } catch (err) { if (isAbort(err)) return; st.className = 'status ng'; st.textContent = '✖ 保存できませんでした：' + err.message; }
@@ -700,7 +887,7 @@
       b.addedIds = (b.addedIds || []).concat(res.ids); b.meta.name = b.src;
       DONE.push(b); batches = batches.filter(function (x) { return x !== b; }); renderBatches();
       var done = $('rbDone'); done.className = 'status ok rb-done';
-      done.innerHTML = '✔ <b>' + esc(b.src) + ' 完了（' + res.added + '件保存・' + Object.keys(keys).length + '大会）</b>' + (res.dup ? '<br><small>' + res.dup + '件はすでに保存済みなので重ねませんでした</small>' : '') + (b.xl.res.bad.length ? '<br><small>日付などが足りない ' + b.xl.res.bad.length + '行は入れていません</small>' : '') + (res.review ? '<br><small class="ng">⚠ ' + res.review + '件は前に保存した記録と同じかもしれません（下の「要確認」）</small>' : '') + (b.addedIds.length ? ' <button class="btn sub" type="button" data-undo="' + b.id + '">今の分を取り消す（' + b.addedIds.length + '件）</button>' : '');
+      done.innerHTML = '✔ <b>' + esc(b.src) + ' 完了（' + res.added + '件保存・' + Object.keys(keys).length + '大会）</b>' + (res.dup ? '<br><small>' + res.dup + '件はすでに保存済みなので重ねませんでした</small>' : '') + (res.bad ? '<br><small class="ng">' + res.bad + '件は形が正しくない（長すぎるなど）ため保存しませんでした</small>' : '') + (b.xl.res.bad.length ? '<br><small>日付などが足りない ' + b.xl.res.bad.length + '行は入れていません</small>' : '') + (res.review ? '<br><small class="ng">⚠ ' + res.review + '件は前に保存した記録と同じかもしれません（下の「要確認」）</small>' : '') + (b.addedIds.length ? ' <button class="btn sub" type="button" data-undo="' + b.id + '">今の分を取り消す（' + b.addedIds.length + '件）</button>' : '');
       await reload(sc);
     } catch (err) { if (isAbort(err)) return; st.className = 'status ng'; st.textContent = '✖ 保存できませんでした：' + err.message; }
   }
@@ -884,7 +1071,8 @@
       return R.nk([r.name, r.kana, r.event, r.meet, r.team, r.date].join('')).replace(/\s/g, '').indexOf(q) >= 0;
     });
   }
-  function windTag(r) { if (!R.hasMark(r)) return ''; var w = R.windClass(r); return w === 'aid' ? '<span class="ref">追参</span>' : w === 'unk' && !/^[A-Z棄失欠]/.test(r.mark) ? '<span class="unk">風?</span>' : ''; }
+  function windTag(r) { return (r && r._st === 'pending' ? '<span class="pend" title="マネージャーが入れた記録。顧問が確認すると消えます">未確認</span>' : '') + windTag0(r); }
+  function windTag0(r) { if (!R.hasMark(r)) return ''; var w = R.windClass(r); return w === 'aid' ? '<span class="ref">追参</span>' : w === 'unk' && !/^[A-Z棄失欠]/.test(r.mark) ? '<span class="unk">風?</span>' : ''; }
   function mv(r) { var m = r && R.markValue(r.mark); return m ? (m.lower ? m.v : -m.v) : 1e9; }
   function cmp(a, b) { return a < b ? -1 : a > b ? 1 : 0; }
   function sortRows(rows, key, defs) {
@@ -1161,6 +1349,7 @@
     $('rbMeets').innerHTML = ks.map(function (k) { var p = k.split('|'); return '<li>' + esc(p[0]) + '　<b>' + esc(p.slice(1).join('|')) + '</b>　<span class="muted">' + m[k] + '件</span> <button type="button" class="btn sub danger-t rb-mdel" data-delmeet="' + esc(k) + '" aria-label="この大会の記録を削除">削除</button></li>'; }).join('');
   }
   function render() {
+    if (TEAM) setTimeout(renderTeamPend, 0);
     var rows = filtered(), cb = R.computeBests(rows), flags = cb.flags;
     var meets = {}; rows.forEach(function (r) { var k = r.date + '|' + r.meet; meets[k] = (meets[k] || 0) + 1; });
     var aths = {}; rows.forEach(function (r) { aths[R.athleteKey(r)] = 1; });

@@ -154,16 +154,21 @@
   }
   function hostOf(u) { try { return new URL(u).hostname; } catch (e) { return ''; } }
   function dirOf(u) { var x = new URL(u); x.hash = ''; x.search = ''; x.pathname = x.pathname.replace(/[^\/]*$/, ''); return x.href; }
+  var MAX_CRAWL = 400;   // 私学大会（3日間・中高）で 377 回（結果376＋一覧1）→ 50 単位で切り上げ
   var sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
   async function crawlMeet(page, o) {
-    o = o || {}; var max = o.max || 300, depth = o.depth || 3, wait = o.delay == null ? 120 : o.delay, conc = o.conc || 2;
+    // v0.26.4：上限 300 → 400（私学大会は結果 376 ページあり 77 件取れなかった）。上限で止まった分は rest に返し「続きを読み込む」で続きから取る
+    o = o || {}; var max = o.max || MAX_CRAWL, depth = o.depth || 3, wait = o.delay == null ? 120 : o.delay, conc = o.conc || 2;
     var dir = dirOf(page.url), seen = {}, idx = [], res = [], failed = [], req = 0, gold = isMeetPage(page, findLinks(page.html, page.url));
     seen[page.url.replace(/#.*$/, '')] = 1;
     var within = function (l) { return l.kind === 'page' && l.url.indexOf(dir) === 0 && !SKIP_URL.test(l.url) && !SKIP_LAB.test(l.label); };
     var abort = function () { if (o.signal && o.signal.aborted) { var e = new Error('中止しました'); e.name = 'AbortError'; throw e; } };
-    var level = [{ page: page, d: 0 }];
-    while (level.length) {
-      var next = [], todo = [];
+    var level = [{ page: page, d: 0 }], rest = [];
+    // 続きから：前回取れなかった結果のページだけを取る（一覧はたどらない）
+    if (o.resume) level = [];
+    var todo0 = o.resume ? o.resume.map(function (t) { return { l: t.l, d: t.d, isRes: true, isIdx: false }; }) : null;
+    while (level.length || todo0) {
+      var next = [], todo = todo0 || []; todo0 = null;
       level.forEach(function (x) {
         findLinks(x.page.html, x.page.url).filter(within).forEach(function (l) {
           if (seen[l.url]) return; seen[l.url] = 1;
@@ -178,7 +183,7 @@
       var worker = async function () {
         while (i < todo.length) {
           var t = todo[i++]; abort();
-          if (req >= max) { failed.push({ label: t.l.label, error: '件数の上限（' + max + '件）に達したので読みませんでした' }); continue; }
+          if (req >= max) { if (t.isRes) rest.push({ l: t.l, d: t.d }); continue; }
           req++; o.onProgress && o.onProgress({ done: req, found: res.length, total: Math.min(max, req + (todo.length - i)), label: t.l.label });
           try {
             var r = await fetchUrl(t.l.url, { noRedirect: true, signal: o.signal, fetch: o.fetch });
@@ -194,7 +199,7 @@
     }
     // 取り込む順は URL（rel001, rel002 …）の順にそろえる
     res.sort(function (a, b) { return a.r.url < b.r.url ? -1 : a.r.url > b.r.url ? 1 : 0; });
-    return { results: res, failed: failed, requests: req, gold: gold };
+    return { results: res, failed: failed, requests: req, gold: gold, rest: rest };
   }
   function guessTarget(label, targets) {
     for (var i = 0; i < targets.length; i++) if (targets[i].re && targets[i].re.test(label)) return targets[i].k;
@@ -273,21 +278,26 @@
         }
       };
     }
-    async function crawlAll(page, ctx) {
+    async function crawlAll(page, ctx, resume) {
       if (busy) return; busy = true; $('Go').disabled = true;
       ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
       var box = $('Links'); box.innerHTML = '<div class="url-meet"><p class="small">結果のページを集めています。止めたいときは「やめる」を押してください（そこまでに集めた分は取り込みません）。</p><progress id="' + id + 'Prog" max="1" value="0" style="width:100%"></progress><button type="button" class="btn sub" data-stop>やめる</button></div>';
       box.onclick = function (e) { if (e.target.hasAttribute('data-stop') && ctrl) ctrl.abort(); };
       try {
-        var out = await crawlMeet(page, { signal: ctrl && ctrl.signal, fetch: o.fetch, delay: o.delay, onProgress: function (p) {
+        var out = await crawlMeet(page, { resume: resume, signal: ctrl && ctrl.signal, fetch: o.fetch, delay: o.delay, max: o.max, onProgress: function (p) {
           st('読み込み中…（' + p.done + '／約' + p.total + 'ページ・結果 ' + p.found + 'ページ）' + String(p.label || '').slice(0, 40), 'busy');
           var pr = document.getElementById(id + 'Prog'); if (pr) { pr.max = p.total; pr.value = p.done; } } });
         box.hidden = true; box.innerHTML = '';
+        var more = out.rest.length ? '　ⓘ 大きな大会なので、通信が ' + out.requests + ' 回に達したところで一度止めました。残りの結果 ' + out.rest.length + 'ページは、下の「続きを読み込む」で取り込めます。' : '';
+        if (out.rest.length) {
+          box.innerHTML = '<div class="url-meet"><button type="button" class="btn" data-more>📥 続きを読み込む（残り ' + out.rest.length + 'ページ）</button></div>'; box.hidden = false;
+          box.onclick = function (e) { if (e.target.hasAttribute('data-more')) crawlAll(page, ctx, out.rest); };
+        }
         if (!out.results.length) { st('✖ 結果のページが見つかりませんでした' + (out.failed.length ? '（読み込めなかったもの ' + out.failed.length + '件）' : ''), 'ng'); return; }
-        st('✔ 結果のページを ' + out.results.length + ' 件取ってきました（通信 ' + out.requests + ' 回）。' + (out.failed.length ? '　✖ 読み込めなかったもの ' + out.failed.length + '件：' + out.failed.slice(0, 3).map(function (f) { return f.label.slice(0, 20) + '：' + f.error; }).join('／') : ''), out.failed.length ? 'warn' : 'ok');
+        st('✔ 結果のページを ' + out.results.length + ' 件取ってきました（通信 ' + out.requests + ' 回）。' + (out.failed.length ? '　✖ 読み込めなかったもの ' + out.failed.length + '件：' + out.failed.slice(0, 3).map(function (f) { return f.label.slice(0, 20) + '：' + f.error; }).join('／') : '') + more, out.failed.length || more ? 'warn' : 'ok');
         busy = false;   // 取り込み（onFiles）の間も次の読み込みを受け付けてよい
         // 最初のページ（競技一覧）も渡す：大会名はそこにだけ書いてある
-        await deliver([{ r: page, k: o.targets[0].k }].concat(out.results.map(function (x) { return { r: x.r, k: o.targets[0].k }; })), ctx);
+        await deliver((resume ? [] : [{ r: page, k: o.targets[0].k }]).concat(out.results.map(function (x) { return { r: x.r, k: o.targets[0].k }; })), ctx);
       } catch (e) {
         box.hidden = true; box.innerHTML = '';
         st(e && e.name === 'AbortError' ? 'やめました（取り込んでいません）。' : '✖ ' + (e && e.message || e), e && e.name === 'AbortError' ? '' : 'ng');
@@ -319,7 +329,7 @@
     }
     return { go: go, offer: offer, setTarget: function (k) { if (multi) $('Tgt').value = k; } };
   }
-  var api = { PROXY: PROXY, MAX: MAX, MSG: MSG, isUrlOnly: isUrlOnly, normUrl: normUrl, sniff: sniff, decodeHtml: decodeHtml, fetchUrl: fetchUrl, toFile: toFile, findLinks: findLinks, guessTarget: guessTarget, isMeetPage: isMeetPage, crawlMeet: crawlMeet, fileName: fileName, mount: mount };
+  var api = { PROXY: PROXY, MAX: MAX, MSG: MSG, isUrlOnly: isUrlOnly, normUrl: normUrl, sniff: sniff, decodeHtml: decodeHtml, fetchUrl: fetchUrl, toFile: toFile, findLinks: findLinks, guessTarget: guessTarget, isMeetPage: isMeetPage, crawlMeet: crawlMeet, MAX_CRAWL: MAX_CRAWL, fileName: fileName, mount: mount };
   if (typeof module === 'object' && module.exports) module.exports = api;
   root.LaneUrl = api;
 })(typeof window !== 'undefined' ? window : globalThis);

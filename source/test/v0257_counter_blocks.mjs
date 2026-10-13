@@ -21,9 +21,9 @@ const FAKE = {
   'firebase-app.js': 'export const getApps=()=>[];export const getApp=()=>({});export const initializeApp=()=>({});',
   'firebase-auth.js': 'export const getAuth=()=>({currentUser:null,authStateReady:async()=>{}});export const onAuthStateChanged=()=>{};',
   'firebase-firestore.js': `const B=${JSON.stringify(B)};async function call(op){const r=await fetch(B+'__c/'+op);if(!r.ok)throw Object.assign(new Error('x'),{code:'unavailable'});const j=await r.json();if(j.code)throw Object.assign(new Error(j.code),{code:j.code});return j;}
-export const getFirestore=()=>({});export const doc=(db,a,b)=>({path:a+'/'+b});export const increment=v=>({inc:v});
-export async function updateDoc(ref,d){if(ref.path!=='stats/counter'||Object.keys(d).join()!=='n'||!d.n||d.n.inc!==1)throw new Error('bad write');await call('inc');}
-export async function setDoc(ref,d){if(ref.path!=='stats/counter'||JSON.stringify(d)!=='{"n":1}')throw new Error('bad set');await call('set');}
+export const getFirestore=()=>({});export const doc=(db,a,b)=>({path:a+'/'+b});export const increment=v=>({inc:v});export const serverTimestamp=()=>({ts:1});
+export async function updateDoc(ref,d){if(ref.path!=='stats/counter'||Object.keys(d).join()!=='n,at'||!d.at||!d.at.ts||!d.n||d.n.inc!==1)throw new Error('bad write');await call('inc');}
+export async function setDoc(ref,d){if(ref.path!=='stats/counter'||JSON.stringify(d)!=='{"n":1,"at":{"ts":1}}')throw new Error('bad set');await call('set');}
 export async function getDoc(ref){const j=await call('get');return {exists:()=>j.n!=null,data:()=>({n:j.n})};}`,
 };
 const b = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox'] });

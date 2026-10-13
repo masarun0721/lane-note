@@ -275,6 +275,17 @@ tr.rc.editing td{background:#fff3ec!important}
   .lp-cards{grid-template-columns:repeat(4,1fr)}.lp-band,.lp-h3,.lp-h2{break-after:avoid;page-break-after:avoid}
   .lp-page:last-child{break-after:auto;page-break-after:auto}
 }
+/* v0.26：チームで共有 */
+.rb-team{border:1px solid #d9dfe8;border-radius:12px;padding:10px 12px;margin:10px 0;background:#f7f9fc}
+.rb-team h3{margin:0 0 4px;font-size:16px}.rb-team details{margin:8px 0;border-top:1px dashed #d9dfe8;padding-top:6px}
+.rb-team select,.rb-team input[type=text],.rb-team input[type=date]{font-size:16px;padding:6px 8px;border:1px solid #c9d2e0;border-radius:8px;max-width:100%}
+.rb-team input[type=text]{min-width:min(22em,100%)}.rb-team .btn{min-height:44px}.rb-team .btn.sm{min-height:36px;font-size:13px;padding:4px 10px}
+.tm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}.tm-card{background:#fff;border-radius:10px;padding:8px 10px;border:1px solid #e3e7ee}
+.tm-me{margin:6px 0;font-size:14px}.tm-warn{background:#fff6e5;border:1px solid #f0c36d;border-radius:8px;padding:6px 8px}
+.pend{display:inline-block;background:#fff1c7;color:#7a4b00;border:1px solid #e8b84a;border-radius:6px;font-size:11px;font-weight:800;padding:0 5px;margin-right:4px;white-space:nowrap}
+.tm-plist,.tm-mlist,.tm-hlist{margin:6px 0;padding-left:18px;line-height:1.8}.tm-plist{max-height:16em;overflow:auto}.tm-hlist li{margin-bottom:4px}
+.tm-ht{font-variant-numeric:tabular-nums;color:#566}.tm-code{margin:8px 0}.tm-code code{display:inline-block;word-break:break-all;background:#fff;border:1px solid #d9dfe8;border-radius:6px;padding:4px 6px;font-size:13px;user-select:all}
+.rb-team .btn.tm-x{color:#b42318;background:#fff;border:1px solid #e5b4ae}
 </style>
 </head>
 <body class="records">
@@ -298,7 +309,7 @@ __MODEPICK__
 <main>
 <section class="box">
   <h2><span class="no">1</span>学校・クラブ名と結果の資料</h2>
-  <p class="privacy-line">🔒 ログインすると自分専用のクラウドに保存（ほかの人には見えません）。ログインなしはこの端末だけ。「URLから読み込む」のときは、URLと中身が LANE NOTE の中継を通ります（保存しません）。利用回数だけを数えます（個人の情報は集めません）。詳しくは <a href="guide.html#data">はじめての人はこちら</a></p>
+  <p class="privacy-line">🔒 ログインすると自分専用のクラウドに保存（ほかの人には見えません。「チームで共有」を使ったときだけ、そのチームのメンバーに見えます）。ログインなしはこの端末だけ。「URLから読み込む」のときは、URLと中身が LANE NOTE の中継を通ります（保存しません）。利用回数だけを数えます（個人の情報は集めません）。詳しくは <a href="guide.html#data">はじめての人はこちら</a></p>
   <div class="rb-row" id="rbAuth" style="margin:10px 0;align-items:center">
     <span id="rbAuthInfo" class="small"></span>
     <button class="btn" id="rbSignIn" type="button" hidden>Googleでログイン</button>
@@ -306,6 +317,7 @@ __MODEPICK__
   </div>
   <div class="status" id="rbAuthStatus"></div>
   <div class="rb-guest" id="rbGuest" hidden aria-live="polite"></div>
+  <section class="rb-team" id="rbTeam" hidden aria-label="チームで共有"></section>
   <div class="disclaimer sm" style="margin-top:8px">ⓘ 結果の資料の文字を読み取って整理しているだけです。<b>記録は必ず元の結果資料と照らし合わせて確認してください。</b>読めなかったところは空欄にして警告を出します（推測で埋めません）。</div>
   <input type="checkbox" id="rbPersonal" hidden aria-hidden="true">
   <div class="rb-row" style="margin:10px 0" id="rbSchoolRow">
@@ -450,6 +462,9 @@ var SHARE_BASE = "__SHARE_BASE__";
 <script>
 __PERSONAL__
 __TALK__
+</script>
+<script>
+__TEAM__
 </script>
 <script>
 __PRINT__

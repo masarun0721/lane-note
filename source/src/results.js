@@ -90,12 +90,16 @@ var ResultParser = (function () {
     var p = m[1].trim(), g = /^(小|中|高|大)?[1-6]$/.test(p) ? p : '';
     return { name: s.slice(0, s.length - m[0].length).trim(), grade: g, paren: p };
   }
-  function normSchool(s) { return nk(s).replace(/\s+/g, '').replace(/^\d+・/, '').replace(/^(東京)?[・]/, ''); }
+  // v0.26.5：末尾の「・3」（速報の地区・支部番号。gold.jaic.org で「立教池袋            ・3」）も取る
+  function normSchool(s) { return nk(s).replace(/\s+/g, '').replace(/^\d+・/, '').replace(/^(東京)?[・]/, '').replace(/[・･]\d{1,2}$/, ''); }
   var SUF = /(高等学校|中学校|中等教育学校|高校|中学|学園|学院)?$/;
   function schoolBase(s) { return normSchool(s).replace(/(高等学校|中学校|高校|中学|高|中)$/, ''); }
   function matchSchool(rec, q) {
     var a = normSchool(rec), b = normSchool(q); if (!b) return false;
     if (a === b) return true;
+    // v0.26.5：資料が「立教池袋」（高・中なし）で、入れたのが「立教池袋高」「立教池袋高校」のとき
+    //   （中学は「〜中」と書かれるので、高校名で入れたときだけ。「立教池袋中」で入れても高校の選手は拾わない）
+    if (a && /(高等学校|高校|高)$/.test(b) && a === b.replace(/(高等学校|高校|高)$/, '') && !/(高等学校|中学校|中等教育学校|高校|中学|高|中)$/.test(a)) return true;
     if (a.indexOf(b) !== 0) return false;
     return /^(高|中|高校|中学|中学校|高等学校|高等学校陸上部|中学陸上部|陸上部|陸上競技部|ＡＣ|AC)?$/.test(a.slice(b.length));
   }
@@ -326,7 +330,7 @@ var ResultParser = (function () {
       var L = blk.split(/<br\s*\/?>/i).map(txt);
       while (L.length && !L[L.length - 1]) L.pop();
       var m = (L[0] || '').match(/^(?:(\d+)\s*位)?\s*\((\d+)\)$/); if (!m || L.length < 4) return;
-      out.push({ type: 'row', cells: [m[1] || '', m[2], L[1], L[2], L[3]] });
+      out.push({ type: 'row', cells: [m[1] || '', m[2], L[1], L[2], L[3].replace(/\s*[・･]\s*\d{1,2}$/, '')] });
     });
     return out;
   }
