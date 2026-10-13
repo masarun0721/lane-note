@@ -94,18 +94,18 @@ console.log('[6] 中学・高校の区分と学年別（v0.4・同じ系列の�
  ok(R.divisionOf({team:'架空',event:'男子中学1年 100m'})==='jh'&&R.divisionOf({team:'架空',event:'男子高校 100m'})==='hs'&&R.divisionOf({team:'架空',event:'男子100m',grade:'中2'})==='jh','所属で決まらなければ種目見出し・学年で区分');
  ok(R.eventCat('男子中学1年 100m')==='1年'&&R.eventCat('男子中学2年 100m')==='2年'&&R.eventCat('男子中学共通 100m')==='共通'&&R.eventCat('男子高校 100m')===''&&R.eventCat('男子2支部1年 100m')==='1年'&&R.eventCat('中1男子100m')==='1年'&&R.eventCat('中学2・3年男子100m')==='2・3年'&&R.eventCat('小学4~6年男子100m')==='小学','学年別・共通の区分を読む');
  const evs=['男子中学1年 100m','男子中学2年 100m','男子中学3年 100m','男子中学共通 100m','男子高校 100m'];
- ok(new Set(evs.map(e=>R.eventKey({event:e,team:'架空'}))).size===5,'中1・中2・中3・共通・高校の100mは別の種目');
+ ok(new Set(evs.map(e=>R.eventKey({event:e,team:'架空'}))).size===2,'v0.26.23：中1・中2・中3・共通の100mは同じ「中学 100m」、高校の100mは別');
  const rs=[mk('j1','2026-05-30','男子中学1年 100m','中一 太郎','架空中','1','13.50','+0.5'),mk('j2','2026-05-30','男子中学2年 100m','中二 次郎','架空中','2','12.40','+0.3'),
   mk('j3','2026-05-30','男子中学3年 100m','中三 三郎','架空中','3','11.95','+0.1'),mk('h1','2026-05-30','男子高校 100m','高一 四郎','架空高','1','11.40','+1.0'),
   mk('h2','2026-05-30','男子高校 100m','高二 五郎','架空高','2','11.10','+1.2'),mk('o1','2026-05-30','男子中学1年 100m','他校 六郎','別の中','1','12.90','+0.5')];
  const mine=rs.filter(r=>R.matchSchool(r.team,'架空'));
  ok(mine.length===5,'学校名「架空」は架空中と架空高の両方に当たる（だから区分が必要）');
  const all=R.ranking(mine,{}),k1=R.eventKey(rs[0]);
- ok(all[k1].length===1&&all[k1][0].name==='中一 太郎','「男子 中1 100m」のランキングに中2・中3・高校の選手が入らない');
+ ok(all[k1].length===3&&all[k1][0].name==='中三 三郎'&&!all[k1].some(x=>/高/.test(x.name)),'v0.26.23：「男子 中学 100m」のランキングに中1〜3が入り、高校の選手は入らない');
  ok(!Object.keys(all).some(k=>all[k].some(x=>x.name==='高二 五郎')&&all[k].some(x=>x.name==='中一 太郎')),'中学と高校の記録が同じランキングに入らない');
- ok(Object.keys(R.ranking(mine,{div:'jh'})).length===3&&Object.keys(R.ranking(mine,{div:'hs'})).length===1,'中学／高校の切り替え（中学は学年別3種目・高校は1種目）');
+ ok(Object.keys(R.ranking(mine,{div:'jh'})).length===1&&Object.keys(R.ranking(mine,{div:'hs'})).length===1,'中学／高校の切り替え（どちらも100mは1種目）');
  ok(R.ranking(mine,{div:'jh',grade:1})[k1].length===1&&!R.ranking(mine,{div:'hs',grade:1})[k1],'学年の絞り込みは区分の中だけ（高1が中1に混ざらない）');
- ok(R.eventKeyLabel(rs[0])==='男子 中1 100m'&&R.eventKeyLabel(rs[3])==='男子 高校 100m'&&R.eventKeyLabel(mk('x','','男子中学共通 100m','a','架空中','','12.00',''))==='男子 中学共通 100m','種目の表示名に区分を出す');
+ ok(R.eventKeyLabel(rs[0])==='男子 中学 100m'&&R.eventKeyLabel(rs[3])==='男子 高校 100m'&&R.eventKeyLabel(mk('x','','男子中学共通 100m','a','架空中','','12.00',''))==='男子 中学 100m','種目の表示名に中学・高校を出す');
  const same=[mk('s1','2026-04-01','男子100m','同名 太郎','架空中','3','12.00','+0.1'),mk('s2','2026-06-01','男子100m','同名 太郎','架空高','1','11.50','+0.1')];
  ok(R.athleteKey(same[0])!==R.athleteKey(same[1])&&R.pbDetails(same).s2.flag==='初','同じ名前でも架空中と架空高は別の選手として扱う（中学のベストを高校で更新したことにしない）');
  const at=R.allTimeTop(mine,10,{div:'hs'});ok(Object.keys(at).length===1&&at[R.eventKey(rs[3])][0].name==='高二 五郎','歴代記録も区分ごと');
@@ -114,7 +114,7 @@ console.log('[6] 中学・高校の区分と学年別（v0.4・同じ系列の�
   {type:'text',v:'男子中学2年 １００ｍ 決勝'},{type:'row',cells:['順位','ﾚｰﾝ','Bib','氏名','所属','記録','風']},{type:'row',cells:['1','4','12','中二 次郎(2)','架空中','12.40','+0.3']},
   {type:'text',v:'男子高校 １００ｍ 決勝'},{type:'row',cells:['順位','ﾚｰﾝ','Bib','氏名','所属','記録','風']},{type:'row',cells:['1','4','13','高二 五郎(2)','架空高','11.10','+1.2']},{type:'row',cells:['','5','14','高一 欠場(1)','架空高','DNS','+1.2']}];
  const pr=R.parseCells(st,{school:'架空'});
- ok(pr.recs.map(r=>R.eventKey(r)).join()==='jh:男子100m#1年,jh:男子100m#2年,hs:男子100m,hs:男子100m','見出しごとに種目・区分が切り替わる');
+ ok(pr.recs.map(r=>R.eventKey(r)).join()==='jh:男子100m,jh:男子100m,hs:男子100m,hs:男子100m'&&pr.recs[0].event!==pr.recs[1].event,'見出しごとに種目・区分が切り替わる（元の種目名は残る）');
  ok(pr.recs[3].mark==='DNS'&&pr.recs[3].wind===''&&R.shownWind(pr.recs[3])===''&&R.shownWind(pr.recs[2])==='+1.2','DNSには風を入れない・出さない');
  ok(R.shownWind({event:'男子100m',mark:'DNF',wind:'+1.0'})===''&&R.shownWind({event:'男子100m',mark:'DQ',wind:'+1.0'})===''&&R.shownWind({event:'男子400m',mark:'55.00',wind:'+1.0'})==='','DNF・失格・風のない種目は風を出さない');}
 console.log('[7] 選手別の並び・グラフの参考記録');
@@ -134,11 +134,10 @@ console.log('[8] v0.5：種目の並び・男女・中学/高校の推測・Exce
   mk('a10','2026-05-01','男子中学2年 100m','中二 次郎','架空中','2','12.80','+0.0'),mk('a11','2026-05-01','男子中学共通 走高跳','中三 三郎','架空中','3','1m50')];
  const keys=[...new Set(rs.map(r=>R.eventKey(r)))];
  const g=R.groupEvents(keys,rs,true);
- ok(g.map(x=>x.group).join()==='中1,中2,中学共通,高校','区分の順（中1→中2→中学共通→高校）：'+g.map(x=>x.group).join());
- ok(g[0].items.map(i=>i.label).join()==='中1 100m,中1 1500m','中1は100m→1500m（文字順の「100→1500→200」にしない）：'+g[0].items.map(i=>i.label).join());
- ok(g[2].items.map(i=>i.label).join()==='中学共通 200m,中学共通 110mH,中学共通 走高跳,中学共通 走幅跳,中学共通 砲丸投','中学共通：短距離→ハードル→跳躍（高→幅）→投てき：'+g[2].items.map(i=>i.label).join());
- ok(g[3].items.map(i=>i.label).join()==='高校 100m,高校 1500m,高校 やり投','高校：100m→1500m→やり投');
- ok(R.groupEvents(keys,rs,false)[0].items[0].label==='男子 中1 100m','男女が混ざるときは「男子」を付ける');
+ ok(g.map(x=>x.group).join()==='中学,高校','区分の順（中学→高校）：'+g.map(x=>x.group).join());
+ ok(g[0].items.map(i=>i.label).join()==='中学 100m,中学 200m,中学 1500m,中学 110mH(0.914m),中学 走高跳,中学 走幅跳,中学 砲丸投(5.000kg)','中学：短距離（100→200→1500、文字順にしない）→ハードル→跳躍（高→幅）→投てき：'+g[0].items.map(i=>i.label).join());
+  ok(g[1].items.map(i=>i.label).join()==='高校 100m,高校 1500m,高校 やり投(0.800kg)','高校：100m→1500m→やり投');
+ ok(R.groupEvents(keys,rs,false)[0].items[0].label==='男子 中学 100m','男女が混ざるときは「男子」を付ける');
  const D=e=>R.disciplineOrder(e)[0];ok(D('男子4×100mR')===3&&D('男子5000mW')===4&&D('男子3000mSC')<3&&D('男子八種競技')===7&&D('女子100mH')===2,'リレー・競歩・障害・混成・ハードルの分類');
  const mix=rs.concat([mk('f1','2026-05-01','女子中学1年 100m','中一 花子','架空中','1','14.00','+0.1')]);
  ok(R.gendersIn(rs).join()==='m'&&R.gendersIn(mix).join()==='m,f'&&R.genderOf(mix[mix.length-1])==='f','男子だけ／男女まざりの判定');

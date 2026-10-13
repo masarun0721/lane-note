@@ -49,6 +49,8 @@
     var cs = (String(type || '').match(/charset\s*=\s*["']?([\w-]+)/i) || head.match(/charset\s*=\s*["']?([\w-]+)/i) || [])[1] || 'utf-8';
     if (/shift_jis|sjis|x-sjis|windows-31j|cp932/i.test(cs)) cs = 'shift_jis';
     var t; try { t = new TextDecoder(cs).decode(bytes); } catch (e) { t = new TextDecoder('utf-8').decode(bytes); }
+    // v0.26.23（東京私学陸上情報の PC 用結果）：中身は UTF-8 なのに <meta charset=Shift_JIS> のままのページがある。正しい UTF-8 として読めるなら UTF-8 を使う
+    if (cs === 'shift_jis') { try { t = new TextDecoder('utf-8', { fatal: true }).decode(bytes); } catch (e) { } }
     if ((t.match(/\ufffd/g) || []).length > 20 && cs !== 'shift_jis') { try { t = new TextDecoder('shift_jis').decode(bytes); } catch (e) { } }
     return t;
   }

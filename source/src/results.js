@@ -11,7 +11,32 @@ var ResultParser = (function () {
   var ROUND = /(タイムレース上位\d+位|タイムレース総合結果|タイムレース総合|ﾀｲﾑﾚｰｽ総合結果|ﾀｲﾑﾚｰｽ総合|総合結果|タイムレース|タイムレ-ス|予選|準決勝|決勝|ﾀｲﾑﾚｰｽ|オープン|順位決定)/;
 
   // 「11.76」「11.76 [11.758] -2.4」「22.42/+0.4」「5m20 +1.3」→ 記録と風に分ける（[ ] の中の1/1000秒は使わない）
+  /* v0.26.23：記録の横の「NGR」「GR」「NR」「PB」「SB」「大会新」などの印。記録の読み取りでは外し、備考（comment）に残す */
+  var TAGS = 'NPR|NJHR|NHSR|OPN|OP|NGR|NJR|NHR|NYR|NMR|NR|GR|JR|UR|AR|WR|MR|CR|PB|SB|=GR|=NGR|=NR|=PB|=SB|大会新|大会タイ|大会記録|大会新記録|県新|都新|道新|府新|区新|市新|高校新|中学新|日本新|自己新|自己ベスト|新記録|タイ記録';
+  var TAG_ONLY = new RegExp('^[*＊]{0,2}(' + TAGS + ')[*＊]?$', 'i'), TAG_END = new RegExp('^(.*?[\\d)）])[*＊]?(' + TAGS + ')$', 'i'), TAG_START = new RegExp('^[*＊]?(' + TAGS + ')[*＊]?(\\d.*)$', 'i');
+  function splitTags(s) {
+    var tags = [], out = [];
+    nk(String(s || '')).trim().split(/\s+/).forEach(function (t) {
+      if (!t) return;
+      var m;
+      if (TAG_ONLY.test(t)) { tags.push(t.replace(/^[*＊]+|[*＊]+$/g, '')); return; }
+      if ((m = t.match(TAG_END))) { tags.push(m[2]); t = m[1]; }
+      else if ((m = t.match(TAG_START))) { tags.push(m[1]); t = m[2]; }
+      t = t.replace(/^[*＊]+(?=\d)/, '');
+      out.push(t);
+    });
+    return { s: out.join(' '), tags: tags };
+  }
+  function isTag(s) { return TAG_ONLY.test(nk(String(s || '')).trim()); }
+  function addTags(cmt, tags) { var c = String(cmt || ''); (tags || []).forEach(function (t) { if (c.split(/[\s,，]+/).indexOf(t) < 0) c = (c ? c + ' ' : '') + t; }); return c; }
   function cleanMark(s) {
+    var st = splitTags(s), t = st.s.trim(), pts = null, m;
+    // v0.26.23：混成の各種目「55.02(598)」（得点）・「(0)DNS」。得点は備考に「598点」
+    if ((m = t.match(/^\((\d+)\)\s*(DNS|DNF|DQ|NM|NR)$/i))) t = m[2];
+    else if ((m = t.match(/^(\d[\d:.m]*\d)\s*\((\d{1,4})\)$/))) { t = m[1]; pts = m[2]; }
+    var r = cleanMark0(t); r.tags = st.tags.concat(pts != null ? [pts + '点'] : []); return r;
+  }
+  function cleanMark0(s) {
     var m0 = nk(s).trim().match(/^(\S+?)\s*[(（]([+\-±]?\d{1,2}\.\d)[)）]$/);   // v0.20.2「13.56(+0.8)」
     if (m0) return { mark: m0[1], wind: m0[2] };
     s = nk(s).replace(/\[[^\]]*\]/g, ' ').replace(/[()（）]/g, '').trim();
@@ -30,7 +55,7 @@ var ResultParser = (function () {
   function normEvent(s) {
     s = nk(s).replace(/\s+/g, '').replace(/[（(](選|予|決)[)）]/g, '');
     var g = /女/.test(s.replace(/男女/, '')) && !/男子/.test(s) ? '女子' : (/男/.test(s) ? '男子' : '');
-    var d = s.replace(/^.*?(男子|女子|男|女)/, '').replace(/^(\d+・?\d*支部|小学|中学|高校|一般|共通|中学共通|高校・一般|高校一般|中学・高校|[1-6１-６]年|[中高][1-3]|U\d+|\d年)+/g, '').replace(/^[・]+/, '');
+    var d = s.replace(/^.*?(男子|女子|男|女)/, '').replace(/^(\d+・?\d*支部|小学|中学|高校|一般|共通|中学共通|高校・一般|高校一般|中学・高校|[1-6１-６]年|[中高][1-3]|U\d{2}|\d年)+/g, '').replace(/^[・]+/, '');
     d = d.replace(/^(小学|中学|高校|一般|共通)+/, '').replace(/ｍ/g, 'm').replace(/ハードル/, 'H');
     return (g + d) || s;
   }
@@ -55,6 +80,7 @@ var ResultParser = (function () {
     var t = normSchool(r && r.team || '');
     if (/(中学校|中学|中等教育学校|中)$/.test(t)) return 'jh';
     if (/(高等学校|高校|高)$/.test(t)) return 'hs';
+    if (cyuTeam(r && r.team)) return 'jh';   // v0.26.23：中体連の速報の「地区・学校名」の形
     var e = nk(r && r.event || '').replace(/\s+/g, '');
     if (/中学|中[1-3](?!\d)/.test(e)) return 'jh';
     if (/高校|高[1-3](?!\d)/.test(e)) return 'hs';
@@ -65,12 +91,39 @@ var ResultParser = (function () {
   }
   function divLabel(d) { return d === 'jh' ? '中学' : d === 'hs' ? '高校' : ''; }
   // ランキング・PB・グラフで使う種目のキー：区分（中学/高校）＋学年別などの区分＋種目
-  function eventKey(r) { var c = eventCat(r.event), d = divisionOf(r); return (d ? d + ':' : '') + normEvent(r.event) + (c ? '#' + c : ''); }
+  /* v0.26.23：大会ごとに種目名の書き方が違っても、同じ種目は1つにまとめる（PB・ランキング・並び・グラフ）。保存した記録の種目名はそのまま（表示も元の名前）
+     ・学年・区分（中1〜3・高1〜3・2・3年・共通・低学年・少年A/B・一般・U18 など）は落とす。男女は別にもつ
+     ・ハードルの高さ、砲丸・円盤などの重さは「仕様」として残す（書いていなければ中学／高校の標準の仕様を補う）→ 仕様が同じときだけまとまる
+     ・リレーと個人は別（「4×100m」は 100m にならない） */
+  var CAT_RE = /^(?:低学年|高学年|少年[ABCＡＢＣ]|成年|ジュニア|一般|共通|小学生?|中学生?|高校生?|中高|[1-6]年生?|[1-3][・~〜\-][1-3]年生?|[中高][1-3](?=\d|[^\dm])|U\d{2}|男子|女子|・|_)+/;
+  function specNum(v, u) { v = +v; if (u === 'cm') v /= 100; if (u === 'g') v /= 1000; return v.toFixed(3) + (u === 'g' || u === 'kg' ? 'kg' : 'm'); }
+  var SPEC_STD = { jh: { '男子110mH': '0.914m', '女子100mH': '0.762m', '男子砲丸投': '5.000kg', '女子砲丸投': '2.721kg', '男子円盤投': '1.500kg', '女子円盤投': '1.000kg' },
+    hs: { '男子110mH': '1.067m', '女子100mH': '0.838m', '男子400mH': '0.914m', '女子400mH': '0.762m', '男子砲丸投': '6.000kg', '女子砲丸投': '4.000kg', '男子円盤投': '1.750kg', '女子円盤投': '1.000kg', '男子ハンマー投': '6.000kg', '女子ハンマー投': '4.000kg', '男子やり投': '0.800kg', '女子やり投': '0.600kg' } };
+  var G_HINT = {};   // 種目名に男女の無い記録：同じ選手のほかの記録から男女を補う（athleteKey → 男子/女子）
+  function learnGenders(recs) { (recs || []).forEach(function (r) { var g = (normEvent(r && r.event || '').match(/^(男子|女子)/) || [])[1]; if (g) G_HINT[athleteKey(r)] = g; }); }
+  function genderText(r) {
+    var g = (normEvent(r && r.event || '').match(/^(男子|女子)/) || [])[1]; if (g) return g;
+    var x = nk(String(r && (r.sex || r.gender) || '')); if (/女|^f/i.test(x)) return '女子'; if (/男|^m/i.test(x)) return '男子';
+    return G_HINT[athleteKey(r)] || '';
+  }
+  function baseEvent(ev) {
+    var n = normEvent(ev).replace(/^(男子|女子)/, ''), prev;
+    do { prev = n; n = n.replace(CAT_RE, ''); } while (n !== prev && n);
+    if (!n) n = normEvent(ev).replace(/^(男子|女子)/, '');
+    n = n.replace(/[（(](予選|準決勝|決勝|タイムレース|TR|ﾀｲﾑﾚｰｽ)[)）]$/, '').replace(/ハードル/g, 'H').replace(/リレー$/, 'R').replace(/(\d)[xX]/g, '$1×').replace(/(×\d+m)$/, '$1R');
+    var spec = '', m = n.match(/[（(]\s*(\d+(?:\.\d+)?)\s*(m|cm|kg|g)\s*[)）]/i);
+    if (m) { spec = specNum(m[1], m[2].toLowerCase()); n = n.replace(m[0], ''); }
+    n = n.replace(/(投)げ?$/, '$1');
+    return { name: n, spec: spec };
+  }
+  function eventKey(r) {
+    var d = divisionOf(r), g = genderText(r), b = baseEvent(r.event), spec = b.spec || (SPEC_STD[d] || {})[g + b.name] || '';
+    return (d ? d + ':' : '') + g + b.name + (spec ? '(' + spec + ')' : '');
+  }
   function eventKeyLabel(r, noGender) {
-    var n = normEvent(r.event), g = (n.match(/^(男子|女子)/) || [''])[0], c = eventCat(r.event), d = divLabel(divisionOf(r));
-    var cat = c === '共通' ? (d || '') + '共通' : /^\d年$/.test(c) ? (d ? d.charAt(0) : '') + c.charAt(0) : /年$/.test(c) ? (d || '') + c : c;
-    if (!cat && d) cat = d;
-    var out = g + (cat ? ' ' + cat + ' ' : '') + n.slice(g.length);
+    // v0.26.23：学年・区分はまとめたので、見出しは「男子 中学 100m」（仕様つきの種目は仕様も）
+    var k = eventKey(r), g = genderText(r), d = divLabel(divisionOf(r)), n = k.replace(/^[a-z]+:/, '').slice(g.length);
+    var out = (g + (d ? ' ' + d + ' ' : (g ? ' ' : '')) + n).trim();
     return noGender && g ? out.slice(g.length).trim() : out;
   }
   function hasMark(r) { return !!markValue(r && r.mark); }
@@ -93,15 +146,41 @@ var ResultParser = (function () {
   // v0.26.5：末尾の「・3」（速報の地区・支部番号。gold.jaic.org で「立教池袋            ・3」）も取る
   function normSchool(s) { return nk(s).replace(/\s+/g, '').replace(/^\d+・/, '').replace(/^(東京)?[・]/, '').replace(/[・･]\d{1,2}$/, ''); }
   var SUF = /(高等学校|中学校|中等教育学校|高校|中学|学園|学院)?$/;
-  function schoolBase(s) { return normSchool(s).replace(/(高等学校|中学校|高校|中学|高|中)$/, ''); }
+  function schoolBase(s) { var cy = cyuTeam(s); if (cy) s = cy; return normSchool(s).replace(/(高等学校|中学校|高校|中学|高|中)$/, ''); }
+  /* v0.26.23（私学が読み込めない）：学校名の書き方の違いをそろえてから比べる
+     ・「中学校／中学／中等部」→「中」、「高等学校／高校／高等部」→「高」（「本郷中学校」と入れても「本郷中」に合う）
+     ・「大学附属／大学付属／大附属／大付属／大付」→「大附」、先頭の「(私)」「私立」「学校法人」、末尾の「(東京)」などを外す
+     ・「東京 架空学園」「東京／架空学園」のように、区切りのある都道府県名を前から外す */
+  function canonSchool(s) {
+    var t = nk(String(s || '')).trim().replace(/^[(（]\s*私\s*[)）]|^(学校法人|私立)\s*/g, '').replace(/\s*[(（][^()（）]{1,6}[)）]$/, '');
+    t = t.replace(new RegExp('^(' + PREF.source.replace(/^\^\(|\)\$?$/g, '') + ')[都道府県]?\\s*[\\s・／/]\\s*(?=\\S{2,})'), '');
+    t = normSchool(t);
+    t = t.replace(/大学?(附属|付属|附|付)/g, '大附').replace(/(中等教育学校)$/, '中等').replace(/(高等学校|高等部|高校)$/, '高').replace(/(中学校|中等部|中学)$/, '中');
+    return t;
+  }
+  /* v0.26.23：東京都中体連の速報（gold.jaic.org の cyuugaku）は所属が「墨　田・吾嬬立花」「足　立・KJR・L･足立十一」の形
+     （地区・〔クラブ・L･〕学校名。学校名に「中」は付かない）。最後の区切りのあとを学校名として「〇〇中」「〇〇」と比べる */
+  function cyuTeam(rec) {
+    var t = nk(String(rec || '')).replace(/[\s\u3000]+/g, '');
+    if (!/^[^・･]{1,4}[・･]/.test(t)) return '';
+    var parts = t.split(/[・･]/).filter(Boolean); if (parts.length < 2) return '';
+    var last = parts[parts.length - 1]; if (/^\d+$/.test(last)) return '';
+    if (/(中|高|校|学園|学院)$/.test(parts[0]) || PREF.test(parts[0])) return '';   // 「東京・架空学園」などはこれまでどおり
+    return last;
+  }
   function matchSchool(rec, q) {
-    var a = normSchool(rec), b = normSchool(q); if (!b) return false;
+    var cy = cyuTeam(rec);
+    if (cy) { var qb = canonSchool(q); if (!qb) return false; var cb = canonSchool(cy); return cb === qb || cb + '中' === qb || cb === qb + '中'; }
+    var a = canonSchool(rec), b = canonSchool(q); if (!b) return false;
     if (a === b) return true;
-    // v0.26.5：資料が「立教池袋」（高・中なし）で、入れたのが「立教池袋高」「立教池袋高校」のとき
-    //   （中学は「〜中」と書かれるので、高校名で入れたときだけ。「立教池袋中」で入れても高校の選手は拾わない）
-    if (a && /(高等学校|高校|高)$/.test(b) && a === b.replace(/(高等学校|高校|高)$/, '') && !/(高等学校|中学校|中等教育学校|高校|中学|高|中)$/.test(a)) return true;
+    var lv = function (x) { return (x.match(/(高|中|中等)$/) || [''])[0]; }, la = lv(a), lb = lv(b), ba = la ? a.slice(0, -la.length) : a, bb = lb ? b.slice(0, -lb.length) : b;
+    if (ba && ba === bb) {
+      if (!lb) return true;   // 入れたのが「架空学園」（中・高なし）なら、中も高も拾う
+      // v0.26.5：資料が「立教池袋」（高・中なし）で、入れたのが「〜高」のとき（中学は「〜中」と書かれるので、高校名で入れたときだけ）
+      if (!la && lb === '高') return true;
+    }
     if (a.indexOf(b) !== 0) return false;
-    return /^(高|中|高校|中学|中学校|高等学校|高等学校陸上部|中学陸上部|陸上部|陸上競技部|ＡＣ|AC)?$/.test(a.slice(b.length));
+    return /^(陸上部|陸上競技部|ＡＣ|AC)$/.test(a.slice(b.length)) || /^(高|中)?(陸上部|陸上競技部)?$/.test(a.slice(b.length)) && !lb;
   }
   function nameKey(n) { return nk(n).replace(/[\s　・]/g, '').replace(/[髙]/g, '高').replace(/[﨑]/g, '崎'); }
 
@@ -204,7 +283,7 @@ var ResultParser = (function () {
             });
             var markZone0 = Math.max(c.team + 8, c.trialEnd || 0);
             var markZone1 = c.cmt != null ? c.cmt - 2 : c.x1;
-            var teamW = bw.filter(function (w) { return w.x >= c.team - 6 && w.x < (c.trialEnd ? c.trialEnd - 60 : c.mark + 30) && !isMark(w.n) && !WIND.test(w.n); });
+            var teamW = bw.filter(function (w) { return w.x >= c.team - 6 && w.x < (c.trialEnd ? c.trialEnd - 60 : c.mark + 30) && !isMark(w.n) && !WIND.test(w.n) && !isTag(w.n); });
             var teamSame = teamW.filter(function (w) { return Math.abs(w.y - a.y) < 1.6; });
             var team = (teamSame.length ? teamSame : teamW).map(function (w) { return w.n; }).join('').replace(/\s/g, '');
             if (PREF.test(team)) team = '';
@@ -212,7 +291,9 @@ var ResultParser = (function () {
             var marks = bw.filter(function (w) { return w.x >= markZone0 && w.x < markZone1 && MARK.test(cleanMark(w.n).mark); }).sort(function (p, q) { return p.y - q.y || p.x - q.x; });
             var stat = bw.filter(function (w) { return w.x >= c.team + 8 && STATUS.test(cleanMark(w.n).mark); })[0];
             var cmt = c.cmt != null ? bw.filter(function (w) { return w.x >= c.cmt - 2 && !STATUS.test(w.n); }).map(function (w) { return w.n; }).join(' ') : '';
+            var tagW = bw.filter(function (w) { return Math.abs(w.y - a.y) < 1.6 && w.x >= c.team + 8 && (c.cmt == null || w.x < c.cmt - 2) && isTag(w.n); }).map(function (w) { return w.n.replace(/^[*＊]+|[*＊]+$/g, ''); });
             var mk = marks.length ? cleanMark(marks[marks.length - 1].n) : null;
+            cmt = addTags(cmt, tagW.concat(mk ? mk.tags : []));   // v0.26.23：NGR などは備考に
             var mark = mk ? mk.mark : (stat ? cleanMark(stat.n).mark : '');
             var w = mk && mk.wind != null ? mk.wind : null;
             if (w == null && marks.length) { var mw = marks[marks.length - 1]; var under = bw.filter(function (x) { return WIND.test(x.n) && x.y > mw.y + 2 && Math.abs(x.x + x.w - (mw.x + mw.w)) < 12; })[0]; if (under) w = under.n; }
@@ -295,7 +376,7 @@ var ResultParser = (function () {
       if (kana && !/^[ァ-ヶー\s・]+$/.test(kana)) kana = '';
       if (!name || /^\d+$/.test(name) && !get(map.mark)) return;
       var g = parseGrade(name);
-      var mk = cleanMark(get(map.mark)), cmt = get(map.cmt), mark = mk.mark;
+      var mk = cleanMark(get(map.mark)), cmt = addTags(get(map.cmt), mk.tags), mark = mk.mark;
       if (!mark && STATUS.test(cmt.split(' ')[0])) { mark = cmt.split(' ')[0]; cmt = cmt.split(' ').slice(1).join(' '); }
       var badMark = mark && !isMark(mark);
       var w = mk.wind != null ? mk.wind : (map.wind != null ? get(map.wind) : wind);
@@ -324,13 +405,16 @@ var ResultParser = (function () {
     if (tm) out.push({ type: 'text', v: txt(tm[1]) });
     var body = html.replace(/^[\s\S]*?<\/head>/i, '');
     var wm = body.match(/風\s*[:：]\s*([+\-±]?\d+\.\d)/); if (wm) out.push({ type: 'text', v: '風:' + wm[1] });
-    out.push({ type: 'row', cells: ['順位', 'No.', '記録', '氏名', '所属'], th: true });
+    out.push({ type: 'row', cells: ['順位', 'No.', '記録', '氏名', '所属', '備考'], th: true });
     body.split(/<font\b[^>]*>/i).slice(1).forEach(function (blk) {
       blk = blk.split(/<\/font>|<hr|<ul|<a\b/i)[0];
       var L = blk.split(/<br\s*\/?>/i).map(txt);
       while (L.length && !L[L.length - 1]) L.pop();
-      var m = (L[0] || '').match(/^(?:(\d+)\s*位)?\s*\((\d+)\)$/); if (!m || L.length < 4) return;
-      out.push({ type: 'row', cells: [m[1] || '', m[2], L[1], L[2], L[3].replace(/\s*[・･]\s*\d{1,2}$/, '')] });
+      // v0.26.23：「NGR」「大会新」などが別の行・同じ行にあっても読む（備考に残す）
+      var tags = []; L = L.filter(function (x, i) { if (i && isTag(x)) { tags.push(x.replace(/^[*＊]+|[*＊]+$/g, '')); return false; } return true; });
+      var l0 = splitTags(L[0] || ''); tags = l0.tags.concat(tags);
+      var m = l0.s.match(/^(?:(\d+)\s*位)?\s*\((\d+)\)$/); if (!m || L.length < 4) return;
+      out.push({ type: 'row', cells: [m[1] || '', m[2], L[1], L[2], L[3].replace(/\s*[・･]\s*\d{1,2}$/, ''), tags.join(' ')] });
     });
     return out;
   }
@@ -395,7 +479,7 @@ var ResultParser = (function () {
     });
     return function (row) {
       if (!row || !row.name) return null;
-      var d = divisionOf(row), k = nameKey(row.name) + '|' + normEvent(row.event) + (eventCat(row.event) ? '#' + eventCat(row.event) : '');
+      var d = divisionOf(row), k = nameKey(row.name) + '|' + eventKey(row).replace(/^[a-z]+:/, '');
       var c = (map[k] || []).filter(function (b) { return !d || !b.div || b.div === d; });
       if (c.length !== 1) return null;   // 見つからない・同じ名前で区分の違う人が2人以上（決められない）→ 空欄
       return { best: c[0].best || null, ref: c[0].ref || null, last: c[0].last || null };
@@ -410,7 +494,7 @@ var ResultParser = (function () {
   }
   // recs: 日付つきの記録。各記録に pb（'PB'更新／'初'）と、選手×種目のベストを返す
   function computeBests(recs) {
-    var groups = {};
+    var groups = {}; learnGenders(recs);
     recs.forEach(function (r) { var k = athleteKey(r) + '|' + eventKey(r); (groups[k] = groups[k] || []).push(r); });
     var bests = [], flags = {};
     Object.keys(groups).forEach(function (k) {
@@ -570,11 +654,11 @@ var ResultParser = (function () {
   }
 
   /* ---------- v0.5：種目の並び（区分ごと・陸上の種目順）・男女 ---------- */
-  function genderOf(r) { var g = (normEvent(r && r.event || '').match(/^(男子|女子)/) || [''])[0]; return g === '男子' ? 'm' : g === '女子' ? 'f' : ''; }
-  var GROUPS = ['中1', '中2', '中3', '中学共通', '高校', 'その他'];
+  function genderOf(r) { var g = genderText(r); return g === '男子' ? 'm' : g === '女子' ? 'f' : ''; }
+  var GROUPS = ['中学', '高校', 'その他'];   // v0.26.23：学年別・共通は同じ種目にまとめたので、区分は中学・高校だけ
   function divGroup(r) {
-    var d = divisionOf(r), c = eventCat(r.event);
-    if (d === 'jh') return /^[1-3]年$/.test(c) ? '中' + c.charAt(0) : (c === '' || c === '共通') ? '中学共通' : 'その他';
+    var d = divisionOf(r);
+    if (d === 'jh') return '中学';
     if (d === 'hs') return '高校';
     return 'その他';
   }
@@ -823,10 +907,42 @@ var ResultParser = (function () {
   }
   function roundOf(t) { var rm = nk(String(t || '')).replace(/\s/g, '').match(ROUND); return rm ? nk(rm[1]).replace('タイムレ-ス', 'タイムレース') : ''; }
   /* gold.jaic.org 速報（携帯向け）のリレー：「1位　　41.96<br>チーム<br>(1)名前(2)<br>…(4)…」。DNS・DQ は順位なし */
+  /* v0.26.23：東京私学陸上情報（sgk-tandf.tokyo）などの PC 用速報（同じ集計ソフトの表の形）。
+     見出し「順位 ﾚｰﾝ チーム／メンバー(colspan=3) 記録 ｺﾒﾝﾄ」、1行に「チーム<br>カナ」「(1)名前(学年)<br>…(4)」「カナ…」 */
+  function relayPcTable(html, title) {
+    var txt = function (h) { return nk(h.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')).replace(/\s+/g, ' ').trim(); };
+    var trs = html.match(/<tr\b[\s\S]*?<\/tr>/gi) || [], hi = -1, cols = null;
+    for (var i = 0; i < trs.length && hi < 0; i++) {
+      if (!/<th\b/i.test(trs[i])) continue;
+      var hs = [], hcells = trs[i].match(/<th\b[^>]*>[\s\S]*?<\/th>/gi) || [];
+      hcells.forEach(function (c) { var n = +((c.match(/colspan\s*=\s*["']?(\d+)/i) || [])[1] || 1), t = txt(c); for (var k = 0; k < n; k++) hs.push(k ? t + '#' + k : t); });
+      var f = function (re) { for (var j = 0; j < hs.length; j++) if (re.test(hs[j])) return j; return -1; };
+      var c0 = { rank: f(/^順位$/), lane: f(/^(ﾚｰﾝ|レーン)$/), team: f(/^チーム/), mark: f(/^記録$/), cmt: f(/^(ｺﾒﾝﾄ|コメント|備考)$/) };
+      if (c0.rank >= 0 && c0.team >= 0 && c0.mark >= 0) { hi = i; cols = c0; }
+    }
+    if (hi < 0) return null;
+    var ev = relayEvent(title), round = roundOf(title), hm = title.match(/(\d+)組/), heat = hm && !/総合/.test(round) ? +hm[1] : '';
+    var dm = html.match(/<!--\s*(20\d\d)\/(\d{1,2})\/(\d{1,2})/), date = dm ? dm[1] + '-' + ('0' + dm[2]).slice(-2) + '-' + ('0' + dm[3]).slice(-2) : '';
+    var lines = function (h) { return String(h || '').split(/<br\s*\/?>/i).map(txt).filter(Boolean); };
+    var out = [];
+    trs.slice(hi + 1).forEach(function (tr) {
+      var cs = (tr.match(/<td\b[^>]*>[\s\S]*?<\/td>/gi) || []).map(function (c) { return c.replace(/^<td\b[^>]*>|<\/td>$/gi, ''); });
+      if (cs.length < cols.mark + 1) return;
+      var tl = lines(cs[cols.team]); if (!tl.length) return;
+      var mk = cleanMark(txt(cs[cols.mark])), st = txt(cs[cols.mark]).match(/^(DNS|DNF|DQ|NM)\b/i), mark = st ? st[1].toUpperCase() : mk.mark;
+      var cmt = cols.cmt >= 0 ? txt(cs[cols.cmt] || '') : '', rank = txt(cs[cols.rank] || '');
+      if (!mark && !/^\d+$/.test(rank)) return;
+      var names = lines(cs[cols.team + 1]), kanas = lines(cs[cols.team + 2]), runners = [];
+      names.forEach(function (l, k) { var r = l.match(/^\((\d)\)\s*(.*)$/); if (r && r[2]) runners[+r[1] - 1] = relayRunner(r[2], kanas[k] || '', ''); });
+      out.push({ event: ev, round: round, heat: heat, rank: /^\d+$/.test(rank) ? +rank : '', lane: cols.lane >= 0 && /^\d+$/.test(txt(cs[cols.lane] || '')) ? +txt(cs[cols.lane]) : '', team: tl[0].replace(/\s*[・･]\s*\d{1,2}$/, ''), mark: mark, comment: addTags(cmt.replace(/^\*/, ''), mk.tags), runners: runners.filter(Boolean), src: 'gold' });
+    });
+    return out.length ? { cands: out, title: title, date: date } : null;
+  }
   function parseRelayGold(html) {
     html = String(html || '');
     var tm = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i), title = tm ? nk(tm[1].replace(/<[^>]*>/g, '')).replace(/\s+/g, ' ').trim() : '';
     if (!isRelay(title) && !/リレー|\d\s*[×xX]\s*\d/.test(nk(title))) return null;
+    var pc = relayPcTable(html, title); if (pc) return pc;
     if (!/<font\b[^>]*>[\s\S]{0,80}?(\d+\s*位|DNS|DQ|DNF)/i.test(html)) return null;
     var txt = function (h) { return nk(h.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')).replace(/\s+/g, ' ').trim(); };
     var ev = relayEvent(title), round = roundOf(title), hm = title.match(/(\d+)組/), heat = hm && !/総合/.test(round) ? +hm[1] : '';
@@ -835,12 +951,14 @@ var ResultParser = (function () {
     body.split(/<font\b[^>]*>/i).slice(1).forEach(function (blk) {
       blk = blk.split(/<\/font>|<hr|<ul|<a\b/i)[0];
       var L = blk.split(/<br\s*\/?>/i).map(txt); while (L.length && !L[L.length - 1]) L.pop();
+      var rtags = []; L = L.filter(function (x, i) { if (i && isTag(x)) { rtags.push(x.replace(/^[*＊]+|[*＊]+$/g, '')); return false; } return true; });
       if (L.length < 2) return;
+      var l0r = splitTags(L[0]); rtags = l0r.tags.concat(rtags); L[0] = l0r.s;
       var m = L[0].match(/^(?:(\d+)\s*位)?\s*(\d{1,2}:\d{2}\.\d{1,2}|\d{1,3}\.\d{2}|DNS|DNF|DQ|NM)?\s*(.*)$/); if (!m || !(m[1] || m[2])) return;
       var runners = [];
       L.slice(2).forEach(function (l) { var r = l.match(/^\((\d)\)\s*(.*)$/); if (r && r[2]) runners[+r[1] - 1] = relayRunner(r[2], '', ''); });
       runners = runners.filter(Boolean);
-      out.push({ event: ev, round: round, heat: heat, rank: m[1] ? +m[1] : '', lane: '', team: L[1].replace(/\s*[・･]\s*\d{1,2}$/, ''), mark: m[2] || '', comment: (m[3] || '').replace(/^\*/, ''), runners: runners, src: 'gold' });
+      out.push({ event: ev, round: round, heat: heat, rank: m[1] ? +m[1] : '', lane: '', team: L[1].replace(/\s*[・･]\s*\d{1,2}$/, ''), mark: m[2] || '', comment: addTags((m[3] || '').replace(/^\*/, ''), rtags), runners: runners, src: 'gold' });
     });
     return out.length ? { cands: out, title: title, date: date } : null;
   }
@@ -906,6 +1024,7 @@ var ResultParser = (function () {
             var markW = same.filter(function (w) { return w.x >= c.mark - 20 && (c.cmt == null || w.x < c.cmt - 2) && (MARK.test(cleanMark(w.n).mark) || STATUS.test(w.n)); })[0];
             var cmt = c.cmt != null ? same.filter(function (w) { return w.x >= c.cmt - 2; }).map(function (w) { return w.n; }).join(' ') : '';
             var mark = markW ? (STATUS.test(markW.n) ? markW.n : cleanMark(markW.n).mark) : '';
+            var rtg = same.filter(function (w) { return w.x >= c.mark - 20 && (c.cmt == null || w.x < c.cmt - 2) && isTag(w.n); }).map(function (w) { return w.n.replace(/^[*＊]+|[*＊]+$/g, ''); }).concat(markW && !STATUS.test(markW.n) ? cleanMark(markW.n).tags : []);
             var st = nk(cmt).match(/^(DQ|DNS|DNF)\b[,，\s]*(.*)$/); if (!mark && st) { mark = st[1]; cmt = st[2]; }
             var rows = []; bw.forEach(function (w) { if (/^\d{1,5}$/.test(w.n) && w.x >= Math.min(c.bib - 16, bibMin - 1) && w.x < c.name - 2 && w.x > tz0) rows.push(w); });
             rows.sort(function (a, b) { return a.y - b.y; });
@@ -918,7 +1037,7 @@ var ResultParser = (function () {
               });
               return relayRunner(joinTight(kj), kn.map(function (w) { return w.t; }).join(' '), b.n);
             }).filter(function (r) { return r.name; });
-            out.push({ event: relayEvent(ev), round: round, heat: hev ? hev.v : '', rank: rank ? +rank.n : '', lane: lane ? +lane.n : '', team: nk(joinTight(t.w)).replace(/\s+/g, ''), mark: mark, comment: nk(cmt).trim(), runners: runners, page: pi + 1, src: 'pdf' });
+            out.push({ event: relayEvent(ev), round: round, heat: hev ? hev.v : '', rank: rank ? +rank.n : '', lane: lane ? +lane.n : '', team: nk(joinTight(t.w)).replace(/\s+/g, ''), mark: mark, comment: addTags(nk(cmt).trim(), rtg), runners: runners, page: pi + 1, src: 'pdf' });
           });
         });
       });
@@ -958,7 +1077,7 @@ var ResultParser = (function () {
     return { rec: r, errors: errs };
   }
   return { parsePdf: parsePdf, parseCells: parseCells, goldMobileStream: goldMobileStream, parsePlain: parsePlain, textToStream: textToStream, normEvent: normEvent, markValue: markValue, windApplies: windApplies, windClass: windClass, windNum: windNum,
-    computeBests: computeBests, isRelay: isRelay, relayEvent: relayEvent, relayTeamBase: relayTeamBase, matchRelayTeam: matchRelayTeam, parseRelayGold: parseRelayGold, parseRelayPdf: parseRelayPdf, mergeRelays: mergeRelays, legsText: legsText, parseLegs: parseLegs, relayRecord: relayRecord, pbLookup: pbLookup, nameKey: nameKey, athleteKey: athleteKey, matchSchool: matchSchool, recId: recId, recIdLegacy: recIdLegacy, recIdV6: recIdV6, identityKey: identityKey, fullIdentity: fullIdentity, looseIdentity: looseIdentity, manualRecord: manualRecord, sanitizeRecord: sanitizeRecord, validDate: validDate, normManualWind: normManualWind, dedupe: dedupe, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
+    computeBests: computeBests, baseEvent: baseEvent, learnGenders: learnGenders, isRelay: isRelay, relayEvent: relayEvent, relayTeamBase: relayTeamBase, matchRelayTeam: matchRelayTeam, parseRelayGold: parseRelayGold, parseRelayPdf: parseRelayPdf, mergeRelays: mergeRelays, legsText: legsText, parseLegs: parseLegs, relayRecord: relayRecord, pbLookup: pbLookup, nameKey: nameKey, athleteKey: athleteKey, matchSchool: matchSchool, cleanMark: cleanMark, isTag: isTag, canonSchool: canonSchool, cyuTeam: cyuTeam, recId: recId, recIdLegacy: recIdLegacy, recIdV6: recIdV6, identityKey: identityKey, fullIdentity: fullIdentity, looseIdentity: looseIdentity, manualRecord: manualRecord, sanitizeRecord: sanitizeRecord, validDate: validDate, normManualWind: normManualWind, dedupe: dedupe, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
     guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText,
     eventCat: eventCat, divisionOf: divisionOf, divLabel: divLabel, eventKey: eventKey, eventKeyLabel: eventKeyLabel, shownWind: shownWind, hasMark: hasMark, sortAthletes: sortAthletes, kanaKey: kanaKey,
     setDivisionHints: setDivisionHints, rawDivisionOf: rawDivisionOf, genderOf: genderOf, divGroup: divGroup, disciplineOrder: disciplineOrder, groupEvents: groupEvents, gendersIn: gendersIn, GROUPS: GROUPS,

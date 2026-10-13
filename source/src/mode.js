@@ -70,6 +70,9 @@ var LaneMode = (function () {
     if (gen !== GEN) return;
     var td = today(), up = meets.filter(function (m) { return !m.day || m.day >= td; }).sort(function (a, b) { return (a.day || '9') < (b.day || '9') ? -1 : 1; });
     var h = '';
+    // v0.26.23：マネージャーとしてチームに入っていて、ログインしている人だけ（記録のページが付けた印）。モードは切りかえずに記録のページへ
+    var mh = null; try { mh = JSON.parse(localStorage.getItem('lanenote.mgrhint.v1') || 'null'); } catch (e) { }
+    if (mh && mh.uid && mh.at && Date.now() - mh.at < 60 * 864e5) h += '<section class="ph-card ph-mgr"><a class="ph-btn" id="phMgr" href="records.html">📋 マネージャーの記録へ</a><p class="ph-sub">選手モードのまま、マネージャーとしてチームの記録を開きます。記録のページの上の「👟 選手のホームへ戻る」で、ここに戻れます。</p></section>';
     // 1 次の大会
     h += '<section class="ph-card"><h3>📅 次の大会の予定・招集</h3>';
     if (up.length) {

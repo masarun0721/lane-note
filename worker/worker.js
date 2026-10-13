@@ -13,7 +13,7 @@
 //      simple = { limit = 30, period = 60 }
 const ALLOWED_ORIGINS = ["https://masarun0721.github.io"];
 // 取りに行ってよいサイト（完全一致）。増やすときはここに足して再デプロイする
-const ALLOWED_HOSTS = ["gold.jaic.org"];
+const ALLOWED_HOSTS = ["gold.jaic.org", "sgk-tandf.tokyo", "www.sgk-tandf.tokyo"];   // v0.26.23：東京私学陸上情報（PC 用の速報）
 const MAX_BYTES = 20 * 1024 * 1024; // 20MiB まで（実際の受信量）
 const TIMEOUT_MS = 20000;
 const MAX_REDIRECTS = 3;

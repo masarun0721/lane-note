@@ -47,6 +47,8 @@
     if (/shift_jis|sjis|x-sjis|windows-31j|cp932/i.test(cs)) cs = 'shift_jis';
     var txt;
     try { txt = new TextDecoder(cs).decode(buf); } catch (e) { txt = new TextDecoder('utf-8').decode(buf); }
+    // v0.26.23（東京私学陸上情報の PC 用結果）：中身は UTF-8 なのに <meta charset=Shift_JIS> のままのページがある。正しい UTF-8 として読めるなら UTF-8 を使う
+    if (cs === 'shift_jis') { try { txt = new TextDecoder('utf-8', { fatal: true }).decode(buf); } catch (e) { } }
     if ((txt.match(/\ufffd/g) || []).length > 20 && cs !== 'shift_jis') txt = new TextDecoder('shift_jis').decode(buf);
     // v0.26.21：gold.jaic.org 速報のリレー（チーム・記録・順位・4人）。候補として relOut に入れ、日付と見出しだけ stream に返す
     var rg = R.parseRelayGold && R.parseRelayGold(txt);
@@ -154,6 +156,14 @@
     } catch (e) { el.hidden = true; }
   }
   window.addEventListener('load', function () { setTimeout(useCounter, 1200); });
+  /* v0.26.23：選手モードのまま記録・チームのページを開いたとき（「📋 マネージャーの記録へ」から）、選手のホームへ戻るボタンを上に出す。モードは切りかえない */
+  document.addEventListener('DOMContentLoaded', function () {
+    try { if (typeof LaneMode === 'undefined' || LaneMode.get() !== 'player') return; } catch (e) { return; }
+    var m = document.querySelector('main'); if (!m) return;
+    var d = document.createElement('div'); d.className = 'ph-back'; d.id = 'phBack';
+    d.innerHTML = '<a class="btn sub" href="index.html">👟 選手のホームへ戻る</a><span class="small muted">選手モードのまま、マネージャーとして記録を使っています。</span>';
+    m.insertBefore(d, m.firstChild);
+  });
   /* v0.14（監査F03）：読み書きは「始めたときのアカウント（uid）と認証の世代」に固定する。途中でログアウト・切り替えがあったら、続きをやめる */
   var authEpoch = 0;
   /* v0.26：チームで共有。TEAM＝いま選んでいるチーム（なければ自分だけ）。チームを切りかえるときも authEpoch を進め、途中の読み書きは中止する（A01） */
@@ -379,7 +389,7 @@
     finally { b.disabled = false; if (msg) status('rbDataStatus', msg, /^✖/.test(msg) ? 'ng' : /^✔/.test(msg) ? 'ok' : ''); }
     await reload(sc);
   }
-  function applyInference() { var inf = R.inferDivisions(ALL, DIV_OV); R.setDivisionHints(inf.hints); REVIEW = inf.review; }
+  function applyInference() { var inf = R.inferDivisions(ALL, DIV_OV); R.setDivisionHints(inf.hints); REVIEW = inf.review; R.learnGenders(ALL); }
   var WEATHERS = [['晴', '☀️'], ['晴時々曇', '🌤'], ['曇', '⛅'], ['小雨', '🌦'], ['雨', '🌧'], ['雪', '❄'], ['強風', '🌬']];
   function wIcon(w) { for (var i = 0; i < WEATHERS.length; i++) if (WEATHERS[i][0] === w) return WEATHERS[i][1]; return ''; }
   function weatherText(key) { var m = METS[key]; if (!m) return ''; var t = []; if (m.weather) t.push(wIcon(m.weather) + ' ' + m.weather); if (m.temp != null) t.push(m.temp + '℃'); if (m.humidity != null) t.push('湿度' + m.humidity + '%'); return t.join(' '); }
@@ -498,8 +508,12 @@
   function jDateTime(ms) { if (!ms) return ''; var d = new Date(ms + 9 * 3600e3); return (d.getUTCMonth() + 1) + '/' + d.getUTCDate() + ' ' + ('0' + d.getUTCHours()).slice(-2) + ':' + ('0' + d.getUTCMinutes()).slice(-2); }
   function isoDay(ms) { var d = new Date(ms + 9 * 3600e3); return d.getUTCFullYear() + '-' + ('0' + (d.getUTCMonth() + 1)).slice(-2) + '-' + ('0' + d.getUTCDate()).slice(-2); }
   function dayMs(v) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || ''); return m ? Date.UTC(+m[1], m[2] - 1, +m[3], 23, 59, 59) - 9 * 3600e3 : 0; }
+  /* v0.26.23：マネージャーとしてチームに入っている人（ログイン中）だけ、選手モードのホームに「📋 マネージャーの記録へ」を出すための印。
+     この端末の localStorage に「uid・確かめた時刻」だけ。ログアウト・別の人・マネージャーでなくなったら消す。チームの中身は入れない（読めるかどうかはルールが決める） */
+  var MGR_KEY = 'lanenote.mgrhint.v1';
+  function mgrHint(uid) { try { if (uid && TEAMS.some(function (x) { return x.role === 'manager'; })) localStorage.setItem(MGR_KEY, JSON.stringify({ uid: uid, at: Date.now() })); else localStorage.removeItem(MGR_KEY); } catch (e) { } }
   async function pickTeam(uid) {
-    var ep = authEpoch, api = LTu(uid, ep); TEAMS = await api.myTeams(); TEAM_LOST = '';
+    var ep = authEpoch, api = LTu(uid, ep); TEAMS = await api.myTeams(); TEAM_LOST = ''; if (ep === authEpoch) mgrHint(uid);
     var sel = ''; try { sel = localStorage.getItem(teamKey(uid)) || ''; } catch (e) { }
     if (!sel || !TEAMS.some(function (x) { return x.id === sel; })) return;
     // v0.26.9：承認が要るコードで入った人は、顧問が承認するまで「承認待ち」（チームは読めない）
@@ -927,6 +941,7 @@
     var bx = $('rbTeam'); if (bx) { bx.innerHTML = ''; bx.hidden = true; }
   }
   async function onAuth(u) {
+    if (!u) mgrHint(null);   // v0.26.23：ログアウトしたら「マネージャーの記録へ」も出さない
     resetTeamState();
     var prev = USER ? USER.uid : null;
     authEpoch++; USER = u || null;
@@ -958,6 +973,7 @@
     var uid = USER && USER.uid;
     authEpoch++;   // 進行中の読み書きを止める（このあと前の人のDB・クラウドには書かない）
     JOIN = null; joinSave();   // v0.26.20：招待リンクの続きも消す
+    try { localStorage.removeItem(MGR_KEY); } catch (e) { }
     var r = await LaneAuth.signOutAndWipe(FB, uid, closeDb);
     if (r.signedOut && uid) setNoCache(uid, false);
     if (!r.signedOut) { status('rbAuthStatus', '✖ ログアウトできませんでした：' + esc(LaneAuth.errorText(r.error)) + '（もう一度押してください）', 'ng'); return r; }
