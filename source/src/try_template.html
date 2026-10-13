@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3分体験｜LANE NOTE</title>
+<link rel="icon" type="image/svg+xml" href="__FAVICON__">
+<link rel="apple-touch-icon" sizes="180x180" href="__APPLE_ICON__">
+<style>
+__BASE_CSS__
+.tr-demo{position:sticky;top:0;z-index:50;background:#fff3c4;border:2px solid #e0a800;border-radius:10px;padding:8px 12px;margin:0 0 12px;font-weight:700;color:#5a4300;font-size:14px;line-height:1.6}
+.tr-steps{display:flex;gap:6px;list-style:none;padding:0;margin:0 0 12px;flex-wrap:wrap}.tr-steps li{flex:1 1 120px;text-align:center;border-radius:999px;padding:6px 8px;background:#eef1f6;color:#555;font-size:13px;font-weight:700}
+.tr-steps li.on{background:var(--navy);color:#fff}.tr-pick button:focus{outline:none}.trBody h2:focus{outline:none}#trBody h2:focus{outline:none}.tr-steps li.done{background:#d8f0dc;color:#1e6b2e}
+.tr-pick{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.tr-pick button{min-height:120px;border-radius:14px;border:2px solid var(--navy);background:#fff;color:var(--navy);font-size:18px;font-weight:700;cursor:pointer;padding:14px;text-align:left;line-height:1.5}
+.tr-pick button small{display:block;font-size:14px;font-weight:400;color:#333;margin-top:6px}.tr-pick button:hover,.tr-pick button:focus-visible{background:#f2f6ff}
+.tr-src{border:1px dashed #9aa7bd;border-radius:10px;padding:8px 10px;background:#fafbfd;font-size:13px;margin:8px 0;overflow-x:auto}
+.tr-src h4{margin:0 0 4px;font-size:14px;color:var(--navy)}
+.tr-tbl{border-collapse:collapse;width:100%;font-size:14px;margin:6px 0}.tr-tbl th,.tr-tbl td{border:1px solid #c9d2e0;padding:5px 7px;text-align:left;vertical-align:top}.tr-tbl th{background:var(--navy);color:#fff}
+.tr-next{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.tr-big{font-size:17px;min-height:48px;padding:8px 18px}
+.tr-done{background:#e9f7ec;border:2px solid #2e8b47;border-radius:12px;padding:10px 14px;margin:10px 0}
+.tr-spark{vertical-align:middle}
+@media print{.tr-noprint,header,.tr-steps{display:none!important}.tr-demo{position:static}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hdr-meta">
+    <div class="hdr-ver" aria-label="バージョン">__VERSION__</div>
+    <div class="credit">Presented by Sakata</div>
+    <div class="hdr-msg"><span class="hm-l">すべての陸上競技部顧問が、</span><span class="hm-l">少しでも楽になりますように。</span></div>
+  </div>
+  <div class="brand">
+    <h1 class="logo"><a class="logo-home" href="./" aria-label="ホームへ" title="ホームへ">__LOGO_DARK__<span class="vh">LANE NOTE（レーンノート）3分体験</span></a></h1>
+    <span class="badge">試作版</span>
+  </div>
+  <p class="tagline">3分体験：架空のサンプルで、できあがりまでを試せます</p>
+  <nav class="pagenav" aria-label="ページ"><a href="records.html">📒 記録</a><a href="index.html">🏁 大会準備</a><a href="check.html">✅ 照合</a><a href="guide.html">🔰 はじめての人</a><a href="try.html" class="on" aria-current="page">⏱ 3分体験</a></nav>
+</header>
+<main>
+<div class="tr-demo" id="trDemo" role="note">🧪 体験中：ここに出る選手・学校・大会は<b>すべて架空のサンプル</b>です。ログインは不要で、何も保存せず、クラウドにも送りません（ページを閉じると消えます）。</div>
+<ol class="tr-steps" id="trSteps" aria-label="進み具合"><li>① 選ぶ</li><li>② 資料を入れる</li><li>③ 学校名</li><li>④ できあがり</li></ol>
+<section class="box" id="trBody" aria-live="polite"></section>
+</main>
+<script>
+__PARSER__
+</script>
+<script>
+__LOGIC__
+</script>
+<script>
+__RESULTS__
+</script>
+<script>
+__TRYSAMPLE__
+</script>
+<script>
+__TRYAPP__
+</script>
+</body>
+</html>

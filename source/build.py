@@ -13,7 +13,7 @@ import base64, hashlib, html as htmlmod, json, pathlib, re, sys
 ROOT = pathlib.Path(__file__).resolve().parent
 S = ROOT / 'src'
 SHARE_BASE = 'https://masarun0721.github.io/lane-note/'   # 共有リンク・QRの公開アドレス（file:// で開いたとき用）
-VERSION = 'v0.26.5'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
+VERSION = 'v0.26.7'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
 # 作成日は版番号から取れないので固定（ビルドした日で変わると、公開時の一致検査ができないため）
 BUILD_DATE = '2026年10月12日'
 REC_VERSION = 'v0.11.1'   # LANE LOG（records.html）だけの版
@@ -74,12 +74,28 @@ def build():
     rec = build_records(html)
     guide = build_guide()
     chk = build_check()
+    trial = build_try()
     # v0.14（監査F13）：Service Worker のキャッシュ名に版とページの中身のハッシュを入れる（公開のたびに古いページが入れ替わる）
-    h = hashlib.sha256((html + rec + guide + chk).encode('utf-8')).hexdigest()[:10]
+    h = hashlib.sha256((html + rec + guide + chk + trial).encode('utf-8')).hexdigest()[:10]
     sw = text('src/sw.js')
     assert '__CACHE__' in sw
     sw = sw.replace('__CACHE__', 'lanenote-page-%s-r%s-%s' % (VERSION, REC_VERSION, h))
-    return html, sw, rec, text('src/firebase-config.js'), guide, chk
+    return html, sw, rec, text('src/firebase-config.js'), guide, chk, trial
+
+
+def build_try():
+    """v0.26.6 3分体験（try.html）：架空のサンプルで、大会準備・記録のできあがりまでを試す。保存・通信はしない"""
+    base = text('src/template.html')
+    g = text('src/try_template.html')
+    rep = {'__BASE_CSS__': base[base.index('<style>') + 7:base.index('</style>')], '__LOGO_DARK__': logo_inline('logo/option_A_dark.svg'),
+           '__FAVICON__': 'data:image/svg+xml;base64,' + b64('logo/option_A_icon.svg'),
+           '__APPLE_ICON__': 'data:image/png;base64,' + b64('logo/png/option_A_icon_180.png'), '__VERSION__': VERSION,
+           '__PARSER__': text('src/parser.js'), '__LOGIC__': text('src/logic.js'), '__RESULTS__': text('src/results.js'),
+           '__TRYSAMPLE__': text('src/try_sample.js'), '__TRYAPP__': text('src/try_app.js')}
+    for k, v in rep.items():
+        assert k in g, k
+        g = g.replace(k, v)
+    return g
 
 
 def build_check():
@@ -184,7 +200,7 @@ def build_records(index_html):
     return rec
 
 
-OUTPUTS = ('index.html', 'sw.js', 'records.html', 'firebase-config.js', 'guide.html', 'check.html')   # 公開するファイル（--check もこれらを確かめる）
+OUTPUTS = ('index.html', 'sw.js', 'records.html', 'firebase-config.js', 'guide.html', 'check.html', 'try.html')   # 公開するファイル（--check もこれらを確かめる）
 
 
 def write(out, *bodies):

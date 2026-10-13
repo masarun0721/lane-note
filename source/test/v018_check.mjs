@@ -102,7 +102,7 @@ await check('大会準備・記録：同じヘッダー（版の書き方・ナ�
   for (const P of [I, RC]) {
     assert.match(P, /<div class="hdr-ver" aria-label="バージョン"><span class="appver"><\/span>／記録 v\d+\.\d+\.\d+<\/div>/);
     assert.match(P, /<nav class="pagenav"[^>]*>.*📒 記録.*🏁 大会準備<\/a><a href="check.html"[^>]*>✅ 照合<\/a><\/nav>/); assert.doesNotMatch(P, /<nav class="pagenav"[^>]*>[^\n]*はじめての人[^\n]*<\/nav>/);
-    assert.match(P, /<div class="topbar"><details class="changelog" id="changelog">.*<\/details><a href="guide.html" class="tb-btn tb-guide">🔰 はじめての人はこちら<\/a><a href="guide.html#manual" class="tb-btn tb-guide tb-manual">📖 マニュアル<\/a><button type="button" class="tb-btn fb-link" data-feedback="1">🚨 不具合・要望を送る<\/button>(<button type="button" class="tb-btn mode-sw"[^>]*>[^<]*<\/button>)?<\/div>/);
+    assert.match(P, /<div class="topbar"><details class="changelog" id="changelog">.*<\/details><a href="guide.html" class="tb-btn tb-guide">🔰 はじめての人はこちら<\/a>(<a href="try.html" class="tb-btn tb-guide tb-try">⏱ 3分体験<\/a>)?<a href="guide.html#manual" class="tb-btn tb-guide tb-manual">📖 マニュアル<\/a><button type="button" class="tb-btn fb-link" data-feedback="1">🚨 不具合・要望を送る<\/button>(<button type="button" class="tb-btn mode-sw"[^>]*>[^<]*<\/button>)?<\/div>/);
     assert.match(P, /<p class="beta-line">⚠️ 試作版です。内容は元資料でも確認してください<\/p>/);
     assert.match(P, /guide\.html#data/); assert(!P.includes('beta-banner"') && !P.includes('id="dataPolicy"><summary>'));
   }

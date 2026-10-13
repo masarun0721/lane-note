@@ -663,6 +663,17 @@ var ResultParser = (function () {
     });
     return map;
   }
+  /* v0.26.7 読み取り失敗の救済：貼り付けた表・CSVの文章 → 行×列（タブ → カンマ（"…"の中のカンマはそのまま）→ 2つ以上の空白 の順で区切りを決める） */
+  function splitTable(text) {
+    var L = String(text || '').replace(/^\ufeff/, '').replace(/\r\n?/g, '\n').split('\n').filter(function (l) { return l.trim() !== ''; });
+    if (!L.length) return [];
+    var tab = L.filter(function (l) { return l.indexOf('\t') >= 0; }).length, comma = L.filter(function (l) { return l.indexOf(',') >= 0; }).length;
+    var csv = function (l) { var out = [], cur = '', q = false; for (var i = 0; i < l.length; i++) { var c = l[i]; if (q) { if (c === '"' && l[i + 1] === '"') { cur += '"'; i++; } else if (c === '"') q = false; else cur += c; } else if (c === '"' && cur.trim() === '') { q = true; cur = ''; } else if (c === ',') { out.push(cur.trim()); cur = ''; } else cur += c; } out.push(cur.trim()); return out; };
+    if (tab >= L.length / 2) return L.map(function (l) { return l.split('\t').map(function (c) { return c.trim(); }); });
+    if (comma >= L.length / 2) return L.map(csv);
+    return L.map(function (l) { return l.trim().split(/[ \u3000]{2,}|\u3000/).map(function (c) { return c.trim(); }); });
+  }
+  function isTable(aoa) { return aoa.length >= 2 && aoa.filter(function (r) { return r.length >= 2; }).length >= Math.max(2, aoa.length * 0.6); }
   // 見出しの行：最初の15行で、見出しにいちばん多く当たる行（2つ以上）
   function findHeaderRow(aoa) {
     var best = -1, bn = 1;
@@ -701,18 +712,19 @@ var ResultParser = (function () {
   }
   // aoa: 行の配列（raw）、txt: 同じ形の表示文字（なければ aoa）、map: 列の割り当て、hr: 見出しの行
   function importRows(aoa, map, opt) {
-    opt = opt || {}; var txt = opt.text || aoa, hr = opt.headerRow == null ? 0 : opt.headerRow, recs = [], bad = [];
+    // v0.26.7：opt.def = { meet, date, event }（表に列が無いとき、全部の行に使う。読み取り失敗の救済で貼り付けた表など）。headerRow:-1 は「見出しの行なし」
+    opt = opt || {}; var txt = opt.text || aoa, hr = opt.headerRow == null ? 0 : opt.headerRow, recs = [], bad = [], def = opt.def || {};
     var cell = function (row, f) { return map[f] == null ? '' : row[map[f]]; };
     var ctext = function (i, f) { var r = txt[i] || []; return map[f] == null ? '' : r[map[f]]; };
     for (var i = hr + 1; i < aoa.length; i++) {
       var row = aoa[i] || []; if (!row.some(function (c) { return c != null && String(c).trim() !== ''; })) continue;
-      var name = nk(String(cell(row, 'name') || '')).replace(/\s+/g, ' ').trim(), ev = nk(String(cell(row, 'event') || '')).replace(/\s+/g, ' ').trim();
+      var name = nk(String(cell(row, 'name') || '')).replace(/\s+/g, ' ').trim(), ev = nk(String(cell(row, 'event') || def.event || '')).replace(/\s+/g, ' ').trim();
       var sex = nk(String(cell(row, 'sex') || '')).trim();
       if (sex && !/(男|女)/.test(ev)) ev = (/^(女|f)/i.test(sex) ? '女子' : /^(男|m)/i.test(sex) ? '男子' : '') + ev;
-      var date = parseDateCell(cell(row, 'date')) || parseDateCell(ctext(i, 'date'));
+      var date = parseDateCell(cell(row, 'date')) || parseDateCell(ctext(i, 'date')) || parseDateCell(def.date || '');
       var mark = normImportMark(cell(row, 'mark'), ev, ctext(i, 'mark'));
       var w = cell(row, 'wind'), wind = w === '' || w == null ? '' : nk(String(typeof w === 'number' ? (w > 0 ? '+' : '') + w.toFixed(1) : w)).replace(/[()（）\s]/g, '').replace('±', '');
-      var meet = nk(String(cell(row, 'meet') || '')).replace(/\s+/g, ' ').trim();
+      var meet = nk(String(cell(row, 'meet') || def.meet || '')).replace(/\s+/g, ' ').trim();
       var g = parseGrade(name), grade = nk(String(cell(row, 'grade') || '')).replace(/年生?$/, '').trim() || g.grade;
       var r = { event: ev, round: nk(String(cell(row, 'round') || '')).trim(), heat: '', rank: /^\d+$/.test(String(cell(row, 'rank') || '').trim()) ? +String(cell(row, 'rank')).trim() : '', lane: '', bib: '',
         name: g.name, kana: nk(String(cell(row, 'kana') || '')).trim(), grade: grade, team: nk(String(cell(row, 'team') || '')).trim() || opt.school || '', mark: mark, wind: hasMark({ mark: mark }) && windApplies(ev) ? wind : '', comment: '', row: i + 1, date: date, meet: meet || (date ? '大会名なし（' + date + '）' : '') };
@@ -803,6 +815,6 @@ var ResultParser = (function () {
     guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText,
     eventCat: eventCat, divisionOf: divisionOf, divLabel: divLabel, eventKey: eventKey, eventKeyLabel: eventKeyLabel, shownWind: shownWind, hasMark: hasMark, sortAthletes: sortAthletes, kanaKey: kanaKey,
     setDivisionHints: setDivisionHints, rawDivisionOf: rawDivisionOf, genderOf: genderOf, divGroup: divGroup, disciplineOrder: disciplineOrder, groupEvents: groupEvents, gendersIn: gendersIn, GROUPS: GROUPS,
-    personKey: personKey, inferDivisions: inferDivisions, mapHeaders: mapHeaders, findHeaderRow: findHeaderRow, parseDateCell: parseDateCell, normImportMark: normImportMark, importRows: importRows, FIELD_LABELS: FIELD_LABELS, isFieldEvent: isFieldEvent };
+    personKey: personKey, inferDivisions: inferDivisions, mapHeaders: mapHeaders, findHeaderRow: findHeaderRow, parseDateCell: parseDateCell, normImportMark: normImportMark, importRows: importRows, splitTable: splitTable, isTable: isTable, FIELD_LABELS: FIELD_LABELS, isFieldEvent: isFieldEvent };
 })();
 if (typeof module !== 'undefined') module.exports = ResultParser;

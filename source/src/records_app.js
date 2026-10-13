@@ -741,22 +741,43 @@
     b.xl.map = R.mapHeaders(b.xl.txt[b.xl.hr] || []);
     xlRun(b);
   }
-  function xlRun(b) { b.xl.res = R.importRows(b.xl.aoa, b.xl.map, { text: b.xl.txt, headerRow: b.xl.hr, school: school() }); if (MODE.personal) b.xl.res.recs = b.xl.res.recs.filter(wantRec); }
+  function xlRun(b) {
+    b.xl.res = R.importRows(b.xl.aoa, b.xl.map, { text: b.xl.txt, headerRow: b.xl.hr, school: school(), def: b.xl.rescue ? b.xl.def : null });
+    if (MODE.personal) b.xl.res.recs = b.xl.res.recs.filter(wantRec);
+    // v0.26.7 救済：所属の列があるときは、学校・クラブ名の選手だけにする（大会全体の表を貼っても、ほかの学校の記録は入れない）
+    else if (b.xl.rescue && b.xl.map.team != null && school()) { b.xl.all = b.xl.res.recs.length; b.xl.res.recs = b.xl.res.recs.filter(wantRec); }
+  }
+  /* v0.26.7 読み取り失敗の救済：貼り付けた表・CSV の文章を「列を選ぶ」画面（Excel と同じ）で読む */
+  function tableBatch(src, text, meta) {
+    var aoa = R.splitTable(text); if (!R.isTable(aoa)) return null;
+    if (aoa.length > LIMITS.rows) throw new Error('行が多すぎます（' + LIMITS.rows + '行まで）');
+    var hr = R.findHeaderRow(aoa);
+    var b = { src: src, kind: '表', meta: {}, xl: { wb: { SheetNames: [src] }, sheet: src, aoa: aoa, txt: aoa, hr: hr, map: hr >= 0 ? R.mapHeaders(aoa[hr]) : {}, rescue: true, def: { meet: (meta && meta.name) || '', date: (meta && meta.date) || '', event: '' } } };
+    xlRun(b); return b;
+  }
+  function rescueFrom(b) {
+    var nb = tableBatch(b.src + '（列を選んで読み取り）', b.raw, b.meta); if (!nb) return false;
+    nb.sc = b.sc; nb.id = ++seq; batches = batches.map(function (x) { return x === b ? nb : x; }); renderBatches(); return true;
+  }
   function colName(i) { var s = ''; i++; while (i) { var m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; }
   var XL_FIELDS = ['name', 'event', 'mark', 'date', 'meet', 'kana', 'grade', 'team', 'wind', 'rank', 'round', 'sex'], XL_REQ = { name: 1, event: 1, mark: 1, date: 1 };
   function renderXl(b) {
     var x = b.xl, hdr = x.txt[x.hr] || [], n = Math.max(hdr.length, (x.txt[x.hr + 1] || []).length), res = x.res;
+    if (x.rescue) n = Math.min(30, x.txt.slice(Math.max(0, x.hr), Math.max(0, x.hr) + 20).reduce(function (m, r) { return Math.max(m, r.length); }, n));
     var opts = function (f) { var cur = x.map[f]; var o = '<option value="">（使わない）</option>'; for (var i = 0; i < n; i++) o += '<option value="' + i + '"' + (cur === i ? ' selected' : '') + '>' + colName(i) + '列：' + esc(String(hdr[i] == null ? '' : hdr[i]).slice(0, 14) || '（見出しなし）') + '</option>'; return o; };
     var meets = {}; res.recs.forEach(function (r) { var k = r.date + '|' + r.meet; meets[k] = (meets[k] || 0) + 1; });
-    var miss = XL_FIELDS.filter(function (f) { return XL_REQ[f] && x.map[f] == null; });
-    return '<div class="rb-batch xl" data-b="' + b.id + '"><h3>📊 Excel：' + esc(b.src) + '</h3>' +
+    var miss = XL_FIELDS.filter(function (f) { return XL_REQ[f] && x.map[f] == null && !(x.rescue && (f === 'date' || f === 'event') && x.def[f]); });
+    return '<div class="rb-batch xl" data-b="' + b.id + '"><h3>' + (x.rescue ? '🧩 表：' : '📊 Excel：') + esc(b.src) + '</h3>' +
       '<div class="rb-row">' + (x.wb.SheetNames.length > 1 ? '<label>シート <select data-xsheet="1">' + x.wb.SheetNames.map(function (s) { return '<option' + (s === x.sheet ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '</select></label>' : '') +
-      '<label>見出しの行 <select data-xhr="1">' + x.txt.slice(0, 15).map(function (r, i) { return '<option value="' + i + '"' + (i === x.hr ? ' selected' : '') + '>' + (i + 1) + '行目：' + esc(r.filter(function (c) { return c !== ''; }).slice(0, 4).join('・').slice(0, 24)) + '</option>'; }).join('') + '</select></label></div>' +
+      '<label>見出しの行 <select data-xhr="1">' + (x.rescue ? '<option value="-1"' + (x.hr < 0 ? ' selected' : '') + '>見出しの行なし（1行目から記録）</option>' : '') + x.txt.slice(0, 15).map(function (r, i) { return '<option value="' + i + '"' + (i === x.hr ? ' selected' : '') + '>' + (i + 1) + '行目：' + esc(r.filter(function (c) { return c !== ''; }).slice(0, 4).join('・').slice(0, 24)) + '</option>'; }).join('') + '</select></label></div>' +
+      (x.rescue ? '<p class="rb-rescue small">🧩 <b>列を自分で選んで読み取ります。</b>下の表の見本を見ながら「氏名はこの列」「記録はこの列」のように選んでください。表に大会名・日付・種目の列が無いときは、ここに入れると全部の行に使います。</p>' +
+        '<div class="rb-row"><label>大会名 <input type="text" data-xdef="meet" value="' + esc(x.def.meet) + '" size="28"></label><label>日付 <input type="date" data-xdef="date" value="' + esc(x.def.date) + '"></label><label>種目（全部同じとき） <input type="text" data-xdef="event" value="' + esc(x.def.event) + '" size="14" placeholder="例：男子100m"></label></div>' +
+        '<div class="tblwrap"><table class="rbt rb-sample"><tr>' + Array.apply(null, Array(n)).map(function (_, i) { return '<th>' + colName(i) + '列</th>'; }).join('') + '</tr>' + x.txt.slice(Math.max(0, x.hr), Math.max(0, x.hr) + 4).map(function (r) { return '<tr>' + Array.apply(null, Array(n)).map(function (_, i) { return '<td>' + esc(String(r[i] == null ? '' : r[i]).slice(0, 20)) + '</td>'; }).join('') + '</tr>'; }).join('') + '</table></div>' : '') +
       '<p class="small">列の割り当て（自動で見つけました。違うところは選び直してください）。<b>＊は必須</b>。大会名が空の行は「大会名なし（日付）」になり、あとから直せます。</p>' +
-      '<div class="xlmap">' + XL_FIELDS.map(function (f) { return '<label class="' + (x.map[f] == null ? (XL_REQ[f] ? 'need' : 'off') : 'got') + '"><span>' + R.FIELD_LABELS[f] + (XL_REQ[f] ? '＊' : '') + '</span><select data-xmap="' + f + '">' + opts(f) + '</select></label>'; }).join('') + '</div>' +
+      '<div class="xlmap">' + XL_FIELDS.map(function (f) { return '<label class="' + (x.map[f] == null ? (XL_REQ[f] && miss.indexOf(f) >= 0 ? 'need' : 'off') : 'got') + '"><span>' + R.FIELD_LABELS[f] + (XL_REQ[f] ? '＊' : '') + '</span><select data-xmap="' + f + '">' + opts(f) + '</select></label>'; }).join('') + '</div>' +
       (miss.length ? '<p class="status ng">✖ 「' + miss.map(function (f) { return R.FIELD_LABELS[f]; }).join('」「') + '」の列を選んでください。</p>' : '') +
       '<div class="rb-row xlw"><span class="small"><b>天気（任意）</b>：この取り込みの大会すべてに付けます</span>' + weatherInputs(b.meta, 'data-f') + '</div>' +
-      '<p class="small">取り込める記録：<b>' + res.recs.length + '件</b>（' + Object.keys(meets).length + '大会）' + (res.bad.length ? '　<span class="ng">取り込めない行：' + res.bad.length + '件</span>' : '') + '</p>' +
+      '<p class="small">取り込める記録：<b>' + res.recs.length + '件</b>（' + Object.keys(meets).length + '大会）' + (x.rescue && x.all != null && x.all !== res.recs.length ? '　<span class="muted">表全体 ' + x.all + '件のうち「' + esc(school()) + '」の選手だけ</span>' : '') + (res.bad.length ? '　<span class="ng">取り込めない行：' + res.bad.length + '件</span>' : '') + '</p>' +
       (res.bad.length ? '<ul class="rb-warn">' + res.bad.slice(0, 30).map(function (r) { return '<li>⚠ ' + r.row + '行目 ' + esc(r.name || '') + ' ' + esc(r.event || '') + '：' + esc(r.warn) + (/日付/.test(r.warn) ? 'が無いか読めません（日付は必須です）' : 'が足りません') + '</li>'; }).join('') + (res.bad.length > 30 ? '<li>ほか ' + (res.bad.length - 30) + '行</li>' : '') + '</ul>' : '') +
       (res.recs.length ? '<div class="tblwrap"><table class="rbt"><tr><th>日付</th><th>大会</th><th>種目</th><th>氏名</th><th>学年</th><th>所属</th><th>記録</th><th>風</th><th>順位</th></tr>' + res.recs.slice(0, 30).map(function (r) { return '<tr><td>' + esc(r.date) + '</td><td>' + esc(r.meet) + '</td><td>' + esc(r.event) + '</td><td>' + esc(r.name) + (r.kana ? '<br><small class="muted">' + esc(r.kana) + '</small>' : '') + '</td><td>' + esc(r.grade) + '</td><td>' + esc(r.team) + '</td><td class="rn"><b>' + esc(r.mark) + '</b></td><td class="rn">' + esc(R.shownWind(r)) + '</td><td class="rn">' + esc(r.rank) + '</td></tr>'; }).join('') + '</table></div>' + (res.recs.length > 30 ? '<p class="small muted">ほか ' + (res.recs.length - 30) + '件（保存すると全部入ります）</p>' : '') : '') +
       '<div class="rb-row" style="margin-top:8px"><button class="btn" data-save="' + b.id + '" type="button"' + (res.recs.length && !miss.length ? '' : ' disabled') + '>記録に保存（' + res.recs.length + '件）</button><button class="btn sub" data-del="' + b.id + '" type="button">取り消す</button></div><div class="status" data-st="' + b.id + '"></div></div>';
@@ -766,7 +787,8 @@
     var b = batches.filter(function (x) { return x.id === +box.getAttribute('data-b'); })[0]; if (!b || !b.xl) return;
     var t = e.target;
     if (t.hasAttribute('data-xsheet')) { b.xl.sheet = t.value; loadXlSheet(b); }
-    else if (t.hasAttribute('data-xhr')) { b.xl.hr = +t.value; b.xl.map = R.mapHeaders(b.xl.txt[b.xl.hr] || []); xlRun(b); }
+    else if (t.hasAttribute('data-xhr')) { b.xl.hr = +t.value; b.xl.map = b.xl.hr < 0 ? b.xl.map : R.mapHeaders(b.xl.txt[b.xl.hr] || []); xlRun(b); }
+    else if (t.hasAttribute('data-xdef')) { b.xl.def[t.getAttribute('data-xdef')] = t.value.trim(); xlRun(b); }
     else if (t.hasAttribute('data-xmap')) { var f = t.getAttribute('data-xmap'); if (t.value === '') delete b.xl.map[f]; else { Object.keys(b.xl.map).forEach(function (k) { if (b.xl.map[k] === +t.value) delete b.xl.map[k]; }); b.xl.map[f] = +t.value; } xlRun(b); }
     else return;
     renderBatches();
@@ -790,8 +812,10 @@
     var t = $('rbPaste').value; if (!t.trim()) return;
     if (isUrlOnly(t)) { if (urlUi) { urlUi.offer(t); $('rbPaste').value = ''; } return; }
     if (t.length > LIMITS.paste) { status('rbStatus', '✖ 貼り付けた文章が長すぎます（約200万文字まで）。種目ごとに分けて貼り付けてください。', 'ng'); return; }
-    var res = R.parsePlain(t, {});
-    addBatchIn({ src: '貼り付け', kind: '貼り付け', all: res, meta: { name: res.meet.name, date: res.meet.date } }, scope());
+    var res = R.parsePlain(t, {}), pb = { src: '貼り付け', kind: '貼り付け', all: res, raw: t, meta: { name: res.meet.name, date: res.meet.date } };
+    // v0.26.7：1件も読めなかった表は、そのまま「列を選ぶ」画面にする
+    if (!res.recs.length) { var tb = null; try { tb = tableBatch('貼り付けた表', t, pb.meta); } catch (e) { status('rbStatus', '✖ ' + e.message, 'ng'); return; } if (tb) { addBatchIn(tb, scope()); return; } }
+    addBatchIn(pb, scope());
   });
   // ファイル名・資料の見出しから大会名と日付を推測して入れておく（入れた人が打った値は上書きしない）
   function applyGuess(meta, fileName) {
@@ -824,6 +848,11 @@
     return '<tr' + (r.warn ? ' class="haswarn"' : '') + '><td>' + esc(r.event) + '</td><td>' + esc(r.round) + '</td><td class="rn">' + esc(r.heat) + '</td><td>' + esc(r.name) + (r.kana ? '<br><small class="muted">' + esc(r.kana) + '</small>' : '') + '</td><td class="rn">' + esc(r.grade) + '</td><td>' + esc(r.team) + '</td><td class="rn"><b>' + esc(r.mark) + '</b>' + (extra || '') + '</td><td class="rn">' + esc(R.shownWind(r)) + '</td><td class="rn">' + esc(r.rank) + (r.overall ? '<br><small class="muted">総合' + esc(r.overall) + '</small>' : '') + '</td><td><small>' + esc(r.comment) + '</small></td></tr>';
   }
   var REC_HEAD = '<tr><th>種目</th><th>ラウンド</th><th>組</th><th>氏名</th><th>学年</th><th>所属</th><th>記録</th><th>風</th><th>順位</th><th>備考</th></tr>';
+  // v0.26.7 救済の案内：貼り付けた表は「列を選ぶ」へ。PDF・Webページは、表の部分をコピーして貼り付けてもらう
+  function rescueHint(b) {
+    if (b.raw && R.isTable(R.splitTable(b.raw))) return '<div class="rb-rescue"><p class="small">🧩 うまく読み取れないときは、<b>列を自分で選んで</b>読み取れます（「氏名はこの列」「記録はこの列」）。全部を手で打ち直さなくて大丈夫です。</p><button class="btn sub" type="button" data-rescue="' + b.id + '">🧩 列を選んで読み取る</button></div>';
+    return '<div class="rb-rescue"><p class="small">🧩 うまく読み取れないときは、資料の<b>表の部分をコピーして</b>下の「貼り付け」欄に貼り、「貼り付けた文章を読み取る」を押してください。読めなかったときは、列を自分で選んで読み取れます。Excel・CSV のファイルなら、そのまま入れると列を選べます。</p></div>';
+  }
   function renderBatches() {
     $('rbBatches').innerHTML = batches.map(function (b) {
       if (b.xl) return renderXl(b);
@@ -834,6 +863,7 @@
         '<div class="rb-row xlw"><span class="small"><b>天気（任意）</b></span>' + weatherInputs(b.meta, 'data-f') + '</div>' +
         '<p class="small">読み取った記録：' + rs.length + '件' + (b.all.recs.length !== rs.length ? '（全体 ' + b.all.recs.length + '件のうち）' : '') + '</p>' +
         (ws.length ? '<ul class="rb-warn">' + ws.map(function (w) { return '<li>⚠ ' + esc(w) + '</li>'; }).join('') + '</ul>' : '') +
+        (!rs.length || ws.some(function (w) { return /見つかりませんでした|読み取れませんでした/.test(w); }) ? rescueHint(b) : '') +
         (rs.length ? '<div class="tblwrap"><table class="rbt">' + REC_HEAD + rs.map(function (r) { return recRow(r); }).join('') + '</table></div>' : '') +
         '<div class="rb-row" style="margin-top:8px"><button class="btn" data-save="' + b.id + '" type="button"' + (rs.length ? '' : ' disabled') + '>記録に保存</button><button class="btn sub" data-del="' + b.id + '" type="button">取り消す</button></div><div class="status" data-st="' + b.id + '"></div></div>';
     }).join('');
@@ -854,6 +884,8 @@
       await reload(usc); return;
     }
     if (del) { batches = batches.filter(function (b) { return b.id !== +del; }); renderBatches(); return; }
+    var rsc = e.target.getAttribute('data-rescue');
+    if (rsc) { var rb = batches.filter(function (x) { return x.id === +rsc; })[0]; if (rb) { try { if (!rescueFrom(rb)) alert('表の形（列）が見つかりませんでした'); } catch (x) { alert(x.message); } } return; }
     if (!sv) return;
     var b = batches.filter(function (x) { return x.id === +sv; })[0], st = document.querySelector('[data-st="' + sv + '"]');
     if (b.xl) return saveXl(b, st);
