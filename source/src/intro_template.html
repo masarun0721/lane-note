@@ -31,7 +31,7 @@ ul{margin:2px 0;padding-left:1.25em;font-size:12.5px}li{margin:2px 0}
 <button type="button" class="pr noprint" onclick="window.print()">🖨 印刷・PDFにする（A4 1枚）</button>
 <div class="sheet">
   <div class="hd"><div class="logo">__LOGO_DARK__</div><div><h1>陸上競技部の「大会準備」と「記録」を、スマホとPCで。</h1><p>LANE NOTE（レーンノート）のご案内　<span class="muted">__VERSION__</span></p></div></div>
-  <p class="lead">大会の要項やプログラム・結果のPDFを入れるだけで、部員の当日資料づくりと、記録・自己ベストの整理を手伝う道具です。顧問の先生が作り、部活の現場で使いながら直しています（試作版）。</p>
+  <p class="lead">大会の要項やプログラム・結果のPDFを入れるだけで、部員の当日資料づくりと、記録・自己ベストの整理を手伝う道具です。陸上部の先生が作り、部活の現場で使いながら直しています（試作版）。</p>
   <div class="free"><div>💴 無料<small>使用料はかかりません</small></div><div>🚫 広告なし<small>広告は出しません</small></div><div>🔑 Googleでログイン<small>パスワードを新しく作りません</small></div></div>
   <div class="grid">
     <div>
@@ -40,14 +40,14 @@ ul{margin:2px 0;padding-left:1.25em;font-size:12.5px}li{margin:2px 0}
         <li><b>大会準備</b>：プログラムPDFから、部員の種目・組・レーン・招集時刻の一覧と、配布用の時間表を作る</li>
         <li><b>記録</b>：結果のPDF・Webページ・Excelから自校の記録を拾い、自己ベスト・部内ランキング・歴代記録を自動で</li>
         <li><b>選手に配る</b>：個人ページや予定のリンクを渡せる（選手は登録不要）</li>
-        <li><b>チームで共有</b>：顧問・マネージャーが、それぞれのアカウントで同じ記録を使える。だれが何を直したか履歴が残る</li>
+        <li><b>チームで共有</b>：先生・マネージャーが、それぞれのアカウントで同じ記録を使える。だれが何を直したか履歴が残る</li>
         <li><b>リレー・選手台帳</b>：走順の記録、学年の繰り上げ・卒業・転校後も記録をつなげる</li>
       </ul>
       <h2>🗑 消す・引き継ぐ・やめる</h2>
       <ul>
         <li><b>消す</b>：記録のページの「🗑 記録を全部消す」「☁ クラウドのデータをすべて消す」でいつでも消せます</li>
         <li><b>共有を止める</b>：「👥 チーム」の「🔐 見える人とリンク」で、配ったリンクを一覧して止められます</li>
-        <li><b>引き継ぐ</b>：異動のときは「👥 チーム」の「🤝 引き継ぎ」で、次の顧問に持ち主を渡せます</li>
+        <li><b>引き継ぐ</b>：異動のときは「👥 チーム」の「🤝 引き継ぎ」で、次の先生に持ち主を渡せます</li>
         <li><b>持ち出す</b>：「💾 ファイルに書き出す」「📊 Excelに書き出す」で、いつでも手元に保存できます</li>
       </ul>
     </div>
@@ -57,12 +57,12 @@ ul{margin:2px 0;padding-left:1.25em;font-size:12.5px}li{margin:2px 0}
         <tr><th style="width:7.5em">使い方</th><th>見られる人</th></tr>
         <tr><td>ログインなし</td><td>その端末だけ（どこにも送りません）</td></tr>
         <tr><td>ログインして自分だけ</td><td>自分だけ（Googleアカウントごとに分かれた保存場所）</td></tr>
-        <tr><td>👥 チームで共有</td><td>参加コードで入った顧問・マネージャーだけ。マネージャーには期限があり、顧問の承認を必要にもできます</td></tr>
+        <tr><td>👥 チームで共有</td><td>参加コードで入った先生・マネージャーだけ。マネージャーには期限があり、先生の承認を必要にもできます</td></tr>
         <tr><td>選手に配ったリンク</td><td>リンクを知っている人だけ。期限は最長119日、いつでも止められます</td></tr>
         <tr><td>選手とのやり取り</td><td>その選手（リンク）と先生だけ。期限が来たら自動で消えます</td></tr>
       </table>
       <ul>
-        <li>選手の名前・記録は、<b>部の運営のためだけ</b>に使います。売ったり、ほかの目的に使ったりしません</li>
+        <li>入力した名前や記録は、各校の先生のアカウントにだけ保存されます。作成者がふだん見たり管理したりすることはありません（不具合・要望で送られた内容を除く）。</li>
         <li>保存先は Google の Firebase（Firestore）。通信は暗号化されています</li>
         <li>結果の読み取りはまちがうことがあります。<b>記録は必ず元の資料で確かめてください</b></li>
       </ul>
@@ -73,7 +73,7 @@ ul{margin:2px 0;padding-left:1.25em;font-size:12.5px}li{margin:2px 0}
       </ul>
     </div>
   </div>
-  <div class="ft"><div id="qr" aria-label="LANE NOTE のQRコード"></div><div><b>はじめかた</b>：左のQRコード、または <b>__SITE__</b> を開く → 「⏱ 3分体験」で、登録なしで試せます。<br><span class="muted">LANE NOTE は試作版です。内容は予告なく変わることがあります。作成：阪田（顧問）</span></div></div>
+  <div class="ft"><div id="qr" aria-label="LANE NOTE のQRコード"></div><div><b>はじめかた</b>：左のQRコード、または <b>__SITE__</b> を開く → 「⏱ 3分体験」で、登録なしで試せます。<br><span class="muted">LANE NOTE は試作版です。内容は予告なく変わることがあります。作成：阪田雅志　本郷中学校・高等学校</span></div></div>
 </div>
 <script>__QRCODE__</script>
 <script>
