@@ -689,10 +689,9 @@
       if (role === 'manager') h += '<p class="small tm-mexp">この招待で入ったマネージャーは <b>' + esc(jDate(x && x.mexp || LaneTeam.schoolYearEnd())) + 'まで</b> 使えます。</p>';
       if (x) {
         // v0.26.20：送るのは招待リンク（# のうしろにコード＝サーバーに送られない）。コードそのものは「コードを表示」に残す（手で入れる方法）
-        var url = inviteUrl(x.code), msg = 'LANE NOTE のチーム「' + (TEAM ? TEAM.name : '') + '」の' + roleLabel(role) + '用の招待リンクです。\n開いて、自分のGoogleアカウントでログインし、「参加する」を押してください。\n（ほかの人には転送しないでください）\n' + url;
+        var url = inviteUrl(x.code), msg = 'LANE NOTE のチーム「' + (TEAM ? TEAM.name : '') + '」の' + roleLabel(role) + '用の招待リンクです。\n開いて、自分のGoogleアカウントでログインし、「参加する」を押してください。\n' + url;
         h += '<button type="button" class="btn tm-big" data-tm="copy" data-code="' + esc(url) + '">🔗 招待リンクをコピー</button>' +
           '<div class="tm-share"><a class="btn sub sm" target="_blank" rel="noopener" href="https://line.me/R/share?text=' + encodeURIComponent(msg) + '">LINEで送る</a><a class="btn sub sm" href="mailto:?subject=' + encodeURIComponent('LANE NOTE チームへの招待') + '&body=' + encodeURIComponent(msg) + '">メールで送る</a></div>' +
-          '<p class="small muted">入ってほしい人に<b>1人ずつ</b>送ってください（グループには貼らないでください）。</p>' +
           '<details class="tm-raw"><summary class="small">コードを表示（リンクが開けないとき、「参加コードで入る」に貼る）</summary><code>' + esc(x.code) + '</code> <button type="button" class="btn sub sm" data-tm="copy" data-code="' + esc(x.code) + '">コードだけコピー</button></details>';
       }
       h += '<details class="tm-adv"><summary class="small"><b>⚙ 詳しい設定</b>（コードの期限・人数・承認・作り直す）</summary>' +
