@@ -39,20 +39,20 @@ async function load(pg = '') { await p.goto(B + pg, { waitUntil: 'load' }); awai
 await p.goto(B + 'guide.html'); await p.evaluate(() => { localStorage.clear(); localStorage.setItem('lanenote.mode.v1', 'coach'); });
 let r = await load(); ok('最初の1回：文書がないので n=1 で作って表示', !r.hidden && r.text === '2026.10.13-1' && S.set === 1, JSON.stringify(r));
 r = await load(); ok('再読み込みでは増えない', r.text === '2026.10.13-1' && S.inc === 0, JSON.stringify(r));
-const today = await p.evaluate(() => localStorage.getItem('lanenote.count.v1')); ok('localStorage には日付だけ', /^\d{4}-\d\d-\d\d$/.test(today), today);
-await p.evaluate(() => localStorage.setItem('lanenote.count.v1', '2000-01-01')); S.n = 1233;
+const today = await p.evaluate(() => localStorage.getItem('lanenote.count.v2')); ok('localStorage には日付だけ', /^\d{4}-\d\d-\d\d$/.test(today), today);
+await p.evaluate(() => localStorage.setItem('lanenote.count.v2', '2000-01-01')); S.n = 1233;
 r = await load(); ok('日付が変わると +1（レーン番号板・読み上げ）', r.text === '2026.10.13-1234' && r.digits === 4 && r.aria === '2026年10月13日からの利用 1234回' && S.inc === 1, JSON.stringify(r));
 r = await load('records.html?me=1'); ok('別のアドレス（records.html?me=1）で開いても、同じ日は増えない', S.inc === 1);
-await p.evaluate(() => localStorage.removeItem('lanenote.count.v1')); r = await load('records.html?me=1'); ok('records.html で開いた日も数える', S.inc === 2, S.inc);
-S.fail = true; await p.evaluate(() => localStorage.removeItem('lanenote.count.v1'));
+await p.evaluate(() => localStorage.removeItem('lanenote.count.v2')); r = await load('records.html?me=1'); ok('records.html で開いた日も数える', S.inc === 2, S.inc);
+S.fail = true; await p.evaluate(() => localStorage.removeItem('lanenote.count.v2'));
 r = await load(); ok('読めないときは表示を隠すだけ', r.hidden && !errs.length, JSON.stringify(r) + errs.join());
-const kept = await p.evaluate(() => localStorage.getItem('lanenote.count.v1')); ok('失敗した日は数えた印を残さない', kept === null, kept);
+const kept = await p.evaluate(() => localStorage.getItem('lanenote.count.v2')); ok('失敗した日は数えた印を残さない', kept === null, kept);
 ok('画面は壊れない（トップ＝記録のページが出る）', await p.evaluate(() => /records\.html$/.test(location.pathname) && document.body.classList.contains('records') && getComputedStyle(document.querySelector('main')).display !== 'none'), await p.evaluate(() => location.href));
 S.fail = false; S.n = 1234;
 // v0.25.5：ヘッダーのレーンの中にあるか（白線の間・右寄せ・白い文字）
 for (const [w,h,mob] of [[1280,900,false],[412,915,true]]) {
   await p.setViewport({ width: w, height: h, deviceScaleFactor: mob ? 2.625 : 1, isMobile: mob, hasTouch: mob });
-  await p.evaluate(() => localStorage.setItem('lanenote.count.v1', 'x')); await load();
+  await p.evaluate(() => localStorage.setItem('lanenote.count.v2', 'x')); await load();
   const g = await p.evaluate(() => { const e = document.getElementById('useCount'), hd = document.querySelector('header'), r0 = e.getBoundingClientRect(), c0 = e.firstElementChild ? e.firstElementChild.getBoundingClientRect() : r0, r = { top: r0.top, bottom: r0.bottom, right: r0.right, left: c0.left }, H = hd.getBoundingClientRect(), m = document.querySelector('.hdr-msg').getBoundingClientRect(), lg = document.querySelector('.logo').getBoundingClientRect(), bd = document.querySelector('.badge').getBoundingClientRect(), ds = [...e.querySelectorAll('.uc-d')].map(d => d.getBoundingClientRect());
     return { inHeader: e.closest('header') === hd, top: r.top - H.top, bottom: r.bottom - H.top, right: r.right, vw: innerWidth, hb: H.bottom - H.top, belowMsg: r.top >= m.bottom - 1, overLogo: [lg, bd].some(x => !(r.right < x.left || r.left > x.right || r.bottom < x.top || r.top > x.bottom)), blockStyle: [...e.querySelectorAll('.uc-d')].every(d => { const c = getComputedStyle(d); return c.clipPath.startsWith('polygon') && c.color === 'rgb(17, 17, 17)'; }), digitsInLane: ds.length > 0 && ds.every(d => d.top >= r.top && d.bottom <= r.top + 22), color: getComputedStyle(e).color, fs: parseFloat(getComputedStyle(e).fontSize), text: e.textContent }; });
   const lane = Math.round(g.top) % 24 === 0 && g.bottom - g.top <= 24;

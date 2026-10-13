@@ -119,7 +119,10 @@
     return FB;
   }
   /* v0.25.4（v0.25.8 で記録のページ＝トップへ移動）：利用カウンター（stats/counter の n だけ。個人の情報は送らない）。1端末1日1回だけ +1、失敗したら表示を隠すだけ */
-  var COUNT_KEY = 'lanenote.count.v1';
+  // v0.26.19：前の版の 'lanenote.count.v1' は、書き込みを断られた日にも付いていた（その日はもう数えず、数も出なかった）。
+  //   新しい名前の印は、数えられたときだけ付ける。古い印は使わずに消す
+  var COUNT_KEY = 'lanenote.count.v2';
+  try { localStorage.removeItem('lanenote.count.v1'); } catch (e) { }
   async function useCounter() {
     var el = $('useCount'); if (!el || !CLOUD_READY) return;
     try {
@@ -130,8 +133,13 @@
       if (last !== day) {
         // v0.26.18：書けたときだけ「今日は数えた」と覚える（前は、ルールで断られても覚えてしまい、その日はもう数えなかった）
         var wrote = false;
-        try { await F.updateDoc(ref, { n: F.increment(1), at: F.serverTimestamp() }); wrote = true; }
-        catch (e) { if (e && e.code === 'not-found') { try { await F.setDoc(ref, { n: 1, at: F.serverTimestamp() }); wrote = true; } catch (e2) { if (!(e2 && e2.code === 'permission-denied')) throw e2; } } else if (!(e && e.code === 'permission-denied')) throw e; }
+        // v0.26.19：まだ stats/counter が無いとき、updateDoc はルールで「not-found」ではなく「permission-denied」になり、作る(setDoc)まで行かなかった。先に有無を見てから作る／増やす
+        try {
+          var pre = await F.getDoc(ref);
+          if (pre.exists()) await F.updateDoc(ref, { n: F.increment(1), at: F.serverTimestamp() });
+          else await F.setDoc(ref, { n: 1, at: F.serverTimestamp() });
+          wrote = true;
+        } catch (e) { if (!(e && (e.code === 'permission-denied' || e.code === 'not-found' || e.code === 'already-exists'))) throw e; }
         if (wrote) try { localStorage.setItem(COUNT_KEY, day); } catch (e) { }
       }
       var snap = await F.getDoc(ref), n = snap.exists() ? snap.data().n : null;

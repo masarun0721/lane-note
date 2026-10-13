@@ -39,16 +39,16 @@ async function load(pg = '') { await p.goto(B + pg, { waitUntil: 'load' }); awai
 await p.goto(B + 'guide.html'); await p.evaluate(() => { localStorage.clear(); localStorage.setItem('lanenote.mode.v1', 'coach'); });
 let r = await load(); ok('最初の1回：文書がないので n=1 で作って表示', !r.hidden && r.text === '2026.10.13-1' && S.set === 1, JSON.stringify(r));
 r = await load(); ok('再読み込みでは増えない', r.text === '2026.10.13-1' && S.inc === 0, JSON.stringify(r));
-const today = await p.evaluate(() => localStorage.getItem('lanenote.count.v1')); ok('localStorage には日付だけ', /^\d{4}-\d\d-\d\d$/.test(today), today);
-await p.evaluate(() => localStorage.setItem('lanenote.count.v1', '2000-01-01')); S.n = 1233;
+const today = await p.evaluate(() => localStorage.getItem('lanenote.count.v2')); ok('localStorage には日付だけ', /^\d{4}-\d\d-\d\d$/.test(today), today);
+await p.evaluate(() => localStorage.setItem('lanenote.count.v2', '2000-01-01')); S.n = 1233;
 r = await load(); ok('日付が変わると +1（3桁区切り）', r.text === '2026.10.13-1234' && S.inc === 1, JSON.stringify(r));
 r = await load('records.html?me=1'); ok('別のアドレス（records.html?me=1）で開いても、同じ日は増えない', S.inc === 1);
-await p.evaluate(() => localStorage.removeItem('lanenote.count.v1')); r = await load('records.html?me=1'); ok('records.html で開いた日も数える', S.inc === 2, S.inc);
-S.fail = true; await p.evaluate(() => localStorage.removeItem('lanenote.count.v1'));
+await p.evaluate(() => localStorage.removeItem('lanenote.count.v2')); r = await load('records.html?me=1'); ok('records.html で開いた日も数える', S.inc === 2, S.inc);
+S.fail = true; await p.evaluate(() => localStorage.removeItem('lanenote.count.v2'));
 r = await load(); ok('読めないときは表示を隠すだけ', r.hidden && !errs.length, JSON.stringify(r) + errs.join());
-const kept = await p.evaluate(() => localStorage.getItem('lanenote.count.v1')); ok('失敗した日は数えた印を残さない', kept === null, kept);
+const kept = await p.evaluate(() => localStorage.getItem('lanenote.count.v2')); ok('失敗した日は数えた印を残さない', kept === null, kept);
 ok('画面は壊れない（トップ＝記録のページが出る）', await p.evaluate(() => /records\.html$/.test(location.pathname) && document.body.classList.contains('records') && getComputedStyle(document.querySelector('main')).display !== 'none'), await p.evaluate(() => location.href));
 S.fail = false; S.n = 1234;
-if (SHOT) { await p.evaluate(() => localStorage.setItem('lanenote.count.v1', 'x')); await load(); await p.addStyleTag({ content: '.status.ng{display:none!important}' }); await p.evaluate(() => scrollTo(0, document.body.scrollHeight)); await sleep(400); await p.screenshot({ path: SHOT }); console.log('  shot', SHOT); }
+if (SHOT) { await p.evaluate(() => localStorage.setItem('lanenote.count.v2', 'x')); await load(); await p.addStyleTag({ content: '.status.ng{display:none!important}' }); await p.evaluate(() => scrollTo(0, document.body.scrollHeight)); await sleep(400); await p.screenshot({ path: SHOT }); console.log('  shot', SHOT); }
 await b.close(); srv.close();
 console.log(pass + ' passed, ' + fail + ' failed'); if (fail) process.exit(1);
