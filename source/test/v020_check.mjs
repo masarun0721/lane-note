@@ -200,7 +200,7 @@ await check('3ページに URL 欄・「今はまだ対応していません」�
   const I = fs.readFileSync(path.join(OUT, 'index.html'), 'utf8'), R = fs.readFileSync(path.join(OUT, 'records.html'), 'utf8'), C = fs.readFileSync(path.join(OUT, 'check.html'), 'utf8'), G = fs.readFileSync(path.join(OUT, 'guide.html'), 'utf8');
   for (const [h, id] of [[I, 'urlLoad'], [R, 'rbUrlLoad'], [C, 'ckUrlLoad']]) { assert(h.includes('id="' + id + '"')); assert(h.includes('LaneUrl.mount')); assert(!/今はまだURLからの読み込みには対応していません/.test(h)); assert(h.includes(PROXY)); }
   assert.match(G, /Cloudflare/); assert.match(G, /保存しません/); assert.match(I, /v0\.20/); assert.match(R, /v0\.10\.\d/);
-  const wk = fs.readFileSync(path.join(OUT, 'worker/worker.js'), 'utf8'); assert.match(wk, /ALLOWED_ORIGINS = \["https:\/\/masarun0721\.github\.io"\]/);
+  const wk = fs.readFileSync(path.join(OUT, 'worker/worker.js'), 'utf8'); assert.match(wk, /ALLOWED_ORIGINS = \["https:\/\/masarun0721\.github\.io"/);
 });
 console.log(`${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

@@ -33,6 +33,7 @@ var ResultParser = (function () {
     var st = splitTags(s), t = st.s.trim(), pts = null, m;
     // v0.26.23：混成の各種目「55.02(598)」（得点）・「(0)DNS」。得点は備考に「598点」
     if ((m = t.match(/^\((\d+)\)\s*(DNS|DNF|DQ|NM|NR)$/i))) t = m[2];
+    else if ((m = t.match(/^(DQ|DNF|DNS)\s*[,，、]\s*([A-Za-z0-9\-]{1,8})$/))) { t = m[1]; st.tags.push(m[2]); }   // v0.26.25：「DQ,FS」（失格・理由）
     else if ((m = t.match(/^(\d[\d:.m]*\d)\s*\((\d{1,4})\)$/))) { t = m[1]; pts = m[2]; }
     var r = cleanMark0(t); r.tags = st.tags.concat(pts != null ? [pts + '点'] : []); return r;
   }
@@ -1037,6 +1038,7 @@ var ResultParser = (function () {
               });
               return relayRunner(joinTight(kj), kn.map(function (w) { return w.t; }).join(' '), b.n);
             }).filter(function (r) { return r.name; });
+            if (/^(DNS|DNF|DQ|NM|DSQ)\s*[:：]/.test(nk(joinTight(t.w)).replace(/\s+/g, ''))) return;   // v0.26.25：欄外の「DNS:欠場」などの説明はチームではない
             out.push({ event: relayEvent(ev), round: round, heat: hev ? hev.v : '', rank: rank ? +rank.n : '', lane: lane ? +lane.n : '', team: nk(joinTight(t.w)).replace(/\s+/g, ''), mark: mark, comment: addTags(nk(cmt).trim(), rtg), runners: runners, page: pi + 1, src: 'pdf' });
           });
         });
