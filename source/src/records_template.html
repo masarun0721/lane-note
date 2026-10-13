@@ -377,6 +377,15 @@ __MODEPICK__
       <div class="rb-row"><button class="btn" type="submit" id="rmSave">記録に保存</button><button class="btn sub" type="button" id="rmCancel" hidden>直すのをやめる</button><button class="btn sub danger-t" type="button" id="rmDelete" hidden>🗑 この記録を消す</button></div>
     </form>
   </details>
+  <details class="rb-manual" id="rbPlanBox"><summary><b>📅 大会予定をまとめて追加</b>（記録はまだ無い、これからの大会）</summary>
+    <p class="small">CSV（Excel なら「CSV UTF-8」で保存）を選ぶか、表を貼り付けてください。1行目は <code>大会名,日付,終了日,会場,区分</code>。大会名と日付は必須、終了日（2日以上の大会）・会場・区分（中／高）は空でかまいません。登録済みの大会はとばします。</p>
+    <div class="rb-row"><button class="btn sub" type="button" id="rpTemplate">ひな形（CSV）をダウンロード</button><label class="btn sub">CSV を選ぶ<input type="file" id="rpFile" accept=".csv,.txt,text/csv" hidden></label></div>
+    <textarea id="rpPaste" rows="4" placeholder="大会名,日付,終了日,会場,区分&#10;江東区中学校秋季陸上競技大会,2026/10/4,,夢の島競技場,中"></textarea>
+    <div class="rb-row"><button class="btn sub" type="button" id="rpRead">貼り付けた表を読む</button></div>
+    <div id="rpPreview"></div>
+    <div class="status" id="rpStatus" aria-live="polite"></div>
+    <details class="rb-meets"><summary>これからの大会予定 <span class="small muted" id="rpListN"></span></summary><ul class="rb-meetlist" id="rpList"></ul></details>
+  </details>
   <div id="rbBatches"></div>
   <div class="status" id="rbDone" aria-live="polite"></div>
   <details class="rb-meets" id="rbMeetsBox"><summary><b>取り込み済みの大会</b> <span class="small muted" id="rbMeetsN"></span></summary><ul class="rb-meetlist" id="rbMeets"></ul></details>

@@ -233,11 +233,54 @@
   async function saveMeet(key, w, sc) {
     need(sc);
     var p = key.split('|'), o = { key: key, date: p[0], meet: p.slice(1).join('|'), weather: w.weather || '', temp: w.temp === '' || w.temp == null || isNaN(+w.temp) ? null : +w.temp, humidity: w.humidity === '' || w.humidity == null || isNaN(+w.humidity) ? null : +w.humidity, updatedAt: new Date().toISOString() };
+    // v0.26.28：大会予定（会場・終了日・区分）は、天気を直しても残す
+    var prev = METS[key] || {}; ['venue', 'end', 'div', 'plan'].forEach(function (k) { var v = w[k] != null ? w[k] : prev[k]; if (v != null && v !== '') o[k] = v; });
     METS[key] = o;
     if (sc.team) { await FB.F.setDoc(FB.F.doc(FB.fs, 'teams', sc.team.id, 'meets', docId(key)), o); check(sc); return; }
     if (!noCache(sc)) lsSet(metsKey(sc.uid), METS);
     if (sc.uid) { await FB.F.setDoc(FB.F.doc(FB.fs, 'users', sc.uid, 'meets', docId(key)), o); check(sc); }
   }
+  /* ---------- v0.26.28 大会予定をまとめて追加（CSV・貼り付け）→ 大会の印（meets：天気と同じ場所）に 会場・終了日・区分・plan を入れる ---------- */
+  var PLAN = null;
+  function planNorm(k) { return String(k || '').replace(/[\s　]/g, ''); }
+  function planState() {
+    var have = {}; Object.keys(METS).forEach(function (k) { have[planNorm(k)] = METS[k].plan ? 'plan' : 'meet'; });
+    ALL.forEach(function (r) { if (r.date && r.meet) { var k = planNorm(r.date + '|' + r.meet); if (!have[k]) have[k] = 'rec'; } });
+    var seen = {};
+    PLAN.rows.forEach(function (r) {
+      var k = planNorm(r.key);
+      r.st = r.err ? 'err' : have[k] === 'plan' ? 'dup' : have[k] ? 'rec' : seen[k] ? 'same' : 'new';
+      if (!r.err) seen[k] = 1;
+    });
+  }
+  function planRender() {
+    var box = $('rpPreview'); if (!box) return;
+    if (!PLAN) { box.innerHTML = ''; return; }
+    if (PLAN.err) { box.innerHTML = '<p class="status ng">✖ ' + esc(PLAN.err) + '</p>'; return; }
+    planState();
+    var n = { new: 0, dup: 0, rec: 0, same: 0, err: 0 }; PLAN.rows.forEach(function (r) { n[r.st]++; });
+    var lab = { new: '追加', dup: '登録済み（とばす）', rec: '記録がある大会（とばす）', same: '表の中で2回目（とばす）', err: '読めない' };
+    box.innerHTML = '<p class="small rpcount">追加 <b>' + n.new + '件</b>・登録済み ' + n.dup + '件・記録がある大会 ' + n.rec + '件・表の中の重複 ' + n.same + '件・読めない ' + n.err + '件</p>' +
+      '<div class="tblwrap"><table class="rbt rpt"><tr><th>状態</th><th>日付</th><th>大会名</th><th>会場</th><th>区分</th></tr>' + PLAN.rows.map(function (r) {
+        return '<tr class="rp-' + r.st + '"><td>' + (r.st === 'new' ? '<b>追加</b>' : r.st === 'err' ? '<b class="ng">読めない</b><br><small class="ng">' + r.row + '行目：' + esc(r.err) + '</small>' : '<span class="muted">' + lab[r.st] + '</span>') + '</td><td>' + esc(r.date) + (r.end ? '〜' + esc(r.end.slice(5)) : '') + '</td><td>' + esc(r.meet) + '</td><td>' + esc(r.venue) + '</td><td>' + esc(r.div) + '</td></tr>';
+      }).join('') + '</table></div>' +
+      '<div class="rb-row"><button class="btn" type="button" id="rpSave"' + (n.new ? '' : ' disabled') + '>大会予定を追加（' + n.new + '件）</button><button class="btn sub" type="button" id="rpClear">やめる</button></div>';
+  }
+  function planList() {
+    var ul = $('rpList'); if (!ul) return;
+    var td = new Date(Date.now() + 9 * 36e5).toISOString().slice(0, 10), ks = Object.keys(METS).filter(function (k) { var m = METS[k]; return m.plan && (m.end || m.date) >= td; }).sort();
+    $('rpListN').textContent = ks.length ? '（' + ks.length + '件）' : '';
+    ul.innerHTML = ks.length ? ks.map(function (k) { var m = METS[k]; return '<li><b>' + esc(m.date) + (m.end ? '〜' + esc(m.end.slice(5)) : '') + '</b> ' + esc(m.meet) + (m.venue ? ' <small class="muted">' + esc(m.venue) + '</small>' : '') + (m.div ? ' <small>（' + esc(m.div) + '）</small>' : '') + '</li>'; }).join('') : '<li class="muted">まだありません</li>';
+  }
+  async function planSave() {
+    var sc = scope(), list = PLAN.rows.filter(function (r) { return r.st === 'new'; }), done = 0;
+    try {
+      for (var i = 0; i < list.length; i++) { var r = list[i]; await saveMeet(r.key, { weather: '', temp: '', humidity: '', venue: r.venue, end: r.end, div: r.div, plan: true }, sc); done++; }
+    } catch (e) { if (isAbort(e)) return; status('rpStatus', esc('✖ ' + done + '件まで追加しました。続きを追加できませんでした：' + e.message), 'ng'); return; }
+    PLAN = null; planRender(); planList(); fillDatalists();
+    status('rpStatus', '✔ 大会予定を ' + done + '件 追加しました。記録を入れるときに、大会名の候補に出ます。', 'ok');
+  }
+  function planRead(text) { PLAN = R.parseMeetPlan(text); status('rpStatus', '', ''); planRender(); }
   async function saveOverrides(sc) {
     need(sc);
     if (sc.team) { await FB.F.setDoc(FB.F.doc(FB.fs, 'teams', sc.team.id, 'settings', 'divOverrides'), { map: DIV_OV, updatedAt: new Date().toISOString() }); check(sc); return; }
@@ -1260,6 +1303,27 @@
   var urlUi = window.LaneUrl && $('rbUrlLoad') ? LaneUrl.mount($('rbUrlLoad'), { id: 'ru', targets: [{ k: 'res', label: '結果' }], accept: ['pdf', 'html'], multiple: true,
     begin: function () { return scope(); },
     onFiles: function (files, k, sc) { return handleFiles(files, sc); } }) : null;
+  // v0.26.28 大会予定
+  $('rpTemplate').addEventListener('click', function () {
+    var u = URL.createObjectURL(new Blob(['\ufeff' + R.PLAN_TEMPLATE], { type: 'text/csv;charset=utf-8' })), a = document.createElement('a');
+    a.href = u; a.download = '大会予定_ひな形.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(u); }, 5000);
+  });
+  $('rpFile').addEventListener('change', async function () {
+    var f = this.files[0]; this.value = ''; if (!f) return;
+    if (f.size > 1e6) { status('rpStatus', '✖ ファイルが大きすぎます（1MBまで）', 'ng'); return; }
+    var buf = new Uint8Array(await f.arrayBuffer()), t = new TextDecoder('utf-8').decode(buf);
+    if ((t.match(/\ufffd/g) || []).length > 3) t = new TextDecoder('shift_jis').decode(buf);
+    planRead(t);
+  });
+  $('rpRead').addEventListener('click', function () { planRead($('rpPaste').value); });
+  $('rpPreview').addEventListener('click', function (e) {
+    if (e.target.id === 'rpSave') planSave();
+    else if (e.target.id === 'rpClear') { PLAN = null; planRender(); }
+  });
+  $('rmMeet').addEventListener('change', function () {   // 予定の大会名を選んだら、日付が空なら入れる
+    if (mEl('date').value) return; var v = this.value.trim(), k = Object.keys(METS).filter(function (x) { return METS[x].plan && METS[x].meet === v; })[0];
+    if (k) mEl('date').value = METS[k].date;
+  });
   $('rbPasteGo').addEventListener('click', function () {
     var t = $('rbPaste').value; if (!t.trim()) return;
     if (isUrlOnly(t)) { if (urlUi) { urlUi.offer(t); $('rbPaste').value = ''; } return; }
@@ -1459,6 +1523,8 @@
   function fillDatalists() {
     var names = {}, teams = {}, evs = {}, meets = {};
     ALL.forEach(function (r) { if (r.name) names[r.name] = 1; if (r.team) teams[r.team] = 1; if (r.event) evs[r.event] = 1; if (r.meet && !/^大会名なし/.test(r.meet)) meets[r.meet] = 1; });
+    Object.keys(METS).forEach(function (k) { if (METS[k].plan && METS[k].meet) meets[METS[k].meet] = 1; });   // v0.26.28 大会予定も候補に
+    planList();
     var srt = function (o) { return Object.keys(o).sort(function (a, b) { return a.localeCompare(b, 'ja'); }).slice(0, 800); };
     $('rmNames').innerHTML = opts(srt(names)); $('rmTeams').innerHTML = opts(srt(teams)); $('rmEvents').innerHTML = opts(srt(evs)); $('rmMeets').innerHTML = opts(srt(meets));
   }
