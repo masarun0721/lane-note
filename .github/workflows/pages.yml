@@ -73,8 +73,16 @@ jobs:
           npm ci --ignore-scripts --no-audit --no-fund
           npm test
 
-      - name: Assemble site
-        run: cp .nojekyll _site/
+      # DO NOT MERGE until https://lane-note.web.app serves the app.
+      # Tests above still run against the real build. The Pages artifact is only a redirect.
+      - name: Assemble GitHub Pages redirect
+        run: |
+          rm -rf _site
+          mkdir -p _site
+          cp source/pages-redirect/index.html _site/index.html
+          cp source/pages-redirect/index.html _site/404.html
+          cp source/pages-redirect/sw.js _site/sw.js
+          cp .nojekyll _site/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
