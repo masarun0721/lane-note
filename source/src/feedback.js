@@ -22,7 +22,7 @@
       '<div class="fb-login" id="fbLogin" aria-live="polite"></div>' +
       '<fieldset class="fb-kind"><legend>種類</legend>' + KINDS.map(function (k, i) { return '<label><input type="radio" name="fbKind" value="' + k + '"' + (i ? '' : ' checked') + '> ' + k + '</label>'; }).join('') + '</fieldset>' +
       '<label class="fb-l">内容 <b class="ng">（必須）</b><textarea id="fbBody" maxlength="5000" rows="6" placeholder="例：記録ページの大会別で、〇〇大会の100mの風が出ません"></textarea></label>' +
-      '<p class="small muted">メールで送るときは <a href="mailto:lanenote.info@gmail.com">lanenote.info@gmail.com</a> へ（ログインできないときもどうぞ）。</p>' +
+      '<p class="small muted">メールで送るときは <a href="mailto:lanenote.info@gmail.com">lanenote.info@gmail.com</a> へ（ログインできないときもどうぞ）。お知らせは <a href="https://x.com/lanenote" target="_blank" rel="noopener">X：@lanenote</a> でも出します。</p>' +
       '<label class="fb-l">連絡先（任意・返事がほしいとき）<input type="text" id="fbContact" maxlength="200" placeholder="メールアドレスなど"></label>' +
       '<details class="small fb-auto"><summary>いっしょに送る情報（記録や選手名は送りません）</summary><ul id="fbInfo"></ul></details>' +
       '<div class="status" id="fbStatus" aria-live="polite"></div>' +
