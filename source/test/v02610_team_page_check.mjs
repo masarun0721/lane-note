@@ -38,4 +38,7 @@ await check('チームのページ（マネージャー）：参加コード・�
   assert(box.querySelector('[data-tmd="members"]')); assert(!box.querySelector('[data-tmd="codes"]')); assert.doesNotMatch(box.textContent, /持ち主を渡す/); assert.match(box.textContent, /抜ける/);
 });
 await check('チームのページ（チームなし）：作る・参加コードで入る', async () => { const w = await recW(true); w.__t.set(null); assert(w.document.getElementById('rbTeamName')); assert(w.document.getElementById('rbTeamCode')); });
+await check('v0.26.17 記録のページ：公式Xのお知らせ（別タブ・閉じられる・閉じたら出ない・チームのページでは出さない）', () => {
+  const r = dist('records.html'); assert.match(r, /<a href="https:\/\/x\.com\/lanenote" target="_blank" rel="noopener">📣 公式Xアカウント <b>@lanenote<\/b> を開設しました！更新情報やお知らせを発信します。<\/a>/); assert.match(r, /lanenote\.xnews\.v1/); assert.match(r, /team-page/);
+});
 console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);

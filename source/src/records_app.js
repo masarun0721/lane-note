@@ -560,10 +560,14 @@
       var me = TEAM.role === 'coach' ? '🧑‍🏫 顧問' + (TEAM.owner ? '（このチームの持ち主）' : '') : '📋 マネージャー（' + jDate(TEAM.expiresAt) + 'まで）';
       var pend = pendingList();
       if (QUAR.length) h += '<p class="tm-warn">⚠ 形が正しくない記録が ' + QUAR.length + '件あるため、表示から外しています（ほかの記録はそのまま使えます）。 <button type="button" class="btn sub sm" data-tm="quarDel">削除の印を付ける</button></p>';
-      h += '<p class="tm-me">あなたは <b>' + esc(me) + '</b>。記録の追加・修正は「変更履歴」に残り、あとから元に戻せます。' + (TEAM.role === 'manager' ? '<br>マネージャーが入れた記録は、顧問が確認するまで <span class="pend">未確認</span> と表示されます。やり取り・体調メモ・チームの設定は顧問だけが使えます。' : '') + '</p>';
+      // v0.26.17：いちばん上に今の状態（チーム名・自分の役割・未確認の数）
+      var nMem = TM.members ? TM.members.filter(function (m) { return m.role !== 'pending'; }).length : null, nWait = TM.members ? TM.members.filter(function (m) { return m.role === 'pending'; }).length : 0;
+      h += '<div class="tm-sum"><div class="tm-sum-n">👥 ' + esc(TEAM.name) + '</div><div class="tm-sum-c"><span class="tm-chip on">' + esc(me) + '</span>' + (pend.length ? '<span class="tm-chip warn">未確認 ' + pend.length + '件</span>' : '<span class="tm-chip">未確認なし</span>') + (nWait ? '<span class="tm-chip warn">承認待ち ' + nWait + '人</span>' : '') + (nMem != null ? '<span class="tm-chip">メンバー ' + nMem + '人</span>' : '') + '</div></div>';
+      if (TEAM.role === 'coach' && (nMem == null || nMem <= 1)) h += '<ol class="tm-steps"><li><b>招待する</b>：下の「🔑 招待する」で、顧問・マネージャーにコードを送る</li><li><b>メンバーを確認</b>：入った人が「👥 メンバー」に出ます（承認制なら、ここで承認）</li></ol>';
+      h += '<p class="tm-me small">あなたは <b>' + esc(me) + '</b>。記録の追加・修正は「変更履歴」に残り、あとから元に戻せます。' + (TEAM.role === 'manager' ? '<br>マネージャーが入れた記録は、顧問が確認するまで <span class="pend">未確認</span> と表示されます。やり取り・体調メモ・チームの設定は顧問だけが使えます。' : '') + '</p>';
       h += '<div class="tm-pend">' + (pend.length ? '<span class="pend">未確認</span> ' + pend.length + '件' + (TEAM.role === 'coach' ? ' <button type="button" class="btn sm" data-tm="confirmAll">内容を見て、すべて確認済みにする</button>' : '') + '<ul class="tm-plist">' + pend.slice(0, 30).map(function (r) { return '<li>' + esc(recLabel(r)) + (TEAM.role === 'coach' ? ' <button type="button" class="btn sub sm" data-tm="confirm" data-id="' + esc(r.id) + '">確認済みにする</button>' : '') + '</li>'; }).join('') + '</ul>' : '✔ 未確認の記録はありません') + '</div>';
+      if (TEAM.role === 'coach') h += '<details data-tmd="codes"' + (TM.open['codes'] ? ' open' : '') + '><summary><b>🔑 招待する</b>（参加コード・顧問だけに見えます）</summary><div id="rbTeamCodes">' + codesHtml() + '</div></details>';
       h += '<details data-tmd="members"' + (TM.open['members'] ? ' open' : '') + '><summary><b>👥 メンバー</b></summary><div id="rbTeamMembers">' + membersHtml() + '</div></details>';
-      if (TEAM.role === 'coach') h += '<details data-tmd="codes"' + (TM.open['codes'] ? ' open' : '') + '><summary><b>🔑 参加コード</b>（顧問だけに見えます）</summary><div id="rbTeamCodes">' + codesHtml() + '</div></details>';
       h += '<details data-tmd="hist"' + (TM.open['hist'] ? ' open' : '') + '><summary><b>🕘 変更履歴</b>（だれが・いつ・何を）</summary><div id="rbTeamHist">' + histHtml() + '</div></details>';
       h += '<details><summary><b>📦 自分の記録をこのチームへコピー</b></summary><p class="small">「自分だけ」に保存してある記録を、このチームにコピーします。同じ記録は重ねません。自分だけの記録はそのまま残ります。</p><button type="button" class="btn sub" data-tm="migrate">コピーする（確認が出ます）</button></details>';
       if (TEAM.owner) h += '<details><summary><b>🤝 引き継ぎ（持ち主を渡す）</b></summary><p class="small">異動などのときに、このチームの持ち主を、ほかの顧問に渡します。渡したあとも、あなたは顧問として残ります。</p><div class="rb-row"><select id="rbTeamTo">' + ((TM.members || []).filter(function (m) { return m.role === 'coach' && m.uid !== USER.uid; }).map(function (m) { return '<option value="' + esc(m.uid) + '">' + esc(m.name) + '</option>'; }).join('') || '<option value="">（先に「メンバー」を開いてください／ほかの顧問がいません）</option>') + '</select><button type="button" class="btn sub" data-tm="transfer">持ち主を渡す</button></div></details>';
@@ -588,18 +592,38 @@
       return '<li><b>' + esc(m.name) + '</b>' + (self ? '（あなた）' : '') + ' ' + esc(roleLabel(m.role)) + (own ? '・持ち主' : '') + exp + ctl + '</li>';
     }).join('') + '</ul>' + (coach && TM.banned && TM.banned.length ? '<p class="small"><b>外した人</b>（同じコードでは戻れません）</p><ul class="tm-mlist">' + TM.banned.map(function (x) { return '<li>' + esc(x.name) + ' <button type="button" class="btn sub sm" data-tm="unban" data-id="' + esc(x.uid) + '">再参加を許可</button></li>'; }).join('') + '</ul>' : '');
   }
+  // v0.26.17：招待はカードを2つ（顧問・マネージャー）。いちばん大きいのは「コードをコピー」。コードそのもの・制限・作り直しは折りたたむ
   function codesHtml() {
     if (!TM.codes) return '<p class="small muted">開くと読み込みます…</p>';
-    var c = TM.codes, row = function (role, title, note) {
-      var x = c[role];
-      return '<div class="tm-code"><b>' + title + '</b> <span class="small muted">' + note + '</span><br>' + (x ? '<code>' + esc(x.code) + '</code> <button type="button" class="btn sub sm" data-tm="copy" data-code="' + esc(x.code) + '">📋 コピー</button>' : '（なし）') +
-        (role === 'manager' ? '<br><label class="small">マネージャーの期限 <input type="date" id="rbTeamMexp" value="' + esc(isoDay(x && x.mexp || LaneTeam.schoolYearEnd())) + '"></label>' : '') +
-        (x ? '<br><span class="small tm-lim">' + codeLimits(x) + '</span>' : '') +
-        '<div class="tm-opt small"><b>次に作るコードの制限</b>（安全のため、どれかを付けるのがおすすめ）：<label>コードの期限 <input type="date" data-copt="exp" data-role="' + role + '"></label> <label>使える人数 <input type="number" min="1" max="100" data-copt="max" data-role="' + role + '" style="width:5em">人まで</label> <label><input type="checkbox" data-copt="approve" data-role="' + role + '"' + (role === 'coach' ? ' checked' : '') + '> 入る前に顧問の承認が必要</label></div>' +
-        ' <button type="button" class="btn sub sm" data-tm="regen" data-role="' + role + '">作り直す（古いコードは使えなくなる）</button></div>';
+    var c = TM.codes, card = function (role, title, who) {
+      var x = c[role], h = '<div class="tm-inv" data-inv="' + role + '"><div class="tm-inv-h"><b>' + title + '</b><span class="tm-chip' + (x && (x.exp || x.max || x.approve) ? ' on' : ' warn') + '">' + esc(x ? limitChip(x) : 'コードなし') + '</span></div>';
+      h += '<p class="small">' + who + '</p>';
+      if (role === 'manager') h += '<p class="small tm-mexp">この招待で入ったマネージャーは <b>' + esc(jDate(x && x.mexp || LaneTeam.schoolYearEnd())) + 'まで</b> 使えます。</p>';
+      if (x) {
+        var msg = 'LANE NOTE のチーム「' + (TEAM ? TEAM.name : '') + '」の' + roleLabel(role) + '用の参加コードです。記録のページ → 「👥 チーム」→「参加コードで入る」に貼ってください。\n' + x.code;
+        h += '<button type="button" class="btn tm-big" data-tm="copy" data-code="' + esc(x.code) + '">📋 コードをコピー</button>' +
+          '<div class="tm-share"><a class="btn sub sm" target="_blank" rel="noopener" href="https://line.me/R/share?text=' + encodeURIComponent(msg) + '">LINEで送る</a><a class="btn sub sm" href="mailto:?subject=' + encodeURIComponent('LANE NOTE チームの参加コード') + '&body=' + encodeURIComponent(msg) + '">メールで送る</a></div>' +
+          '<p class="small muted">入ってほしい人に<b>1人ずつ</b>送ってください（グループには貼らないでください）。</p>' +
+          '<details class="tm-raw"><summary class="small">コードを表示</summary><code>' + esc(x.code) + '</code></details>';
+      }
+      h += '<details class="tm-adv"><summary class="small"><b>⚙ 詳しい設定</b>（コードの期限・人数・承認・作り直す）</summary>' +
+        (x ? '<p class="small">今のコード：' + codeLimits(x) + '</p>' : '') +
+        '<p class="small">新しく作るコードに付ける制限（どれかを付けるのがおすすめ）</p>' +
+        '<label class="tm-f">コードを使える最後の日 <input type="date" data-copt="exp" data-role="' + role + '"></label>' +
+        '<label class="tm-f">使える人数 <span><input type="number" min="1" max="100" inputmode="numeric" data-copt="max" data-role="' + role + '"> 人まで</span></label>' +
+        '<label class="tm-f tm-chk"><input type="checkbox" data-copt="approve" data-role="' + role + '"' + (role === 'coach' ? ' checked' : '') + '> 入る前に、わたしの承認を必要にする</label>' +
+        (role === 'manager' ? '<label class="tm-f">入ったマネージャーが使える最後の日 <input type="date" id="rbTeamMexp" value="' + esc(isoDay(x && x.mexp || LaneTeam.schoolYearEnd())) + '"></label>' : '') +
+        '<button type="button" class="btn sm tm-danger" data-tm="regen" data-role="' + role + '">🔄 コードを作り直す</button><p class="small muted">作り直すと、今のコードは使えなくなります（もう入った人はそのまま）。</p></details>';
+      return h + '</div>';
     };
-    return '<p class="small">コードを知っている人は、だれでもこのチームに入れます。<b>LINEのグループなどに貼らず、入ってほしい人にだけ</b>渡してください。入ってもらったら「作り直す」と安心です。</p>' +
-      row('coach', '🧑‍🏫 顧問用', '（すべての機能・メンバーの管理）') + row('manager', '📋 マネージャー用', '（記録・大会の入力だけ。期限が来ると自動で使えなくなります）');
+    return '<div class="tm-invs">' + card('coach', '🧑‍🏫 顧問を招待', 'すべての機能と、メンバーの管理ができます。') + card('manager', '📋 マネージャーを招待', '記録・大会の入力だけできます。期限が来ると自動で使えなくなります。') + '</div>';
+  }
+  function limitChip(x) {
+    var a = [];
+    if (x.exp) a.push(x.exp < Date.now() ? '期限切れ' : (new Date(x.exp).getMonth() + 1) + '/' + new Date(x.exp).getDate() + 'まで');
+    if (x.max) a.push(x.used >= x.max ? '使い切り' : x.max + '人まで（あと' + Math.max(0, x.max - (x.used || 0)) + '人）');
+    if (x.approve) a.push('承認制');
+    return a.length ? a.join('・') : '制限なし';
   }
   function codeLimits(x) {
     var a = [];
@@ -720,7 +744,7 @@
         if (a === 'create') {
           var nm = ($('rbTeamName').value || '').trim(); if (!nm) throw new Error('チーム名を入れてください');
           if (!confirm('「' + nm + '」を作ります。あなたが顧問（持ち主）になります。')) return;
-          var t = await LTu(sc.uid, sc.epoch).createTeam(nm); TM.busy = false; await switchTeam(t); status('rbTeamStatus', '✔ チームを作りました。「参加コード」を開くと、ほかの顧問・マネージャーに渡すコードが見られます。', 'ok'); return;
+          var t = await LTu(sc.uid, sc.epoch).createTeam(nm); TM.busy = false; await switchTeam(t); status('rbTeamStatus', '✔ チームを作りました。「🔑 招待する」を開くと、ほかの顧問・マネージャーに送るコードがあります。', 'ok'); return;
         }
         if (a === 'join') {
           var r = await LTu(sc.uid, sc.epoch).join($('rbTeamCode').value); TM.busy = false; await switchTeam(r.team); status('rbTeamStatus', '✔ 「' + esc(r.name) + '」に ' + roleLabel(r.role) + ' として入りました。', 'ok'); return;

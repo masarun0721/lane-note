@@ -18,10 +18,10 @@ p.on('dialog', d => d.accept()); const errs = []; p.on('pageerror', e => errs.pu
 const USERS = { alice: { uid: 'alice', displayName: '架空 顧問A', email: 'coach-a@example.invalid' }, bob: { uid: 'bob', displayName: '架空 マネB', email: 'mgr-b@example.invalid' } };
 async function as(u) { await p.evaluate((x) => { localStorage.setItem('__fakeuser', JSON.stringify(x)); localStorage.setItem('lanenote.mode.v1', 'coach'); }, USERS[u]); await p.goto(B + 'team.html', { waitUntil: 'load' }); await p.waitForSelector('#rbTeam:not([hidden])', { timeout: 8000 }).catch(() => {}); await sleep(900); }
 const clk = sel => p.evaluate(s => { const e = document.querySelector(s); if (!e) throw new Error('ない：' + s); e.click(); }, sel);
-const st = () => p.evaluate(() => ({ text: (document.getElementById('rbTeam') || {}).innerText || '', sel: [...document.querySelectorAll('#rbTeamSel option')].map(o => o.textContent), pend: document.querySelectorAll('#rbTeam .tm-plist li').length, codes: [...document.querySelectorAll('#rbTeam .tm-code code')].map(c => c.textContent), talkHidden: document.getElementById('rbTalkBox').hidden, status: (document.getElementById('rbTeamStatus') || {}).textContent || '' }));
+const st = () => p.evaluate(() => ({ text: (document.getElementById('rbTeam') || {}).innerText || '', sel: [...document.querySelectorAll('#rbTeamSel option')].map(o => o.textContent), pend: document.querySelectorAll('#rbTeam .tm-plist li').length, codes: [...document.querySelectorAll('#rbTeam .tm-inv .tm-raw code')].map(c => c.textContent), talkHidden: document.getElementById('rbTalkBox').hidden, status: (document.getElementById('rbTeamStatus') || {}).textContent || '' }));
 async function shot(name, mob, open = []) {
   if (!SHOT) return;
-  await p.setViewport(mob ? { width: 412, height: 915, deviceScaleFactor: 2.625, isMobile: true, hasTouch: true } : { width: 1280, height: 900 });
+  await p.setViewport(mob ? { width: 390, height: 844, deviceScaleFactor: 2.625, isMobile: true, hasTouch: true } : { width: 1280, height: 900 });
   await sleep(1500); await p.waitForSelector('#rbTeam:not([hidden])').catch(() => {});
   if (open.length) { await p.evaluate(o => o.forEach(k => { const d = document.querySelector('details[data-tmd="' + k + '"]'); if (d) d.open = true; }), open); await sleep(1200); }
   const el = await p.$('#rbTeam'); await el.evaluate(e => e.scrollIntoView({ block: 'start' })); await sleep(300);
@@ -37,6 +37,9 @@ s = await st(); ok('チームを作ると、保存先がそのチームになる
 const T = await p.evaluate(() => localStorage.getItem('lanenote.team.v1.alice'));
 await p.evaluate(() => { const d = document.querySelector('details[data-tmd="codes"]'); d.open = true; }); await sleep(800);
 s = await st(); ok('参加コード：顧問用とマネージャー用（期限つき）', s.codes.length === 2 && /^[A-Za-z0-9]{20}-[A-Za-z0-9]{24}$/.test(s.codes[0]) && /-\d{4}0331$/.test(s.codes[1]), JSON.stringify(s.codes));
+{ const u = await p.evaluate(() => ({ inv: document.querySelectorAll('#rbTeam .tm-inv').length, big: [...document.querySelectorAll('#rbTeam .tm-inv .tm-big')].map(b => b.textContent), advOpen: [...document.querySelectorAll('#rbTeam .tm-adv')].some(d => d.open), rawOpen: [...document.querySelectorAll('#rbTeam .tm-raw')].some(d => d.open), chips: [...document.querySelectorAll('#rbTeam .tm-inv .tm-chip')].map(c => c.textContent), sum: (document.querySelector('#rbTeam .tm-sum') || {}).textContent || '', line: !!document.querySelector('#rbTeam .tm-share a[href^="https://line.me/R/share?text="]'), mexp: (document.querySelector('#rbTeam .tm-mexp') || {}).textContent || '', regenDanger: !!document.querySelector('#rbTeam .tm-adv [data-tm="regen"].tm-danger') }));
+  ok('v0.26.17 招待：顧問・マネージャーの2枚のカード・「コードをコピー」が主・コードと詳しい設定は閉じている', u.inv === 2 && u.big.every(t => /コードをコピー/.test(t)) && !u.advOpen && !u.rawOpen && u.line && u.regenDanger, JSON.stringify(u));
+  ok('v0.26.17 制限はチップで（顧問は承認制）・マネージャーの期限は1か所・上に今の状態', /承認制|制限なし/.test(u.chips[0]) && /まで 使えます/.test(u.mexp) && /架空高校陸上部/.test(u.sum) && /顧問/.test(u.sum), JSON.stringify(u)); }
 const old = s.codes[1]; await clk('[data-tm="regen"][data-role="manager"]'); await sleep(800); s = await st(); ok('作り直すと、マネージャー用コードが変わる', s.codes[1] && s.codes[1] !== old && s.codes[0] === s.codes[0], s.codes[1]);
 // マネージャー（bob）がチームに入ったことにして（偽のDBに直接）、bob の画面で記録を3件入れる
 await p.evaluate((T) => { const d = JSON.parse(localStorage.getItem('__fakedb')); const exp = Date.now() + 100 * 864e5; d['teams/' + T + '/members/bob'] = { role: 'manager', name: '架空 マネB', joinedAt: { __ts: Date.now() }, expiresAt: { __ts: exp } }; d['users/bob/teams/' + T] = { name: '架空高校陸上部', role: 'manager' }; localStorage.setItem('__fakedb', JSON.stringify(d)); localStorage.setItem('lanenote.team.v1.bob', T); }, T);
@@ -49,7 +52,7 @@ await shot('manager_mobile', true);
 await as('alice');
 await p.evaluate(() => { for (const k of ['members', 'hist']) document.querySelector('details[data-tmd="' + k + '"]').open = true; }); await sleep(1200);
 s = await st(); ok('顧問の画面：未確認3件・メンバー2人・変更履歴（だれが・何を）', s.pend === 3 && /架空 マネB/.test(s.text) && /架空 マネB（マネージャー） が 追加/.test(s.text), s.text.slice(s.text.indexOf('変更履歴')));
-await shot('coach_desktop', false, ['members', 'hist']); await shot('coach_mobile', true, ['members', 'hist']); await shot('codes_desktop', false, ['codes']);
+await shot('coach_desktop', false, ['members', 'hist']); await shot('coach_mobile', true, ['members', 'hist']); await shot('codes_desktop', false, ['codes']); await shot('codes_mobile', true, ['codes']);
 await clk('[data-tm="confirm"][data-id="x1"]'); await sleep(1200); s = await st(); ok('1件を確認済みにすると未確認は2件', s.pend === 2, s.pend + s.status);
 await clk('[data-tm="confirmAll"]'); await sleep(1500); s = await st(); ok('まとめて確認済みにすると0件', s.pend === 0 && /未確認の記録はありません/.test(s.text), s.pend + s.status);
 await p.evaluate(() => { document.querySelector('details[data-tmd="hist"]').open = false; }); await sleep(100); await p.evaluate(() => { document.querySelector('details[data-tmd="hist"]').open = true; }); await sleep(1000);
