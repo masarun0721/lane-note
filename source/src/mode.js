@@ -9,6 +9,8 @@ var LaneMode = (function () {
   function $(id) { return document.getElementById(id); }
   function get() { try { var v = localStorage.getItem(KEY); return v === 'coach' || v === 'player' ? v : ''; } catch (e) { return ''; } }
   function set(m) { try { if (m === 'coach' || m === 'player') localStorage.setItem(KEY, m); } catch (e) { } }
+  // v0.26.20：招待リンク（team.html#join=）で来た人には、はじめてのモードの質問を出さない（参加の画面を先に）
+  function inviteView() { if (!document.body.classList.contains('team-page')) return false; if (/^#join=/.test(location.hash)) return true; try { return !!sessionStorage.getItem('lanenote.join.v1'); } catch (e) { return false; } }
   function sharedView() { return /^#[dpt]=/.test(location.hash) || /[?&][st]=/.test(location.search); }
   function base() { return /^https?:$/.test(location.protocol) ? location.origin + location.pathname.replace(/[^\/]*$/, '') : (window.LANE_SHARE_BASE || './'); }
   /* この端末に保存されている、もらったリンク（大会当日の予定＝p・個人ページ＝pp） */
@@ -123,7 +125,7 @@ var LaneMode = (function () {
       if (e.target.closest('#mpClose')) { $('modePick').hidden = true; document.body.classList.remove('mp-open'); }
     });
     window.addEventListener('hashchange', apply);
-    if (($('phome') || document.body.classList.contains('records')) && !get() && !sharedView()) openPick(true);   // はじめての質問はトップ（v0.25.8 から記録のページ）と大会準備だけ
+    if (($('phome') || document.body.classList.contains('records')) && !get() && !sharedView() && !inviteView()) openPick(true);   // はじめての質問はトップ（v0.25.8 から記録のページ）と大会準備だけ
     apply();
   }
   return { get: get, set: set, apply: apply, init: init, savedLinks: savedLinks, sharedView: sharedView, renderHome: renderHome, KEY: KEY, wipeDevice: wipeDevice };

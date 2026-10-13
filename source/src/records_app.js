@@ -40,7 +40,7 @@
     return { pages: pages, title: '' };
   }
   // HTML：文字コードを確かめて読み、本文の見出しと表を順に並べる
-  async function readHtml(file) {
+  async function readHtml(file, relOut) {
     var buf = new Uint8Array(await file.arrayBuffer()), head = '';
     for (var i = 0; i < Math.min(buf.length, 4096); i++) head += String.fromCharCode(buf[i]);
     var cs = (head.match(/charset\s*=\s*["']?([\w-]+)/i) || [])[1] || 'utf-8';
@@ -48,6 +48,9 @@
     var txt;
     try { txt = new TextDecoder(cs).decode(buf); } catch (e) { txt = new TextDecoder('utf-8').decode(buf); }
     if ((txt.match(/\ufffd/g) || []).length > 20 && cs !== 'shift_jis') txt = new TextDecoder('shift_jis').decode(buf);
+    // v0.26.21：gold.jaic.org 速報のリレー（チーム・記録・順位・4人）。候補として relOut に入れ、日付と見出しだけ stream に返す
+    var rg = R.parseRelayGold && R.parseRelayGold(txt);
+    if (rg) { if (relOut) Array.prototype.push.apply(relOut, rg.cands); var dm0 = rg.date.split('-'); return (rg.date ? [{ type: 'text', v: +dm0[0] + '年' + +dm0[1] + '月' + +dm0[2] + '日' }] : []).concat([{ type: 'text', v: rg.title }]); }
     var gold = R.goldMobileStream(txt); if (gold) return gold;   // v0.20.2：gold.jaic.org の速報（携帯向けの形）
     return htmlToStream(new DOMParser().parseFromString(txt, 'text/html'));
   }
@@ -546,6 +549,67 @@
   var ACTS = { add: '追加', edit: '修正', del: '削除', revert: '取り消し', confirm: '確認済みに', migrate: 'コピー' };
   // v0.26.10：チームの設定は team.html（同じ部品で body.team-page）。記録のページには、保存先の切り替え・今の状態・設定へのリンクだけを出す
   var TEAM_PAGE = document.body.classList.contains('team-page');
+  /* v0.26.20：招待リンク（team.html#join=<コード>）。# のうしろはサーバーに送られない（アクセスの記録に残らない）。
+     開いたらすぐアドレス欄から消し、この画面（タブ）の sessionStorage にだけ30分置く（ポップアップのログインのあとも続きができる）。
+     ログインした人（uid）に結びつけ、ちがう人がログインしたら捨てる。参加したら・やめたら・ログアウトしたら消す。参加そのものは今までの join（期限・人数・承認・回数制限はルールどおり） */
+  var JOIN_KEY = 'lanenote.join.v1', JOIN = null;
+  function joinSave() { try { if (JOIN) sessionStorage.setItem(JOIN_KEY, JSON.stringify(JOIN)); else sessionStorage.removeItem(JOIN_KEY); } catch (e) { } }
+  function joinClear() { JOIN = null; joinSave(); renderJoin(); }
+  function inviteUrl(code) { var b = /^https?:$/.test(location.protocol) ? location.origin + location.pathname.replace(/[^\/]*$/, '') : (window.LANE_SHARE_BASE || 'https://masarun0721.github.io/lane-note/'); return b + 'team.html#join=' + encodeURIComponent(code); }
+  function joinFromHash() {
+    if (!TEAM_PAGE) return false;
+    var m = /^#join=([^&]*)/.exec(location.hash || '');
+    if (m) {
+      var raw = ''; try { raw = decodeURIComponent(m[1]); } catch (e) { }
+      try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { }   // すぐアドレス欄から消す（履歴・画面の共有に残さない）
+      var c = typeof LaneTeam !== 'undefined' ? LaneTeam.parseCode(raw) : null;
+      JOIN = c ? { code: raw.trim(), at: Date.now(), uid: null } : { bad: true, at: Date.now() };
+      joinSave(); return true;
+    }
+    return false;
+  }
+  if (TEAM_PAGE && !joinFromHash()) { try { var v0 = JSON.parse(sessionStorage.getItem(JOIN_KEY) || 'null'); if (v0 && v0.at && Date.now() - v0.at < 30 * 60e3 && (v0.bad || typeof v0.code === 'string')) JOIN = v0; else sessionStorage.removeItem(JOIN_KEY); } catch (e) { } }
+  window.addEventListener('hashchange', function () { if (joinFromHash()) { renderJoin(); var j = $('tpJoin'); if (j) j.scrollIntoView({ block: 'start' }); } });   // team.html を開いたままリンクを押したとき
+  function joinBind() {   // A01：ログインした人に結びつける。別の人なら捨てる
+    if (!JOIN || JOIN.bad || !USER) return;
+    if (!JOIN.uid) { JOIN.uid = USER.uid; joinSave(); }
+    else if (JOIN.uid !== USER.uid) { JOIN = null; joinSave(); }
+  }
+  function joinPlayer() { try { return typeof LaneMode !== 'undefined' && LaneMode.get() === 'player'; } catch (e) { return false; } }
+  function renderJoin() {
+    var box = $('tpJoin'); if (!TEAM_PAGE) return;
+    if (!box) { var t = $('rbTeam'); if (!t) return; box = document.createElement('section'); box.id = 'tpJoin'; box.className = 'tm-join'; box.setAttribute('aria-label', 'チームに参加'); t.parentNode.insertBefore(box, $('tpGate') || t); }
+    if (!JOIN) { box.hidden = true; box.innerHTML = ''; return; }
+    joinBind(); if (!JOIN) { box.hidden = true; box.innerHTML = ''; return; }
+    var h = '<h3>🔑 チームに参加</h3>';
+    if (JOIN.bad) h += '<p class="tm-warn">⚠ この招待リンクは形が正しくありません（途中で切れているかもしれません）。送ってくれた顧問に、もう一度送ってもらってください。</p><p><button type="button" class="btn sub sm" data-join="cancel">閉じる</button></p>';
+    else {
+      var c = LaneTeam.parseCode(JOIN.code), mgr = c && c.role === 'manager';
+      h += '<p>招待リンクを開きました。参加すると、このチームに <b>' + (mgr ? '📋 マネージャー' : '🧑‍🏫 顧問') + '</b> として入ります。</p>' +
+        '<ul class="small">' + (mgr ? '<li>記録・大会の入力ができます（入れた記録は、顧問が確認するまで「未確認」と出ます）</li><li>使えるのは <b>' + esc(jDate(c.mexp)) + 'まで</b> です</li><li>やり取り・体調メモ・チームの設定は使えません</li>' : '<li>チームの記録をすべて使え、メンバーの管理もできます</li>') +
+        '<li>リンクの期限・人数・承認は、招待した顧問の設定どおりです（承認制なら、顧問が承認してから見えます）</li><li>自分の<b>Googleアカウント</b>で入ります（パスワードを共有する必要はありません）</li></ul>';
+      if (joinPlayer()) h += '<p class="tm-warn">👟 いまこの端末は<b>選手モード</b>です。チームに入るのは顧問・マネージャーの方です。顧問・マネージャーの方は、顧問モードに切りかえてから参加してください。 <button type="button" class="btn sub sm" data-join="coach">顧問モードに切りかえる</button></p><p><button type="button" class="btn sub sm" data-join="cancel">参加しない</button></p>';
+      else if (!CLOUD_READY) h += '<p class="tm-warn">この画面ではクラウドが使えないため、参加できません。</p>';
+      else if (!USER) h += '<p><button type="button" class="btn tm-big" data-join="login">Googleでログインして参加</button> <button type="button" class="btn sub sm" data-join="cancel">参加しない</button></p>';
+      else h += '<p class="small">☁ <b>' + esc(USER.email || USER.displayName || '') + '</b> で参加します。</p><p><button type="button" class="btn tm-big" data-join="go">参加する</button> <button type="button" class="btn sub sm" data-join="cancel">参加しない</button></p>';
+    }
+    h += '<div class="status" id="tpJoinStatus" aria-live="polite"></div>';
+    box.innerHTML = h; box.hidden = false;
+  }
+  document.addEventListener('click', async function (e) {
+    var b = e.target.closest && e.target.closest('[data-join]'); if (!b || !JOIN) return;
+    var a = b.getAttribute('data-join');
+    if (a === 'cancel') { joinClear(); return; }
+    if (a === 'coach') { LaneMode.set('coach'); LaneMode.apply(); renderJoin(); return; }
+    if (a === 'login') { $('rbSignIn').click(); return; }
+    if (a !== 'go' || !USER || TM.busy) return;
+    var sc = scope(); if (JOIN.uid !== sc.uid) { joinClear(); return; }
+    TM.busy = true; b.disabled = true;
+    try {
+      var r = await LTu(sc.uid, sc.epoch).join(JOIN.code); TM.busy = false; JOIN = null; joinSave();
+      await switchTeam(r.team); renderJoin(); status('rbTeamStatus', '✔ 「' + esc(r.name) + '」に ' + roleLabel(r.role) + ' として入りました。', 'ok');
+    } catch (x) { TM.busy = false; if (isAbort(x)) return; b.disabled = false; status('tpJoinStatus', '✖ 参加できませんでした：' + esc(x.code === 'permission-denied' ? '期限切れ・人数の上限・作り直されたコード・外された、のどれかかもしれません。顧問に新しい招待リンクをもらってください' : x.message), 'ng'); }
+  });
   function teamStatusHtml() {
     var sel = TEAMS.length ? '<label>保存先 <select id="rbTeamSel"><option value="">👤 自分だけ</option>' + TEAMS.map(function (x) { return '<option value="' + esc(x.id) + '"' + (TEAM && TEAM.id === x.id ? ' selected' : '') + '>👥 ' + esc(x.name) + '</option>'; }).join('') + '</select></label> ' : '';
     var st = TEAM ? '👥 <b>' + esc(TEAM.name) + '</b>（' + esc(roleLabel(TEAM.role)) + '）' + (pendingList().length ? ' ・<span class="pend">未確認</span> ' + pendingList().length + '件' : '')
@@ -554,7 +618,7 @@
   }
   function renderTeam() {
     var box = $('rbTeam'); if (!box) return;
-    if (TEAM_PAGE) { var gate = $('tpGate'); if (gate) gate.hidden = !!(USER && CLOUD_READY); }
+    if (TEAM_PAGE) { var gate = $('tpGate'); if (gate) gate.hidden = !!(USER && CLOUD_READY); renderJoin(); }
     if (!USER || !CLOUD_READY) { box.hidden = true; box.innerHTML = ''; return; }
     if (document.body.classList.contains('ln-player') && !TEAM_PAGE) { box.hidden = true; return; }   // 選手モードではチームの欄を出さない
     box.hidden = false;
@@ -610,11 +674,12 @@
       h += '<p class="small">' + who + '</p>';
       if (role === 'manager') h += '<p class="small tm-mexp">この招待で入ったマネージャーは <b>' + esc(jDate(x && x.mexp || LaneTeam.schoolYearEnd())) + 'まで</b> 使えます。</p>';
       if (x) {
-        var msg = 'LANE NOTE のチーム「' + (TEAM ? TEAM.name : '') + '」の' + roleLabel(role) + '用の参加コードです。記録のページ → 「👥 チーム」→「参加コードで入る」に貼ってください。\n' + x.code;
-        h += '<button type="button" class="btn tm-big" data-tm="copy" data-code="' + esc(x.code) + '">📋 コードをコピー</button>' +
-          '<div class="tm-share"><a class="btn sub sm" target="_blank" rel="noopener" href="https://line.me/R/share?text=' + encodeURIComponent(msg) + '">LINEで送る</a><a class="btn sub sm" href="mailto:?subject=' + encodeURIComponent('LANE NOTE チームの参加コード') + '&body=' + encodeURIComponent(msg) + '">メールで送る</a></div>' +
+        // v0.26.20：送るのは招待リンク（# のうしろにコード＝サーバーに送られない）。コードそのものは「コードを表示」に残す（手で入れる方法）
+        var url = inviteUrl(x.code), msg = 'LANE NOTE のチーム「' + (TEAM ? TEAM.name : '') + '」の' + roleLabel(role) + '用の招待リンクです。\n開いて、自分のGoogleアカウントでログインし、「参加する」を押してください。\n（ほかの人には転送しないでください）\n' + url;
+        h += '<button type="button" class="btn tm-big" data-tm="copy" data-code="' + esc(url) + '">🔗 招待リンクをコピー</button>' +
+          '<div class="tm-share"><a class="btn sub sm" target="_blank" rel="noopener" href="https://line.me/R/share?text=' + encodeURIComponent(msg) + '">LINEで送る</a><a class="btn sub sm" href="mailto:?subject=' + encodeURIComponent('LANE NOTE チームへの招待') + '&body=' + encodeURIComponent(msg) + '">メールで送る</a></div>' +
           '<p class="small muted">入ってほしい人に<b>1人ずつ</b>送ってください（グループには貼らないでください）。</p>' +
-          '<details class="tm-raw"><summary class="small">コードを表示</summary><code>' + esc(x.code) + '</code></details>';
+          '<details class="tm-raw"><summary class="small">コードを表示（リンクが開けないとき、「参加コードで入る」に貼る）</summary><code>' + esc(x.code) + '</code> <button type="button" class="btn sub sm" data-tm="copy" data-code="' + esc(x.code) + '">コードだけコピー</button></details>';
       }
       h += '<details class="tm-adv"><summary class="small"><b>⚙ 詳しい設定</b>（コードの期限・人数・承認・作り直す）</summary>' +
         (x ? '<p class="small">今のコード：' + codeLimits(x) + '</p>' : '') +
@@ -877,7 +942,7 @@
     if (sc.epoch === authEpoch) renderAuth();
   }
   async function initCloud() {
-    renderAuth();
+    renderAuth(); renderJoin();
     if (!CLOUD_READY) return;
     try { await loadFirebase(); } catch (e) { status('rbAuthStatus', '✖ ログインの部品を読み込めませんでした（' + esc(e.message) + '）。この端末だけに保存します。', 'ng'); reload(); return; }
     loadFlags();
@@ -892,6 +957,7 @@
   async function doSignOut() {
     var uid = USER && USER.uid;
     authEpoch++;   // 進行中の読み書きを止める（このあと前の人のDB・クラウドには書かない）
+    JOIN = null; joinSave();   // v0.26.20：招待リンクの続きも消す
     var r = await LaneAuth.signOutAndWipe(FB, uid, closeDb);
     if (r.signedOut && uid) setNoCache(uid, false);
     if (!r.signedOut) { status('rbAuthStatus', '✖ ログアウトできませんでした：' + esc(LaneAuth.errorText(r.error)) + '（もう一度押してください）', 'ng'); return r; }
@@ -997,19 +1063,19 @@
         check(sc); status('rbStatus', '読み取り中…（' + esc(f.name) + '）', 'busy');
         var res0 = await readPdf(f, function (p, n) { check(sc); status('rbStatus', '読み取り中…（' + esc(f.name) + ' ' + p + '/' + n + 'ページ）', 'busy'); });
         check(sc);
-        var all = R.parsePdf(res0.pages, {}), meta = applyGuess(guessMetaFromPages(res0.pages), f.name);
-        addBatch({ src: f.name, kind: 'PDF', all: all, meta: meta });
+        var all = R.parsePdf(res0.pages, {}), meta = applyGuess(guessMetaFromPages(res0.pages), f.name), rels = R.parseRelayPdf ? R.mergeRelays(R.parseRelayPdf(res0.pages)) : [];
+        addBatch({ src: f.name, kind: 'PDF', all: all, meta: meta, relays: rels });
       } catch (e) { if (isAbort(e)) throw e; check(sc); addBatch({ src: f.name, kind: 'PDF', error: e.message }); }
     }
     if (html.length || txts.length) {
-      var stream = [], names = [];
-      for (var j = 0; j < html.length; j++) { try { var hs = await readHtml(html[j]); check(sc); stream = stream.concat(hs); names.push(html[j].name); } catch (e) { if (isAbort(e)) throw e; check(sc); addBatch({ src: html[j].name, kind: 'HTML', error: e.message }); } }
+      var stream = [], names = [], hrel = [];
+      for (var j = 0; j < html.length; j++) { try { var hs = await readHtml(html[j], hrel); check(sc); stream = stream.concat(hs); names.push(html[j].name); } catch (e) { if (isAbort(e)) throw e; check(sc); addBatch({ src: html[j].name, kind: 'HTML', error: e.message }); } }
       for (var k = 0; k < txts.length; k++) { var tx = await txts[k].text(); check(sc); stream = stream.concat(R.textToStream(tx)); names.push(txts[k].name); }
       check(sc);
       if (names.length) {
         // 種目ページごとに大会名・日付が書かれているので、まとめて1つの大会として扱う
         var res = R.parseCells(stream, {});
-        addBatch({ src: names.length > 3 ? names.slice(0, 3).join('、') + ' ほか' + (names.length - 3) + '件' : names.join('、'), kind: 'HTML', all: res, meta: applyGuess({ name: res.meet.name, date: res.meet.date }, names[0]) });
+        addBatch({ src: names.length > 3 ? names.slice(0, 3).join('、') + ' ほか' + (names.length - 3) + '件' : names.join('、'), kind: 'HTML', all: res, meta: applyGuess({ name: res.meet.name, date: res.meet.date }, names[0]), relays: R.mergeRelays ? R.mergeRelays(hrel) : [] });
       }
     }
     check(sc);
@@ -1131,13 +1197,13 @@
     return b.all.recs.filter(wantRec);
   }
   function batchWarns(b) {
-    var q = school(), ws = b.all.warns.filter(function (w) { return !/：/.test(w); });
+    var q = school(), hasRl = !!(b.relays && b.relays.length), ws = b.all.warns.filter(function (w) { return !/：/.test(w) && !(hasRl && /結果の表|リレーの表/.test(w)); });
     batchRecs(b).forEach(function (r) { if (r.warn) ws.push((r.page ? r.page + 'ページ ' : '') + (r.event || '種目不明') + ' ' + (r.name || r.kana || 'No.' + r.bib) + '：' + r.warn + 'を読み取れませんでした'); });
     if (!b.meta.name) ws.unshift('大会名が資料から読み取れませんでした。手で入れてください。');
     else if (b.meta.guessed && !b.meta.typedName) ws.unshift('大会名は' + (b.meta.guessed === 'file' ? 'ファイル名' : '資料の見出し') + 'から推測しました。正しいか確かめて、違えば直してください。');
     if (!b.meta.date) ws.unshift('日付が資料から読み取れませんでした' + (b.meta.md ? '（「' + b.meta.md + '」はありますが年がわかりません）' : '') + '。手で入れてください。');
     if (MODE.personal) { if (!personOn()) ws.unshift('「個人で使う」の名前が空です。名前を入れると、その人の記録だけを拾います。'); else if (b.all.recs.length && !batchRecs(b).length) ws.unshift('「' + MODE.name + '」' + (MODE.team ? '（' + MODE.team + '）' : '') + 'の記録が見つかりませんでした。名前・所属の書き方を確かめてください。'); }
-    else if (q && b.all.recs.length && !batchRecs(b).length) ws.unshift('「' + q + '」の選手が見つかりませんでした。学校・クラブ名の書き方（例：本郷高・本郷中）を確かめてください。');
+    else if (q && b.all.recs.length && !batchRecs(b).length && !relaysOf(b).length) ws.unshift('「' + q + '」の選手が見つかりませんでした。学校・クラブ名の書き方（例：本郷高・本郷中）を確かめてください。');
     if (!q && !MODE.personal) ws.unshift('学校・クラブ名が空なので、全校の記録を表示しています。');
     return ws;
   }
@@ -1150,6 +1216,53 @@
     if (b.raw && R.isTable(R.splitTable(b.raw))) return '<div class="rb-rescue"><p class="small">🧩 うまく読み取れないときは、<b>列を自分で選んで</b>読み取れます（「氏名はこの列」「記録はこの列」）。全部を手で打ち直さなくて大丈夫です。</p><button class="btn sub" type="button" data-rescue="' + b.id + '">🧩 列を選んで読み取る</button></div>';
     return '<div class="rb-rescue"><p class="small">🧩 うまく読み取れないときは、資料の<b>表の部分をコピーして</b>下の「貼り付け」欄に貼り、「貼り付けた文章を読み取る」を押してください。読めなかったときは、列を自分で選んで読み取れます。Excel・CSV のファイルなら、そのまま入れると列を選べます。</p></div>';
   }
+  /* v0.26.21 リレーの候補（資料から読んだチーム・記録・4人）。学校・クラブ名に合うチームだけ（「本郷中A」の A は外して照合）。
+     走者は ナンバー（同じ資料・同じ日の個人の記録）→ 名簿・記録の名前 → フリガナ の順に、こちらの選手に合わせる。顧問が見て、直して、チェックを付けたものだけ保存する */
+  function relaysOf(b) {
+    if (!b.relays || !b.relays.length || MODE.personal) return [];
+    var q = school(); return b.relays.filter(function (c) { return !q || R.matchRelayTeam(c.team, q); });
+  }
+  function runnerMatch(run, team, b) {
+    var base = R.relayTeamBase(team), sameTeam = function (r) { return r.team && (R.matchSchool(r.team, base) || R.matchSchool(base, r.team) || R.nameKey(r.team) === R.nameKey(base)); };
+    if (run.bib) {
+      var pool = (b.all ? b.all.recs : []).concat(ALL.filter(function (r) { return !b.meta.date || r.date === b.meta.date; }));
+      var hit = pool.filter(function (r) { return String(r.bib || '') === run.bib && sameTeam(r) && !R.isRelay(r.event); })[0];
+      if (hit) return { name: hit.name, how: 'ナンバー' };
+    }
+    var nk0 = R.nameKey(run.name), names = ROSTER.map(function (e) { return { name: e.name, kana: e.kana }; }).concat(ALL.filter(function (r) { return !R.isRelay(r.event) && sameTeam(r); }).map(function (r) { return { name: r.name, kana: r.kana }; }));
+    var byName = nk0 && names.filter(function (x) { return R.nameKey(x.name) === nk0; })[0]; if (byName) return { name: byName.name, how: '名前' };
+    var kk = R.nameKey(run.kana || ''), byKana = kk && names.filter(function (x) { return x.kana && R.nameKey(x.kana) === kk; })[0]; if (byKana) return { name: byKana.name, how: 'フリガナ' };
+    return { name: run.name || '', how: '' };
+  }
+  function relayPrep(b) {
+    var list = relaysOf(b); b.rl = b.rl || {};
+    list.forEach(function (c) {
+      var k = b.relays.indexOf(c); if (b.rl[k]) return;
+      var m = c.runners.slice(0, 4).map(function (r) { return runnerMatch(r, c.team, b); });
+      b.rl[k] = { on: !!R.markValue(c.mark) && c.runners.length === 4, legs: m.map(function (x) { return x.name; }), how: m.map(function (x) { return x.how; }) };
+    });
+    return list;
+  }
+  function relayBatchHtml(b) {
+    var list = relayPrep(b); if (!b.relays || !b.relays.length) return '';
+    var q = school(), h = '<div class="rb-rlimp"><p class="small"><b>🏃 リレー</b>：' + (list.length ? list.length + 'チーム' + (b.relays.length !== list.length ? '（全体 ' + b.relays.length + 'チームのうち' + (q ? '「' + esc(q) + '」' : '') + '）' : '') + '。<b>走順（1〜4走）を確かめて</b>、入れるものにチェックを付けてください。保存すると「🏃 リレーの記録」に入ります。' : (MODE.personal ? '「個人で使う」ではリレーは取り込みません。' : '「' + esc(q) + '」のチームは見つかりませんでした。')) + '</p>';
+    list.forEach(function (c) {
+      var k = b.relays.indexOf(c), st = b.rl[k];
+      h += '<div class="rl-cand" data-rlk="' + k + '"><label class="rl-ch"><input type="checkbox" data-rlc="' + k + '"' + (st.on ? ' checked' : '') + '> <b>' + esc(c.team) + '</b> ' + esc(c.event) + ' <b class="lmk">' + esc(c.mark || '—') + '</b>' + (c.rank !== '' ? ' ' + esc(c.rank) + '位' : '') + (c.overall ? '（総合' + esc(c.overall) + '位）' : '') + ' <span class="small muted">' + esc([c.round, c.heat ? c.heat + '組' : '', c.lane ? c.lane + 'レーン' : '', c.comment].filter(Boolean).join(' ')) + '</span></label>' +
+        (c.runners.length ? '<div class="rb-row rl-legs">' + [0, 1, 2, 3].map(function (i) { var r = c.runners[i] || {}; return '<label>' + (i + 1) + '走 <input type="text" maxlength="40" data-rll="' + k + ',' + i + '" value="' + esc(st.legs[i] || '') + '"><small class="muted">' + esc((r.bib ? 'No.' + r.bib + ' ' : '') + (st.how[i] ? '✔' + st.how[i] + 'で一致' : r.name ? '資料のまま' : '')) + '</small></label>'; }).join('') + '</div>' : '<p class="small muted">走者の名前は資料にありません（' + esc(c.mark || '記録なし') + '）。</p>') + '</div>';
+    });
+    return h + '</div>';
+  }
+  function relayRecsOf(b) {
+    var out = [], errs = [];
+    relaysOf(b).forEach(function (c) {
+      var k = b.relays.indexOf(c), st = b.rl && b.rl[k]; if (!st || !st.on) return;
+      var res = R.relayRecord({ event: c.event, team: c.team, mark: c.mark, round: c.round, rank: c.rank === '' ? '' : String(c.rank), date: b.meta.date, meet: b.meta.name, legs: c.runners.length ? st.legs : [] });
+      if (!res.rec) { errs.push(c.team + '：' + res.errors.join('・')); return; }
+      var r = res.rec; delete r.manual; r.heat = c.heat || ''; r.lane = c.lane || ''; r.comment = (c.comment || '').slice(0, 60); if (c.overall) r.overall = c.overall; out.push(r);
+    });
+    return { recs: out, errs: errs };
+  }
   function renderBatches() {
     $('rbBatches').innerHTML = batches.map(function (b) {
       if (b.xl) return renderXl(b);
@@ -1161,11 +1274,16 @@
         '<p class="small">読み取った記録：' + rs.length + '件' + (b.all.recs.length !== rs.length ? '（全体 ' + b.all.recs.length + '件のうち）' : '') + '</p>' +
         (ws.length ? '<ul class="rb-warn">' + ws.map(function (w) { return '<li>⚠ ' + esc(w) + '</li>'; }).join('') + '</ul>' : '') +
         (!rs.length || ws.some(function (w) { return /見つかりませんでした|読み取れませんでした/.test(w); }) ? rescueHint(b) : '') +
-        (rs.length ? '<div class="tblwrap"><table class="rbt">' + REC_HEAD + rs.map(function (r) { return recRow(r); }).join('') + '</table></div>' : '') +
-        '<div class="rb-row" style="margin-top:8px"><button class="btn" data-save="' + b.id + '" type="button"' + (rs.length ? '' : ' disabled') + '>記録に保存</button><button class="btn sub" data-del="' + b.id + '" type="button">取り消す</button></div><div class="status" data-st="' + b.id + '"></div></div>';
+        (rs.length ? '<div class="tblwrap"><table class="rbt">' + REC_HEAD + rs.map(function (r) { return recRow(r); }).join('') + '</table></div>' : '') + relayBatchHtml(b) +
+        '<div class="rb-row" style="margin-top:8px"><button class="btn" data-save="' + b.id + '" type="button"' + (rs.length || relaysOf(b).length ? '' : ' disabled') + '>記録に保存</button><button class="btn sub" data-del="' + b.id + '" type="button">取り消す</button></div><div class="status" data-st="' + b.id + '"></div></div>';
     }).join('');
   }
+  $('rbBatches').addEventListener('change', function (e) {
+    var c = e.target.getAttribute('data-rlc'); if (c == null) return; var bx = e.target.closest('[data-b]'), b = bx && batches.filter(function (x) { return x.id === +bx.getAttribute('data-b'); })[0];
+    if (b && b.rl && b.rl[c]) b.rl[c].on = e.target.checked;
+  });
   $('rbBatches').addEventListener('input', function (e) {
+    var ll = e.target.getAttribute('data-rll'); if (ll) { var bx = e.target.closest('[data-b]'), bb = bx && batches.filter(function (x) { return x.id === +bx.getAttribute('data-b'); })[0], kk = ll.split(','); if (bb && bb.rl && bb.rl[kk[0]]) { bb.rl[kk[0]].legs[+kk[1]] = e.target.value; bb.rl[kk[0]].how[+kk[1]] = ''; } return; }
     var box = e.target.closest('[data-b]'), f = e.target.getAttribute('data-f'); if (!box || !f) return;
     var b = batches.filter(function (x) { return x.id === +box.getAttribute('data-b'); })[0]; if (b) { b.meta[f] = e.target.value.trim(); if (f === 'weather' || f === 'temp' || f === 'humidity') return; if (f === 'name') { b.meta.typedName = true; b.meta.guessed = ''; } if (f === 'date') b.meta.typedDate = true; }
   });
@@ -1191,6 +1309,10 @@
       var o = Object.assign({}, r); o.meet = b.meta.name; o.date = b.meta.date; o.src = b.src; o.order = i; o.savedAt = new Date().toISOString();
       o.id = R.recId(o.meet, o.date, o); return o;
     });
+    var rr = relayRecsOf(b);   // v0.26.21：チェックを付けたリレー
+    if (rr.errs.length) { st.className = 'status ng'; st.textContent = '✖ リレー：' + rr.errs.join(' / '); return; }
+    rr.recs.forEach(function (r, i) { r.src = b.src; r.order = rs.length + i; r.savedAt = new Date().toISOString(); r.id = R.recId(r.meet, r.date, r); rs.push(r); });
+    if (!rs.length) { st.className = 'status ng'; st.textContent = '✖ 保存するものがありません（リレーはチェックを付けてください）。'; return; }
     try {
       var res = await putMany(rs, sc);
       await saveBatchWeather(b, [b.meta.date + '|' + b.meta.name], sc);

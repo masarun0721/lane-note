@@ -643,7 +643,7 @@ body.fb-open{overflow:hidden}
 <body>
 <header>
   <div class="hdr-meta">
-    <div class="hdr-ver" aria-label="バージョン">v0.26.19</div>
+    <div class="hdr-ver" aria-label="バージョン">v0.26.21</div>
     <div class="credit">Presented by Sakata</div>
     <div class="hdr-msg"><span class="hm-l">すべての陸上競技部顧問が、</span><span class="hm-l">少しでも楽になりますように。</span></div>
   </div>
@@ -2568,6 +2568,137 @@ var ResultParser = (function () {
     if (!all.length) { res.rec.legs = legsText(names); if (!res.rec.legs) delete res.rec.legs; res.rec.manual = true; }
     return { rec: all.length ? null : res.rec, errors: all };
   }
+  /* v0.26.21 リレーの結果を読み取る（PDF 2つの形・gold.jaic.org の速報）。読み取ったものは「候補」で、顧問が見て確かめてから 🏃リレーの記録に入れる。
+     候補：{ event, round, heat, rank, lane, team, mark, comment, runners:[{ bib, name, kana, grade }]（並んでいる順＝1〜4走）, page } */
+  function relayEvent(t) {
+    var s = nk(String(t || '')).replace(/\s+/g, ''), g = (s.match(/(男子|女子|混合)/) || [])[1] || ((s.match(/(男|女)/) || [])[1] ? (s.match(/(男|女)/)[1] + '子') : '');
+    var m = s.match(/(\d)[×xX＊*](\d{2,4})m?/); if (!m) return '';
+    return g + m[1] + '×' + m[2] + 'mR';
+  }
+  // リレーのチーム名：「本郷中A」「城北B」の末尾の A・B…（同じ学校の何チーム目か）は、学校の名前の照合では外す
+  function relayTeamBase(t) { return nk(String(t || '')).replace(/\s+/g, '').replace(/(?<=[^\sA-Za-z])[A-Ha-h]$/, ''); }
+  function matchRelayTeam(team, q) { return matchSchool(team, q) || matchSchool(relayTeamBase(team), q); }
+  function relayRunner(kanji, kana, bib) {
+    var k = nk(kanji).replace(/\s+/g, ' ').trim(), g = parseGrade(k), name = (g.paren ? g.name : k).replace(/\s+/g, ' ').trim();
+    var gr = g.grade || (/^\d{2}$/.test(g.paren || '') ? '' : '');
+    return { bib: bib ? String(bib) : '', name: name, kana: nk(kana || '').replace(/\s+/g, ' ').trim(), grade: gr };
+  }
+  function roundOf(t) { var rm = nk(String(t || '')).replace(/\s/g, '').match(ROUND); return rm ? nk(rm[1]).replace('タイムレ-ス', 'タイムレース') : ''; }
+  /* gold.jaic.org 速報（携帯向け）のリレー：「1位　　41.96<br>チーム<br>(1)名前(2)<br>…(4)…」。DNS・DQ は順位なし */
+  function parseRelayGold(html) {
+    html = String(html || '');
+    var tm = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i), title = tm ? nk(tm[1].replace(/<[^>]*>/g, '')).replace(/\s+/g, ' ').trim() : '';
+    if (!isRelay(title) && !/リレー|\d\s*[×xX]\s*\d/.test(nk(title))) return null;
+    if (!/<font\b[^>]*>[\s\S]{0,80}?(\d+\s*位|DNS|DQ|DNF)/i.test(html)) return null;
+    var txt = function (h) { return nk(h.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')).replace(/\s+/g, ' ').trim(); };
+    var ev = relayEvent(title), round = roundOf(title), hm = title.match(/(\d+)組/), heat = hm && !/総合/.test(round) ? +hm[1] : '';
+    var dm = html.match(/<!--\s*(20\d\d)\/(\d{1,2})\/(\d{1,2})/), date = dm ? dm[1] + '-' + ('0' + dm[2]).slice(-2) + '-' + ('0' + dm[3]).slice(-2) : '';
+    var out = [], body = html.replace(/^[\s\S]*?<\/head>/i, '');
+    body.split(/<font\b[^>]*>/i).slice(1).forEach(function (blk) {
+      blk = blk.split(/<\/font>|<hr|<ul|<a\b/i)[0];
+      var L = blk.split(/<br\s*\/?>/i).map(txt); while (L.length && !L[L.length - 1]) L.pop();
+      if (L.length < 2) return;
+      var m = L[0].match(/^(?:(\d+)\s*位)?\s*(\d{1,2}:\d{2}\.\d{1,2}|\d{1,3}\.\d{2}|DNS|DNF|DQ|NM)?\s*(.*)$/); if (!m || !(m[1] || m[2])) return;
+      var runners = [];
+      L.slice(2).forEach(function (l) { var r = l.match(/^\((\d)\)\s*(.*)$/); if (r && r[2]) runners[+r[1] - 1] = relayRunner(r[2], '', ''); });
+      runners = runners.filter(Boolean);
+      out.push({ event: ev, round: round, heat: heat, rank: m[1] ? +m[1] : '', lane: '', team: L[1].replace(/\s*[・･]\s*\d{1,2}$/, ''), mark: m[2] || '', comment: (m[3] || '').replace(/^\*/, ''), runners: runners, src: 'gold' });
+    });
+    return out.length ? { cands: out, title: title, date: date } : null;
+  }
+  /* PDF のリレー（座標）：見出し「順位 レーン チーム ナンバー 走者名（またはオーダー・カナ） 記録 コメント」。
+     チーム名がある行から次のチーム名の行までを1チームとし、その中のナンバーの行を上から1〜4走にする */
+  function relayHeaderCols(line, pageW) {
+    var starts = line.w.filter(function (w) { return /^順位$/.test(w.n.replace(/\s/g, '')); });
+    return starts.map(function (s, i) {
+      var end = i + 1 < starts.length ? starts[i + 1].x - 2 : pageW + 1, c = { x0: s.x - 4, x1: end, y: line.y, rank: s.x };
+      line.w.forEach(function (w) {
+        if (w.x < s.x - 1 || w.x >= end) return;
+        var n = w.n.replace(/\s/g, '');
+        if (/^レーン$/.test(n)) c.lane = w.x;
+        else if (/^チーム(名)?$/.test(n)) c.team = w.x;
+        else if (/^(ナンバー|No\.?|ゼッケン)$/i.test(n)) c.bib = w.x;
+        else if (/^(走者名?|氏名|オーダー|選手名|名前)$/.test(n)) c.name = c.name == null ? w.x : c.name;
+        else if (/^(カナ|フリガナ)$/.test(n)) c.kana = w.x;
+        else if (/^記録$/.test(n)) c.mark = w.x;
+        else if (/^(コメント|備考)$/.test(n)) c.cmt = w.x;
+      });
+      return c;
+    }).filter(function (c) { return c.team != null && c.bib != null && c.name != null && c.mark != null; });
+  }
+  function joinTight(ws) {   // 小さい字・詰めた字で1文字ずつに分かれていても、すき間が小さければつなげる
+    var s = ''; ws.forEach(function (w, i) { if (i) { var p = ws[i - 1], gap = w.x - (p.x + p.w); s += gap > Math.max(2, 0.45 * (w.h || 8)) ? ' ' : ''; } s += w.t; }); return s;
+  }
+  function parseRelayPdf(pages) {
+    var out = [], ev = '', round = '';
+    pages.forEach(function (pg, pi) {
+      var L = lines(toWords(pg.items)), events = [];
+      L.forEach(function (l) {
+        var t = l.text.replace(/\s+/g, ' ');
+        if (/順位/.test(t) && /記録/.test(t) && /チーム/.test(t)) { var hc = relayHeaderCols(l, pg.width); if (hc.length) events.push({ y: l.y, type: 'hdr', cols: hc }); return; }
+        var ts = t.replace(/\s/g, '');
+        if (TITLE.test(ts) && t.length < 40 && !/順位/.test(t)) events.push({ y: l.y, type: 'ev', v: t.trim() });
+        var rm = roundOf(ts); if (rm && t.length < 40 && !/順位/.test(t)) events.push({ y: l.y, type: 'round', v: rm });
+        l.w.forEach(function (w) { var hm = w.n.match(/^(\d+)組$/); if (hm) events.push({ y: l.y, type: 'heat', x: w.x, v: +hm[1] }); });
+      });
+      events.sort(function (a, b) { return a.y - b.y; });
+      var hdrs = events.filter(function (e) { return e.type === 'hdr'; });
+      hdrs.forEach(function (h, hi) {
+        var yEnd = hi + 1 < hdrs.length ? hdrs[hi + 1].y - 1 : pg.height + 1;
+        var before = events.filter(function (e) { return e.y <= h.y; });
+        before.forEach(function (e) { if (e.type === 'ev') { if (e.v !== ev) { ev = e.v; round = ''; } } if (e.type === 'round') round = e.v; });
+        var evBreak = events.filter(function (e) { return (e.type === 'ev' || e.type === 'heat') && e.y > h.y + 2 && e.y < yEnd; });
+        if (!isRelay(ev) && !relayEvent(ev)) return;
+        h.cols.forEach(function (c) {
+          var hev = before.filter(function (e) { return e.type === 'heat' && e.x >= c.x0 - 8 && e.x < c.x1 && h.y - e.y < 40; }).pop();
+          var cEnd = yEnd; evBreak.forEach(function (e) { if ((e.type === 'ev' || (e.x >= c.x0 - 8 && e.x < c.x1)) && e.y < cEnd) cEnd = e.y - 1; });
+          var ws = []; L.forEach(function (l) { if (l.y > h.y + 2 && l.y < cEnd) l.w.forEach(function (w) { if (w.x >= c.x0 && w.x < c.x1) ws.push(w); }); });
+          var tz0 = c.lane != null ? c.lane + 8 : c.rank + 16, tz1 = c.bib - 2;
+          var nameEnd = c.kana != null ? c.kana - 3 : c.mark - 12, kanaEnd = c.mark - 12;
+          var bibs = ws.filter(function (w) { return /^\d{1,5}$/.test(w.n) && w.x >= c.bib - 30 && w.x < c.name - 2 && w.x > tz0; }), bibMin = bibs.length ? Math.min.apply(null, bibs.map(function (w) { return w.x; })) : tz1;
+          tz1 = Math.max(tz1, bibMin - 1);
+          var teamW = ws.filter(function (w) { return w.x >= tz0 - 2 && w.x < tz1 && !/^\d+$/.test(w.n); });
+          var tl = []; teamW.forEach(function (w) { var l = tl.filter(function (x) { return Math.abs(x.y - w.y) < 2.2; })[0]; if (l) l.w.push(w); else tl.push({ y: w.y, w: [w] }); });
+          tl.sort(function (a, b) { return a.y - b.y; });
+          tl.forEach(function (t, ti) {
+            var top = t.y - 3, bot = ti + 1 < tl.length ? tl[ti + 1].y - 3 : cEnd;
+            var bw = ws.filter(function (w) { return w.y > top && w.y < bot; }), same = bw.filter(function (w) { return Math.abs(w.y - t.y) < 2.2; });
+            var rank = same.filter(function (w) { return /^\d{1,3}$/.test(w.n) && w.x < (c.lane != null ? c.lane - 3 : tz0 - 8); })[0];
+            var lane = c.lane != null ? same.filter(function (w) { return /^\d{1,2}$/.test(w.n) && w !== rank && w.x >= c.lane - 8 && w.x < tz0 + 4; }).pop() : null;
+            var markW = same.filter(function (w) { return w.x >= c.mark - 20 && (c.cmt == null || w.x < c.cmt - 2) && (MARK.test(cleanMark(w.n).mark) || STATUS.test(w.n)); })[0];
+            var cmt = c.cmt != null ? same.filter(function (w) { return w.x >= c.cmt - 2; }).map(function (w) { return w.n; }).join(' ') : '';
+            var mark = markW ? (STATUS.test(markW.n) ? markW.n : cleanMark(markW.n).mark) : '';
+            var st = nk(cmt).match(/^(DQ|DNS|DNF)\b[,，\s]*(.*)$/); if (!mark && st) { mark = st[1]; cmt = st[2]; }
+            var rows = []; bw.forEach(function (w) { if (/^\d{1,5}$/.test(w.n) && w.x >= Math.min(c.bib - 16, bibMin - 1) && w.x < c.name - 2 && w.x > tz0) rows.push(w); });
+            rows.sort(function (a, b) { return a.y - b.y; });
+            var runners = rows.map(function (b) {
+              var lw = bw.filter(function (w) { return Math.abs(w.y - b.y) < 2.2 && w.x > b.x + b.w - 1; }).sort(function (p, q) { return p.x - q.x; });
+              var kj = [], kn = [];
+              lw.forEach(function (w) {
+                if (c.kana != null) { if (w.x < nameEnd) kj.push(w); else if (w.x < kanaEnd) kn.push(w); }
+                else if (w.x < kanaEnd) { if (HALFKANA.test(w.t) && kj.length) kn.push(w); else if (!kn.length) kj.push(w); else kn.push(w); }
+              });
+              return relayRunner(joinTight(kj), kn.map(function (w) { return w.t; }).join(' '), b.n);
+            }).filter(function (r) { return r.name; });
+            out.push({ event: relayEvent(ev), round: round, heat: hev ? hev.v : '', rank: rank ? +rank.n : '', lane: lane ? +lane.n : '', team: nk(joinTight(t.w)).replace(/\s+/g, ''), mark: mark, comment: nk(cmt).trim(), runners: runners, page: pi + 1, src: 'pdf' });
+          });
+        });
+      });
+    });
+    return out;
+  }
+  // 同じチーム・同じ記録が「組」と「タイムレース総合」の両方にあるときは1つにして、総合の順位を overall に付ける
+  function mergeRelays(list) {
+    var by = {}, out = [];
+    list.forEach(function (c) {
+      var k = c.event + '|' + nameKey(c.team) + '|' + c.mark + '|' + (/DNS|DQ|DNF/.test(c.mark) ? c.heat : '');
+      var o = by[k];
+      if (!o) { by[k] = c; out.push(c); return; }
+      var tot = /総合/.test(c.round) ? c : /総合/.test(o.round) ? o : null, heat = tot === c ? o : c;
+      if (tot && heat !== tot) { heat.overall = tot.rank; if (!heat.runners.length) heat.runners = tot.runners; if (tot === o) { out[out.indexOf(o)] = heat; by[k] = heat; } }
+    });
+    return out;
+  }
   function manualRecord(f) {
     f = f || {}; var errs = [], g = function (k) { return nk(String(f[k] == null ? '' : f[k])).replace(/\s+/g, ' ').trim(); };
     var r = { name: g('name'), kana: g('kana'), grade: g('grade').replace(/年生?$/, ''), team: g('team'), event: g('event'), round: g('round'), heat: '', lane: '', bib: '', rank: '', comment: '', date: g('date'), meet: g('meet') };
@@ -2589,7 +2720,7 @@ var ResultParser = (function () {
     return { rec: r, errors: errs };
   }
   return { parsePdf: parsePdf, parseCells: parseCells, goldMobileStream: goldMobileStream, parsePlain: parsePlain, textToStream: textToStream, normEvent: normEvent, markValue: markValue, windApplies: windApplies, windClass: windClass, windNum: windNum,
-    computeBests: computeBests, isRelay: isRelay, legsText: legsText, parseLegs: parseLegs, relayRecord: relayRecord, pbLookup: pbLookup, nameKey: nameKey, athleteKey: athleteKey, matchSchool: matchSchool, recId: recId, recIdLegacy: recIdLegacy, recIdV6: recIdV6, identityKey: identityKey, fullIdentity: fullIdentity, looseIdentity: looseIdentity, manualRecord: manualRecord, sanitizeRecord: sanitizeRecord, validDate: validDate, normManualWind: normManualWind, dedupe: dedupe, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
+    computeBests: computeBests, isRelay: isRelay, relayEvent: relayEvent, relayTeamBase: relayTeamBase, matchRelayTeam: matchRelayTeam, parseRelayGold: parseRelayGold, parseRelayPdf: parseRelayPdf, mergeRelays: mergeRelays, legsText: legsText, parseLegs: parseLegs, relayRecord: relayRecord, pbLookup: pbLookup, nameKey: nameKey, athleteKey: athleteKey, matchSchool: matchSchool, recId: recId, recIdLegacy: recIdLegacy, recIdV6: recIdV6, identityKey: identityKey, fullIdentity: fullIdentity, looseIdentity: looseIdentity, manualRecord: manualRecord, sanitizeRecord: sanitizeRecord, validDate: validDate, normManualWind: normManualWind, dedupe: dedupe, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
     guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText,
     eventCat: eventCat, divisionOf: divisionOf, divLabel: divLabel, eventKey: eventKey, eventKeyLabel: eventKeyLabel, shownWind: shownWind, hasMark: hasMark, sortAthletes: sortAthletes, kanaKey: kanaKey,
     setDivisionHints: setDivisionHints, rawDivisionOf: rawDivisionOf, genderOf: genderOf, divGroup: divGroup, disciplineOrder: disciplineOrder, groupEvents: groupEvents, gendersIn: gendersIn, GROUPS: GROUPS,
