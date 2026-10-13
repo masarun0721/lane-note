@@ -2,6 +2,16 @@
   "firestore": {
     "rules": "firestore.rules"
   },
+  "hosting": {
+    "public": "_site",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "source/**",
+      "worker/**"
+    ]
+  },
   "emulators": {
     "firestore": {
       "host": "127.0.0.1",
