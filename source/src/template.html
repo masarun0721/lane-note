@@ -613,7 +613,7 @@ body.fb-open{overflow:hidden}
 .logo-home{display:inline-block;cursor:pointer;color:inherit;text-decoration:none;border-radius:8px}.logo-home:focus-visible{outline:3px solid #fff;outline-offset:2px}
 /* v0.25.5：利用回数はヘッダーの空いているレーン（白線の間）に右寄せで置く。position:absolute なので出ても下の並びは動かない */
 @media screen{.hdr-meta>div.use-count{position:absolute;right:0;top:96px;height:24px;line-height:22px;font-size:11.5px;font-weight:700;letter-spacing:.04em;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.55);font-variant-numeric:tabular-nums;white-space:nowrap}}
-@media screen and (max-width:720px){header>.hdr-meta{position:relative}.hdr-meta>div.use-count{top:120px;font-size:11px}}
+@media screen and (max-width:720px){header>.hdr-meta{position:relative;right:auto;top:auto}.hdr-meta>div.use-count{top:120px;font-size:11px}}
 /* v0.25.6：利用回数をレーン番号板ふうに（1けたずつ白い四角・濃紺の太い数字）。1レーン（22px）に収める */
 .hdr-meta>div.use-count{display:flex;align-items:center;justify-content:flex-end;gap:2px}.use-count[hidden]{display:none!important}
 .use-count .uc-from{margin-right:3px;font-variant-numeric:tabular-nums}

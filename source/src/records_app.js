@@ -128,9 +128,11 @@
       var day = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'), last = null;
       try { last = localStorage.getItem(COUNT_KEY); } catch (e) { }
       if (last !== day) {
-        try { await F.updateDoc(ref, { n: F.increment(1), at: F.serverTimestamp() }); }
-        catch (e) { if (e && e.code === 'not-found') await F.setDoc(ref, { n: 1, at: F.serverTimestamp() }); else if (!(e && e.code === 'permission-denied')) throw e; }   // v0.26.1（C407）：全体で2秒に1回まで。ほかの人とぶつかったときは数えずに表示だけ
-        try { localStorage.setItem(COUNT_KEY, day); } catch (e) { }
+        // v0.26.18：書けたときだけ「今日は数えた」と覚える（前は、ルールで断られても覚えてしまい、その日はもう数えなかった）
+        var wrote = false;
+        try { await F.updateDoc(ref, { n: F.increment(1), at: F.serverTimestamp() }); wrote = true; }
+        catch (e) { if (e && e.code === 'not-found') { try { await F.setDoc(ref, { n: 1, at: F.serverTimestamp() }); wrote = true; } catch (e2) { if (!(e2 && e2.code === 'permission-denied')) throw e2; } } else if (!(e && e.code === 'permission-denied')) throw e; }
+        if (wrote) try { localStorage.setItem(COUNT_KEY, day); } catch (e) { }
       }
       var snap = await F.getDoc(ref), n = snap.exists() ? snap.data().n : null;
       if (typeof n !== 'number' || !isFinite(n) || n < 1) { el.hidden = true; return; }

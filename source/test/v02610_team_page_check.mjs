@@ -41,4 +41,8 @@ await check('チームのページ（チームなし）：作る・参加コー�
 await check('v0.26.17 記録のページ：公式Xのお知らせ（別タブ・閉じられる・閉じたら出ない・チームのページでは出さない）', () => {
   const r = dist('records.html'); assert.match(r, /<a href="https:\/\/x\.com\/lanenote" target="_blank" rel="noopener">📣 公式Xアカウント <b>@lanenote<\/b> を開設しました！更新情報やお知らせを発信します。<\/a>/); assert.match(r, /lanenote\.xnews\.v1/); assert.match(r, /team-page/);
 });
+await check('v0.26.18 スマホの見出し：右上の文字はデスクトップ用の右ずらしを使わない・カウンターは書けたときだけ「今日は数えた」', () => {
+  for (const p of ['records.html', 'index.html', 'check.html', 'team.html']) assert.match(dist(p), /@media screen and \(max-width:720px\)\{header>\.hdr-meta\{position:relative;right:auto;top:auto\}/, p);
+  assert.match(src('records_app.js'), /if \(wrote\) try \{ localStorage\.setItem\(COUNT_KEY, day\)/);
+});
 console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);
