@@ -262,15 +262,22 @@
     if (!PLAN) { box.innerHTML = ''; return; }
     if (PLAN.err) { box.innerHTML = '<p class="status ng">✖ ' + esc(PLAN.err) + '</p>'; return; }
     planState();
-    var n = { new: 0, dup: 0, rec: 0, same: 0, err: 0, out: 0 }; PLAN.rows.forEach(function (r) { n[r.st]++; });
+    var n = { new: 0, dup: 0, rec: 0, same: 0, err: 0, out: 0, on: 0, hid: 0, meet: 0, unk: 0, not: 0 };
+    PLAN.rows.forEach(function (r) {
+      n[r.st]++; if (r.st !== 'new') return;
+      if (r.on == null) r.on = r.cls ? r.cls === 'meet' : true;   // v0.26.32 大会らしいものだけ最初からチェック（CSV は全部）
+      r.hid = !!(PLAN.f && PLAN.f.only && r.cls === 'not' && !r.on); if (r.hid) n.hid++;
+      if (r.on) n.on++; if (r.cls) n[r.cls]++;
+    });
     var fl = PLAN.f ? '<div class="rp-ics small"><p>📅 カレンダー' + (PLAN.cal ? '「' + esc(PLAN.cal) + '」' : '') + 'の予定 ' + PLAN.rows.length + '件。陸上の大会だけになるよう、<b>言葉と期間でしぼれます</b>。区分（中学／高校）は名前から推測しています。</p><div class="rb-row">' +
-      '<label>名前か会場にこの言葉（空白で区切ると、どれか1つ） <input id="rpKw" value="' + esc(PLAN.f.kw) + '" placeholder="例：大会 記録会 陸上" size="22"></label><label>この日から <input type="date" id="rpFrom" value="' + esc(PLAN.f.from) + '"></label><label>この日まで <input type="date" id="rpTo" value="' + esc(PLAN.f.to) + '"></label></div>' + (n.out ? '<p class="muted">しぼった結果、対象外 ' + n.out + '件（表に出しません）</p>' : '') + '</div>' : '';
+      '<label>名前か会場にこの言葉（空白で区切ると、どれか1つ） <input id="rpKw" value="' + esc(PLAN.f.kw) + '" placeholder="例：大会 記録会 陸上" size="22"></label><label>この日から <input type="date" id="rpFrom" value="' + esc(PLAN.f.from) + '"></label><label>この日まで <input type="date" id="rpTo" value="' + esc(PLAN.f.to) + '"></label></div>' + (n.out ? '<p class="muted">しぼった結果、対象外 ' + n.out + '件（表に出しません）</p>' : '') +
+      '<p><label class="rp-only"><input type="checkbox" id="rpOnly"' + (PLAN.f.only ? ' checked' : '') + '> 大会らしいものだけ表示</label> <span class="muted">大会らしい ' + n.meet + '件・大会か不明 ' + n.unk + '件・大会ではなさそう ' + n.not + '件' + (n.hid ? '（' + n.hid + '件は隠しています）' : '') + '。チェックした予定だけ追加します。選んだことはこの端末で覚えて、次から見分けに使います。</span></p></div>' : '';
     var lab = { new: '追加', dup: '登録済み（とばす）', rec: '記録がある大会（とばす）', same: '表の中で2回目（とばす）', err: '読めない' };
-    box.innerHTML = fl + '<p class="small rpcount">追加 <b>' + n.new + '件</b>・登録済み ' + n.dup + '件・記録がある大会 ' + n.rec + '件・表の中の重複 ' + n.same + '件・読めない ' + n.err + '件</p>' +
-      '<div class="tblwrap"><table class="rbt rpt"><tr><th>状態</th><th>日付</th><th>大会名</th><th>会場</th><th>区分</th><th>締切</th></tr>' + PLAN.rows.filter(function (r) { return r.st !== 'out'; }).map(function (r) {
-        return '<tr class="rp-' + r.st + '"><td>' + (r.st === 'new' ? '<b>追加</b>' : r.st === 'err' ? '<b class="ng">読めない</b><br><small class="ng">' + r.row + '行目：' + esc(r.err) + '</small>' : '<span class="muted">' + lab[r.st] + '</span>') + '</td><td>' + esc(r.date) + (r.end ? '〜' + esc(r.end.slice(5)) : '') + '</td><td>' + esc(r.meet) + '</td><td>' + esc(r.venue) + '</td><td>' + esc(r.div) + '</td><td>' + esc(r.deadline ? r.deadline.slice(5).replace('-', '/') : '') + '</td></tr>';
+    box.innerHTML = fl + '<p class="small rpcount">追加できる ' + n.new + '件（<b>チェック ' + n.on + '件</b>）・登録済み ' + n.dup + '件・記録がある大会 ' + n.rec + '件・表の中の重複 ' + n.same + '件・読めない ' + n.err + '件</p>' +
+      '<div class="tblwrap"><table class="rbt rpt"><tr><th>状態</th><th>日付</th><th>大会名</th><th>会場</th><th>区分</th><th>締切</th></tr>' + PLAN.rows.map(function (r, i) { r.i = i; return r; }).filter(function (r) { return r.st !== 'out' && !r.hid; }).map(function (r) {
+        return '<tr class="rp-' + r.st + (r.st === 'new' && !r.on ? ' rp-off' : '') + '"><td>' + (r.st === 'new' ? '<label class="rp-on"><input type="checkbox" data-rpon="' + r.i + '"' + (r.on ? ' checked' : '') + '> <b>追加</b></label>' + (r.cls ? '<br><small class="rp-cls rp-' + r.cls + '">' + { meet: '大会らしい', unk: '大会か不明', not: '大会ではなさそう' }[r.cls] + '</small>' : '') : r.st === 'err' ? '<b class="ng">読めない</b><br><small class="ng">' + r.row + '行目：' + esc(r.err) + '</small>' : '<span class="muted">' + lab[r.st] + '</span>') + '</td><td>' + esc(r.date) + (r.end ? '〜' + esc(r.end.slice(5)) : '') + '</td><td>' + esc(r.meet) + '</td><td>' + esc(r.venue) + '</td><td>' + esc(r.div) + '</td><td>' + esc(r.deadline ? r.deadline.slice(5).replace('-', '/') : '') + '</td></tr>';
       }).join('') + '</table></div>' +
-      '<div class="rb-row"><button class="btn" type="button" id="rpSave"' + (n.new ? '' : ' disabled') + '>大会予定を追加（' + n.new + '件）</button><button class="btn sub" type="button" id="rpClear">やめる</button></div>';
+      '<div class="rb-row"><button class="btn" type="button" id="rpSave"' + (n.on ? '' : ' disabled') + '>大会予定を追加（' + n.on + '件）</button><button class="btn sub" type="button" id="rpClear">やめる</button></div>';
   }
   /* v0.26.29 今後の大会（一覧・1か月のカレンダー・1件ずつ直す／消す）。名前・日付・会場・区分・締切だけをこの端末に写して、大会準備・選手のページで使う */
   var LP = { ym: '', edit: '' };
@@ -347,7 +354,8 @@
     LP.edit = ''; planList(); fillDatalists();
   }
   async function planSave() {
-    var sc = scope(), list = PLAN.rows.filter(function (r) { return r.st === 'new'; }), done = 0;
+    planState(); var sc = scope(), list = PLAN.rows.filter(function (r) { return r.st === 'new' && r.on !== false; }), done = 0;
+    if (PLAN.f) planLearn(PLAN.rows);
     try {
       for (var i = 0; i < list.length; i++) { var r = list[i]; await saveMeet(r.key, { weather: '', temp: '', humidity: '', venue: r.venue, end: r.end, div: r.div, deadline: r.deadline, plan: true }, sc); done++; }
     } catch (e) { if (isAbort(e)) return; status('rpStatus', esc('✖ ' + done + '件まで追加しました。続きを追加できませんでした：' + e.message), 'ng'); return; }
@@ -355,7 +363,24 @@
     status('rpStatus', '✔ 大会予定を ' + done + '件 追加しました。記録を入れるときに、大会名の候補に出ます。', 'ok');
   }
   function planRead(text) { PLAN = /BEGIN:VCALENDAR/i.test(String(text || '').slice(0, 2000)) ? icsPlan(R.parseIcs(text)) : R.parseMeetPlan(text); status('rpStatus', '', ''); planRender(); }
-  function icsPlan(p) { p.f = { kw: '', from: typeof LanePlans !== 'undefined' ? LanePlans.today() : '', to: '' }; return p; }
+  function icsPlan(p) {
+    p.f = { kw: '', from: typeof LanePlans !== 'undefined' ? LanePlans.today() : '', to: '', only: true };
+    var o = { learn: lsGet(LEARN_KEY, {}), venues: Object.keys(METS).map(function (k) { return METS[k].venue; }).filter(Boolean) };
+    (p.rows || []).forEach(function (r) { if (!r.err) r.cls = R.meetClass(r.meet, r.venue, o); });
+    return p;
+  }
+  /* v0.26.32 先生が選んだこと（入れた／外した）をこの端末だけで覚える（名前の形。クラウドには送らない） */
+  var LEARN_KEY = 'lanenote.planlearn.v1';
+  function planLearn(rows) {
+    var L = lsGet(LEARN_KEY, {}); L.inc = L.inc || {}; L.exc = L.exc || {}; var ch = 0;
+    rows.forEach(function (r) {
+      if (r.st !== 'new' || !r.cls || r.on === (r.cls === 'meet')) return;
+      var k = R.meetNorm(r.meet); if (!k) return;
+      if (r.on) { L.inc[k] = 1; delete L.exc[k]; } else { L.exc[k] = 1; delete L.inc[k]; } ch++;
+    });
+    ['inc', 'exc'].forEach(function (x) { var ks = Object.keys(L[x]); if (ks.length > 300) ks.slice(0, ks.length - 300).forEach(function (k) { delete L[x][k]; }); });
+    if (ch) lsSet(LEARN_KEY, L);
+  }
   async function planReadIcsUrl() {
     var u = $('rpIcsUrl').value.trim().replace(/^webcal:\/\//i, 'https://');
     if (!/^https:\/\/\S+$/i.test(u)) { status('rpStatus', '✖ https:// で始まるカレンダーのアドレスを入れてください', 'ng'); return; }
@@ -1406,7 +1431,10 @@
   $('rpRead').addEventListener('click', function () { planRead($('rpPaste').value); });
   $('rpIcsGo').addEventListener('click', planReadIcsUrl);
   $('rpPreview').addEventListener('change', function (e) {
+    var on = e.target.getAttribute('data-rpon');
+    if (on != null && PLAN && PLAN.rows[+on]) { PLAN.rows[+on].on = e.target.checked; planRender(); return; }
     if (!PLAN || !PLAN.f) return; var id = e.target.id;
+    if (id === 'rpOnly') { PLAN.f.only = e.target.checked; planRender(); return; }
     if (id === 'rpKw') PLAN.f.kw = e.target.value.trim(); else if (id === 'rpFrom') PLAN.f.from = e.target.value; else if (id === 'rpTo') PLAN.f.to = e.target.value; else return;
     planRender();
   });

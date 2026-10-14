@@ -60,23 +60,23 @@ await check('Google カレンダーの読み方の説明（iCal 形式の公開U
 await check('カレンダーのアドレス（webcal:// も）→ 中継を通して読み、今日から先の予定を見本に出す', async () => {
   $('rpIcsUrl').value = 'webcal://calendar.google.com/calendar/ical/kakuu%40example.invalid/public/basic.ics'; $('rpIcsGo').click(); await delay(200);
   assert.equal(fetched.length, 1); assert(fetched[0].includes(encodeURIComponent('https://calendar.google.com/calendar/ical/')), fetched[0]);
-  const c = doc.querySelector('.rpcount').textContent; assert(/追加 3件/.test(c), c);
+  const c = doc.querySelector('.rpcount').textContent; assert(/追加できる 3件/.test(c), c);
   assert(/架空陸上部/.test($('rpPreview').textContent) && /対象外 1件/.test($('rpPreview').textContent));
   assert(!/架空夏季記録会/.test(doc.querySelector('.rpt').textContent));
 });
 await check('しぼる：言葉（「大会」）で保護者会を外す・期間', async () => {
   const kw = $('rpKw'); kw.value = '大会 記録会'; kw.dispatchEvent(new w.Event('change', { bubbles: true })); await delay();
-  assert(/追加 2件/.test(doc.querySelector('.rpcount').textContent)); assert(!/保護者会/.test(doc.querySelector('.rpt').textContent));
+  assert(/追加できる 2件/.test(doc.querySelector('.rpcount').textContent)); assert(!/保護者会/.test(doc.querySelector('.rpt').textContent));
   const to = $('rpTo'); to.value = '2026-10-31'; to.dispatchEvent(new w.Event('change', { bubbles: true })); await delay();
-  assert(/追加 1件/.test(doc.querySelector('.rpcount').textContent));
+  assert(/追加できる 1件/.test(doc.querySelector('.rpcount').textContent));
   const to2 = $('rpTo'); to2.value = ''; to2.dispatchEvent(new w.Event('change', { bubbles: true })); await delay();
-  assert(/追加 2件/.test(doc.querySelector('.rpcount').textContent));
+  assert(/追加できる 2件/.test(doc.querySelector('.rpcount').textContent));
 });
 await check('追加（区分は推測のまま）→ もう一度読むと登録済みでとばす', async () => {
   $('rpSave').click(); await delay(300);
   const m = T.mets()['2026-10-24|架空高校新人大会 支部予選']; assert.deepEqual([m.end, m.venue, m.div, m.plan], ['2026-10-25', '架空競技場, 架空区1-2-3', '高校', true]);
   $('rpIcsGo').click(); await delay(200); $('rpKw').value = '大会'; $('rpKw').dispatchEvent(new w.Event('change', { bubbles: true })); await delay();
-  assert(/追加 0件・登録済み 2件/.test(doc.querySelector('.rpcount').textContent), doc.querySelector('.rpcount').textContent);
+  assert(/追加できる 0件（チェック \d+件）・登録済み 2件/.test(doc.querySelector('.rpcount').textContent), doc.querySelector('.rpcount').textContent);
 });
 await check('.ics ファイルを選んでも読める（折り返しのある日本語）', async () => {
   const f = new w.File([fold(ICS)], 'kakuu.ics', { type: 'text/calendar' }), inp = $('rpFile');

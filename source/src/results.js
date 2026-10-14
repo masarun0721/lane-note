@@ -1202,6 +1202,30 @@ var ResultParser = (function () {
   var PLAN_TEMPLATE = '大会名,日付,終了日,会場,区分,締切\n東京都高校新人陸上競技大会 支部予選,2026/9/12,2026/9/13,駒沢オリンピック公園陸上競技場,高,2026/8/28\n江東区中学校秋季陸上競技大会,2026/10/4,,夢の島競技場,中,\n';
   /* v0.26.30 Google カレンダーなどの iCal（.ics）→ 大会予定の行（parseMeetPlan と同じ形）。終日の DTEND は「次の日」なので1日戻す。時刻つきは日本時間の日付 */
   function guessDiv(name) { var s = nk(String(name || '')); return /(中学|中体連|中学校|中学生|ジュニア|JH)/i.test(s) && !/高校|高体連/.test(s) ? '中学' : /(高校|高体連|高等学校|インターハイ|IH)/i.test(s) ? '高校' : ''; }
+  /* v0.26.32 カレンダーの予定が大会らしいか（meet：大会らしい／not：大会ではなさそう／unk：大会か不明） */
+  var MEET_RE = /(大会|選手権|記録会|競技会|駅伝|支部|ジュニア|新人|総体|インハイ|インターハイ|通信|公式|予選|決勝|マラソン|リレー|秋季|春季|夏季|冬季|区大会|都大会|県大会|府大会|道大会|陸上競技|陸協|中体連|高体連)/i;
+  var NOT_RE = /(部活|練習|会議|休み|休養|オフ|OFF|清掃|保護者会|面談|終了後|活動なし|自主練|朝練|ミーティング|打ち合わせ|打合せ|説明会|試験|テスト期間|職員|研修)/i;
+  var VENUE_RE = /(夢の島|味スタ|味の素|駒沢|駒澤|競技場|スタジアム|公園|陸上場|グラウンド|フィールド|国立|上柚木|大井|町田|江戸川)/;
+  function meetNorm(s) { return nk(String(s || '')).normalize('NFKC').replace(/[\s　]/g, '').replace(/[(（][^)）]*[)）]/g, '').replace(/^第?\d+回/, '').replace(/\d{4}年?度?/g, '').toLowerCase(); }
+  // 名前の最後の（…）が会場らしければ、会場にして名前から外す（「部活(終了後)」のような会場でないものはそのまま）
+  function splitVenue(meet) {
+    var m = String(meet || '').match(/^(.+?)\s*[(（]([^()（）]{1,30})[)）]\s*$/); if (!m) return { meet: meet, venue: '' };
+    var v = m[2].trim();
+    if (!v || NOT_RE.test(v) || /^(中止|延期|予定|仮|未定|調整中|午前|午後|\d|[月火水木金土日])/.test(v) || MEET_RE.test(v) && !VENUE_RE.test(v)) return { meet: meet, venue: '' };
+    return { meet: m[1].trim(), venue: v };
+  }
+  // learn：{ inc: {名前:1}, exc: {名前:1} }（先生がこの端末で選んだこと）。venues：登録済みの会場
+  function meetClass(meet, venue, o) {
+    o = o || {}; var k = meetNorm(meet), L = o.learn || {};
+    if (k && L.exc && L.exc[k]) return 'not'; if (k && L.inc && L.inc[k]) return 'meet';
+    var t = nk(String(meet || ''));
+    if (NOT_RE.test(t)) return 'not';
+    if (MEET_RE.test(t)) return 'meet';
+    var v = nk(String(venue || '')) + ' ' + ((t.match(/[(（]([^)）]*)[)）]/) || [])[1] || '');
+    if (VENUE_RE.test(v)) return 'meet';
+    if ((o.venues || []).some(function (x) { x = nk(String(x || '')).trim(); return x.length >= 2 && v.indexOf(x) >= 0; })) return 'meet';
+    return 'unk';
+  }
   function icsDay(v, p) {
     var m = String(v || '').match(/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})(Z)?)?/); if (!m) return '';
     if (!m[4]) return okDate(m[1], m[2], m[3]);
@@ -1235,11 +1259,12 @@ var ResultParser = (function () {
       if (name === 'END' && /^VEVENT$/i.test(val)) {
         n++;
         if (!/CANCELLED/i.test(ev.status || '') && !ev.rid) {
-          var meet = nk(ev.summary || '').slice(0, 100), date = icsDay(ev.ds, ev.dsp), end = '', err = [];
+          var meet = nk(ev.summary || '').slice(0, 100), loc = nk(ev.loc || '').replace(/\s+/g, ' ').trim().slice(0, 100), sv = loc ? { meet: meet, venue: '' } : splitVenue(meet), date = icsDay(ev.ds, ev.dsp), end = '', err = [];
           if (ev.de) { end = icsDay(ev.de, ev.dep); if (end && /^\d{8}$/.test(ev.de)) end = new Date(Date.parse(end + 'T00:00:00Z') - 864e5).toISOString().slice(0, 10); }
           if (end && (end <= date)) end = '';
           if (!meet) err.push('名前がありません'); if (!date) err.push('日付が読めません');
-          out.push({ meet: meet, date: date, end: end, venue: nk(ev.loc || '').replace(/\s+/g, ' ').trim().slice(0, 100), div: guessDiv(meet), deadline: '', key: date && meet ? planKey(date, meet) : '', row: n, err: err.join('・'), rrule: !!ev.rrule });
+          if (sv.venue) { meet = sv.meet; loc = sv.venue; }
+          out.push({ meet: meet, date: date, end: end, venue: loc, title: nk(ev.summary || '').slice(0, 100), div: guessDiv(meet), deadline: '', key: date && meet ? planKey(date, meet) : '', row: n, err: err.join('・'), rrule: !!ev.rrule });
         }
         ev = null; return;
       }
@@ -1260,6 +1285,6 @@ var ResultParser = (function () {
     guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText,
     eventCat: eventCat, divisionOf: divisionOf, divLabel: divLabel, eventKey: eventKey, eventKeyLabel: eventKeyLabel, shownWind: shownWind, hasMark: hasMark, sortAthletes: sortAthletes, kanaKey: kanaKey,
     setDivisionHints: setDivisionHints, rawDivisionOf: rawDivisionOf, genderOf: genderOf, divGroup: divGroup, disciplineOrder: disciplineOrder, groupEvents: groupEvents, gendersIn: gendersIn, GROUPS: GROUPS,
-    personKey: personKey, inferDivisions: inferDivisions, mapHeaders: mapHeaders, findHeaderRow: findHeaderRow, parseDateCell: parseDateCell, normImportMark: normImportMark, dupCheck: dupCheck, parseMeetPlan: parseMeetPlan, parseIcs: parseIcs, icsBytesToText: icsBytesToText, guessDiv: guessDiv, planKey: planKey, PLAN_TEMPLATE: PLAN_TEMPLATE, sheetEvent: sheetEvent, sheetBlocks: sheetBlocks, importBlock: importBlock, importWorkbook: importWorkbook, importRows: importRows, splitTable: splitTable, isTable: isTable, FIELD_LABELS: FIELD_LABELS, isFieldEvent: isFieldEvent };
+    personKey: personKey, inferDivisions: inferDivisions, mapHeaders: mapHeaders, findHeaderRow: findHeaderRow, parseDateCell: parseDateCell, normImportMark: normImportMark, dupCheck: dupCheck, parseMeetPlan: parseMeetPlan, parseIcs: parseIcs, icsBytesToText: icsBytesToText, guessDiv: guessDiv, meetClass: meetClass, splitVenue: splitVenue, meetNorm: meetNorm, planKey: planKey, PLAN_TEMPLATE: PLAN_TEMPLATE, sheetEvent: sheetEvent, sheetBlocks: sheetBlocks, importBlock: importBlock, importWorkbook: importWorkbook, importRows: importRows, splitTable: splitTable, isTable: isTable, FIELD_LABELS: FIELD_LABELS, isFieldEvent: isFieldEvent };
 })();
 if (typeof module !== 'undefined') module.exports = ResultParser;

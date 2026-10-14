@@ -37,7 +37,7 @@ await check('ひな形をダウンロード（UTF-8・BOM つき・ファイル�
 const CSV = '大会名,日付,終了日,会場,区分\n架空新人大会,2026/9/12,2026/9/13,架空競技場,高\n架空記録会,2026/9/20,,,中\n架空新人大会,2026/9/12,,,高\n架空区秋季,2026/10/4,,見本公園,中\n架空X,2026/2/30,,,\n';
 await check('見本：追加・記録がある大会・表の中の重複・読めない を分けて数える', async () => {
   $('rpPaste').value = CSV; $('rpRead').click(); await delay();
-  assert(/追加 2件・登録済み 0件・記録がある大会 1件・表の中の重複 1件・読めない 1件/.test(doc.querySelector('.rpcount').textContent), doc.querySelector('.rpcount').textContent);
+  assert(/追加できる 2件（チェック \d+件）・登録済み 0件・記録がある大会 1件・表の中の重複 1件・読めない 1件/.test(doc.querySelector('.rpcount').textContent), doc.querySelector('.rpcount').textContent);
   assert.equal(doc.querySelectorAll('.rp-new').length, 2); assert(/9-13|〜09-13/.test(doc.querySelector('.rp-new').textContent));
   assert(/大会予定を追加（2件）/.test($('rpSave').textContent));
 });
@@ -49,7 +49,7 @@ await check('追加：大会の印（会場・終了日・区分・予定）に�
 });
 await check('同じCSVをもう一度：全部「登録済み」などでとばす（追加0件）', async () => {
   $('rpPaste').value = CSV; $('rpRead').click(); await delay();
-  const ct = doc.querySelector('.rpcount').textContent; assert(/追加 0件・登録済み 3件・記録がある大会 1件/.test(ct), ct); assert($('rpSave').disabled);
+  const ct = doc.querySelector('.rpcount').textContent; assert(/追加できる 0件（チェック \d+件）・登録済み 3件・記録がある大会 1件/.test(ct), ct); assert($('rpSave').disabled);
 });
 await check('天気を入れても、会場・終了日・区分は消えない', async () => {
   await T.saveMeet('2026-09-12|架空新人大会', { weather: '晴', temp: '20', humidity: '' }, T.scope());
