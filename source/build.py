@@ -13,7 +13,7 @@ import base64, hashlib, html as htmlmod, json, pathlib, re, sys
 ROOT = pathlib.Path(__file__).resolve().parent
 S = ROOT / 'src'
 SHARE_BASE = 'https://masarun0721.github.io/lane-note/'   # 共有リンク・QRの公開アドレス（file:// で開いたとき用）
-VERSION = 'v0.26.28'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
+VERSION = 'v0.26.29'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
 # 作成日は版番号から取れないので固定（ビルドした日で変わると、公開時の一致検査ができないため）
 BUILD_DATE = '2026年10月12日'
 REC_VERSION = 'v0.11.1'   # LANE LOG（records.html）だけの版
@@ -57,14 +57,14 @@ MODEBTN, MODEPICK = _mp()
 def build():
     html = text('src/template.html')
     rep = {
-        '__PARSER__': text('src/parser.js'), '__RESULTS__': text('src/results.js'), '__LOGIC__': text('src/logic.js'), '__PLAYER__': text('src/player.js'), '__PERSONAL__': text('src/personal.js'), '__MODE__': text('src/mode.js'), '__TALK__': text('src/talk.js'),
+        '__PARSER__': text('src/parser.js'), '__RESULTS__': text('src/results.js'), '__LOGIC__': text('src/logic.js'), '__PLAYER__': text('src/player.js'), '__PERSONAL__': text('src/personal.js'), '__MODE__': (text('src/mode.js') + '\n' + text('src/plans.js')), '__TALK__': text('src/talk.js'),
         '__ZEKKEN__': text('src/zekken.js'), '__APP__': text('src/app.js'), '__PARENT__': text('src/parent.js'), '__NOTICE__': text('src/notice.js'), '__URLLOAD__': text('src/urlload.js'), '__OVERLAY__': text('src/overlay.js'), '__PDFMAKE__': text('src/pdfmake.js'), '__FEEDBACK__': text('src/feedback.js'),
         '__AUTHCOMMON__': text('src/auth_common.js'),
         '__KOSHI_B64__': b64('templates/koshi_template.docx'), '__MUNE_B64__': b64('templates/mune_template.docx'),
         '__LOGO_DARK__': logo_inline('logo/option_A_dark.svg'),
         '__FAVICON__': 'data:image/svg+xml;base64,' + b64('logo/option_A_icon.svg'),
         '__APPLE_ICON__': 'data:image/png;base64,' + b64('logo/png/option_A_icon_180.png'),
-        '__VERSION__': VERSION, '__MODEBTN__': MODEBTN, '__MODEPICK__': MODEPICK, '__MODE__': text('src/mode.js'), '__SHARE_BASE__': SHARE_BASE, '__QRCODE__': text('vendor/qrcode.js'),
+        '__VERSION__': VERSION, '__MODEBTN__': MODEBTN, '__MODEPICK__': MODEPICK, '__MODE__': (text('src/mode.js') + '\n' + text('src/plans.js')), '__SHARE_BASE__': SHARE_BASE, '__QRCODE__': text('vendor/qrcode.js'),
         '__BUILD_DATE__': BUILD_DATE, '__REC_VERSION__': REC_VERSION,
         '__PRINT_ICON__': 'data:image/svg+xml;base64,' + b64('logo/option_A_icon_mono.svg'),
     }
@@ -82,7 +82,7 @@ def build():
     trial = with_nav(trial, 'try').replace('__TOPBAR__', topbar()).replace('__FBSCRIPTS__', '')
     trial = trial.replace('<button type="button" class="tb-btn fb-link" data-feedback="1" data-tb="feedback">🚨 不具合・要望を送る</button>', '<a href="records.html?fb=1" class="tb-btn fb-link" data-tb="feedback">🚨 不具合・要望を送る</a>', 1)
     assert 'records.html?fb=1' in trial
-    trial = trial.replace('__MODEPICK__', MODEPICK).replace('__MODE__', text('src/mode.js'))
+    trial = trial.replace('__MODEPICK__', MODEPICK).replace('__MODE__', (text('src/mode.js') + '\n' + text('src/plans.js')))
     team = build_team(rec)
     # v0.14（監査F13）：Service Worker のキャッシュ名に版とページの中身のハッシュを入れる（公開のたびに古いページが入れ替わる）
     h = hashlib.sha256((html + rec + guide + chk + trial + team).encode('utf-8')).hexdigest()[:10]
@@ -124,7 +124,7 @@ def build_check():
     g = text('src/check_template.html')
     rep = {'__BASE_CSS__': base[base.index('<style>') + 7:base.index('</style>')], '__LOGO_DARK__': logo_inline('logo/option_A_dark.svg'),
            '__FAVICON__': 'data:image/svg+xml;base64,' + b64('logo/option_A_icon.svg'),
-           '__APPLE_ICON__': 'data:image/png;base64,' + b64('logo/png/option_A_icon_180.png'), '__VERSION__': VERSION, '__MODEBTN__': MODEBTN, '__MODEPICK__': MODEPICK, '__MODE__': text('src/mode.js'), '__MODEBTN__': MODEBTN, '__MODEPICK__': MODEPICK, '__MODE__': text('src/mode.js'), '__REC_VERSION__': REC_VERSION,
+           '__APPLE_ICON__': 'data:image/png;base64,' + b64('logo/png/option_A_icon_180.png'), '__VERSION__': VERSION, '__MODEBTN__': MODEBTN, '__MODEPICK__': MODEPICK, '__MODE__': (text('src/mode.js') + '\n' + text('src/plans.js')), '__MODEBTN__': MODEBTN, '__MODEPICK__': MODEPICK, '__MODE__': (text('src/mode.js') + '\n' + text('src/plans.js')), '__REC_VERSION__': REC_VERSION,
            '__PARSER__': text('src/parser.js'), '__LOGIC__': text('src/logic.js'), '__ENTRY__': text('src/entry.js'), '__CHECKAPP__': text('src/check_app.js'), '__URLLOAD__': text('src/urlload.js'), '__OVERLAY__': text('src/overlay.js'), '__PDFMAKE__': text('src/pdfmake.js'),
            '__AUTHCOMMON__': text('src/auth_common.js'), '__FEEDBACK__': text('src/feedback.js')}
     for k, v in rep.items():
@@ -195,7 +195,7 @@ def build_guide():
     g = text('src/guide_template.html')
     rep = {'__BASE_CSS__': base[base.index('<style>') + 7:base.index('</style>')], '__LOGO_DARK__': logo_inline('logo/option_A_dark.svg'),
            '__FAVICON__': 'data:image/svg+xml;base64,' + b64('logo/option_A_icon.svg'),
-           '__APPLE_ICON__': 'data:image/png;base64,' + b64('logo/png/option_A_icon_180.png'), '__VERSION__': VERSION, '__MODEBTN__': MODEBTN, '__MODEPICK__': MODEPICK, '__MODE__': text('src/mode.js'), '__BUTTONS__': buttons_html(), '__OVERLAY__': text('src/overlay.js')}
+           '__APPLE_ICON__': 'data:image/png;base64,' + b64('logo/png/option_A_icon_180.png'), '__VERSION__': VERSION, '__MODEBTN__': MODEBTN, '__MODEPICK__': MODEPICK, '__MODE__': (text('src/mode.js') + '\n' + text('src/plans.js')), '__BUTTONS__': buttons_html(), '__OVERLAY__': text('src/overlay.js')}
     for k, v in rep.items():
         assert k in g or k == '__MODEBTN__', k
         g = g.replace(k, v)
@@ -283,7 +283,7 @@ def build_records(index_html):
         '__LOGO_DARK__': logo_inline('logo/option_A_dark.svg'),
         '__FAVICON__': 'data:image/svg+xml;base64,' + b64('logo/option_A_icon.svg'),
         '__APPLE_ICON__': 'data:image/png;base64,' + b64('logo/png/option_A_icon_180.png'),
-        '__VERSION__': VERSION, '__MODEBTN__': MODEBTN, '__MODEPICK__': MODEPICK, '__MODE__': text('src/mode.js'), '__REC_VERSION__': REC_VERSION, '__BUILD_DATE__': REC_BUILD_DATE,
+        '__VERSION__': VERSION, '__MODEBTN__': MODEBTN, '__MODEPICK__': MODEPICK, '__MODE__': (text('src/mode.js') + '\n' + text('src/plans.js')), '__REC_VERSION__': REC_VERSION, '__BUILD_DATE__': REC_BUILD_DATE,
     }
     for k, v in rep.items():
         assert k in rec or k == '__MODEBTN__', k

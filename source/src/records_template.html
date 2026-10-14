@@ -293,6 +293,18 @@ tr.rc.editing td{background:#fff3ec!important}
 .tm-join{border:2px solid #1f6feb;background:#f2f7ff;border-radius:12px;padding:12px 14px;margin:10px 0}.tm-join h3{margin:0 0 6px}.tm-join ul{margin:6px 0;padding-left:1.3em}
 .tm-ht{font-variant-numeric:tabular-nums;color:#566}.xnews{display:flex;align-items:center;gap:8px;max-width:1100px;margin:6px auto 0;padding:8px 10px 8px 14px;background:#fff;border:1.5px solid #14213d;border-radius:12px;font-size:14px;line-height:1.5;box-sizing:border-box;width:calc(100% - 20px)}.xnews a{flex:1;color:#14213d;text-decoration:none}.xnews a b{color:#c8452b}.xnews-x{flex:0 0 auto;border:0;background:none;font-size:22px;line-height:1;padding:4px 8px;cursor:pointer;color:#566}.xnews[hidden]{display:none}.tm-code{margin:8px 0}.tm-sum{background:#14213d;color:#fff;border-radius:12px;padding:10px 12px;margin:6px 0}.tm-sum-n{font-size:18px;font-weight:800}.tm-sum-c{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.tm-chip{display:inline-block;font-size:12.5px;font-weight:700;border-radius:999px;padding:2px 10px;background:#eef2f8;color:#14213d;border:1px solid #cfd6e3}.tm-chip.on{background:#e6f4ea;border-color:#9fd0ad;color:#1d5b2c}.tm-chip.warn{background:#fff4e0;border-color:#e8c27a;color:#7a4d00}.tm-sum .tm-chip{background:#fff}.tm-steps{margin:6px 0 8px;padding-left:1.6em;font-size:14px}.tm-steps li{margin:3px 0}.tm-invs{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));margin:8px 0}.tm-inv{border:1px solid #d9dfe8;border-radius:12px;padding:12px;background:#fff}.tm-inv-h{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;justify-content:space-between;font-size:16px}.tm-inv p{margin:6px 0}.tm-big{display:block;width:100%;font-size:17px;padding:12px;margin:8px 0 6px}.tm-share{display:flex;gap:8px}.tm-share .btn{flex:1;text-align:center}.tm-raw code{display:block;word-break:break-all;font-size:12px;background:#f6f8fb;border:1px solid #d9dfe8;border-radius:6px;padding:6px;margin-top:4px}.tm-adv{margin-top:8px;border-top:1px dashed #cfd6e3;padding-top:6px}.tm-f{display:flex;flex-direction:column;gap:2px;font-size:13px;margin:8px 0}.tm-f input[type=date],.tm-f input[type=number]{font-size:16px;padding:6px;max-width:12em}.tm-f.tm-chk{flex-direction:row;align-items:center;gap:6px}.tm-danger{background:#fff!important;color:#b3261e!important;border:1.5px solid #b3261e!important;margin-top:6px}.tm-code code{display:inline-block;word-break:break-all;background:#fff;border:1px solid #d9dfe8;border-radius:6px;padding:4px 6px;font-size:13px;user-select:all}
 .rb-team .btn.tm-x{color:#b42318;background:#fff;border:1px solid #e5b4ae}
+/* v0.26.29 今後の大会・カレンダー */
+.lp-list{list-style:none;margin:8px 0;padding:0}.lp-list>li{padding:8px 4px;border-bottom:1px solid #e3e7ee;line-height:1.5}
+.lp-left{display:inline-block;min-width:4.5em;text-align:center;font-weight:bold;font-size:12px;background:#eef3fb;color:#1d3b6b;border-radius:10px;padding:1px 8px}.lp-left.soon{background:#fde9e2;color:#a33a14}
+.lp-div{border:1px solid #c9d2e0;border-radius:6px;padding:0 4px}.lp-acts{display:flex;gap:6px;justify-content:flex-end;margin-top:2px}.lp-acts .btn{width:auto;flex:0 0 auto;padding:3px 10px;font-size:12px;min-height:0}
+.lp-nav{display:flex;flex-wrap:nowrap}.lp-nav .btn{width:auto;flex:0 0 auto;padding:2px 12px;min-height:0}
+.lp-edit .mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px}.lp-edit label{display:flex;flex-direction:column;font-size:12px;gap:2px}.lp-edit input,.lp-edit select{font-size:14px;padding:5px;border:1px solid #c9d2e0;border-radius:6px}
+.lp-calbox{margin-top:10px}.lp-nav{align-items:center;gap:10px}
+.lp-cal{border-collapse:collapse;width:100%;table-layout:fixed;font-size:12px}.lp-cal th{font-weight:normal;color:#555;padding:2px}.lp-cal th.sun{color:#c0392b}.lp-cal th.sat{color:#2b5fb3}
+.lp-cal td{border:1px solid #e3e7ee;vertical-align:top;height:52px;padding:2px;overflow:hidden}.lp-cal td b{font-weight:normal;color:#666}.lp-cal td.today{outline:2px solid #1d3b6b;outline-offset:-2px}
+.lp-cal td.meet{background:#fff4e5}.lp-cal td.meet b{font-weight:bold;color:#a33a14}.lp-ev{display:block;font-size:10.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lp-dl{display:block;font-size:10px;color:#c0392b}
+.lp-pick{margin:6px 0;font-size:13px}.lp-pick select{max-width:100%}
+@media (max-width:520px){.lp-cal td{height:44px}.lp-ev{font-size:9.5px}}
 </style>
 </head>
 <body class="records">
@@ -378,19 +390,19 @@ __MODEPICK__
     </form>
   </details>
   <details class="rb-manual" id="rbPlanBox"><summary><b>📅 大会予定をまとめて追加</b>（記録はまだ無い、これからの大会）</summary>
-    <p class="small">CSV（Excel なら「CSV UTF-8」で保存）を選ぶか、表を貼り付けてください。1行目は <code>大会名,日付,終了日,会場,区分</code>。大会名と日付は必須、終了日（2日以上の大会）・会場・区分（中／高）は空でかまいません。登録済みの大会はとばします。</p>
+    <p class="small">CSV（Excel なら「CSV UTF-8」で保存）を選ぶか、表を貼り付けてください。1行目は <code>大会名,日付,終了日,会場,区分,締切</code>。大会名と日付は必須、終了日（2日以上の大会）・会場・区分（中／高）・締切（エントリー締切）は空でかまいません。登録済みの大会はとばします。</p>
     <div class="rb-row"><button class="btn sub" type="button" id="rpTemplate">ひな形（CSV）をダウンロード</button><label class="btn sub">CSV を選ぶ<input type="file" id="rpFile" accept=".csv,.txt,text/csv" hidden></label></div>
     <textarea id="rpPaste" rows="4" placeholder="大会名,日付,終了日,会場,区分&#10;江東区中学校秋季陸上競技大会,2026/10/4,,夢の島競技場,中"></textarea>
     <div class="rb-row"><button class="btn sub" type="button" id="rpRead">貼り付けた表を読む</button></div>
     <div id="rpPreview"></div>
     <div class="status" id="rpStatus" aria-live="polite"></div>
-    <details class="rb-meets"><summary>これからの大会予定 <span class="small muted" id="rpListN"></span></summary><ul class="rb-meetlist" id="rpList"></ul></details>
   </details>
   <div id="rbBatches"></div>
   <div class="status" id="rbDone" aria-live="polite"></div>
   <details class="rb-meets" id="rbMeetsBox"><summary><b>取り込み済みの大会</b> <span class="small muted" id="rbMeetsN"></span></summary><ul class="rb-meetlist" id="rbMeets"></ul></details>
 </section>
 
+<section class="box lp-home" id="lpHome" hidden aria-label="今後の大会"></section>
 <section class="box">
   <h2><span class="no">2</span>記録</h2>
   <div class="divsw" role="radiogroup" aria-label="中学・高校の切り替え" id="rbDiv"><button type="button" data-div="all">すべて</button><button type="button" data-div="jh">中学</button><button type="button" data-div="hs">高校</button></div>

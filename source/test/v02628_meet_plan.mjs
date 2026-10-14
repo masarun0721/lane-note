@@ -32,7 +32,7 @@ w.eval(src('records_app.js').replace(tail, 'window.__t={putMany:putMany,reload:r
 const T = w.__t, doc = w.document, $ = id => doc.getElementById(id);
 await T.putMany([{ id: 'a1', name: '架空 一郎', team: '架空中', event: '男子100m', mark: '11.50', date: '2026-09-20', meet: '架空記録会' }], T.scope()); await T.reload(T.scope()); await delay();
 await check('ひな形をダウンロード（UTF-8・BOM つき・ファイル名）', async () => {
-  $('rpTemplate').click(); assert.equal(dl.name, '大会予定_ひな形.csv'); const t = new TextDecoder('utf-8', { ignoreBOM: true }).decode(await dl.arrayBuffer()); assert(t.startsWith('\ufeff大会名,日付,終了日,会場,区分\n'), t);
+  $('rpTemplate').click(); assert.equal(dl.name, '大会予定_ひな形.csv'); const t = new TextDecoder('utf-8', { ignoreBOM: true }).decode(await dl.arrayBuffer()); assert(t.startsWith('\ufeff大会名,日付,終了日,会場,区分,締切\n'), t);
 });
 const CSV = '大会名,日付,終了日,会場,区分\n架空新人大会,2026/9/12,2026/9/13,架空競技場,高\n架空記録会,2026/9/20,,,中\n架空新人大会,2026/9/12,,,高\n架空区秋季,2026/10/4,,見本公園,中\n架空X,2026/2/30,,,\n';
 await check('見本：追加・記録がある大会・表の中の重複・読めない を分けて数える', async () => {

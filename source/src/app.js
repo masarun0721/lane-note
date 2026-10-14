@@ -903,7 +903,7 @@
   function ntAuto() {
     ntFound = LaneNotice.extract(state.docText || {});
     var d = LaneNotice.parseDate($('meetDate').value || state.day || '') || (ntFound.date ? LaneNotice.parseDate(ntFound.date.v) : null), now = new Date();
-    var auto = { name: $('meetName').value || '', date: LaneNotice.fmtDate(d, NT.era), venue: ntFound.venue ? ntFound.venue.v : '', station: ntFound.station ? ntFound.station.v : '', gate: ntFound.gate ? ntFound.gate.v : '', address: ntFound.address ? ntFound.address.v : '', phone: ntFound.phone ? ntFound.phone.v : '', docDate: LaneNotice.fmtDate({ y: now.getFullYear(), m: now.getMonth() + 1, d: now.getDate() }, NT.era, true), place: '' };
+    var auto = { name: $('meetName').value || '', date: LaneNotice.fmtDate(d, NT.era), venue: PICKED && PICKED.venue && PICKED.key === ($('meetName').value + '|' + $('meetDate').value) ? PICKED.venue : ntFound.venue ? ntFound.venue.v : '', station: ntFound.station ? ntFound.station.v : '', gate: ntFound.gate ? ntFound.gate.v : '', address: ntFound.address ? ntFound.address.v : '', phone: ntFound.phone ? ntFound.phone.v : '', docDate: LaneNotice.fmtDate({ y: now.getFullYear(), m: now.getMonth() + 1, d: now.getDate() }, NT.era, true), place: '' };
     Object.keys(auto).forEach(function (k) { if (!NM.edited[k]) NM[k] = auto[k]; });
     // 保存した競技場と同じなら、最寄り駅・行き方・集合場所・住所もそこから入れる
     var vi = NM.venuePick != null ? NM.venuePick : LaneNotice.findVenue(NT, NM.venue);
@@ -1214,6 +1214,7 @@
     window.addEventListener('beforeprint', function () { refreshPrint(); if (document.body.classList.contains('print-rec')) { try { buildRecSheet(); } catch (e) { } } });
     $('meetDate').addEventListener('input', refreshPrint);
     $('meetName').addEventListener('input', refreshPrint);
+    if ($('planPick')) { $('planPick').addEventListener('change', function () { planPickApply(this.value); this.value = ''; }); planPickFill(); }
     $('feeInPrint').addEventListener('change', refreshPrint);
     if ($('dateAlt')) $('dateAlt').addEventListener('change', function () { $('meetDate').value = $('dateAlt').value; $('meetDate').dataset.manual = '1'; renderDateMark(); refreshPrint(); });
     $('btnReset').addEventListener('click', resetAll);
@@ -1372,6 +1373,7 @@
     try { await FB.auth.authStateReady(); } catch (e) { }
     LaneAuth.redirectResult(FB);   // v0.15（再監査A06）：ログインは popup だけ（v0.14 の redirect の印を消すだけ）
     lastUid = FB.auth.currentUser ? FB.auth.currentUser.uid : null;
+    if (lastUid) planPickCloud();
     if (FB.A.onAuthStateChanged) FB.A.onAuthStateChanged(FB.auth, onShareAuth);
     return FB;
   }
@@ -1386,10 +1388,38 @@
   function clearAllShares() {
     document.querySelectorAll('.myShares').forEach(function (b) { b.dataset.gen = String((+b.dataset.gen || 0) + 1); b.innerHTML = '<p class="small muted">Googleでログインすると、作った短いリンクの一覧が出て、共有を止められます。</p>'; });
   }
+  /* v0.26.29 大会予定から選ぶ：記録のページで登録した大会（この端末に写したもの＋ログインしていれば自分のクラウド）→ 大会名・日付・会場 */
+  var PLANS = [], PICKED = null;
+  function planPickFill() {
+    var sel = $('planPick'); if (!sel || typeof LanePlans === 'undefined') return;
+    var P = LanePlans, seen = {}, list = [];
+    PLANS.concat(P.load()).forEach(function (p) { var c = P.clean(p), k = c && c.date + '|' + c.meet; if (c && !seen[k]) { seen[k] = 1; list.push(c); } });
+    PLANS = list;
+    var up = P.upcoming(list), past = P.past(list).slice(0, 30), o = function (p) { return '<option value="' + P.esc(p.date + '|' + p.meet) + '">' + P.esc(P.range(p) + ' ' + p.meet + (p.venue ? '（' + p.venue + '）' : '') + (up.indexOf(p) >= 0 ? '・' + P.leftLabel(p) : '')) + '</option>'; };
+    sel.innerHTML = '<option value="">📅 大会予定から選ぶ（' + up.length + '件）</option>' + (up.length ? '<optgroup label="これからの大会">' + up.map(o).join('') + '</optgroup>' : '') + (past.length ? '<optgroup label="終わった大会">' + past.map(o).join('') + '</optgroup>' : '');
+    sel.hidden = !list.length;
+  }
+  async function planPickCloud() {
+    var sc = authScope(); if (!sc.uid || !FB || !FB.F.getDocs) return;
+    try {
+      var snap = await withTimeout(FB.F.getDocs(FB.F.collection(FB.fs, 'users', sc.uid, 'meets')), 15000); if (!authOk(sc)) return;
+      snap.forEach(function (d) { var x = d.data(); if (x && x.plan) PLANS.push(x); });
+      planPickFill();
+    } catch (e) { }
+  }
+  function planPickApply(k) {
+    var p = PLANS.filter(function (x) { return x.date + '|' + x.meet === k; })[0]; if (!p) return;
+    $('meetName').value = p.meet; $('meetName').dataset.auto = '';
+    $('meetDate').value = LanePlans.jpRange(p); $('meetDate').dataset.manual = '1';
+    PICKED = { key: p.meet + '|' + $('meetDate').value, venue: p.venue || '' };
+    renderDateMark(); refreshPrint();
+    var m = $('planPicked'); if (m) { m.hidden = false; m.textContent = '📅 大会予定から入れました' + (p.venue ? '（会場：' + p.venue + '）' : '') + (p.deadline ? '・' + LanePlans.deadlineLabel(p) : ''); }
+  }
   function onShareAuth(u) {
     var uid = u ? u.uid : null;
     if (uid === lastUid) return;
     lastUid = uid; authEpoch++;
+    PLANS = []; try { planPickFill(); } catch (e) { } if (uid) planPickCloud();
     clearAllShares(); shareShort = ''; PL.links = {}; PBS = { sc: null, look: null }; setTimeout(function () { loadPBs().catch(function () { }); }, 0);
     try { renderShareAuth(); plAuth(); if (!$('playerDlg').hidden) renderPlayerList(); } catch (e) { }
     if (uid) document.querySelectorAll('.myShares').forEach(function (b) { renderMyShares(b); });

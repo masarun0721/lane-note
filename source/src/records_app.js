@@ -234,7 +234,7 @@
     need(sc);
     var p = key.split('|'), o = { key: key, date: p[0], meet: p.slice(1).join('|'), weather: w.weather || '', temp: w.temp === '' || w.temp == null || isNaN(+w.temp) ? null : +w.temp, humidity: w.humidity === '' || w.humidity == null || isNaN(+w.humidity) ? null : +w.humidity, updatedAt: new Date().toISOString() };
     // v0.26.28：大会予定（会場・終了日・区分）は、天気を直しても残す
-    var prev = METS[key] || {}; ['venue', 'end', 'div', 'plan'].forEach(function (k) { var v = w[k] != null ? w[k] : prev[k]; if (v != null && v !== '') o[k] = v; });
+    var prev = METS[key] || {}; ['venue', 'end', 'div', 'plan', 'deadline'].forEach(function (k) { var v = w[k] != null ? w[k] : prev[k]; if (v != null && v !== '') o[k] = v; });
     METS[key] = o;
     if (sc.team) { await FB.F.setDoc(FB.F.doc(FB.fs, 'teams', sc.team.id, 'meets', docId(key)), o); check(sc); return; }
     if (!noCache(sc)) lsSet(metsKey(sc.uid), METS);
@@ -261,21 +261,72 @@
     var n = { new: 0, dup: 0, rec: 0, same: 0, err: 0 }; PLAN.rows.forEach(function (r) { n[r.st]++; });
     var lab = { new: '追加', dup: '登録済み（とばす）', rec: '記録がある大会（とばす）', same: '表の中で2回目（とばす）', err: '読めない' };
     box.innerHTML = '<p class="small rpcount">追加 <b>' + n.new + '件</b>・登録済み ' + n.dup + '件・記録がある大会 ' + n.rec + '件・表の中の重複 ' + n.same + '件・読めない ' + n.err + '件</p>' +
-      '<div class="tblwrap"><table class="rbt rpt"><tr><th>状態</th><th>日付</th><th>大会名</th><th>会場</th><th>区分</th></tr>' + PLAN.rows.map(function (r) {
-        return '<tr class="rp-' + r.st + '"><td>' + (r.st === 'new' ? '<b>追加</b>' : r.st === 'err' ? '<b class="ng">読めない</b><br><small class="ng">' + r.row + '行目：' + esc(r.err) + '</small>' : '<span class="muted">' + lab[r.st] + '</span>') + '</td><td>' + esc(r.date) + (r.end ? '〜' + esc(r.end.slice(5)) : '') + '</td><td>' + esc(r.meet) + '</td><td>' + esc(r.venue) + '</td><td>' + esc(r.div) + '</td></tr>';
+      '<div class="tblwrap"><table class="rbt rpt"><tr><th>状態</th><th>日付</th><th>大会名</th><th>会場</th><th>区分</th><th>締切</th></tr>' + PLAN.rows.map(function (r) {
+        return '<tr class="rp-' + r.st + '"><td>' + (r.st === 'new' ? '<b>追加</b>' : r.st === 'err' ? '<b class="ng">読めない</b><br><small class="ng">' + r.row + '行目：' + esc(r.err) + '</small>' : '<span class="muted">' + lab[r.st] + '</span>') + '</td><td>' + esc(r.date) + (r.end ? '〜' + esc(r.end.slice(5)) : '') + '</td><td>' + esc(r.meet) + '</td><td>' + esc(r.venue) + '</td><td>' + esc(r.div) + '</td><td>' + esc(r.deadline ? r.deadline.slice(5).replace('-', '/') : '') + '</td></tr>';
       }).join('') + '</table></div>' +
       '<div class="rb-row"><button class="btn" type="button" id="rpSave"' + (n.new ? '' : ' disabled') + '>大会予定を追加（' + n.new + '件）</button><button class="btn sub" type="button" id="rpClear">やめる</button></div>';
   }
+  /* v0.26.29 今後の大会（一覧・1か月のカレンダー・1件ずつ直す／消す）。名前・日付・会場・区分・締切だけをこの端末に写して、大会準備・選手のページで使う */
+  var LP = { ym: '', edit: '' };
   function planList() {
-    var ul = $('rpList'); if (!ul) return;
-    var td = new Date(Date.now() + 9 * 36e5).toISOString().slice(0, 10), ks = Object.keys(METS).filter(function (k) { var m = METS[k]; return m.plan && (m.end || m.date) >= td; }).sort();
-    $('rpListN').textContent = ks.length ? '（' + ks.length + '件）' : '';
-    ul.innerHTML = ks.length ? ks.map(function (k) { var m = METS[k]; return '<li><b>' + esc(m.date) + (m.end ? '〜' + esc(m.end.slice(5)) : '') + '</b> ' + esc(m.meet) + (m.venue ? ' <small class="muted">' + esc(m.venue) + '</small>' : '') + (m.div ? ' <small>（' + esc(m.div) + '）</small>' : '') + '</li>'; }).join('') : '<li class="muted">まだありません</li>';
+    var box = $('lpHome'); if (!box || typeof LanePlans === 'undefined') return;
+    var P = LanePlans, all = P.fromMets(METS), td = P.today(), up = P.upcoming(all, td), keyOf = function (p) { return p.date + '|' + p.meet; };
+    P.save(all);
+    if (!LP.ym) LP.ym = (up[0] ? (up[0].date < td ? td : up[0].date) : td).slice(0, 7);
+    var e = LP.edit && METS[LP.edit] ? METS[LP.edit] : null;
+    var row = function (p) {
+      var k = keyOf(p), n = P.daysLeft(p.date, td);
+      if (e && LP.edit === k) return '<li class="lp-edit" data-lpk="' + esc(k) + '"><div class="mgrid">' +
+        '<label>大会名 <input data-lpf="meet" maxlength="100" value="' + esc(p.meet) + '"></label><label>日付 <input type="date" data-lpf="date" value="' + esc(p.date) + '"></label><label>終了日（2日以上） <input type="date" data-lpf="end" value="' + esc(p.end || '') + '"></label>' +
+        '<label>会場 <input data-lpf="venue" maxlength="100" value="' + esc(p.venue || '') + '"></label><label>区分 <select data-lpf="div"><option value="">（なし）</option><option' + (p.div === '中学' ? ' selected' : '') + '>中学</option><option' + (p.div === '高校' ? ' selected' : '') + '>高校</option></select></label><label>エントリー締切 <input type="date" data-lpf="deadline" value="' + esc(p.deadline || '') + '"></label></div>' +
+        '<div class="rb-row"><button class="btn" type="button" data-lpsave="1">保存</button><button class="btn sub" type="button" data-lpcancel="1">やめる</button></div><div class="status" id="lpStatus"></div></li>';
+      return '<li data-lpk="' + esc(k) + '"><span class="lp-left' + (n <= 7 ? ' soon' : '') + '">' + esc(P.leftLabel(p, td)) + '</span> <b>' + esc(P.range(p)) + '</b> ' + esc(p.meet) + (p.div ? ' <small class="lp-div">' + esc(p.div) + '</small>' : '') + (p.venue ? '<br><small class="muted">📍 ' + esc(p.venue) + '</small>' : '') +
+        (p.deadline ? '<br><small class="' + (P.daysLeft(p.deadline, td) <= 7 && P.daysLeft(p.deadline, td) >= 0 ? 'ng' : 'muted') + '">⏰ ' + esc(P.deadlineLabel(p, td)) + '</small>' : '') +
+        ' <span class="lp-acts"><button class="btn sub small" type="button" data-lpedit="' + esc(k) + '">✏️ 直す</button><button class="btn sub small danger-t" type="button" data-lpdel="' + esc(k) + '">🗑 消す</button></span></li>';
+    };
+    var y = +LP.ym.slice(0, 4), m = +LP.ym.slice(5, 7);
+    box.innerHTML = '<h2>📅 今後の大会 <small class="muted">' + (up.length ? up.length + '件' : '') + '</small></h2>' +
+      (up.length ? '<ul class="lp-list">' + up.slice(0, 40).map(row).join('') + '</ul>' : '<p class="small muted">まだありません。下の「📅 大会予定をまとめて追加」から入れられます。</p>') +
+      (all.length ? '<div class="lp-calbox"><div class="rb-row lp-nav"><button class="btn sub small" type="button" data-lpm="-1" aria-label="前の月">◀</button><b>' + y + '年' + m + '月</b><button class="btn sub small" type="button" data-lpm="1" aria-label="次の月">▶</button></div>' + P.monthHtml(all, LP.ym, td) + '</div>' : '') +
+      (P.past(all, td).length ? '<details class="small"><summary>終わった予定 ' + P.past(all, td).length + '件</summary><ul class="lp-list">' + P.past(all, td).slice(0, 60).map(row).join('') + '</ul></details>' : '');
+    box.hidden = false;
+  }
+  async function writeMeetDoc(key, o, sc) {
+    need(sc);
+    if (o) METS[key] = o; else delete METS[key];
+    var ref = sc.team ? FB.F.doc(FB.fs, 'teams', sc.team.id, 'meets', docId(key)) : sc.uid ? FB.F.doc(FB.fs, 'users', sc.uid, 'meets', docId(key)) : null;
+    if (!sc.team && !noCache(sc)) lsSet(metsKey(sc.uid), METS);
+    if (ref) { if (o) await FB.F.setDoc(ref, o); else await FB.F.deleteDoc(ref); check(sc); }
+  }
+  async function planDelete(key) {
+    var m = METS[key], sc = scope(); if (!m) return;
+    var keep = m.weather || m.temp != null || m.humidity != null || ALL.some(function (r) { return r.date + '|' + r.meet === key; });
+    if (keep) { var o = {}; Object.keys(m).forEach(function (k) { if (['venue', 'end', 'div', 'plan', 'deadline'].indexOf(k) < 0) o[k] = m[k]; }); o.updatedAt = new Date().toISOString(); await writeMeetDoc(key, o, sc); }
+    else await writeMeetDoc(key, null, sc);
+  }
+  async function planEditSave(li) {
+    var old = li.getAttribute('data-lpk'), v = {}, sc = scope(), st = $('lpStatus');
+    li.querySelectorAll('[data-lpf]').forEach(function (x) { v[x.getAttribute('data-lpf')] = x.value.trim(); });
+    var err = [];
+    if (!v.meet) err.push('大会名を入れてください'); if (!/^\d{4}-\d{2}-\d{2}$/.test(v.date)) err.push('日付を入れてください');
+    if (v.end && v.end < v.date) err.push('終了日が日付より前です');
+    var key = R.planKey(v.date, v.meet);
+    if (!err.length && key !== old && METS[key] && METS[key].plan) err.push('同じ日・同じ名前の大会がもうあります');
+    if (err.length) { st.className = 'status ng'; st.textContent = '✖ ' + err.join('・'); return; }
+    var m = METS[old] || {}, w = { weather: m.weather || '', temp: m.temp == null ? '' : m.temp, humidity: m.humidity == null ? '' : m.humidity, venue: v.venue.slice(0, 100), end: v.end && v.end !== v.date ? v.end : '', div: v.div, deadline: v.deadline, plan: true };
+    try {
+      if (key !== old) await planDelete(old);
+      var prev = METS[key]; if (prev) { ['venue', 'end', 'div', 'deadline'].forEach(function (k) { delete prev[k]; }); }
+      await saveMeet(key, w, sc);
+      ['venue', 'end', 'div', 'deadline'].forEach(function (k) { if (!w[k]) delete METS[key][k]; });
+      await writeMeetDoc(key, METS[key], sc);
+    } catch (x) { if (isAbort(x)) return; st.className = 'status ng'; st.textContent = '✖ 保存できませんでした：' + x.message; return; }
+    LP.edit = ''; planList(); fillDatalists();
   }
   async function planSave() {
     var sc = scope(), list = PLAN.rows.filter(function (r) { return r.st === 'new'; }), done = 0;
     try {
-      for (var i = 0; i < list.length; i++) { var r = list[i]; await saveMeet(r.key, { weather: '', temp: '', humidity: '', venue: r.venue, end: r.end, div: r.div, plan: true }, sc); done++; }
+      for (var i = 0; i < list.length; i++) { var r = list[i]; await saveMeet(r.key, { weather: '', temp: '', humidity: '', venue: r.venue, end: r.end, div: r.div, deadline: r.deadline, plan: true }, sc); done++; }
     } catch (e) { if (isAbort(e)) return; status('rpStatus', esc('✖ ' + done + '件まで追加しました。続きを追加できませんでした：' + e.message), 'ng'); return; }
     PLAN = null; planRender(); planList(); fillDatalists();
     status('rpStatus', '✔ 大会予定を ' + done + '件 追加しました。記録を入れるときに、大会名の候補に出ます。', 'ok');
@@ -1316,6 +1367,18 @@
     planRead(t);
   });
   $('rpRead').addEventListener('click', function () { planRead($('rpPaste').value); });
+  $('lpHome').addEventListener('click', async function (e) {
+    var t = e.target, k;
+    if (t.hasAttribute('data-lpm')) { LP.ym = LanePlans.addMonth(LP.ym, +t.getAttribute('data-lpm')); planList(); }
+    else if ((k = t.getAttribute('data-lpedit'))) { LP.edit = k; planList(); }
+    else if (t.hasAttribute('data-lpcancel')) { LP.edit = ''; planList(); }
+    else if (t.hasAttribute('data-lpsave')) await planEditSave(t.closest('[data-lpk]'));
+    else if ((k = t.getAttribute('data-lpdel'))) {
+      if (!confirm('「' + (METS[k] ? METS[k].meet : '') + '」の予定を消しますか？（記録は消えません）')) return;
+      try { await planDelete(k); } catch (x) { if (isAbort(x)) return; alert('消せませんでした：' + x.message); return; }
+      planList(); fillDatalists();
+    }
+  });
   $('rpPreview').addEventListener('click', function (e) {
     if (e.target.id === 'rpSave') planSave();
     else if (e.target.id === 'rpClear') { PLAN = null; planRender(); }

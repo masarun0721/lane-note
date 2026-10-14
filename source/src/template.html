@@ -625,6 +625,18 @@ body.fb-open{overflow:hidden}
 .use-count .uc-d::before{content:"";position:absolute;left:34%;right:34%;top:1px;height:2px;border-radius:1px;background:rgba(80,50,0,.55)}
 .use-count{filter:drop-shadow(0 1px 1px rgba(0,0,0,.45))}.use-count .uc-d+.uc-d{margin-left:0}
 @media screen and (max-width:720px){.use-count .uc-d{width:13px;height:17px;line-height:19px;font-size:13px}}
+/* v0.26.29 今後の大会・カレンダー */
+.lp-list{list-style:none;margin:8px 0;padding:0}.lp-list>li{padding:8px 4px;border-bottom:1px solid #e3e7ee;line-height:1.5}
+.lp-left{display:inline-block;min-width:4.5em;text-align:center;font-weight:bold;font-size:12px;background:#eef3fb;color:#1d3b6b;border-radius:10px;padding:1px 8px}.lp-left.soon{background:#fde9e2;color:#a33a14}
+.lp-div{border:1px solid #c9d2e0;border-radius:6px;padding:0 4px}.lp-acts{display:flex;gap:6px;justify-content:flex-end;margin-top:2px}.lp-acts .btn{width:auto;flex:0 0 auto;padding:3px 10px;font-size:12px;min-height:0}
+.lp-nav{display:flex;flex-wrap:nowrap}.lp-nav .btn{width:auto;flex:0 0 auto;padding:2px 12px;min-height:0}
+.lp-edit .mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px}.lp-edit label{display:flex;flex-direction:column;font-size:12px;gap:2px}.lp-edit input,.lp-edit select{font-size:14px;padding:5px;border:1px solid #c9d2e0;border-radius:6px}
+.lp-calbox{margin-top:10px}.lp-nav{align-items:center;gap:10px}
+.lp-cal{border-collapse:collapse;width:100%;table-layout:fixed;font-size:12px}.lp-cal th{font-weight:normal;color:#555;padding:2px}.lp-cal th.sun{color:#c0392b}.lp-cal th.sat{color:#2b5fb3}
+.lp-cal td{border:1px solid #e3e7ee;vertical-align:top;height:52px;padding:2px;overflow:hidden}.lp-cal td b{font-weight:normal;color:#666}.lp-cal td.today{outline:2px solid #1d3b6b;outline-offset:-2px}
+.lp-cal td.meet{background:#fff4e5}.lp-cal td.meet b{font-weight:bold;color:#a33a14}.lp-ev{display:block;font-size:10.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lp-dl{display:block;font-size:10px;color:#c0392b}
+.lp-pick{margin:6px 0;font-size:13px}.lp-pick select{max-width:100%}
+@media (max-width:520px){.lp-cal td{height:44px}.lp-ev{font-size:9.5px}}
 </style>
 </head>
 <body>
@@ -764,7 +776,7 @@ __TOPBAR__
     <button class="btn sub" id="btnParent" type="button">👪 保護者へのお知らせ</button>
     <button class="btn sub" id="btnVenues" type="button">🏟 競技場の設定</button>
   </div>
-  <div class="recmeta noprint">大会名 <input id="meetName" size="28" placeholder="例：第74回北区民体育大会"> <span class="rs na" id="dateMark" title="">－</span>日付 <input id="meetDate" size="18" placeholder="例：2026年10月11日（日）"> <small class="muted" id="dateSrc"></small> <select id="dateAlt" hidden title="日付の候補から選ぶ"></select><div class="warn small" id="multiDayWarn" hidden></div></div>
+  <div class="recmeta noprint"><select id="planPick" class="lp-pick" hidden title="記録のページで登録した大会予定から選ぶ"></select> 大会名 <input id="meetName" size="28" placeholder="例：第74回北区民体育大会"> <span class="rs na" id="dateMark" title="">－</span>日付 <input id="meetDate" size="18" placeholder="例：2026年10月11日（日）"> <small class="muted" id="dateSrc"></small> <select id="dateAlt" hidden title="日付の候補から選ぶ"></select><div class="warn small" id="multiDayWarn" hidden></div><div class="small muted" id="planPicked" hidden></div></div>
   <p class="small muted noprint">用紙：出場一覧・記録用紙＝A4縦／ナンバーカード＝B5。印刷の設定は「実際のサイズ（100%）」にしてください。</p>
   <div class="tabbar"><div class="tabs">
     <button class="on" data-tab="paneTime">時間順</button>

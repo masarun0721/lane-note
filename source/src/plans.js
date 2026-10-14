@@ -1,0 +1,56 @@
+/* v0.26.29 大会予定（記録のページで登録したこれからの大会）。この端末に名前・日付・会場・区分・締切だけを写して、大会準備・選手のページでも使う */
+var LanePlans = (function () {
+  var KEY = 'lanenote.plans.v1', WD = ['日', '月', '火', '水', '木', '金', '土'];
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function today() { var d = new Date(Date.now() + 9 * 36e5); return d.toISOString().slice(0, 10); }
+  function isDay(s) { return /^\d{4}-\d{2}-\d{2}$/.test(String(s || '')); }
+  function clean(p) {
+    p = p || {}; if (!isDay(p.date) || !p.meet) return null;
+    var o = { date: p.date, meet: String(p.meet).slice(0, 100) };
+    if (isDay(p.end) && p.end > p.date) o.end = p.end;
+    if (p.venue) o.venue = String(p.venue).slice(0, 100);
+    if (p.div === '中学' || p.div === '高校') o.div = p.div;
+    if (isDay(p.deadline)) o.deadline = p.deadline;
+    return o;
+  }
+  function sort(list) { return list.slice().sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : a.meet < b.meet ? -1 : 1; }); }
+  function fromMets(mets) { return sort(Object.keys(mets || {}).map(function (k) { var m = mets[k]; return m && m.plan ? clean(m) : null; }).filter(Boolean)); }
+  function save(list) { try { localStorage.setItem(KEY, JSON.stringify({ at: Date.now(), list: sort((list || []).map(clean).filter(Boolean)).slice(0, 300) })); } catch (e) { } }
+  function load() { try { var o = JSON.parse(localStorage.getItem(KEY) || 'null'); return o && Array.isArray(o.list) ? o.list.map(clean).filter(Boolean) : []; } catch (e) { return []; } }
+  function upcoming(list, td) { td = td || today(); return sort((list || []).filter(function (p) { return (p.end || p.date) >= td; })); }
+  function past(list, td) { td = td || today(); return sort((list || []).filter(function (p) { return (p.end || p.date) < td; })).reverse(); }
+  function daysLeft(day, td) { td = td || today(); return Math.round((Date.parse(day + 'T00:00:00Z') - Date.parse(td + 'T00:00:00Z')) / 864e5); }
+  function wd(day) { return WD[new Date(day + 'T00:00:00Z').getUTCDay()]; }
+  function jp(day) { return +day.slice(0, 4) + '年' + +day.slice(5, 7) + '月' + +day.slice(8, 10) + '日（' + wd(day) + '）'; }
+  function md(day) { return +day.slice(5, 7) + '/' + +day.slice(8, 10) + '（' + wd(day) + '）'; }
+  function range(p) { return md(p.date) + (p.end ? '〜' + md(p.end) : ''); }
+  function jpRange(p) { if (!p.end) return jp(p.date); return jp(p.date) + '〜' + (p.end.slice(0, 7) === p.date.slice(0, 7) ? +p.end.slice(8, 10) + '日（' + wd(p.end) + '）' : jp(p.end).replace(/^\d+年/, '')); }
+  function leftLabel(p, td) {
+    td = td || today(); var n = daysLeft(p.date, td);
+    if (n > 0) return 'あと' + n + '日'; if (n === 0) return '今日'; return (p.end && p.end >= td) ? '開催中' : '終了';
+  }
+  function deadlineLabel(p, td) {
+    if (!p.deadline) return ''; var n = daysLeft(p.deadline, td || today());
+    return n > 0 ? 'エントリー締切 ' + md(p.deadline) + '（あと' + n + '日）' : n === 0 ? 'エントリー締切は今日' : 'エントリー締切 ' + md(p.deadline) + '（過ぎました）';
+  }
+  // 1か月のカレンダー（ym='2026-10'）。大会の日（複数日はその間すべて）と締切の日に印
+  function monthHtml(list, ym, td) {
+    td = td || today(); var y = +ym.slice(0, 4), m = +ym.slice(5, 7), first = new Date(Date.UTC(y, m - 1, 1)), n = new Date(Date.UTC(y, m, 0)).getUTCDate(), on = {}, dl = {};
+    (list || []).forEach(function (p) {
+      for (var d = p.date; d <= (p.end || p.date); d = new Date(Date.parse(d + 'T00:00:00Z') + 864e5).toISOString().slice(0, 10)) (on[d] = on[d] || []).push(p.meet);
+      if (p.deadline) (dl[p.deadline] = dl[p.deadline] || []).push(p.meet);
+    });
+    var h = '<table class="lp-cal" aria-label="' + y + '年' + m + '月"><tr>' + WD.map(function (w, i) { return '<th' + (i === 0 ? ' class="sun"' : i === 6 ? ' class="sat"' : '') + '>' + w + '</th>'; }).join('') + '</tr><tr>';
+    var c = first.getUTCDay(); for (var i = 0; i < c; i++) h += '<td></td>';
+    for (var dd = 1; dd <= n; dd++) {
+      var day = ym + '-' + (dd < 10 ? '0' : '') + dd, ev = on[day] || [], dz = dl[day] || [];
+      h += '<td class="' + (day === td ? 'today ' : '') + (ev.length ? 'meet ' : '') + (dz.length ? 'dl' : '') + '"' + (ev.length || dz.length ? ' title="' + esc(ev.concat(dz.map(function (x) { return '締切：' + x; })).join('\n')) + '"' : '') + '><b>' + dd + '</b>' +
+        ev.slice(0, 2).map(function (x) { return '<span class="lp-ev">' + esc(x.slice(0, 8)) + '</span>'; }).join('') + (ev.length > 2 ? '<span class="lp-ev">ほか' + (ev.length - 2) + '</span>' : '') + (dz.length ? '<span class="lp-dl">締切</span>' : '') + '</td>';
+      if ((c + dd) % 7 === 0 && dd < n) h += '</tr><tr>';
+    }
+    return h + '</tr></table>';
+  }
+  function addMonth(ym, k) { var d = new Date(Date.UTC(+ym.slice(0, 4), +ym.slice(5, 7) - 1 + k, 1)); return d.toISOString().slice(0, 7); }
+  return { KEY: KEY, clean: clean, fromMets: fromMets, save: save, load: load, upcoming: upcoming, past: past, daysLeft: daysLeft, jp: jp, jpRange: jpRange, md: md, range: range, leftLabel: leftLabel, deadlineLabel: deadlineLabel, monthHtml: monthHtml, addMonth: addMonth, today: today, esc: esc };
+})();
+if (typeof module !== 'undefined') module.exports = LanePlans;

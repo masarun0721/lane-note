@@ -1173,7 +1173,7 @@ var ResultParser = (function () {
   }
   /* v0.26.28 大会予定をまとめて追加（CSV・貼り付けた表）。見出し：大会名,日付,終了日,会場,区分（終了日・会場・区分は省略可。区分は 中／高）
      → { rows:[{ meet, date, end, venue, div, key, row, err }] }（key＝'日付|大会名'、記録・天気と同じ大会の印） */
-  var PLAN_HEAD = [['meet', /^(大会名|大会|競技会)$/], ['date', /^(日付|開始日|期日|月日|日にち|開催日)$/], ['end', /^(終了日|最終日|終わりの日|日付\(終了\)|まで)$/], ['venue', /^(会場|場所|競技場)$/], ['div', /^(区分|中高|中学高校|学校種別|カテゴリ)$/]];
+  var PLAN_HEAD = [['meet', /^(大会名|大会|競技会)$/], ['date', /^(日付|開始日|期日|月日|日にち|開催日)$/], ['end', /^(終了日|最終日|終わりの日|日付\(終了\)|まで)$/], ['venue', /^(会場|場所|競技場)$/], ['div', /^(区分|中高|中学高校|学校種別|カテゴリ)$/], ['deadline', /^(締切|締め切り|〆切|エントリー締切|申込締切|申込締め切り|エントリー締め切り)$/]];
   function planDiv(v) { var s = nk(String(v || '')).replace(/\s+/g, ''); return !s ? '' : /^(中|中学|中学校|中体連|JH)$/i.test(s) ? '中学' : /^(高|高校|高等学校|高体連|HS)$/i.test(s) ? '高校' : null; }
   function planKey(date, meet) { return date + '|' + nk(String(meet || '')).replace(/\s+/g, ' ').trim(); }
   function parseMeetPlan(text) {
@@ -1188,16 +1188,18 @@ var ResultParser = (function () {
       if (m && !endS) { ds = m[1]; endS = m[2]; }
       var date = parseDateCell(ds), end = '';
       if (endS) { end = parseDateCell(endS); if (!end && date) { var mm = nk(endS).match(/^(?:(\d{1,2})[\/月.-])?(\d{1,2})日?$/); if (mm) end = parseDateCell(date.slice(0, 4) + '/' + (mm[1] || +date.slice(5, 7)) + '/' + mm[2]); } }
-      var div = planDiv(g('div')), err = [];
+      var div = planDiv(g('div')), err = [], dlS = g('deadline'), dl = dlS ? parseDateCell(nk(dlS)) : '';
+      if (dlS && !dl && date) { var dm = nk(dlS).match(/^(\d{1,2})[\/月.-](\d{1,2})日?$/); if (dm) { dl = parseDateCell(date.slice(0, 4) + '/' + dm[1] + '/' + dm[2]); if (dl && dl > date) dl = parseDateCell((+date.slice(0, 4) - 1) + '/' + dm[1] + '/' + dm[2]); } }
       if (!meet) err.push('大会名がありません'); else if (meet.length > 100) err.push('大会名が長すぎます（100字まで）');
       if (!date) err.push('日付が読めません（「' + g('date') + '」）');
       if (endS && !end) err.push('終了日が読めません（「' + endS + '」）'); else if (end && date && end < date) err.push('終了日が日付より前です'); else if (end === date) end = '';
       if (div === null) { err.push('区分は「中」か「高」（空でも可）'); div = ''; }
-      out.push({ meet: meet, date: date, end: end, venue: nk(g('venue')).replace(/\s+/g, ' ').trim().slice(0, 100), div: div, key: date && meet ? planKey(date, meet) : '', row: i + 1, err: err.join('・') });
+      if (dlS && !dl) err.push('締切が読めません（「' + dlS + '」）');
+      out.push({ meet: meet, date: date, end: end, venue: nk(g('venue')).replace(/\s+/g, ' ').trim().slice(0, 100), div: div, deadline: dl, key: date && meet ? planKey(date, meet) : '', row: i + 1, err: err.join('・') });
     }
     return { rows: out, err: out.length ? '' : '大会の行がありません' };
   }
-  var PLAN_TEMPLATE = '大会名,日付,終了日,会場,区分\n東京都高校新人陸上競技大会 支部予選,2026/9/12,2026/9/13,駒沢オリンピック公園陸上競技場,高\n江東区中学校秋季陸上競技大会,2026/10/4,,夢の島競技場,中\n';
+  var PLAN_TEMPLATE = '大会名,日付,終了日,会場,区分,締切\n東京都高校新人陸上競技大会 支部予選,2026/9/12,2026/9/13,駒沢オリンピック公園陸上競技場,高,2026/8/28\n江東区中学校秋季陸上競技大会,2026/10/4,,夢の島競技場,中,\n';
   return { parsePdf: parsePdf, parseCells: parseCells, goldMobileStream: goldMobileStream, parsePlain: parsePlain, textToStream: textToStream, normEvent: normEvent, markValue: markValue, windApplies: windApplies, windClass: windClass, windNum: windNum,
     computeBests: computeBests, baseEvent: baseEvent, learnGenders: learnGenders, isRelay: isRelay, relayEvent: relayEvent, relayTeamBase: relayTeamBase, matchRelayTeam: matchRelayTeam, parseRelayGold: parseRelayGold, parseRelayPdf: parseRelayPdf, mergeRelays: mergeRelays, legsText: legsText, parseLegs: parseLegs, relayRecord: relayRecord, pbLookup: pbLookup, nameKey: nameKey, athleteKey: athleteKey, matchSchool: matchSchool, cleanMark: cleanMark, isTag: isTag, canonSchool: canonSchool, cyuTeam: cyuTeam, recId: recId, recIdLegacy: recIdLegacy, recIdV6: recIdV6, identityKey: identityKey, fullIdentity: fullIdentity, looseIdentity: looseIdentity, manualRecord: manualRecord, sanitizeRecord: sanitizeRecord, validDate: validDate, normManualWind: normManualWind, dedupe: dedupe, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
     guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText,
