@@ -13,7 +13,7 @@ import base64, hashlib, html as htmlmod, json, pathlib, re, sys
 ROOT = pathlib.Path(__file__).resolve().parent
 S = ROOT / 'src'
 SHARE_BASE = 'https://masarun0721.github.io/lane-note/'   # 共有リンク・QRの公開アドレス（file:// で開いたとき用）
-VERSION = 'v0.26.35.1'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
+VERSION = 'v0.26.35.2'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
 # 作成日は版番号から取れないので固定（ビルドした日で変わると、公開時の一致検査ができないため）
 BUILD_DATE = '2026年10月12日'
 REC_VERSION = 'v0.11.1'   # LANE LOG（records.html）だけの版
@@ -226,8 +226,9 @@ NAV_CSS = (
     '.ln-nav.open .pn-sub{display:flex}.ln-nav .pn-sub>*{justify-content:flex-start;min-height:40px;font-size:15px}}'
     # v0.26.34.1 PCでもボタンが入りきらないときは、使うことの少ないものから「≡ メニュー」へ（JSで幅を測る）。利用回数の分は右をあける
     '@media screen and (min-width:721px){.pagenav.ln-nav{flex-wrap:nowrap}.ln-nav.fold .pn-menu{display:inline-flex}'
-    '.ln-nav .pn-more{display:none}.ln-nav.fold.open .pn-more{display:flex;flex-direction:column;align-items:stretch;gap:6px;position:absolute;right:0;top:calc(100% + 6px);z-index:30;min-width:220px;background:rgba(15,22,40,.96);border:1px solid rgba(255,255,255,.35);border-radius:12px;padding:10px}'
+    '.ln-nav .pn-more{display:none}.pagenav.ln-nav.fold.open{z-index:1001}.ln-nav.fold.open .pn-more{display:flex;flex-direction:column;align-items:stretch;gap:6px;position:fixed;z-index:1000;min-width:220px;overflow:auto;background:rgba(15,22,40,.96);border:1px solid rgba(255,255,255,.35);border-radius:12px;padding:10px}'
     '.ln-nav .pn-more>*{justify-content:flex-start;min-height:36px}.ln-nav .pn-more{box-sizing:border-box;max-width:calc(100vw - 16px)}.pagenav.ln-nav.wrap{flex-wrap:wrap}}'
+    # v0.26.35.2 「≡ メニュー」の中身は、見出し（overflow:hidden）の外に出す（position:fixed）。位置は JS がボタンの真下に合わせる
     # v0.26.35 見出しの中のものが横にはみ出して、ページが横にずれることがないように（ボタンは JS で入りきるようにする）
     'header{overflow-x:clip}.pagenav.ln-nav{max-width:100%;min-width:0;box-sizing:border-box}'
     '@media screen and (max-width:720px){.ln-nav .pn-more{display:none!important}}'
@@ -244,13 +245,18 @@ NAV_JS = ('<script>(function () { var n = document.currentScript.parentNode, m =
           '  for (var i = 0; i < ORD.length && over(); i++) { var x = el(ORD[i]); if (x && x.offsetWidth) { more.appendChild(x); n.classList.add("fold"); } }'
           '  if (over()) n.classList.add("wrap");'
           '  var f = [].map.call(more.children, function (x) { return x.dataset.tb || "m"; }).join(); if (f !== lastFold) { lastFold = f; if (n.classList.contains("open")) { n.classList.remove("open"); m.setAttribute("aria-expanded", "false"); } }'
-          '  if (window.scrollX) window.scrollTo(0, window.scrollY); }'
+          '  if (window.scrollX) window.scrollTo(0, window.scrollY); if (window.__lnNavPlace) window.__lnNavPlace(); }'
           ' function over() { var lim = n.getBoundingClientRect().right - (parseFloat(n.style.paddingRight) || 0) + 1; return [].some.call(n.querySelectorAll(".pn-main,.pn-menu,.pn-sub>*"), function (x) { return x.offsetWidth && x.getBoundingClientRect().right > lim; }); }'
           ' window.__lnNavFit = fit; window.addEventListener("resize", fit); window.addEventListener("load", fit); setTimeout(fit, 0); if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);'
           ' if (window.ResizeObserver) new ResizeObserver(function () { clearTimeout(n._ft); n._ft = setTimeout(fit, 50); }).observe(n.parentNode);'
           ' m.addEventListener("click", function () { setTimeout(function () { if (window.scrollX) window.scrollTo(0, window.scrollY); }, 0); });'
           ' var cc = document.querySelector(".hdr-meta>.use-count"); if (cc && window.MutationObserver) new MutationObserver(function () { setTimeout(fit, 0); }).observe(cc, { attributes: true, childList: true, subtree: true });'
-          ' m.addEventListener("click", function (e) { e.stopPropagation(); var o = n.classList.toggle("open"); m.setAttribute("aria-expanded", o); });'
+          ' function place() { if (!n.classList.contains("open") || !n.classList.contains("fold")) return; var r = m.getBoundingClientRect(), vw = document.documentElement.clientWidth, vh = window.innerHeight;'
+          '  more.style.top = Math.round(r.bottom + 6) + "px"; more.style.maxHeight = Math.max(120, vh - r.bottom - 14) + "px"; var w = more.offsetWidth;'
+          '  more.style.left = Math.round(Math.max(8, Math.min(r.left, vw - w - 8))) + "px"; }'
+          ' window.__lnNavPlace = place; window.addEventListener("resize", place); window.addEventListener("scroll", place, { passive: true });'
+          ' window.addEventListener("pageshow", function () { if (n.classList.contains("open")) { n.classList.remove("open"); m.setAttribute("aria-expanded", "false"); } });'
+          ' m.addEventListener("click", function (e) { e.stopPropagation(); var o = n.classList.toggle("open"); m.setAttribute("aria-expanded", o); place(); });'
           ' document.addEventListener("click", function (e) { if (!n.contains(e.target) && n.classList.contains("open")) { n.classList.remove("open"); m.setAttribute("aria-expanded", "false"); } });'
           ' document.addEventListener("keydown", function (e) { if (e.key === "Escape" && n.classList.contains("open")) { n.classList.remove("open"); m.setAttribute("aria-expanded", "false"); m.focus(); } });'
           ' n.querySelector("[data-tb=changelog]").addEventListener("click", function () { var d = document.getElementById("changelog"); n.classList.remove("open"); if (!d) { location.href = "index.html#changelog"; return; } d.open = !d.open; if (d.open) d.scrollIntoView({ block: "start", behavior: "smooth" }); });'
