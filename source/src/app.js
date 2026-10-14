@@ -1955,7 +1955,7 @@
   }
   function prepWhere(o) {
     return !o.uid ? 'この端末にだけ保存します（ログインすると、ほかのPCでも続きを開けます）。<b>大会終了の1か月後に自動で消えます。</b>'
-      : (o.team ? '<b>チーム（顧問・マネージャー）で共有</b>します。' : '<b>あなたのクラウド（自分だけ）</b>にも保存します。') + 'ファイルで入れたPDFは5MBまでクラウドに、URLから読んだ資料はURLだけを保存し、開くときに取り直します。読み取った結果はこの端末にも控えます。<b>大会終了の1か月後に自動で消えます。</b>';
+      : (o.team ? '<b>チーム（顧問・マネージャー）で共有</b>します。' : '<b>あなたのクラウド（自分だけ）</b>にも保存します。') + 'ファイルで入れたPDFは5MBまでクラウドに、URLから読んだ資料はURLだけを保存し、開くときに取り直します。読み取った結果はこの端末にも控えます。<b>大会終了の1か月後に自動で消えます。</b>' + (o.team ? '顧問がURLで読んだ要項は、たずねたうえで「みんなの要項」（ほかの学校の先生も使える）にURLと大会の情報だけを登録します。' : '');
   }
   function prepBar(msg) {
     var bar = $('prepBar'); if (!bar) { bar = document.createElement('div'); bar.id = 'prepBar'; bar.className = 'plan-bar prep-bar'; var pb = $('planBar'), mn = document.querySelector('main'); if (pb) pb.parentNode.insertBefore(bar, pb.nextSibling); else if (mn) mn.insertBefore(bar, mn.firstChild); else return; }
@@ -1967,7 +1967,7 @@
       (has ? ' <button type="button" class="btn sub small" id="prepErase">🗑 保存を消す</button>' : '') + '<br><small class="muted">' + prepWhere(PREP.owner) + '</small>';
     var b = $('prepErase'); if (b) b.onclick = function () { prepErase().catch(function (e) { prepBar('✖ 消せませんでした：' + esc(e.message)); }); };
   }
-  function prepDetach(msg) { PREP = null; clearTimeout(prepTimer); var bar = $('prepBar'); if (bar) { if (msg) { bar.innerHTML = esc(msg); bar.hidden = false; } else bar.remove(); } if (!msg) { var pb = $('planBar'); if (pb) pb.remove(); try { if (/[?&]plan=/.test(location.search)) history.replaceState(null, '', selfPath()); } catch (e) { } } }
+  function prepDetach(msg) { PREP = null; clearTimeout(prepTimer); var pbx = $('pubBox'); if (pbx) pbx.remove(); var bar = $('prepBar'); if (bar) { if (msg) { bar.innerHTML = esc(msg); bar.hidden = false; } else bar.remove(); } if (!msg) { var pb = $('planBar'); if (pb) pb.remove(); try { if (/[?&]plan=/.test(location.search)) history.replaceState(null, '', selfPath()); } catch (e) { } } }
   function prepLocalSave(now) {
     if (!PREP || PREP.quiet || PREP.paused || !prepLive()) return;
     var p = PREP; clearTimeout(prepTimer);
@@ -2019,7 +2019,64 @@
     if (old && old.n) await prepDelChunks(p, kind, cd.n || 0, old.n);
     await prepCloudDoc(p, kind, cd);
     p.docs[kind] = Object.assign(d, cd.here ? { here: 1 } : {}); prepLocalSave(true); prepBar(note);
+    if (kind === 'yoko' && url) await pubMaybe(p, d.url).catch(function (e) { pubMsg('✖ みんなの要項に登録できませんでした：' + esc(e.message)); });
   }
+  /* ===== v0.26.35 みんなの要項（学校をこえて、公開の大会要項のURLを分け合う）=====
+   * 登録：顧問だけ・URLから読んだ要項だけ（ファイルの中身は登録しない）・最初の1回だけ「登録するか」を聞く（先生ごとにやめられる）
+   * 使う：大会予定から開いた大会で、要項がまだないとき。公式のサイトで報告0件なら自動で、それ以外は「この要項を使う」 */
+  function pubApi(p) { return p && p.owner.uid && FB && typeof LanePub !== 'undefined' ? LanePub.make({ F: FB.F, fs: FB.fs, uid: p.owner.uid }) : null; }
+  function pubBox() { var b = $('pubBox'); if (!b) { var bar = $('prepBar'); if (!bar) return null; b = document.createElement('div'); b.id = 'pubBox'; b.className = 'plan-bar pub-box'; bar.parentNode.insertBefore(b, bar.nextSibling); } b.hidden = false; return b; }
+  function pubMsg(h) { var b = pubBox(); if (b) b.innerHTML = h; }
+  var PUB_ASK = 'この大会の要項のURLを「みんなの要項」に登録して、ほかの学校の先生も使えるようにしますか？\n登録するのは、大会名・日付・会場・要項のURL（公開ページ）と読み取った大会の情報（参加料・きまり）だけです。選手の名前やPDFの中身は登録しません。登録は大会終了の1か月後に自動で消えます。\n（聞くのは最初の1回だけです。「キャンセル」なら登録しません。あとで変えられます）';
+  async function pubMaybe(p, url) {
+    var api = pubApi(p); if (!api || !p.owner.team || !prepLive(p)) return;
+    if (p.pubFrom && p.pubFrom.url === url) return;   // みんなの要項から読んだもの
+    if (!LanePub.okUrl(url) || !(await api.isCoach(p.owner.team))) return;
+    var on = await api.pref(); if (!prepLive(p)) return;
+    if (on === null) { on = confirm(PUB_ASK); await api.setPref(on); }
+    if (!on) return;
+    var ms = await api.search(p.p), old = ms.filter(function (e) { return e.score >= 0.85; })[0] || null; if (!prepLive(p)) return;
+    if (old && old.url === url) { pubMsg('📚 この要項は、もう「みんなの要項」にあります。'); return; }
+    if (old && !confirm('「みんなの要項」に、この大会のべつの要項（' + old.host + '）が登録されています。あなたが読んだURLに差し替えますか？')) return;
+    await api.publish(p.p, url, prepInfo(), p.owner.team, old); if (!prepLive(p)) return;
+    pubMsg('📚 「みんなの要項」に' + (old ? '差し替えました' : '登録しました') + '（URLと大会の情報だけ）。 <button type="button" class="btn sub small" data-pubpref="0">これからは登録しない</button>');
+  }
+  async function pubLoad(p, e, auto) {
+    var f, r = await LaneUrl.fetchUrl(e.url, { noRedirect: true }); if (r.kind !== 'pdf') throw new Error('PDFではありませんでした');
+    if (!prepLive(p)) return; f = LaneUrl.toFile(r); p.pubFrom = e; await handleFile('yoko', f);
+    pubShow(p, [e], (auto ? '📚 「みんなの要項」から要項を自動で読み込みました。' : '📚 「みんなの要項」の要項を読み込みました。') + 'ちがう要項なら、ご自分で入れ直してください。');
+  }
+  function pubShow(p, ms, head) {
+    var b = pubBox(); if (!b) return; p.pubList = ms;
+    b.innerHTML = (head ? '<div>' + head + '</div>' : '<div>📚 <b>みんなの要項</b>：ほかの学校の先生が登録した、この大会の要項があります。</div>') + '<ul class="pub-list">' + ms.map(function (e, i) {
+      return '<li><b>' + esc(e.name) + '</b>（' + esc(e.date) + (e.venue ? '・' + esc(e.venue) : '') + '）<br><small class="muted">' + esc(LanePub.srcText(e)) + '</small> ' +
+        '<a href="' + esc(e.url) + '" target="_blank" rel="noopener noreferrer">ページを見る</a> ' +
+        (head ? '' : '<button type="button" class="btn small" data-pubuse="' + i + '">この要項を使う</button> ') +
+        (e.by === p.owner.uid ? '<button type="button" class="btn sub small" data-pubdel="' + i + '">登録を取り消す</button>' : '<button type="button" class="btn sub small" data-pubrep="' + i + '">⚠ 報告</button>') + '</li>';
+    }).join('') + '</ul><small class="muted">報告が' + LanePub.HIDE_AT + '件になると出なくなります。登録は大会終了の1か月後に自動で消えます。</small>';
+  }
+  async function pubSuggest(p) {
+    var api = pubApi(p); if (!api || p.docs.yoko) return;
+    var ms = []; try { ms = await api.search(p.p); } catch (e) { return; } if (!prepLive(p) || p.docs.yoko || !ms.length) return;
+    var a = LanePub.pickAuto(ms);
+    if (a) { try { await pubLoad(p, a, true); return; } catch (e) { if (!prepLive(p)) return; } }
+    pubShow(p, ms);
+  }
+  document.addEventListener('click', function (ev) {
+    var t = ev.target, p = PREP, i; if (!t || !t.dataset || !p) return;
+    var api = pubApi(p), L = p.pubList || [];
+    if ((i = t.dataset.pubuse) != null && L[i]) pubLoad(p, L[i], false).catch(function (e) { pubMsg('✖ 読み込めませんでした：' + esc(e.message)); });
+    else if ((i = t.dataset.pubrep) != null && L[i] && api) {
+      if (!confirm('この登録を報告しますか？（まちがった要項・関係のないページなど）\n報告が' + LanePub.HIDE_AT + '件になると、ほかの先生にも出なくなります。')) return;
+      (async function () {
+        if (!p.owner.team || !(await api.isCoach(p.owner.team))) throw new Error('報告できるのは顧問だけです');
+        var n = await api.report(L[i], p.owner.team); L[i].rep = n; pubMsg('✔ 報告しました（' + n + '件目）。' + (n >= LanePub.HIDE_AT ? 'この登録はもう出ません。' : ''));
+      })().catch(function (e) { pubMsg('✖ 報告できませんでした：' + esc(/permission/.test(e.code || '') ? 'もう報告したか、権限がありません' : e.message)); });
+    } else if ((i = t.dataset.pubdel) != null && L[i] && api) {
+      if (!confirm('「みんなの要項」から、あなたの登録を取り消しますか？')) return;
+      api.remove(L[i]).then(function () { pubMsg('✔ 登録を取り消しました。'); }, function (e) { pubMsg('✖ 取り消せませんでした：' + esc(e.message)); });
+    } else if (t.dataset.pubpref != null && api) api.setPref(t.dataset.pubpref === '1').then(function () { pubMsg(t.dataset.pubpref === '1' ? '✔ これからは「みんなの要項」に登録します。' : '✔ これからは「みんなの要項」に登録しません（すでに登録したものは、そのままです）。'); });
+  });
   async function prepFetchKind(p, kind, d) {
     var file = null;
     if (d.url) {
@@ -2056,6 +2113,7 @@
     }
     p.quiet = false; prepLocalSave(true);
     prepBar(ng.length ? '<span class="warn">⚠ ' + esc(ng.join('／')) + '</span>' : '');
+    await pubSuggest(p);
   }
   async function prepErase() {
     var p = PREP; if (!p || !confirm('「' + p.p.meet + '」の大会準備の保存（この端末' + (p.owner.uid ? '・クラウド' : '') + '）を消します。今の画面の内容はそのままです。よろしいですか？')) return;
@@ -2087,5 +2145,5 @@
     $('teamList').dataset.q = ''; ruleState = {}; renderRuleMarks(); renderFeePrices(); renderDateMark(); updateTeams(); render();
     window.scrollTo(0, 0);
   }
-  window.__meetApp = { handleFile: handleFile, prep: function () { return PREP; }, prepOpen: prepOpen, setFB: function (f) { FB = f; }, pdfName: pdfName, openVenues: openVenues, ssSave: ssSave, ssRestore: ssRestore, ssClear: ssClear, resetAll: resetAll, openPersonal: openPersonal, openPlayers: openPlayers, openPlayer: openPlayer, encodePayload: encodePayload, decodePayload: decodePayload, payloadFromState: payloadFromState, openShare: openShare, refreshPrint: refreshPrint, tableData: tableData, feeData: feeData, totalText: totalText, safeCell: safeCell, state: state, handleFile: handleFile, render: render, updateTeams: updateTeams };
+  window.__meetApp = { handleFile: handleFile, prep: function () { return PREP; }, pubSuggest: pubSuggest, prepOpen: prepOpen, setFB: function (f) { FB = f; }, pdfName: pdfName, openVenues: openVenues, ssSave: ssSave, ssRestore: ssRestore, ssClear: ssClear, resetAll: resetAll, openPersonal: openPersonal, openPlayers: openPlayers, openPlayer: openPlayer, encodePayload: encodePayload, decodePayload: decodePayload, payloadFromState: payloadFromState, openShare: openShare, refreshPrint: refreshPrint, tableData: tableData, feeData: feeData, totalText: totalText, safeCell: safeCell, state: state, handleFile: handleFile, render: render, updateTeams: updateTeams };
 })();

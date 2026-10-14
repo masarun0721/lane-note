@@ -133,6 +133,17 @@ var LaneTeam = (function () {
         if (tr.used) b.update(d('teams', c.team, 'codes', c.secret), { used: F.increment(1) });
         try { await b.commit(); ok(); done = tr; } catch (e) { if (!(e && (e.code === 'permission-denied' || e.code === 'not-found'))) throw e; last = e; }
       }
+      // v0.26.35：このアカウントがもうこのチームにいる（メンバー・承認待ち）／外されているときは、そう伝える（コードのまちがいとまぎらわしいため）
+      if (!done) {
+        var mine = null, ban = false;
+        try { var ms = await srvDoc(d('teams', c.team, 'members', uid)); ok(); mine = ms.exists() ? ms.data() : null; } catch (e) { if (!(e && e.code === 'permission-denied')) throw e; }
+        if (!mine) { try { var bs = await srvDoc(d('teams', c.team, 'banned', uid)); ok(); ban = bs.exists(); } catch (e) { if (!(e && e.code === 'permission-denied')) throw e; } }
+        var RL = { coach: '顧問', manager: 'マネージャー' }, e3 = null;
+        if (mine && mine.role === 'pending') { e3 = new Error('このGoogleアカウントは、このチームに参加を申しこみ済みで、顧問の承認待ちです。承認されるまでお待ちください（同じコードで何度押しても変わりません）。別のアカウントで入りたいときは、ログアウトしてから入り直してください。'); e3.code = 'already-pending'; }
+        else if (mine) { e3 = new Error('このGoogleアカウントは、もうこのチームに' + (RL[mine.role] || 'メンバー') + 'として入っています。チームの画面を開き直してください。役割を変えたいときは、チームの顧問に頼んでください。'); e3.code = 'already-member'; }
+        else if (ban) { e3 = new Error('このGoogleアカウントは、このチームから外されています。もう一度入るには、チームの顧問に「再参加を許可」してもらってください。'); e3.code = 'banned'; }
+        if (e3) throw e3;
+      }
       if (!done) { var e2 = new Error('このコードでは入れませんでした（コードのまちがい・作り直された・期限切れ・使える回数を使い切った・期限の書きかえ などが考えられます）'); e2.code = 'bad-code'; throw e2; }
       if (done.pend) { await F.setDoc(d('users', uid, 'teams', c.team), { name: '', role: 'pending', at: new Date().toISOString() }); ok(); return { team: c.team, role: 'pending', want: c.role, name: '' }; }
       var a = await srvDoc(d('teams', c.team)); ok();

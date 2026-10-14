@@ -93,8 +93,45 @@ var ResultParser = (function () {
     return { d: '', src: '' };
   }
   function jhOnlyEvent(ev) { return /\d+mJH|ジュニアハードル/i.test(nk(ev || '').replace(/\s+/g, '')); }
+  /* v0.26.35 先生が決めた選手の中学／高校（PERSON_OV：personKey→jh/hs）と台帳の区分（ROSTER_DIV：aid→jh/hs）。
+     学校名（〜中・〜高）の次に強い。学年に「中」が入っていても、先生が「高校」と決めた選手は高校にする */
+  var PERSON_OV = {}, ROSTER_DIV = {};
+  function setPersonDivs(m) { PERSON_OV = m || {}; }
+  function setRosterDivs(m) { ROSTER_DIV = m || {}; }
   function divisionOf(r) {
-    var s = divSource(r); return s.d || (r && r.id && DIV_HINTS[r.id]) || '';
+    var s = divSource(r); if (s.src === 'team') return s.d;
+    var ov = r && (PERSON_OV[personKey(r)] || (r.aid && ROSTER_DIV[r.aid])); if (ov === 'jh' || ov === 'hs') return ov;
+    var h = r && r.id && DIV_HINTS[r.id];
+    if (h && (s.src === 'meet' || s.src === 'event' || !s.d)) return h;
+    return s.d || '';
+  }
+  /* v0.26.35 中学になっているが、高校のしるしがある選手（要確認）。しるし：同じ選手の高校の記録（学校名・学年の「高」）、その大会の区分（高校）、台帳の区分（高校）
+     返す：[{ key, name, team, recs:[{ r, to }], why:[...] }]。to＝直したあとの学年（数字だけ。高校の記録の学年から数える。数えられなければ今の数字） */
+  function divConflicts(recs) {
+    var by = {}; (recs || []).forEach(function (r) { (by[personKey(r)] = by[personKey(r)] || []).push(r); });
+    var out = [];
+    Object.keys(by).forEach(function (k) {
+      if (PERSON_OV[k]) return;   // 先生が決めた選手は出さない
+      var rs = by[k], jh = rs.filter(function (r) { return divisionOf(r) === 'jh' && divSource(r).src !== 'team'; }); if (!jh.length) return;
+      var why = [], hs = rs.filter(function (r) { var s = divSource(r); return s.d === 'hs' && (s.src === 'team' || s.src === 'grade'); });
+      // 高校に入る前（中学のとき）の記録は本当に中学なので出さない：高校の記録の学年から入学の年度を数える
+      var start = hs.map(function (x) { var u = seasonOf(x.date), g = gradeNum(x.grade); return u == null ? null : u - (g ? g - 1 : 0); }).filter(function (x) { return x != null; });
+      if (start.length) { var st0 = Math.min.apply(null, start); jh = jh.filter(function (r) { var u = seasonOf(r.date), md0 = r.date && r.meet && MEET_DIV[r.date + '|' + r.meet] === 'hs'; return md0 || u == null || u >= st0; }); }
+      if (!jh.length) return;
+      if (hs.length) why.push('同じ選手の高校の記録（' + hs[0].date + ' ' + (hs[0].team || '') + (hs[0].grade ? '・' + hs[0].grade : '') + ' ほか' + hs.length + '件）');
+      var md = jh.filter(function (r) { return r.date && r.meet && MEET_DIV[r.date + '|' + r.meet] === 'hs'; });
+      if (md.length) why.push('大会予定の区分が「高校」（' + md[0].date + ' ' + md[0].meet + '）');
+      var ro = rs.filter(function (r) { return r.aid && ROSTER_DIV[r.aid] === 'hs'; });
+      if (ro.length) why.push('選手の台帳で高校');
+      if (!why.length) return;
+      var ref = hs.map(function (x) { return { s: seasonOf(x.date), g: gradeNum(x.grade) }; }).filter(function (x) { return x.s != null && x.g != null; });
+      out.push({ key: k, name: jh[0].name, team: jh[0].team, why: why, recs: jh.map(function (r) {
+        var u = seasonOf(r.date), g = gradeNum(r.grade), to = g != null ? String(g) : '';
+        if (ref.length && u != null) { var n = ref.sort(function (a, b) { return Math.abs(u - a.s) - Math.abs(u - b.s); })[0], c = n.g + (u - n.s); if (c >= 1 && c <= 3) to = String(c); }
+        return { r: r, to: to };
+      }) });
+    });
+    return out;
   }
   // 画面に出す「なぜ中学／高校か」
   function divisionWhy(r) { var s = divSource(r); if (s.d) return { grade: '学年', team: '学校名', meet: '大会予定の区分', event: '種目名' }[s.src]; return r && r.id && DIV_HINTS[r.id] ? '同じ選手のほかの記録から推測' : ''; }
@@ -774,7 +811,7 @@ var ResultParser = (function () {
     overrides = overrides || {};
     var known = {}, unknown = {};
     recs.forEach(function (r) {
-      var k = personKey(r), d = divSource(r).d;
+      var k = personKey(r), ds = divSource(r), d = ds.src === 'grade' || ds.src === 'team' ? ds.d : '';   // v0.26.35 大会の区分・種目名からの区分より、同じ選手のほかの記録を先に
       if (d) (known[k] = known[k] || []).push(r); else (unknown[k] = unknown[k] || []).push(r);
     });
     var hints = {}, review = [];
@@ -804,7 +841,8 @@ var ResultParser = (function () {
         });
         if (undecided.length) { us = undecided; reason = '中3から高1に上がる時期（4月）をまたぐので、どちらか決められません'; }
       }
-      if (reason) { var f = us[0]; review.push({ person: k, name: f.name || f.kana, kana: f.kana || '', team: f.team, ids: us.map(function (r) { return r.id; }), dates: us.map(function (r) { return r.date; }).sort(), reason: reason }); }
+      if (reason) us = us.filter(function (r) { return !divSource(r).d; });   // 大会の区分・種目名で決まる記録は「わからない」に出さない
+      if (reason && us.length) { var f = us[0]; review.push({ person: k, name: f.name || f.kana, kana: f.kana || '', team: f.team, ids: us.map(function (r) { return r.id; }), dates: us.map(function (r) { return r.date; }).sort(), reason: reason }); }
     });
     return { hints: hints, review: review };
   }
@@ -1358,7 +1396,7 @@ var ResultParser = (function () {
     computeBests: computeBests, baseEvent: baseEvent, learnGenders: learnGenders, isRelay: isRelay, relayEvent: relayEvent, relayTeamBase: relayTeamBase, matchRelayTeam: matchRelayTeam, parseRelayGold: parseRelayGold, parseRelayPdf: parseRelayPdf, mergeRelays: mergeRelays, legsText: legsText, parseLegs: parseLegs, relayRecord: relayRecord, pbLookup: pbLookup, nameKey: nameKey, athleteKey: athleteKey, matchSchool: matchSchool, cleanMark: cleanMark, isTag: isTag, canonSchool: canonSchool, cyuTeam: cyuTeam, recId: recId, recIdLegacy: recIdLegacy, recIdV6: recIdV6, identityKey: identityKey, fullIdentity: fullIdentity, looseIdentity: looseIdentity, manualRecord: manualRecord, sanitizeRecord: sanitizeRecord, validDate: validDate, normManualWind: normManualWind, dedupe: dedupe, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
     guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText,
     eventCat: eventCat, divisionOf: divisionOf, divLabel: divLabel, eventKey: eventKey, eventKeyLabel: eventKeyLabel, shownWind: shownWind, hasMark: hasMark, sortAthletes: sortAthletes, kanaKey: kanaKey,
-    setGenderDefault: setGenderDefault, setDivisionHints: setDivisionHints, setMeetDivs: setMeetDivs, divSource: divSource, divisionWhy: divisionWhy, splitTeamGrade: splitTeamGrade, gradeFromEvent: gradeFromEvent, fixRecord: fixRecord, jhOnlyEvent: jhOnlyEvent, rawDivisionOf: rawDivisionOf, genderOf: genderOf, divGroup: divGroup, disciplineOrder: disciplineOrder, groupEvents: groupEvents, gendersIn: gendersIn, GROUPS: GROUPS,
+    setGenderDefault: setGenderDefault, setDivisionHints: setDivisionHints, setMeetDivs: setMeetDivs, divSource: divSource, divisionWhy: divisionWhy, splitTeamGrade: splitTeamGrade, setPersonDivs: setPersonDivs, setRosterDivs: setRosterDivs, divConflicts: divConflicts, gradeFromEvent: gradeFromEvent, fixRecord: fixRecord, jhOnlyEvent: jhOnlyEvent, rawDivisionOf: rawDivisionOf, genderOf: genderOf, divGroup: divGroup, disciplineOrder: disciplineOrder, groupEvents: groupEvents, gendersIn: gendersIn, GROUPS: GROUPS,
     personKey: personKey, inferDivisions: inferDivisions, mapHeaders: mapHeaders, findHeaderRow: findHeaderRow, parseDateCell: parseDateCell, normImportMark: normImportMark, dupCheck: dupCheck, parseMeetPlan: parseMeetPlan, parseIcs: parseIcs, icsBytesToText: icsBytesToText, guessDiv: guessDiv, meetClass: meetClass, splitVenue: splitVenue, meetNorm: meetNorm, planKey: planKey, PLAN_TEMPLATE: PLAN_TEMPLATE, sheetEvent: sheetEvent, sheetBlocks: sheetBlocks, importBlock: importBlock, importWorkbook: importWorkbook, importRows: importRows, splitTable: splitTable, isTable: isTable, FIELD_LABELS: FIELD_LABELS, isFieldEvent: isFieldEvent };
 })();
 if (typeof module !== 'undefined') module.exports = ResultParser;

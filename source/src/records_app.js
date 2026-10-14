@@ -574,7 +574,7 @@
     await reload(sc);
   }
   function meetDivs() { var o = {}; Object.keys(METS).forEach(function (k) { var d = METS[k] && METS[k].div; if (d === '中学' || d === '高校') o[k] = d === '中学' ? 'jh' : 'hs'; }); return o; }   // v0.26.34 大会予定の区分
-  function applyInference() { R.setMeetDivs(meetDivs()); var inf = R.inferDivisions(ALL, DIV_OV); R.setDivisionHints(inf.hints); REVIEW = inf.review; R.learnGenders(ALL); }
+  function applyInference() { R.setMeetDivs(meetDivs()); R.setPersonDivs(DIV_OV); var rd = {}; ROSTER.forEach(function (e) { if (e.aid && (e.div === 'jh' || e.div === 'hs')) rd[e.aid] = e.div; }); R.setRosterDivs(rd); var inf = R.inferDivisions(ALL, DIV_OV); R.setDivisionHints(inf.hints); REVIEW = inf.review; R.learnGenders(ALL); }
   var WEATHERS = [['晴', '☀️'], ['晴時々曇', '🌤'], ['曇', '⛅'], ['小雨', '🌦'], ['雨', '🌧'], ['雪', '❄'], ['強風', '🌬']];
   function wIcon(w) { for (var i = 0; i < WEATHERS.length; i++) if (WEATHERS[i][0] === w) return WEATHERS[i][1]; return ''; }
   function weatherText(key) { var m = METS[key]; if (!m) return ''; var t = []; if (m.weather) t.push(wIcon(m.weather) + ' ' + m.weather); if (m.temp != null) t.push(m.temp + '℃'); if (m.humidity != null) t.push('湿度' + m.humidity + '%'); return t.join(' '); }
@@ -1806,11 +1806,21 @@
   function renderReview() {
     var s = school(), mine = $('rbMine').checked, box = $('rbReview');
     var list = REVIEW.filter(function (x) { return !(mine && s) || R.matchSchool(x.team, s); });
-    var chosen = Object.keys(DIV_OV).filter(function (k) { return ALL.some(function (r) { return R.personKey(r) === k && !R.rawDivisionOf(r); }); });
+    var chosen = Object.keys(DIV_OV).filter(function (k) { return ALL.some(function (r) { return R.personKey(r) === k; }); });
     var dups = ALL.filter(function (r) { return r.dupOf; });
     var dupHtml = dups.length ? '<details class="card review" open><summary><span class="rv">要確認</span> <b>前の記録と同じかもしれない記録 ' + dups.length + '件</b></summary><p class="small muted">前に保存した記録にナンバーが無いなどで、同じ記録か別の選手か決められなかったので、消さずに入れました。</p><ul class="rvlist">' +
       dups.map(function (r) { var o = ALL.filter(function (x) { return x.id === r.dupOf; })[0]; return '<li><div><b>' + esc(r.name) + '</b> ' + esc(r.event) + ' <b>' + esc(r.mark) + '</b>' + (r.bib ? '（No.' + esc(r.bib) + '）' : '') + '<br><small class="muted">' + esc(r.date + ' ' + r.meet) + (o ? '／前の記録：' + esc(o.name + ' ' + o.mark) + (o.bib ? '（No.' + esc(o.bib) + '）' : '（ナンバーなし）') : '') + '</small></div><span class="rvbtn"><button type="button" class="btn sub" data-dupkeep="' + esc(r.id) + '">別の記録（両方残す）</button><button type="button" class="btn sub danger-t" data-dupdrop="' + esc(r.id) + '">同じ記録（こちらを消す）</button></span></li>'; }).join('') + '</ul></details>' : '';
     // v0.26.34 所属に学年・番号がくっついた記録（「本郷・3」）を直す
+    // v0.26.35 中学になっているが高校のしるしがある選手（高校生が「中3年」と出る）。先生が確かめて直す
+    var dcs = R.divConflicts(ALL); DCS = dcs;
+    if (dcs.length) {
+      dupHtml = '<details class="card review" open id="dcFix"><summary><span class="rv">要確認</span> <b>中学になっているが、高校かもしれない選手 ' + dcs.length + '人</b></summary><p class="small muted">学年に「中」が入っている・大会の区分などで中学になっている記録ですが、ほかに高校のしるしがあります。確かめて選んでください。「高校にする」と、この選手は高校になり、その記録の学年の「中」を外します（学年の数字は高校の記録から数えます）。</p><ul class="rvlist">' +
+        dcs.map(function (c, i) { return '<li><div><b>' + esc(c.name) + '</b> <small class="muted">' + esc(c.team) + '</small><br><small>' + c.recs.map(function (x) { return esc(x.r.date + ' ' + x.r.event + ' ' + x.r.mark + '（学年 ' + (x.r.grade || '空') + ' → 高' + (x.to || '?') + '）'); }).join('<br>') + '</small><br><small class="muted">高校のしるし：' + esc(c.why.join('／')) + '</small></div><span class="rvbtn"><button type="button" class="btn" data-dcfix="' + i + '">高校にする</button><button type="button" class="btn sub" data-divpick="jh" data-person="' + esc(c.key) + '">中学のまま</button></span></li>'; }).join('') + '</ul></details>' + dupHtml;
+    }
+    // v0.26.35 選手の中学／高校を手で決める
+    var pk = {}; ALL.forEach(function (r) { var k = R.personKey(r); if (!pk[k]) pk[k] = r.name + '（' + (r.team || '') + '）'; });
+    var pks = Object.keys(pk).sort(function (a, b) { return pk[a] < pk[b] ? -1 : 1; });
+    if (pks.length) dupHtml += '<details class="card review small" id="ovHand"><summary><b>選手の中学／高校を手で決める</b></summary><p class="small muted">ランキング・自己ベストで、その選手の記録を中学か高校のどちらに入れるかを決めます（学校名に「中」「高」があるときはそちらが先）。</p><select id="ovSel">' + pks.map(function (k) { return '<option value="' + esc(k) + '">' + esc(pk[k]) + (DIV_OV[k] ? '：' + R.divLabel(DIV_OV[k]) : '') + '</option>'; }).join('') + '</select> <button type="button" class="btn sub" data-ovset="jh">中学</button><button type="button" class="btn sub" data-ovset="hs">高校</button><button type="button" class="btn sub" data-ovset="">決めない</button></details>';
     // v0.26.34.1「・3」は支部の番号：学年にしない。学年は種目名（「3支部1年 100m」の「1年」）から。v0.26.34 の「直す」で入った学年のまちがいも直す
     var tgs = ALL.map(function (r) { return { r: r, x: R.fixRecord(r) }; }).filter(function (o) { return o.x.changed; });
     if (tgs.length) {
@@ -1831,7 +1841,22 @@
     if (x.event !== r.event) a.push('種目 ' + r.event + ' → ' + x.event);
     return a.join('／');
   }
+  var DCS = [];
   $('rbReview').addEventListener('click', async function (e) {
+    var ovb = e.target.closest('[data-ovset]');
+    if (ovb) { var sel = $('ovSel'); if (!sel || !sel.value) return; var d0 = ovb.getAttribute('data-ovset'); if (d0) DIV_OV[sel.value] = d0; else delete DIV_OV[sel.value];
+      try { await saveOverrides(scope()); } catch (x) { status('rbDataStatus', '✖ クラウドに保存できませんでした（この端末には覚えました）：' + esc(x.message), 'ng'); }
+      applyInference(); render(); status('rbDataStatus', '✔ ' + esc(sel.options[sel.selectedIndex].text.split('：')[0]) + ' を' + (d0 ? R.divLabel(d0) : '「決めない」') + 'にしました。', 'ok'); return; }
+    var dcb = e.target.closest('[data-dcfix]');
+    if (dcb) {
+      var c = DCS[+dcb.getAttribute('data-dcfix')]; if (!c) return; var sc1 = scope();
+      var fx1 = c.recs.filter(function (x) { return /^中/.test(String(x.r.grade || '')) || (x.to && String(x.r.grade || '') !== x.to); }).map(function (x) { var o = Object.assign({}, x.r); o.grade = x.to || String(o.grade || '').replace(/^中/, ''); return o; });
+      DIV_OV[c.key] = 'hs';
+      try { if (fx1.length) { await relinkRecs(fx1, sc1); check(sc1); } await saveOverrides(sc1); } catch (x) { if (!isAbort(x)) status('rbDataStatus', '✖ 直せませんでした：' + esc(x.message), 'ng'); return; }
+      await reload(sc1);
+      status('rbDataStatus', '✔ ' + esc(c.name) + ' を高校にしました' + (fx1.length ? '（学年を直した記録 ' + fx1.length + '件：' + fx1.map(function (o) { return esc(o.date + ' 高' + o.grade); }).join('、') + '）' : '') + '。', 'ok');
+      return;
+    }
     if (e.target.closest('[data-tgfix]')) {
       var sc0 = scope(), fx = ALL.map(function (r) { var x = R.fixRecord(r); if (!x.changed) return null; var o = Object.assign({}, r); o.team = x.team; o.grade = x.grade; o.event = x.event; return { o: o, k: tgDesc(r, x) }; }).filter(Boolean);
       if (!fx.length) return;
