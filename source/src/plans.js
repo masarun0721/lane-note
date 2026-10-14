@@ -11,6 +11,7 @@ var LanePlans = (function () {
     if (p.venue) o.venue = String(p.venue).slice(0, 100);
     if (p.div === '中学' || p.div === '高校') o.div = p.div;
     if (isDay(p.deadline)) o.deadline = p.deadline;
+    if (isDay(p.payDue)) o.payDue = p.payDue;   // v0.26.31 振込締切（カレンダーに出す）
     return o;
   }
   function sort(list) { return list.slice().sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : a.meet < b.meet ? -1 : 1; }); }
@@ -51,22 +52,33 @@ var LanePlans = (function () {
   }
   // 1か月のカレンダー（ym='2026-10'）。大会の日（複数日はその間すべて）と締切の日に印
   function monthHtml(list, ym, td) {
-    td = td || today(); var y = +ym.slice(0, 4), m = +ym.slice(5, 7), first = new Date(Date.UTC(y, m - 1, 1)), n = new Date(Date.UTC(y, m, 0)).getUTCDate(), on = {}, dl = {};
+    td = td || today(); var y = +ym.slice(0, 4), m = +ym.slice(5, 7), first = new Date(Date.UTC(y, m - 1, 1)), n = new Date(Date.UTC(y, m, 0)).getUTCDate(), on = {}, dl = {}, pd = {};
     (list || []).forEach(function (p) {
       for (var d = p.date; d <= (p.end || p.date); d = new Date(Date.parse(d + 'T00:00:00Z') + 864e5).toISOString().slice(0, 10)) (on[d] = on[d] || []).push(p.meet);
       if (p.deadline) (dl[p.deadline] = dl[p.deadline] || []).push(p.meet);
+      if (p.payDue) (pd[p.payDue] = pd[p.payDue] || []).push(p.meet);
     });
     var h = '<table class="lp-cal" aria-label="' + y + '年' + m + '月"><tr>' + WD.map(function (w, i) { return '<th' + (i === 0 ? ' class="sun"' : i === 6 ? ' class="sat"' : '') + '>' + w + '</th>'; }).join('') + '</tr><tr>';
     var c = first.getUTCDay(); for (var i = 0; i < c; i++) h += '<td></td>';
     for (var dd = 1; dd <= n; dd++) {
-      var day = ym + '-' + (dd < 10 ? '0' : '') + dd, ev = on[day] || [], dz = dl[day] || [];
-      h += '<td class="' + (day === td ? 'today ' : '') + (ev.length ? 'meet ' : '') + (dz.length ? 'dl' : '') + '"' + (ev.length || dz.length ? ' title="' + esc(ev.concat(dz.map(function (x) { return '締切：' + x; })).join('\n')) + '"' : '') + '><b>' + dd + '</b>' +
-        ev.slice(0, 2).map(function (x) { return '<span class="lp-ev">' + esc(x.slice(0, 8)) + '</span>'; }).join('') + (ev.length > 2 ? '<span class="lp-ev">ほか' + (ev.length - 2) + '</span>' : '') + (dz.length ? '<span class="lp-dl">締切</span>' : '') + '</td>';
+      var day = ym + '-' + (dd < 10 ? '0' : '') + dd, ev = on[day] || [], dz = dl[day] || [], pz = pd[day] || [];
+      h += '<td class="' + (day === td ? 'today ' : '') + (ev.length ? 'meet ' : '') + (dz.length || pz.length ? 'dl' : '') + '"' + (ev.length || dz.length || pz.length ? ' title="' + esc(ev.concat(dz.map(function (x) { return '締切：' + x; }), pz.map(function (x) { return '振込締切：' + x; })).join('\n')) + '"' : '') + '><b>' + dd + '</b>' +
+        ev.slice(0, 2).map(function (x) { return '<span class="lp-ev">' + esc(x.slice(0, 8)) + '</span>'; }).join('') + (ev.length > 2 ? '<span class="lp-ev">ほか' + (ev.length - 2) + '</span>' : '') + (dz.length ? '<span class="lp-dl">締切</span>' : '') + (pz.length ? '<span class="lp-dl lp-pd">振込</span>' : '') + '</td>';
       if ((c + dd) % 7 === 0 && dd < n) h += '</tr><tr>';
     }
     return h + '</tr></table>';
   }
+  /* v0.26.31 大会ごとの進み具合（m＝大会の印。n＝この大会の記録の件数） */
+  function stage(m, td, n) {
+    td = td || today(); m = m || {}; var dl, ended = (m.end || m.date) < td;
+    if (n > 0 || m.importedAt) return { k: 'done', t: '結果取込済' + (n > 0 ? '（' + n + '件）' : ''), c: 'ok' };
+    if (ended) return { k: 'nores', t: '終了・結果未取込', c: 'warn' };
+    if (m.date <= td) return { k: 'now', t: '開催中', c: 'now' };
+    if (!m.entryAt) { dl = isDay(m.deadline) ? daysLeft(m.deadline, td) : null; return { k: 'noentry', t: dl != null && dl < 0 ? '未エントリー（締切過ぎ）' : '未エントリー', c: dl != null && dl <= 7 ? 'ng' : 'todo' }; }
+    if (!m.payAt) { dl = isDay(m.payDue) ? daysLeft(m.payDue, td) : null; return { k: 'nopay', t: 'エントリー済・未振込', c: dl != null && dl <= 7 ? 'ng' : 'todo' }; }
+    return { k: 'ready', t: '準備OK', c: 'ok' };
+  }
   function addMonth(ym, k) { var d = new Date(Date.UTC(+ym.slice(0, 4), +ym.slice(5, 7) - 1 + k, 1)); return d.toISOString().slice(0, 7); }
-  return { KEY: KEY, toSc: toSc, fromSc: fromSc, scHtml: scHtml, clean: clean, fromMets: fromMets, save: save, load: load, upcoming: upcoming, past: past, daysLeft: daysLeft, jp: jp, jpRange: jpRange, md: md, range: range, leftLabel: leftLabel, deadlineLabel: deadlineLabel, monthHtml: monthHtml, addMonth: addMonth, today: today, esc: esc };
+  return { stage: stage, isDay: isDay, KEY: KEY, toSc: toSc, fromSc: fromSc, scHtml: scHtml, clean: clean, fromMets: fromMets, save: save, load: load, upcoming: upcoming, past: past, daysLeft: daysLeft, jp: jp, jpRange: jpRange, md: md, range: range, leftLabel: leftLabel, deadlineLabel: deadlineLabel, monthHtml: monthHtml, addMonth: addMonth, today: today, esc: esc };
 })();
 if (typeof module !== 'undefined') module.exports = LanePlans;

@@ -212,6 +212,8 @@
 
   /* ---------- v0.5：大会ごとの天気（users/{uid}/meets/{大会}）・中学/高校を手で選んだ選手（users/{uid}/settings/divOverrides） ---------- */
   var METS = {}, DIV_OV = {}, REVIEW = [];
+  // v0.26.31 大会予定の欄：会場・終了日・区分・締切＋進み具合（エントリー済・振込済の日、振込締切、金額、メモ、結果のURL、結果取込済）
+  var PF = ['venue', 'end', 'div', 'plan', 'deadline', 'entryAt', 'payAt', 'payDue', 'fee', 'memo', 'resultUrl', 'importedAt', 'importedN'], EF = PF.filter(function (k) { return k !== 'plan'; });
   function lsGet(k, d) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
   function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } }
   function metsKey(uid) { return uid ? 'lanenote-rec-meets-' + uid : 'lanenote-rec-meets'; }
@@ -234,7 +236,7 @@
     need(sc);
     var p = key.split('|'), o = { key: key, date: p[0], meet: p.slice(1).join('|'), weather: w.weather || '', temp: w.temp === '' || w.temp == null || isNaN(+w.temp) ? null : +w.temp, humidity: w.humidity === '' || w.humidity == null || isNaN(+w.humidity) ? null : +w.humidity, updatedAt: new Date().toISOString() };
     // v0.26.28：大会予定（会場・終了日・区分）は、天気を直しても残す
-    var prev = METS[key] || {}; ['venue', 'end', 'div', 'plan', 'deadline'].forEach(function (k) { var v = w[k] != null ? w[k] : prev[k]; if (v != null && v !== '') o[k] = v; });
+    var prev = METS[key] || {}; PF.forEach(function (k) { var v = w[k] != null ? w[k] : prev[k]; if (v != null && v !== '') o[k] = v; });
     METS[key] = o;
     if (sc.team) { await FB.F.setDoc(FB.F.doc(FB.fs, 'teams', sc.team.id, 'meets', docId(key)), o); check(sc); return; }
     if (!noCache(sc)) lsSet(metsKey(sc.uid), METS);
@@ -283,11 +285,18 @@
       var k = keyOf(p), n = P.daysLeft(p.date, td);
       if (e && LP.edit === k) return '<li class="lp-edit" data-lpk="' + esc(k) + '"><div class="mgrid">' +
         '<label>大会名 <input data-lpf="meet" maxlength="100" value="' + esc(p.meet) + '"></label><label>日付 <input type="date" data-lpf="date" value="' + esc(p.date) + '"></label><label>終了日（2日以上） <input type="date" data-lpf="end" value="' + esc(p.end || '') + '"></label>' +
-        '<label>会場 <input data-lpf="venue" maxlength="100" value="' + esc(p.venue || '') + '"></label><label>区分 <select data-lpf="div"><option value="">（なし）</option><option' + (p.div === '中学' ? ' selected' : '') + '>中学</option><option' + (p.div === '高校' ? ' selected' : '') + '>高校</option></select></label><label>エントリー締切 <input type="date" data-lpf="deadline" value="' + esc(p.deadline || '') + '"></label></div>' +
+        '<label>会場 <input data-lpf="venue" maxlength="100" value="' + esc(p.venue || '') + '"></label><label>区分 <select data-lpf="div"><option value="">（なし）</option><option' + (p.div === '中学' ? ' selected' : '') + '>中学</option><option' + (p.div === '高校' ? ' selected' : '') + '>高校</option></select></label><label>エントリー締切 <input type="date" data-lpf="deadline" value="' + esc(p.deadline || '') + '"></label>' +
+        '<label>エントリーした日 <input type="date" data-lpf="entryAt" value="' + esc(e.entryAt || '') + '"></label><label>振込締切 <input type="date" data-lpf="payDue" value="' + esc(e.payDue || '') + '"></label><label>振り込んだ日 <input type="date" data-lpf="payAt" value="' + esc(e.payAt || '') + '"></label>' +
+        '<label>金額（任意） <input data-lpf="fee" maxlength="30" value="' + esc(e.fee || '') + '" placeholder="例：12,000円"></label><label>メモ（任意） <input data-lpf="memo" maxlength="300" value="' + esc(e.memo || '') + '"></label><label>速報・結果のURL <input type="url" data-lpf="resultUrl" maxlength="1000" value="' + esc(e.resultUrl || '') + '" placeholder="https://"></label></div>' +
         '<div class="rb-row"><button class="btn" type="button" data-lpsave="1">保存</button><button class="btn sub" type="button" data-lpcancel="1">やめる</button></div><div class="status" id="lpStatus"></div></li>';
-      return '<li data-lpk="' + esc(k) + '"><span class="lp-left' + (n <= 7 ? ' soon' : '') + '">' + esc(P.leftLabel(p, td)) + '</span> <b>' + esc(P.range(p)) + '</b> ' + esc(p.meet) + (p.div ? ' <small class="lp-div">' + esc(p.div) + '</small>' : '') + (p.venue ? '<br><small class="muted">📍 ' + esc(p.venue) + '</small>' : '') +
-        (p.deadline ? '<br><small class="' + (P.daysLeft(p.deadline, td) <= 7 && P.daysLeft(p.deadline, td) >= 0 ? 'ng' : 'muted') + '">⏰ ' + esc(P.deadlineLabel(p, td)) + '</small>' : '') +
-        ' <span class="lp-acts"><button class="btn sub small" type="button" data-lpedit="' + esc(k) + '">✏️ 直す</button><button class="btn sub small danger-t" type="button" data-lpdel="' + esc(k) + '">🗑 消す</button></span></li>';
+      var M = METS[k] || {}, sg = P.stage(M, td, recCount(p)), ck = function (f, t) { return '<label class="lp-ck"><input type="checkbox" data-lpck="' + f + '"' + (M[f] ? ' checked' : '') + '> ' + t + (M[f] ? ' <small class="muted">' + esc(P.md(M[f])) + '</small>' : '') + '</label>'; };
+      return '<li data-lpk="' + esc(k) + '"><span class="lp-st st-' + sg.c + '" data-stage="' + sg.k + '">' + esc(sg.t) + '</span> <span class="lp-left' + (n <= 7 ? ' soon' : '') + '">' + esc(P.leftLabel(p, td)) + '</span> <b>' + esc(P.range(p)) + '</b> ' + esc(p.meet) + (p.div ? ' <small class="lp-div">' + esc(p.div) + '</small>' : '') + (p.venue ? '<br><small class="muted">📍 ' + esc(p.venue) + '</small>' : '') +
+        (p.deadline ? '<br><small class="' + (P.daysLeft(p.deadline, td) <= 7 && P.daysLeft(p.deadline, td) >= 0 && !M.entryAt ? 'ng' : 'muted') + '">⏰ ' + esc(P.deadlineLabel(p, td)) + '</small>' : '') +
+        (p.payDue ? '<br><small class="' + (P.daysLeft(p.payDue, td) <= 7 && P.daysLeft(p.payDue, td) >= 0 && !M.payAt ? 'ng' : 'muted') + '">💴 振込締切 ' + esc(P.md(p.payDue)) + (P.daysLeft(p.payDue, td) >= 0 ? '（あと' + P.daysLeft(p.payDue, td) + '日）' : '（過ぎました）') + '</small>' : '') +
+        (M.fee || M.memo ? '<br><small class="muted">' + (M.fee ? '💰 ' + esc(M.fee) : '') + (M.fee && M.memo ? '　' : '') + (M.memo ? '📝 ' + esc(M.memo) : '') + '</small>' : '') +
+        (M.resultUrl ? '<br><small>🔗 <a href="' + esc(M.resultUrl) + '" target="_blank" rel="noopener noreferrer">速報・結果のページ</a></small>' : '') +
+        '<div class="lp-cks">' + ck('entryAt', 'エントリー済') + ck('payAt', '振込済') + '</div>' +
+        ' <span class="lp-acts">' + (p.date <= td ? '<a class="btn small lp-imp" href="records.html?imp=' + encodeURIComponent(k) + '">📥 結果を取り込む</a>' : '') + '<a class="btn sub small" href="index.html?plan=' + encodeURIComponent(k) + '">📋 大会準備へ</a><button class="btn sub small" type="button" data-lpedit="' + esc(k) + '">✏️ 直す</button><button class="btn sub small danger-t" type="button" data-lpdel="' + esc(k) + '">🗑 消す</button></span></li>';
     };
     var y = +LP.ym.slice(0, 4), m = +LP.ym.slice(5, 7);
     box.innerHTML = '<h2>📅 今後の大会 <small class="muted">' + (up.length ? up.length + '件' : '') + '</small></h2>' +
@@ -295,6 +304,14 @@
       (all.length ? '<div class="lp-calbox"><div class="rb-row lp-nav"><button class="btn sub small" type="button" data-lpm="-1" aria-label="前の月">◀</button><b>' + y + '年' + m + '月</b><button class="btn sub small" type="button" data-lpm="1" aria-label="次の月">▶</button></div>' + P.monthHtml(all, LP.ym, td) + '</div>' : '') +
       (P.past(all, td).length ? '<details class="small"><summary>終わった予定 ' + P.past(all, td).length + '件</summary><ul class="lp-list">' + P.past(all, td).slice(0, 60).map(row).join('') + '</ul></details>' : '');
     box.hidden = false;
+  }
+  // v0.26.31 この大会の記録の件数（同じ名前・開催期間の日付）
+  function recCount(p) { var nm = planNorm(p.meet), n = 0; ALL.forEach(function (r) { if (r.date >= p.date && r.date <= (p.end || p.date) && planNorm(r.meet) === nm) n++; }); return n; }
+  // v0.26.31 大会の印の一部だけ変える（空は消す）
+  async function planPatch(key, patch, sc) {
+    sc = sc || scope(); var m = METS[key]; if (!m) return false;
+    var o = Object.assign({}, m); Object.keys(patch).forEach(function (k) { if (patch[k] === '' || patch[k] == null) delete o[k]; else o[k] = patch[k]; });
+    o.updatedAt = new Date().toISOString(); await writeMeetDoc(key, o, sc); return true;
   }
   async function writeMeetDoc(key, o, sc) {
     need(sc);
@@ -306,7 +323,7 @@
   async function planDelete(key) {
     var m = METS[key], sc = scope(); if (!m) return;
     var keep = m.weather || m.temp != null || m.humidity != null || ALL.some(function (r) { return r.date + '|' + r.meet === key; });
-    if (keep) { var o = {}; Object.keys(m).forEach(function (k) { if (['venue', 'end', 'div', 'plan', 'deadline'].indexOf(k) < 0) o[k] = m[k]; }); o.updatedAt = new Date().toISOString(); await writeMeetDoc(key, o, sc); }
+    if (keep) { var o = {}; Object.keys(m).forEach(function (k) { if (PF.indexOf(k) < 0) o[k] = m[k]; }); o.updatedAt = new Date().toISOString(); await writeMeetDoc(key, o, sc); }
     else await writeMeetDoc(key, null, sc);
   }
   async function planEditSave(li) {
@@ -315,15 +332,16 @@
     var err = [];
     if (!v.meet) err.push('大会名を入れてください'); if (!/^\d{4}-\d{2}-\d{2}$/.test(v.date)) err.push('日付を入れてください');
     if (v.end && v.end < v.date) err.push('終了日が日付より前です');
+    if (v.resultUrl && !/^https?:\/\/\S+$/i.test(v.resultUrl)) err.push('結果のURLは http(s):// で始まるアドレスにしてください');
     var key = R.planKey(v.date, v.meet);
     if (!err.length && key !== old && METS[key] && METS[key].plan) err.push('同じ日・同じ名前の大会がもうあります');
     if (err.length) { st.className = 'status ng'; st.textContent = '✖ ' + err.join('・'); return; }
-    var m = METS[old] || {}, w = { weather: m.weather || '', temp: m.temp == null ? '' : m.temp, humidity: m.humidity == null ? '' : m.humidity, venue: v.venue.slice(0, 100), end: v.end && v.end !== v.date ? v.end : '', div: v.div, deadline: v.deadline, plan: true };
+    var m = METS[old] || {}, w = { weather: m.weather || '', temp: m.temp == null ? '' : m.temp, humidity: m.humidity == null ? '' : m.humidity, venue: v.venue.slice(0, 100), end: v.end && v.end !== v.date ? v.end : '', div: v.div, deadline: v.deadline, entryAt: v.entryAt, payAt: v.payAt, payDue: v.payDue, fee: v.fee.slice(0, 30), memo: v.memo.slice(0, 300), resultUrl: v.resultUrl.slice(0, 1000), importedAt: m.importedAt || '', importedN: m.importedN || '', plan: true };
     try {
       if (key !== old) await planDelete(old);
-      var prev = METS[key]; if (prev) { ['venue', 'end', 'div', 'deadline'].forEach(function (k) { delete prev[k]; }); }
+      var prev = METS[key]; if (prev) { EF.forEach(function (k) { delete prev[k]; }); }
       await saveMeet(key, w, sc);
-      ['venue', 'end', 'div', 'deadline'].forEach(function (k) { if (!w[k]) delete METS[key][k]; });
+      EF.forEach(function (k) { if (w[k] == null || w[k] === '') delete METS[key][k]; });
       await writeMeetDoc(key, METS[key], sc);
     } catch (x) { if (isAbort(x)) return; st.className = 'status ng'; st.textContent = '✖ 保存できませんでした：' + x.message; return; }
     LP.edit = ''; planList(); fillDatalists();
@@ -1051,6 +1069,7 @@
     var bx = $('rbTeam'); if (bx) { bx.innerHTML = ''; bx.hidden = true; }
   }
   async function onAuth(u) {
+    AUTH_SEEN = true;
     if (!u) mgrHint(null);   // v0.26.23：ログアウトしたら「マネージャーの記録へ」も出さない
     resetTeamState();
     var prev = USER ? USER.uid : null;
@@ -1069,7 +1088,7 @@
   async function initCloud() {
     renderAuth(); renderJoin();
     if (!CLOUD_READY) return;
-    try { await loadFirebase(); } catch (e) { status('rbAuthStatus', '✖ ログインの部品を読み込めませんでした（' + esc(e.message) + '）。この端末だけに保存します。', 'ng'); reload(); return; }
+    try { await loadFirebase(); } catch (e) { AUTH_SEEN = true; status('rbAuthStatus', '✖ ログインの部品を読み込めませんでした（' + esc(e.message) + '）。この端末だけに保存します。', 'ng'); reload(); return; }
     loadFlags();
     FB.A.onAuthStateChanged(FB.auth, onAuth);
   }
@@ -1391,6 +1410,12 @@
     if (id === 'rpKw') PLAN.f.kw = e.target.value.trim(); else if (id === 'rpFrom') PLAN.f.from = e.target.value; else if (id === 'rpTo') PLAN.f.to = e.target.value; else return;
     planRender();
   });
+  $('lpHome').addEventListener('change', async function (e) {
+    var f = e.target.getAttribute('data-lpck'), li = e.target.closest('[data-lpk]'); if (!f || !li) return;
+    var pt = {}; pt[f] = e.target.checked ? LanePlans.today() : '';
+    try { await planPatch(li.getAttribute('data-lpk'), pt); } catch (x) { if (isAbort(x)) return; alert('保存できませんでした：' + x.message); }
+    planList();
+  });
   $('lpHome').addEventListener('click', async function (e) {
     var t = e.target, k;
     if (t.hasAttribute('data-lpm')) { LP.ym = LanePlans.addMonth(LP.ym, +t.getAttribute('data-lpm')); planList(); }
@@ -1430,7 +1455,38 @@
     return meta;
   }
   // 取り込みのプレビューは、読み込みを始めたときのアカウントにだけ出す（b.sc に固定。保存もこの scope で行う）
-  function addBatchIn(b, sc) { need(sc); b.sc = sc; b.id = ++seq; batches.unshift(b); renderBatches(); }
+  function addBatchIn(b, sc) { need(sc); impMeta(b); b.sc = sc; b.id = ++seq; batches.unshift(b); renderBatches(); }
+  /* v0.26.31 大会予定の「📥 結果を取り込む」から来たとき：大会名・日付を入れておき、保存したら「結果取込済」にする */
+  var IMP = (function () {
+    if (document.body.classList.contains('sched-page') || document.body.classList.contains('team-page')) return null;
+    var m = /[?&]imp=([^&#]+)/.exec(location.search); if (!m) return null;
+    try { var k = decodeURIComponent(m[1]), p = k.split('|'), nm = p.slice(1).join('|').trim().slice(0, 100); return /^\d{4}-\d{2}-\d{2}$/.test(p[0]) && nm ? { key: p[0] + '|' + nm, date: p[0], meet: nm } : null; } catch (e) { return null; }
+  })(), AUTH_SEEN = false;
+  function impMeta(b) {
+    if (!IMP || !IMP.kicked) return;
+    b.meta = b.meta || {}; b.meta.name = IMP.meet; b.meta.date = IMP.date; b.meta.typedName = b.meta.typedDate = true; delete b.meta.guessed;
+    if (b.xl && b.xl.def) { b.xl.def.meet = IMP.meet; b.xl.def.date = IMP.date; }
+  }
+  function impBar(h) {
+    var el = $('impBar'); if (!el) { el = document.createElement('div'); el.id = 'impBar'; el.className = 'imp-bar'; var bx = document.querySelector('main .box'); if (!bx) return; bx.insertBefore(el, bx.firstChild); }
+    el.innerHTML = h;
+  }
+  function impKick() {
+    if (!IMP || IMP.kicked || (CLOUD_READY && !AUTH_SEEN)) return;
+    IMP.kicked = true;
+    var m = METS[IMP.key] || {}, u = /^https?:\/\/\S+$/i.test(m.resultUrl || '') ? m.resultUrl : '';
+    impBar('📥 <b>' + esc(IMP.meet) + '</b>（' + esc(IMP.date) + '）の結果を取り込みます。大会名と日付は入れてあります。' + (u ? '登録した速報・結果のURLを読み込んでいます。' : '下の「結果の資料」から、PDF・Excel・WebページのURLを入れてください。') + ' <a href="schedule.html">大会予定へ戻る</a>');
+    if (u && urlUi) { urlUi.offer(u, 'res'); try { urlUi.go(); } catch (e) { } }
+    else { var d = $('rbUrlLoad') || $('rbFile'); if (d && d.scrollIntoView) d.scrollIntoView({ block: 'center' }); }
+  }
+  async function impDone(b, sc) {
+    if (!IMP || !IMP.kicked) return;
+    var hit = b.xl ? ALL.some(function (r) { return (b.addedIds || []).indexOf(r.id) >= 0 && planNorm(r.date + '|' + r.meet) === planNorm(IMP.key); }) : planNorm(b.meta.date + '|' + b.meta.name) === planNorm(IMP.key);
+    if (!hit) return;
+    var k = Object.keys(METS).filter(function (x) { return planNorm(x) === planNorm(IMP.key) && METS[x].plan; })[0], n = recCount({ date: IMP.date, meet: IMP.meet, end: k && METS[k].end });
+    if (k && n) { try { await planPatch(k, { importedAt: new Date().toISOString(), importedN: n }, sc); } catch (e) { if (isAbort(e)) return; } }
+    impBar('✔ <b>' + esc(IMP.meet) + '</b> の結果を取り込みました（' + n + '件）。' + (k ? '大会予定は「結果取込済」になりました。' : '') + ' <a href="schedule.html">📅 大会予定へ戻る</a>');
+  }
   function batchRecs(b) {
     if (!b.all) return [];
     var q = school();
@@ -1570,7 +1626,7 @@
       var done = $('rbDone'); done.className = 'status ok rb-done';
       done.innerHTML = '✔ <b>' + esc(b.meta.name) + ' 完了（' + res.added + '件保存）</b>' + (res.dup ? '<br><small>' + res.dup + '件はすでに保存済みなので重ねませんでした</small>' : '') + (res.bad ? '<br><small class="ng">' + res.bad + '件は形が正しくない（長すぎるなど）ため保存しませんでした</small>' : '') +
         (res.review ? '<br><small class="ng">⚠ ' + res.review + '件は、前に保存した記録（ナンバーなし）と同じかもしれません。下の「要確認」で確かめてください。</small>' : '') + '<br><small>続けて次の大会の資料を入れられます。</small>' + (b.addedIds.length ? ' <button class="btn sub" type="button" data-undo="' + b.id + '">今の分を取り消す（' + b.addedIds.length + '件）</button>' : '');
-      await reload(sc);
+      await reload(sc); await impDone(b, sc);
     } catch (err) { if (isAbort(err)) return; st.className = 'status ng'; st.textContent = '✖ 保存できませんでした：' + err.message; }
   }
   function hasW(m) { return !!(m.weather || (m.temp !== undefined && m.temp !== '') || (m.humidity !== undefined && m.humidity !== '')); }
@@ -1589,7 +1645,7 @@
       DONE.push(b); batches = batches.filter(function (x) { return x !== b; }); renderBatches();
       var done = $('rbDone'); done.className = 'status ok rb-done';
       done.innerHTML = '✔ <b>' + esc(b.src) + ' 完了（' + res.added + '件保存・' + Object.keys(keys).length + '大会）</b>' + (res.dup ? '<br><small>' + res.dup + '件はすでに保存済みなので重ねませんでした</small>' : '') + (res.bad ? '<br><small class="ng">' + res.bad + '件は形が正しくない（長すぎるなど）ため保存しませんでした</small>' : '') + (b.xl.res.bad.length ? '<br><small>日付などが足りない ' + b.xl.res.bad.length + '行は入れていません</small>' : '') + (res.review ? '<br><small class="ng">⚠ ' + res.review + '件は前に保存した記録と同じかもしれません（下の「要確認」）</small>' : '') + (b.addedIds.length ? ' <button class="btn sub" type="button" data-undo="' + b.id + '">今の分を取り消す（' + b.addedIds.length + '件）</button>' : '');
-      await reload(sc);
+      await reload(sc); await impDone(b, sc);
     } catch (err) { if (isAbort(err)) return; st.className = 'status ng'; st.textContent = '✖ 保存できませんでした：' + err.message; }
   }
   $('rbBatches').addEventListener('click', onBatchClick); $('rbDone').addEventListener('click', onBatchClick);
@@ -1758,6 +1814,7 @@
     if (sc.epoch !== authEpoch) return;
     ALL = list; METS = side.mets; DIV_OV = side.ov; MODE = md; ROSTER = ros; applyModeUi();
     applyInference(); render(); if (CLOUD_READY) renderAuth();
+    impKick();
   }
   function filtered() {
     var q = R.nk($('rbQ').value).replace(/\s/g, ''), s = school(), mine = $('rbMine').checked;

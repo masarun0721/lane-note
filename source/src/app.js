@@ -1390,6 +1390,11 @@
   }
   /* v0.26.29 大会予定から選ぶ：記録のページで登録した大会（この端末に写したもの＋ログインしていれば自分のクラウド）→ 大会名・日付・会場 */
   var PLANS = [], PICKED = null;
+  // v0.26.31 大会予定の「📋 大会準備へ」（index.html?plan=日付|大会名）：その大会を選んだ状態で開く
+  var PEND_PICK = (function () {
+    var m = /[?&]plan=([^&#]+)/.exec(location.search); if (!m) return null;
+    try { var k = decodeURIComponent(m[1]), p = k.split('|'), nm = p.slice(1).join('|').trim().slice(0, 100); return /^\d{4}-\d{2}-\d{2}$/.test(p[0]) && nm ? { date: p[0], meet: nm } : null; } catch (e) { return null; }
+  })();
   function planPickFill() {
     var sel = $('planPick'); if (!sel || typeof LanePlans === 'undefined') return;
     var P = LanePlans, seen = {}, list = [];
@@ -1398,6 +1403,14 @@
     var up = P.upcoming(list), past = P.past(list).slice(0, 30), o = function (p) { return '<option value="' + P.esc(p.date + '|' + p.meet) + '">' + P.esc(P.range(p) + ' ' + p.meet + (p.venue ? '（' + p.venue + '）' : '') + (up.indexOf(p) >= 0 ? '・' + P.leftLabel(p) : '')) + '</option>'; };
     sel.innerHTML = '<option value="">📅 大会予定から選ぶ（' + up.length + '件）</option>' + (up.length ? '<optgroup label="これからの大会">' + up.map(o).join('') + '</optgroup>' : '') + (past.length ? '<optgroup label="終わった大会">' + past.map(o).join('') + '</optgroup>' : '');
     sel.hidden = !list.length;
+    if (PEND_PICK) {
+      var pp = PEND_PICK, pk = pp.date + '|' + pp.meet; PEND_PICK = null;
+      if (!PLANS.some(function (x) { return x.date + '|' + x.meet === pk; })) PLANS.push(P.clean(pp));
+      planPickApply(pk);
+      var bar = document.createElement('div'); bar.className = 'plan-bar'; bar.id = 'planBar';
+      bar.innerHTML = '📋 <b>' + P.esc(pp.meet) + '</b>・' + P.esc(P.range(PLANS.filter(function (x) { return x.date + '|' + x.meet === pk; })[0] || pp)) + ' の大会準備です。大会名・日付は入れてあります。スタートリスト・タイムテーブルのPDFを入れてください。 <a href="schedule.html">📅 大会予定へ戻る</a>';
+      var mn = document.querySelector('main'); if (mn) mn.insertBefore(bar, mn.firstChild);
+    }
   }
   async function planPickCloud() {
     var sc = authScope(); if (!sc.uid || !FB || !FB.F.getDocs) return;
