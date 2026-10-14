@@ -199,14 +199,14 @@
       check(sc);
     }
   }
-  async function cloudDel(ids, sc) {
+  async function cloudDel(ids, sc, prog) {
     need(sc); var c = colFor(sc.uid);
     for (var i = 0; i < ids.length; i += 400) {
       check(sc);
       var b = FB.F.writeBatch(FB.fs);
       ids.slice(i, i + 400).forEach(function (id) { b.delete(FB.F.doc(c, docId(id))); });
       await b.commit();
-      check(sc);
+      check(sc); if (prog) prog(Math.min(i + 400, ids.length), ids.length);
     }
   }
 
@@ -661,14 +661,25 @@
     }
     if (!noCache(sc)) await ltx('readwrite', function (s) { if (oldId !== rec.id) s.delete(oldId); s.put(rec); }, sc.dbName, sc);
   }
-  async function clearAll(sc) {
-    need(sc);
-    if (sc.team) throw new Error('チームの記録は、まとめて全部は消せません（大会ごとに消すか、1件ずつ消してください。消したものは変更履歴から戻せます）');
+  // v0.26.35.1：全部消す。prog(済み, 全部) で進み具合を出す。チームは削除の印を8件ずつ（変更履歴から戻せる）、個人のクラウドは400件ずつ。
+  // 終わったらサーバーから読み直し、残りがあればエラーにする（「消えたように見えて、読み直すと戻る」を出さない）
+  async function clearAll(sc, prog) {
+    need(sc); prog = prog || function () { };
+    if (sc.team) {
+      var r = await LT(sc).delAll(sc.team.id, sc.team.role, function (d, n) { check(sc); prog(d, n); }); check(sc);
+      if (r.left) throw new Error('チームの記録が ' + r.left + '件残っています（' + r.total + '件中）。通信を確かめて、もう一度押してください');
+      return r;
+    }
+    var total = 0;
     if (sc.uid) {
       var ids = []; (await serverDocs(colFor(sc.uid))).forEach(function (d) { var x = d.data(); ids.push(x && x.id != null ? String(x.id) : d.id); }); check(sc);
-      await cloudDel(ids, sc);
+      total = ids.length; prog(0, total);
+      await cloudDel(ids, sc, prog);
+      var left = (await serverDocs(colFor(sc.uid))).size; check(sc);
+      if (left) throw new Error('クラウドに記録が ' + left + '件残っています。もう一度押してください');
     }
     await ltx('readwrite', function (s) { s.clear(); }, sc.dbName, sc);
+    return { total: total };
   }
   // v0.14（監査F07）：クラウドに置いたものを全部消す（記録・天気・中学/高校の選択）
   async function clearCloudSide(sc) {
@@ -2311,18 +2322,37 @@
       await reload(sc);
     } catch (e) { if (isAbort(e) || sc.epoch !== authEpoch) return; status('rbDataStatus', '✖ 読み込めませんでした：' + esc(e.message), 'ng'); }
   });
+  // v0.26.35.1：押したら、ボタンを止めて「消しています N/全部」を出す。失敗は理由と、何件消せたかを出す
+  function clearErr(e) {
+    if (isPerm(e)) return '権限がありません（チームから外された・ログインが切れたなど）。ログインし直してください';
+    if (e && e.code === 'unavailable') return '通信できませんでした。ネットにつながっているか確かめてください';
+    return e && e.message || String(e);
+  }
+  async function runClear(btn, sc, fn, okMsg) {
+    var el = $('rbDataStatus'), last = [0, 0];
+    btn.disabled = true; status('rbDataStatus', '⏳ 消しています…', '');
+    try { el.scrollIntoView({ block: 'nearest' }); } catch (e) { }
+    try {
+      await fn(function (d, n) { last = [d, n]; status('rbDataStatus', '⏳ 消しています… ' + d + ' / ' + n + '件', ''); });
+    } catch (e) {
+      btn.disabled = false; if (isAbort(e) || sc.epoch !== authEpoch) return;
+      status('rbDataStatus', '✖ 消せませんでした：' + esc(clearErr(e)) + (last[1] ? '<br>（' + last[1] + '件中 ' + last[0] + '件まで進みました。もう一度押すと、残りを消します）' : ''), 'ng');
+      try { await reload(sc); } catch (e2) { } return;
+    }
+    btn.disabled = false;
+    status('rbDataStatus', okMsg, 'ok'); await reload(sc);
+  }
   $('rbClear').addEventListener('click', async function () {
     if (!ALL.length) { status('rbDataStatus', '消す記録はありません。', ''); return; }
-    var sc = scope();
-    if (!confirm('' + (USER ? 'クラウドに保存した' : 'このブラウザに保存した') + '記録 ' + ALL.length + '件をすべて消します。元に戻せません。\n（必要なら先に「ファイルに書き出す」をしてください）\n\n本当に消しますか？')) return;
-    try { await clearAll(sc); } catch (e) { if (isAbort(e)) return; status('rbDataStatus', '✖ 消せませんでした：' + esc(e.message), 'ng'); return; }
-    status('rbDataStatus', '✔ 記録をすべて消しました。', 'ok'); await reload(sc);
+    var sc = scope(), btn = this;
+    if (sc.team && sc.team.role !== 'coach') { status('rbDataStatus', '✖ チームの記録を全部消せるのは顧問だけです。', 'ng'); return; }
+    if (!confirm('' + (sc.team ? 'チーム「' + ((TEAM && TEAM.name) || '') + '」の' : USER ? 'クラウドに保存した' : 'このブラウザに保存した') + '記録 ' + ALL.length + '件をすべて消します。' + (sc.team ? '\n（チームのメンバー全員の画面から消えます。変更履歴から1件ずつ戻せます）' : '元に戻せません。') + '\n（必要なら先に「ファイルに書き出す」をしてください）\n\n本当に消しますか？')) return;
+    await runClear(btn, sc, function (p) { return clearAll(sc, p); }, '✔ 記録をすべて消しました。' + (sc.team ? '（変更履歴から戻せます）' : ''));
   });
   $('rbClearCloud').addEventListener('click', async function () {
     if (!USER) return; var sc = scope();
     if (!confirm((USER.email || 'このアカウント') + ' のクラウドに保存した記録・大会の天気・中学/高校の選択を、すべて消します。元に戻せません。\n（短いリンクは大会準備のページから止めてください）\n\n本当に消しますか？')) return;
-    try { await clearAll(sc); await clearCloudSide(sc); } catch (e) { if (isAbort(e)) return; status('rbDataStatus', '✖ 消せませんでした：' + esc(e.message), 'ng'); return; }
-    status('rbDataStatus', '✔ クラウドのデータをすべて消しました。', 'ok'); await reload(sc);
+    await runClear(this, sc, async function (p) { await clearAll(sc, p); await clearCloudSide(sc); }, '✔ クラウドのデータをすべて消しました。');
   });
   $('rbWipeDevice').addEventListener('click', async function () {
     if (!confirm('このブラウザに残っている LANE NOTE の記録（ログインしていないときの記録' + (USER ? '・ログイン中の控え' : '') + '）と、天気・中学/高校の選択を消します。' + (USER ? 'クラウドの記録は消えません。' : '元に戻せません。') + '\n\nよろしいですか？')) return;

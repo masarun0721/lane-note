@@ -217,6 +217,7 @@ var LaneTeam = (function () {
           n++;
         }
         if (n) { await commit(b); res.written += n; }
+        if (opt.progress) opt.progress(Math.min(i + BATCH, items.length), items.length);
       }
       return res;
     }
@@ -230,6 +231,17 @@ var LaneTeam = (function () {
     // v0.26.2（R261-03）：形が正しくない記録を、読んだ文書のIDで削除の印にする（中の id は信じない）
     async function repair(t, role, docIds) { return write(t, role, docIds.map(function (x) { return { rid: x, data: null, act: 'del', repair: true }; })); }
     async function del(t, role, ids) { return write(t, role, ids.map(function (id) { return { rid: id, data: null, act: 'del' }; })); }
+    // v0.26.35.1：チームの記録を全部消す（削除の印をつける。変更履歴から戻せる）。8件ずつ書き、progress(済み, 全部) を呼ぶ。
+    // 最後にサーバーから読み直して、残っている数を返す（{ total, written, skipped, left }）
+    async function delAll(t, role, progress) {
+      ok(); var s = await srvDocs(col('teams', t, 'records')); ok(); var items = [];
+      s.forEach(function (x) { var v = x.data(); if (v && v._del) return; items.push({ rid: x.id, data: null, act: 'del', repair: !shape(v, true) }); });
+      var total = items.length; if (progress) progress(0, total);
+      var r = total ? await write(t, role, items, { progress: progress }) : { written: 0, skipped: 0 };
+      ok(); var after = await srvDocs(col('teams', t, 'records')); ok(); var left = 0;
+      after.forEach(function (x) { var v = x.data(); if (!v || !v._del) left++; });
+      return { total: total, written: r.written, skipped: r.skipped, left: left };
+    }
     async function confirm(t, ids) { return write(t, 'coach', ids.map(function (id) { return { rid: id, data: 'keep', act: 'confirm' }; })); }
     async function history(t, n) {
       ok(); var s = await srvDocs(F.query(col('teams', t, 'hist'), F.orderBy('at', 'desc'), F.limit(n || 50))); ok(); var out = [];
@@ -244,7 +256,7 @@ var LaneTeam = (function () {
       catch (e) { if (e && e.code === 'bad-record') { var e2 = new Error('この変更は、元の内容の形が正しくないため、そのままでは戻せません（元の内容は変更履歴に残っています）'); e2.code = 'bad-record'; throw e2; } throw e; }
     }
     return { myTeams: myTeams, info: info, createTeam: createTeam, codes: codes, regen: regen, join: join, members: members, setRole: setRole, remove: remove, leave: leave, forget: forget, transfer: transfer, rename: rename,
-      banned: banned, unban: unban, approve: approve, reject: reject, myStatus: myStatus, repair: repair, getRecords: getRecords, put: put, edit: edit, del: del, confirm: confirm, history: history, revert: revert, write: write };
+      banned: banned, unban: unban, approve: approve, reject: reject, myStatus: myStatus, repair: repair, getRecords: getRecords, put: put, edit: edit, del: del, delAll: delAll, confirm: confirm, history: history, revert: revert, write: write };
   }
   return { make: make, shape: shape, validRec: validRec, parseCode: parseCode, ymd: ymd, snapEnd: snapEnd, codeStr: codeStr, schoolYearEnd: schoolYearEnd, strip: strip, newSecret: newSecret, META: META };
 })();
