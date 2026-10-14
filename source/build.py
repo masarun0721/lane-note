@@ -13,7 +13,7 @@ import base64, hashlib, html as htmlmod, json, pathlib, re, sys
 ROOT = pathlib.Path(__file__).resolve().parent
 S = ROOT / 'src'
 SHARE_BASE = 'https://masarun0721.github.io/lane-note/'   # 共有リンク・QRの公開アドレス（file:// で開いたとき用）
-VERSION = 'v0.26.35.2'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
+VERSION = 'v0.26.36'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
 # 作成日は版番号から取れないので固定（ビルドした日で変わると、公開時の一致検査ができないため）
 BUILD_DATE = '2026年10月12日'
 REC_VERSION = 'v0.11.1'   # LANE LOG（records.html）だけの版
@@ -216,62 +216,53 @@ NAV_CSS = (
     '.ln-nav a.on,.ln-nav .tb-btn.on{background:#fff!important;color:#1f3a68!important;border-color:#fff!important;font-weight:800}'
     '.ln-nav .tb-btn.mode-sw small{font-size:11px;opacity:.8;margin-left:4px}'
     '.ln-nav .cl-new{background:#e4572e;color:#fff;border-radius:999px;font-size:10px;padding:0 6px;font-weight:800}'
-    '.ln-nav .pn-sub{display:contents}.ln-nav .pn-menu{display:none}'
+    # v0.26.36 見出しは どの幅でも「記録・大会準備・照合・大会予定・≡ メニュー」だけ。ほかは全部メニューの中（JS で幅を測るのは、スマホで5つが入りきらないときだけ）
+    '.pagenav.ln-nav{flex-wrap:nowrap;max-width:100%;min-width:0;box-sizing:border-box}header{overflow-x:clip}'
+    '.ln-nav .pn-sub{display:none}.ln-nav.open .pn-sub{display:flex;flex-direction:column;align-items:stretch;gap:6px;position:fixed;z-index:1000;min-width:230px;max-width:calc(100vw - 16px);box-sizing:border-box;overflow:auto;background:rgba(15,22,40,.96);border:1px solid rgba(255,255,255,.35);border-radius:12px;padding:10px}'
+    '.pagenav.ln-nav.open{z-index:1001}.ln-nav .pn-sub>*{justify-content:flex-start;min-height:40px;font-size:14px}'
+    '.ln-nav .pn-menu .cl-new{margin-left:2px}body.ln-player .ln-nav .pn-menu .cl-new{display:none}'
     'body.ln-player .ln-nav .pn-main,body.ln-player .ln-nav .tb-team,body.ln-player .ln-nav .tb-sched,body.ln-player .ln-nav [data-tb="changelog"]{display:none!important}'
     '#lnTopbar{max-width:1100px;margin:8px auto 0;padding:0 10px}#lnTopbar .changelog:not([open]){display:none}'
     '#lnTopbar .changelog summary{display:none}#lnTopbar .changelog{background:#fff;border:1px solid #c9d2e0;border-radius:10px;padding:8px 12px;margin:0}'
-    '@media screen and (max-width:720px){'
-    '.pagenav.ln-nav{gap:6px}.ln-nav .pn-main,.ln-nav .pn-menu{padding:3px 9px;font-size:13px}.ln-nav .pn-menu{display:inline-flex}'
-    '.ln-nav .pn-sub{display:none;flex-basis:100%;flex-direction:column;align-items:stretch;gap:6px;box-sizing:border-box;max-width:100%;background:rgba(15,22,40,.92);border:1px solid rgba(255,255,255,.35);border-radius:12px;padding:10px}'
-    '.ln-nav.open .pn-sub{display:flex}.ln-nav .pn-sub>*{justify-content:flex-start;min-height:40px;font-size:15px}}'
-    # v0.26.34.1 PCでもボタンが入りきらないときは、使うことの少ないものから「≡ メニュー」へ（JSで幅を測る）。利用回数の分は右をあける
-    '@media screen and (min-width:721px){.pagenav.ln-nav{flex-wrap:nowrap}.ln-nav.fold .pn-menu{display:inline-flex}'
-    '.ln-nav .pn-more{display:none}.pagenav.ln-nav.fold.open{z-index:1001}.ln-nav.fold.open .pn-more{display:flex;flex-direction:column;align-items:stretch;gap:6px;position:fixed;z-index:1000;min-width:220px;overflow:auto;background:rgba(15,22,40,.96);border:1px solid rgba(255,255,255,.35);border-radius:12px;padding:10px}'
-    '.ln-nav .pn-more>*{justify-content:flex-start;min-height:36px}.ln-nav .pn-more{box-sizing:border-box;max-width:calc(100vw - 16px)}.pagenav.ln-nav.wrap{flex-wrap:wrap}}'
-    # v0.26.35.2 「≡ メニュー」の中身は、見出し（overflow:hidden）の外に出す（position:fixed）。位置は JS がボタンの真下に合わせる
-    # v0.26.35 見出しの中のものが横にはみ出して、ページが横にずれることがないように（ボタンは JS で入りきるようにする）
-    'header{overflow-x:clip}.pagenav.ln-nav{max-width:100%;min-width:0;box-sizing:border-box}'
-    '@media screen and (max-width:720px){.ln-nav .pn-more{display:none!important}}'
+    '@media screen and (max-width:720px){.pagenav.ln-nav{gap:6px}.ln-nav .pn-main,.ln-nav .pn-menu{padding:3px 9px;font-size:13px}}'
     '@media print{.ln-nav{display:none!important}}'
     '</style>')
-NAV_JS = ('<script>(function () { var n = document.currentScript.parentNode, m = n.querySelector(".pn-menu");'
-          ' var sub = n.querySelector(".pn-sub"), more = document.createElement("div"); more.className = "pn-more"; more.id = "lnNavMore"; n.insertBefore(more, sub);'
-          ' var orig = [].slice.call(sub.children), ORD = ["guide", "try", "manual", "changelog", "team", "feedback", ".mode-sw", "schedule"];'
-          ' function el(k) { return k.charAt(0) === "." ? sub.querySelector(k) || more.querySelector(k) : n.querySelector("[data-tb=" + k + "]:not(.pn-main)"); }'
-          ' var lastFold = ""; function fit() { orig.forEach(function (x) { sub.appendChild(x); }); n.classList.remove("fold", "wrap"); n.style.paddingRight = "";'
+NAV_JS = ('<script>(function () { var n = document.currentScript.parentNode, m = n.querySelector(".pn-menu"), sub = n.querySelector(".pn-sub");'
+          # v0.26.36 入りきらないとき（スマホ）だけ、大会予定→照合→大会準備→記録の順にメニューの上へ移す。≡ メニューは必ず見える
+          ' var mains = [].slice.call(n.querySelectorAll(".pn-main")), first = sub.firstChild;'
+          ' function vis(x) { return x.offsetWidth > 0; } function close() { if (n.classList.contains("open")) { n.classList.remove("open"); m.setAttribute("aria-expanded", "false"); } }'
+          ' function over() { var lim = n.getBoundingClientRect().right - (parseFloat(n.style.paddingRight) || 0) + 1; return m.getBoundingClientRect().right > lim; }'
+          ' var lastFold = ""; function fit() { mains.forEach(function (x) { n.insertBefore(x, m); x.classList.remove("pn-in"); }); n.style.paddingRight = ""; n.style.marginTop = "";'
           '  var c = document.querySelector(".hdr-meta>.use-count"), nr = n.getBoundingClientRect();'
-          '  if (c && !c.hidden && c.offsetWidth) { var cr = c.getBoundingClientRect(); if (cr.bottom > nr.top - 2 && cr.top < nr.top + 34 && cr.left < nr.right) n.style.paddingRight = Math.ceil(nr.right - cr.left + 8) + "px"; }'
-          '  if (window.matchMedia && window.matchMedia("(max-width:720px)").matches) return;'
-          '  for (var i = 0; i < ORD.length && over(); i++) { var x = el(ORD[i]); if (x && x.offsetWidth) { more.appendChild(x); n.classList.add("fold"); } }'
-          '  if (over()) n.classList.add("wrap");'
-          '  var f = [].map.call(more.children, function (x) { return x.dataset.tb || "m"; }).join(); if (f !== lastFold) { lastFold = f; if (n.classList.contains("open")) { n.classList.remove("open"); m.setAttribute("aria-expanded", "false"); } }'
-          '  if (window.scrollX) window.scrollTo(0, window.scrollY); if (window.__lnNavPlace) window.__lnNavPlace(); }'
-          ' function over() { var lim = n.getBoundingClientRect().right - (parseFloat(n.style.paddingRight) || 0) + 1; return [].some.call(n.querySelectorAll(".pn-main,.pn-menu,.pn-sub>*"), function (x) { return x.offsetWidth && x.getBoundingClientRect().right > lim; }); }'
-          ' window.__lnNavFit = fit; window.addEventListener("resize", fit); window.addEventListener("load", fit); setTimeout(fit, 0); if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);'
+          '  if (c && !c.hidden && c.offsetWidth) { var cr = c.getBoundingClientRect(); if (cr.bottom > nr.top - 2 && cr.top < nr.top + 34 && cr.left < nr.right) { n.style.paddingRight = Math.ceil(nr.right - cr.left + 8) + "px"; if (over()) { n.style.paddingRight = ""; n.style.marginTop = Math.ceil(cr.bottom - nr.top + 16) + "px"; } } }'
+          '  for (var i = mains.length - 1; i >= 0 && over(); i--) { if (vis(mains[i])) { sub.insertBefore(mains[i], sub.firstChild); mains[i].classList.add("pn-in"); } }'
+          '  var f = mains.filter(function (x) { return x.classList.contains("pn-in"); }).length + ""; if (f !== lastFold) { lastFold = f; close(); }'
+          '  if (window.scrollX) window.scrollTo(0, window.scrollY); place(); }'
+          ' function place() { if (!n.classList.contains("open")) return; var r = m.getBoundingClientRect(), vw = document.documentElement.clientWidth, vh = window.innerHeight;'
+          '  sub.style.top = Math.round(r.bottom + 6) + "px"; sub.style.maxHeight = Math.max(120, vh - r.bottom - 14) + "px"; var w = sub.offsetWidth;'
+          '  sub.style.left = Math.round(Math.max(8, Math.min(r.left, vw - w - 8))) + "px"; }'
+          ' window.__lnNavFit = fit; window.__lnNavPlace = place; window.addEventListener("resize", fit); window.addEventListener("load", fit); setTimeout(fit, 0); if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);'
           ' if (window.ResizeObserver) new ResizeObserver(function () { clearTimeout(n._ft); n._ft = setTimeout(fit, 50); }).observe(n.parentNode);'
-          ' m.addEventListener("click", function () { setTimeout(function () { if (window.scrollX) window.scrollTo(0, window.scrollY); }, 0); });'
+          ' window.addEventListener("scroll", place, { passive: true }); window.addEventListener("pageshow", close);'
           ' var cc = document.querySelector(".hdr-meta>.use-count"); if (cc && window.MutationObserver) new MutationObserver(function () { setTimeout(fit, 0); }).observe(cc, { attributes: true, childList: true, subtree: true });'
-          ' function place() { if (!n.classList.contains("open") || !n.classList.contains("fold")) return; var r = m.getBoundingClientRect(), vw = document.documentElement.clientWidth, vh = window.innerHeight;'
-          '  more.style.top = Math.round(r.bottom + 6) + "px"; more.style.maxHeight = Math.max(120, vh - r.bottom - 14) + "px"; var w = more.offsetWidth;'
-          '  more.style.left = Math.round(Math.max(8, Math.min(r.left, vw - w - 8))) + "px"; }'
-          ' window.__lnNavPlace = place; window.addEventListener("resize", place); window.addEventListener("scroll", place, { passive: true });'
-          ' window.addEventListener("pageshow", function () { if (n.classList.contains("open")) { n.classList.remove("open"); m.setAttribute("aria-expanded", "false"); } });'
-          ' m.addEventListener("click", function (e) { e.stopPropagation(); var o = n.classList.toggle("open"); m.setAttribute("aria-expanded", o); place(); });'
-          ' document.addEventListener("click", function (e) { if (!n.contains(e.target) && n.classList.contains("open")) { n.classList.remove("open"); m.setAttribute("aria-expanded", "false"); } });'
-          ' document.addEventListener("keydown", function (e) { if (e.key === "Escape" && n.classList.contains("open")) { n.classList.remove("open"); m.setAttribute("aria-expanded", "false"); m.focus(); } });'
-          ' n.querySelector("[data-tb=changelog]").addEventListener("click", function () { var d = document.getElementById("changelog"); n.classList.remove("open"); if (!d) { location.href = "index.html#changelog"; return; } d.open = !d.open; if (d.open) d.scrollIntoView({ block: "start", behavior: "smooth" }); });'
+          ' m.addEventListener("click", function (e) { e.stopPropagation(); var o = n.classList.toggle("open"); m.setAttribute("aria-expanded", o); place(); setTimeout(function () { if (window.scrollX) window.scrollTo(0, window.scrollY); }, 0); });'
+          ' document.addEventListener("click", function (e) { if (!n.contains(e.target)) close(); });'
+          ' document.addEventListener("keydown", function (e) { if (e.key === "Escape" && n.classList.contains("open")) { close(); m.focus(); } });'
+          ' n.querySelector("[data-tb=changelog]").addEventListener("click", function () { var d = document.getElementById("changelog"); close(); if (!d) { location.href = "index.html#changelog"; return; } d.open = !d.open; if (d.open) d.scrollIntoView({ block: "start", behavior: "smooth" }); });'
           ' if (location.hash === "#changelog") { var d0 = document.getElementById("changelog"); if (d0) d0.open = true; } })();</script>')
 
 
 def hdrnav(cur=''):
-    """v0.26.22：全ページ共通の見出し（ヘッダー）のボタン。PCは全部ならべ、スマホは 記録・大会準備・照合 ＋「≡ メニュー」（中身は全ページ同じ）"""
+    """v0.26.22：全ページ共通の見出し（ヘッダー）のボタン。v0.26.36 どの幅でも 記録・大会準備・照合・大会予定 ＋「≡ メニュー」（中身は全ページ同じ）"""
     on = lambda k: (' class="on" aria-current="page"' if k == cur else '')
     h = '<nav class="pagenav ln-nav" id="lnNav" aria-label="ページ" data-nav="v0.26.22">'
     h += ''.join('<a href="%s" class="pn-main%s" data-tb="%s"%s>%s</a>' % (href, ' on' if k == cur else '', k, ' aria-current="page"' if k == cur else '', label) for k, href, label in NAV_MAIN)
-    h += '<button type="button" class="pn-b pn-menu" aria-expanded="false" aria-controls="lnNavSub">≡ メニュー</button><div class="pn-sub" id="lnNavSub">'
-    h += '<a href="schedule.html" class="tb-btn tb-guide tb-sched%s" data-tb="schedule"%s>📅 大会予定</a>' % (' on' if cur == 'schedule' else '', ' aria-current="page"' if cur == 'schedule' else '')   # v0.26.30
+    # v0.26.36 大会予定は見出しに出す（tb-sched：選手モードでは出さない）
+    h += '<a href="schedule.html" class="pn-main tb-sched%s" data-tb="schedule"%s>📅 大会予定</a>' % (' on' if cur == 'schedule' else '', ' aria-current="page"' if cur == 'schedule' else '')
+    h += '<button type="button" class="pn-b pn-menu" aria-expanded="false" aria-controls="lnNavSub">≡ メニュー<span class="cl-new" aria-label="更新情報に新しいお知らせ">NEW</span></button><div class="pn-sub" id="lnNavSub">'
     h += '<button type="button" class="pn-b" data-tb="changelog">📰 更新情報<span class="cl-new">NEW</span></button>'
-    for k, href, cls, label in NAV_SUB:
+    for k in ['team', 'manual', 'guide', 'try']:
+        href, cls, label = {x[0]: x[1:] for x in NAV_SUB}[k]
         h += '<a href="%s" class="tb-btn tb-guide %s%s" data-tb="%s"%s>%s</a>' % (href, cls, ' on' if k == cur else '', k, ' aria-current="page"' if k == cur else '', label)
     h += '<button type="button" class="tb-btn fb-link" data-feedback="1" data-tb="feedback">🚨 不具合・要望を送る</button>' + MODEBTN + '</div>' + NAV_CSS + NAV_JS + '</nav>'
     return h
@@ -310,7 +301,7 @@ def build_sched(rec):
     t = rec.replace('<body class="records">', '<body class="records sched-page">', 1)
     t = re.sub(r'<title>[^<]*</title>', '<title>LANE NOTE 大会予定</title>', t, count=1)
     t = t.replace('<a href="records.html" class="pn-main on" data-tb="records" aria-current="page">', '<a href="records.html" class="pn-main" data-tb="records">', 1)
-    t = t.replace('<a href="schedule.html" class="tb-btn tb-guide tb-sched" data-tb="schedule">', '<a href="schedule.html" class="tb-btn tb-guide tb-sched on" data-tb="schedule" aria-current="page">', 1)
+    t = t.replace('<a href="schedule.html" class="pn-main tb-sched" data-tb="schedule">', '<a href="schedule.html" class="pn-main tb-sched on" data-tb="schedule" aria-current="page">', 1)
     assert 'tb-sched on' in t
     return t
 
