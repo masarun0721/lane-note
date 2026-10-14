@@ -98,7 +98,7 @@
   async function safeText(res) { try { return await res.text(); } catch (e) { return ''; } }
   function toFile(r) {
     var type = r.kind === 'pdf' ? 'application/pdf' : 'text/html';
-    try { return new File([r.bytes], r.name, { type: type }); }
+    try { var f = new File([r.bytes], r.name, { type: type }); try { f.srcUrl = r.url || ''; } catch (e) { } return f; }   // v0.26.33 どのURLから取ったか（大会準備の保存に使う）
     catch (e) { var b = new Blob([r.bytes], { type: type }); b.name = r.name; b.lastModified = Date.now(); return b; }
   }
   // Webページの中のリンク（PDFと、同じサイトの別ページ）を集める。相対URLは解決する

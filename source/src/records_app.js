@@ -213,7 +213,7 @@
   /* ---------- v0.5：大会ごとの天気（users/{uid}/meets/{大会}）・中学/高校を手で選んだ選手（users/{uid}/settings/divOverrides） ---------- */
   var METS = {}, DIV_OV = {}, REVIEW = [];
   // v0.26.31 大会予定の欄：会場・終了日・区分・締切＋進み具合（エントリー済・振込済の日、振込締切、金額、メモ、結果のURL、結果取込済）
-  var PF = ['venue', 'end', 'div', 'plan', 'deadline', 'entryAt', 'payAt', 'payDue', 'fee', 'memo', 'resultUrl', 'importedAt', 'importedN'], EF = PF.filter(function (k) { return k !== 'plan'; });
+  var PF = ['venue', 'end', 'div', 'plan', 'deadline', 'entryAt', 'payAt', 'payDue', 'fee', 'memo', 'resultUrl', 'importedAt', 'importedN', 'prep'], EF = PF.filter(function (k) { return k !== 'plan'; });
   function lsGet(k, d) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
   function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } }
   function metsKey(uid) { return uid ? 'lanenote-rec-meets-' + uid : 'lanenote-rec-meets'; }
@@ -285,7 +285,7 @@
   function planList() {
     var box = $('lpHome'); if (!box || typeof LanePlans === 'undefined') return;
     var P = LanePlans, all = P.fromMets(METS), td = P.today(), up = P.upcoming(all, td), keyOf = function (p) { return p.date + '|' + p.meet; };
-    P.save(all, scope().uid || '');
+    P.save(all, scope().uid || '', scope().team ? scope().team.id : '');
     if (!LP.ym) LP.ym = (up[0] ? (up[0].date < td ? td : up[0].date) : td).slice(0, 7);
     var e = LP.edit && METS[LP.edit] ? METS[LP.edit] : null;
     var row = function (p) {
@@ -302,7 +302,7 @@
         (p.payDue ? '<br><small class="' + (P.daysLeft(p.payDue, td) <= 7 && P.daysLeft(p.payDue, td) >= 0 && !M.payAt ? 'ng' : 'muted') + '">💴 振込締切 ' + esc(P.md(p.payDue)) + (P.daysLeft(p.payDue, td) >= 0 ? '（あと' + P.daysLeft(p.payDue, td) + '日）' : '（過ぎました）') + '</small>' : '') +
         (M.fee || M.memo ? '<br><small class="muted">' + (M.fee ? '💰 ' + esc(M.fee) : '') + (M.fee && M.memo ? '　' : '') + (M.memo ? '📝 ' + esc(M.memo) : '') + '</small>' : '') +
         (M.resultUrl ? '<br><small>🔗 <a href="' + esc(M.resultUrl) + '" target="_blank" rel="noopener noreferrer">速報・結果のページ</a></small>' : '') +
-        '<div class="lp-cks">' + ck('entryAt', 'エントリー済') + ck('payAt', '振込済') + '</div>' +
+        '<div class="lp-cks">' + ck('entryAt', 'エントリー済') + ck('payAt', '振込済') + '</div>' + prepBadges(k, M) +
         ' <span class="lp-acts">' + (p.date <= td ? '<a class="btn small lp-imp" href="records.html?imp=' + encodeURIComponent(k) + '">📥 結果を取り込む</a>' : '') + '<a class="btn sub small" href="index.html?plan=' + encodeURIComponent(k) + '">📋 大会準備へ</a><button class="btn sub small" type="button" data-lpedit="' + esc(k) + '">✏️ 直す</button><button class="btn sub small danger-t" type="button" data-lpdel="' + esc(k) + '">🗑 消す</button></span></li>';
     };
     var y = +LP.ym.slice(0, 4), m = +LP.ym.slice(5, 7);
@@ -311,6 +311,17 @@
       (all.length ? '<div class="lp-calbox"><div class="rb-row lp-nav"><button class="btn sub small" type="button" data-lpm="-1" aria-label="前の月">◀</button><b>' + y + '年' + m + '月</b><button class="btn sub small" type="button" data-lpm="1" aria-label="次の月">▶</button></div>' + P.monthHtml(all, LP.ym, td) + '</div>' : '') +
       (P.past(all, td).length ? '<details class="small"><summary>終わった予定 ' + P.past(all, td).length + '件</summary><ul class="lp-list">' + P.past(all, td).slice(0, 60).map(row).join('') + '</ul></details>' : '');
     box.hidden = false;
+  }
+  /* v0.26.33 大会準備の進み具合（どの資料を読み込んだか）：クラウドの印（URLから読んだもの・ログイン時）＋この端末の控え */
+  var PREP_IDX = 'lanenote.prep.idx.v1', PREP_KINDS = [['yoko', '要項'], ['sl', 'スタートリスト'], ['tt', 'タイムテーブル'], ['note', '注意事項']];
+  function prepOwner() { var sc = scope(); return (sc.uid || '') + '|' + (sc.team ? sc.team.id : ''); }
+  function prepDocs(k, M) {
+    var d = {}, c = M && M.prep && M.prep.docs, l = (lsGet(PREP_IDX, {})[prepOwner()] || {})[k];
+    PREP_KINDS.forEach(function (x) { if (c && c[x[0]] || l && l.kinds && l.kinds[x[0]]) d[x[0]] = 1; }); return d;
+  }
+  function prepBadges(k, M) {
+    var d = prepDocs(k, M); if (!Object.keys(d).length) return '';
+    return '<div class="lp-prep small">📋 大会準備：' + PREP_KINDS.filter(function (x) { return x[0] !== 'note' || d.note; }).map(function (x) { return '<span class="pp-b ' + (d[x[0]] ? 'on' : 'wait') + '">' + x[1] + (d[x[0]] ? ' ✓' : ' 待ち') + '</span>'; }).join('') + '</div>';
   }
   // v0.26.31 この大会の記録の件数（同じ名前・開催期間の日付）
   function recCount(p) { var nm = planNorm(p.meet), n = 0; ALL.forEach(function (r) { if (r.date >= p.date && r.date <= (p.end || p.date) && planNorm(r.meet) === nm) n++; }); return n; }
@@ -327,8 +338,27 @@
     if (!sc.team && !noCache(sc)) lsSet(metsKey(sc.uid), METS);
     if (ref) { if (o) await FB.F.setDoc(ref, o); else await FB.F.deleteDoc(ref); check(sc); }
   }
+  /* v0.26.33 大会準備のPDF（meets/{大会}/pdf）を消す：大会予定を消したとき・期限（大会終了の1か月後）が過ぎたとき */
+  function pdfRef(sc, key, c) { return sc.team ? FB.F.doc(FB.fs, 'teams', sc.team.id, 'meets', docId(key), 'pdf', c) : FB.F.doc(FB.fs, 'users', sc.uid, 'meets', docId(key), 'pdf', c); }
+  async function prepPurge(key, m, sc, onlyExpired) {
+    if (!sc.uid || !FB || !m || !m.prep || !m.prep.docs) return false;
+    var docs = m.prep.docs, now = Date.now(), ch = false;
+    for (var k in docs) {
+      var d = docs[k]; if (!d || onlyExpired && !(d.exp && d.exp < now)) continue;
+      for (var i = 0; i < (d.n || 0); i++) { check(sc); try { await FB.F.deleteDoc(pdfRef(sc, key, k + '_' + i)); } catch (e) { if (isAbort(e)) throw e; } }
+      delete docs[k]; ch = true;
+    }
+    return ch;
+  }
+  var SWEPT = -1;
+  async function prepSweep(sc) {
+    if (SWEPT === sc.epoch || !sc.uid || !document.body.classList.contains('sched-page')) return; SWEPT = sc.epoch;
+    var ks = Object.keys(METS);
+    for (var i = 0; i < ks.length; i++) { var m = METS[ks[i]]; try { if (await prepPurge(ks[i], m, sc, true)) { check(sc); m.updatedAt = new Date().toISOString(); await writeMeetDoc(ks[i], m, sc); } } catch (e) { if (isAbort(e)) return; } }
+  }
   async function planDelete(key) {
     var m = METS[key], sc = scope(); if (!m) return;
+    await prepPurge(key, m, sc, false);
     var keep = m.weather || m.temp != null || m.humidity != null || ALL.some(function (r) { return r.date + '|' + r.meet === key; });
     if (keep) { var o = {}; Object.keys(m).forEach(function (k) { if (PF.indexOf(k) < 0) o[k] = m[k]; }); o.updatedAt = new Date().toISOString(); await writeMeetDoc(key, o, sc); }
     else await writeMeetDoc(key, null, sc);
@@ -343,7 +373,7 @@
     var key = R.planKey(v.date, v.meet);
     if (!err.length && key !== old && METS[key] && METS[key].plan) err.push('同じ日・同じ名前の大会がもうあります');
     if (err.length) { st.className = 'status ng'; st.textContent = '✖ ' + err.join('・'); return; }
-    var m = METS[old] || {}, w = { weather: m.weather || '', temp: m.temp == null ? '' : m.temp, humidity: m.humidity == null ? '' : m.humidity, venue: v.venue.slice(0, 100), end: v.end && v.end !== v.date ? v.end : '', div: v.div, deadline: v.deadline, entryAt: v.entryAt, payAt: v.payAt, payDue: v.payDue, fee: v.fee.slice(0, 30), memo: v.memo.slice(0, 300), resultUrl: v.resultUrl.slice(0, 1000), importedAt: m.importedAt || '', importedN: m.importedN || '', plan: true };
+    var m = METS[old] || {}, w = { weather: m.weather || '', temp: m.temp == null ? '' : m.temp, humidity: m.humidity == null ? '' : m.humidity, venue: v.venue.slice(0, 100), end: v.end && v.end !== v.date ? v.end : '', div: v.div, deadline: v.deadline, entryAt: v.entryAt, payAt: v.payAt, payDue: v.payDue, fee: v.fee.slice(0, 30), memo: v.memo.slice(0, 300), resultUrl: v.resultUrl.slice(0, 1000), importedAt: m.importedAt || '', importedN: m.importedN || '', prep: m.prep || '', plan: true };
     try {
       if (key !== old) await planDelete(old);
       var prev = METS[key]; if (prev) { EF.forEach(function (k) { delete prev[k]; }); }
@@ -1842,7 +1872,7 @@
     if (sc.epoch !== authEpoch) return;
     ALL = list; METS = side.mets; DIV_OV = side.ov; MODE = md; ROSTER = ros; applyModeUi();
     applyInference(); render(); if (CLOUD_READY) renderAuth();
-    impKick();
+    impKick(); prepSweep(sc).then(function () { if (sc.epoch === authEpoch) planList(); }, function () { });
   }
   function filtered() {
     var q = R.nk($('rbQ').value).replace(/\s/g, ''), s = school(), mine = $('rbMine').checked;

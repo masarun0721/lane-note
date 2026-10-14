@@ -17,7 +17,9 @@ var LanePlans = (function () {
   function sort(list) { return list.slice().sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : a.meet < b.meet ? -1 : 1; }); }
   function fromMets(mets) { return sort(Object.keys(mets || {}).map(function (k) { var m = mets[k]; return m && m.plan ? clean(m) : null; }).filter(Boolean)); }
   // v0.26.30（A01）：この端末の写しは、写したアカウント（uid。ログインなしは ''）を付けて、同じアカウントのときだけ使う
-  function save(list, uid) { try { localStorage.setItem(KEY, JSON.stringify({ at: Date.now(), uid: String(uid || ''), list: sort((list || []).map(clean).filter(Boolean)).slice(0, 300) })); } catch (e) { } }
+  function save(list, uid, team) { try { localStorage.setItem(KEY, JSON.stringify({ at: Date.now(), uid: String(uid || ''), team: String(team || ''), list: sort((list || []).map(clean).filter(Boolean)).slice(0, 300) })); } catch (e) { } }
+  // v0.26.33 写しの保存先（チームのときはチームID）。同じアカウントのときだけ
+  function team(uid) { try { var o = JSON.parse(localStorage.getItem(KEY) || 'null'); return o && String(o.uid || '') === String(uid || '') ? String(o.team || '') : ''; } catch (e) { return ''; } }
   function load(uid) { try { var o = JSON.parse(localStorage.getItem(KEY) || 'null'); return o && Array.isArray(o.list) && String(o.uid || '') === String(uid || '') ? o.list.map(clean).filter(Boolean) : []; } catch (e) { return []; } }
   /* v0.26.30 選手へのリンクに入れる「これからの大会」：[日付, 終了日, 大会名, 会場] だけ（選手の情報は入れない）。20件まで */
   var SC_MAX = 20;
@@ -79,6 +81,6 @@ var LanePlans = (function () {
     return { k: 'ready', t: '準備OK', c: 'ok' };
   }
   function addMonth(ym, k) { var d = new Date(Date.UTC(+ym.slice(0, 4), +ym.slice(5, 7) - 1 + k, 1)); return d.toISOString().slice(0, 7); }
-  return { stage: stage, isDay: isDay, KEY: KEY, toSc: toSc, fromSc: fromSc, scHtml: scHtml, clean: clean, fromMets: fromMets, save: save, load: load, upcoming: upcoming, past: past, daysLeft: daysLeft, jp: jp, jpRange: jpRange, md: md, range: range, leftLabel: leftLabel, deadlineLabel: deadlineLabel, monthHtml: monthHtml, addMonth: addMonth, today: today, esc: esc };
+  return { team: team, stage: stage, isDay: isDay, KEY: KEY, toSc: toSc, fromSc: fromSc, scHtml: scHtml, clean: clean, fromMets: fromMets, save: save, load: load, upcoming: upcoming, past: past, daysLeft: daysLeft, jp: jp, jpRange: jpRange, md: md, range: range, leftLabel: leftLabel, deadlineLabel: deadlineLabel, monthHtml: monthHtml, addMonth: addMonth, today: today, esc: esc };
 })();
 if (typeof module !== 'undefined') module.exports = LanePlans;

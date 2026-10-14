@@ -76,7 +76,13 @@
     }); });
     renderFeePrices();
   }
+  // v0.26.33 読み込めたら、大会予定から開いた大会の分として保存する
   async function handleFile(kind, file) {
+    await handleFile0(kind, file);
+    var nm = { sl: state.slName, tt: state.ttName, note: state.noteName, yoko: state.yokoName }[kind];
+    if (file && nm && nm === file.name) { try { await prepDocDone(kind, file); } catch (e) { console.error(e); } }
+  }
+  async function handleFile0(kind, file) {
     if (!file) return;
     var sid = SID[kind], tok = ++loadSeq[kind];
     var fname = file && file.name;
@@ -1410,6 +1416,8 @@
       var bar = document.createElement('div'); bar.className = 'plan-bar'; bar.id = 'planBar';
       bar.innerHTML = '📋 <b>' + P.esc(pp.meet) + '</b>・' + P.esc(P.range(PLANS.filter(function (x) { return x.date + '|' + x.meet === pk; })[0] || pp)) + ' の大会準備です。大会名・日付は入れてあります。スタートリスト・タイムテーブルのPDFを入れてください。 <a href="schedule.html">📅 大会予定へ戻る</a>';
       var mn = document.querySelector('main'); if (mn) mn.insertBefore(bar, mn.firstChild);
+      var pf = PLANS.filter(function (x) { return x.date + '|' + x.meet === pk; })[0] || P.clean(pp);
+      setTimeout(function () { prepOpen(pf).catch(function (e) { console.error(e); }); }, 0);
     }
   }
   async function planPickCloud() {
@@ -1432,6 +1440,7 @@
     var uid = u ? u.uid : null;
     if (uid === lastUid) return;
     lastUid = uid; authEpoch++;
+    if (PREP && PREP.owner.uid !== (uid || '')) prepDetach('アカウントが変わったので、「' + PREP.p.meet + '」への保存をやめました（前のアカウントの保存は出しません）。');   // A01
     PLANS = []; try { planPickFill(); } catch (e) { } if (uid) planPickCloud();
     clearAllShares(); shareShort = ''; PL.links = {}; PBS = { sc: null, look: null }; setTimeout(function () { loadPBs().catch(function () { }); }, 0);
     try { renderShareAuth(); plAuth(); if (!$('playerDlg').hidden) renderPlayerList(); } catch (e) { }
@@ -1872,25 +1881,33 @@
   var SS_KEY = 'lanenote-meet-session', ssTimer = 0, ssRestoring = false;
   var SS_STATE = ['sl', 'tt', 'notes', 'slName', 'ttName', 'noteName', 'yokoName', 'dateCands', 'feeParsed', 'feeFrom', 'prices', 'priceSrc', 'make', 'teamCat', 'teams', 'allTeams', 'progCopies', 'docText', 'day', 'athSort'];
   function ssClear() { clearTimeout(ssTimer); try { sessionStorage.removeItem(SS_KEY); } catch (e) { } }
+  function ssSnap() {
+    var st = {}, inp = {}, stat = {};
+    SS_STATE.forEach(function (k) { st[k] = state[k]; });
+    document.querySelectorAll('main input[id], main select[id]').forEach(function (el) {
+      if (el.type === 'file' || el.type === 'password' || el.closest('[role=dialog]')) return;
+      inp[el.id] = el.type === 'checkbox' || el.type === 'radio' ? { c: el.checked } : { v: el.value, m: el.dataset.manual || '', a: el.dataset.auto || '' };
+    });
+    Object.keys(SID).forEach(function (k) { var el = $(SID[k]); stat[k] = { t: el.textContent, c: el.className }; /* S11：HTML ではなく文字だけ控える */ });
+    return { v: 1, t: Date.now(), st: st, inp: inp, stat: stat, rule: ruleState };
+  }
   function ssSave() {
     if (ssRestoring) return; clearTimeout(ssTimer);
     ssTimer = setTimeout(function () {
       try {
         if (!state.sl && !state.tt && !state.notes && !state.yokoName) { sessionStorage.removeItem(SS_KEY); return; }
-        var st = {}, inp = {}, stat = {};
-        SS_STATE.forEach(function (k) { st[k] = state[k]; });
-        document.querySelectorAll('main input[id], main select[id]').forEach(function (el) {
-          if (el.type === 'file' || el.type === 'password' || el.closest('[role=dialog]')) return;
-          inp[el.id] = el.type === 'checkbox' || el.type === 'radio' ? { c: el.checked } : { v: el.value, m: el.dataset.manual || '', a: el.dataset.auto || '' };
-        });
-        Object.keys(SID).forEach(function (k) { var el = $(SID[k]); stat[k] = { t: el.textContent, c: el.className }; /* S11：HTML ではなく文字だけ控える */ });
-        sessionStorage.setItem(SS_KEY, JSON.stringify({ v: 1, t: Date.now(), st: st, inp: inp, stat: stat, rule: ruleState }));
+        prepLocalSave();
+        sessionStorage.setItem(SS_KEY, JSON.stringify(ssSnap()));
       } catch (e) { }   // 入りきらないときは控えない（今まで通り）
     }, 400);
   }
   function ssRestore() {
     if (/^#[dp]=/.test(location.hash) || /[?&]s=/.test(location.search)) return false;   // 共有リンクを開いたときは戻さない
+    if (/[?&]plan=/.test(location.search)) return false;   // v0.26.33 大会予定から開いたときは、その大会の保存から戻す
     var o = null; try { o = JSON.parse(sessionStorage.getItem(SS_KEY) || 'null'); } catch (e) { }
+    return ssApply(o);
+  }
+  function ssApply(o) {
     if (!o || o.v !== 1 || !o.st) return false;
     ssRestoring = true;
     try {
@@ -1914,8 +1931,149 @@
     document.addEventListener('change', function (e) { if (!e.target.closest('[role=dialog]')) ssSave(); });
     var c = $('ssClearBtn'); if (c) c.addEventListener('click', resetAll);
   });
+
+  /* ===== v0.26.33 大会ごとの準備の保存（大会予定の「📋 大会準備へ」から開いた大会だけ）
+     ・この端末（IndexedDB）：読み取った結果をまるごと（スタートリストの選手名も）。大会の終わりの日から30日で消す
+     ・ログイン中はクラウドの大会の印（自分だけ／チーム）にも：URLから読んだ資料は URL だけ（中身は開くときに取り直す）。
+       ファイルで入れた資料は 5MB までを meets/{大会}/pdf に分けて保存（チームはメンバーだけ）。4種類とも大会終了の1か月後に自動で消す
+     ・A01：保存はアカウント（uid）とチームの組ごと。アカウントが変わったら保存をやめ、前の人の保存は出さない ===== */
+  var PREP = null, PREP_DB = 'lanenote-prep', PREP_IDX = 'lanenote.prep.idx.v1', PREP_CAP = 5 * 1048576, PREP_CH = 800000, prepTimer = 0;
+  var PREP_KINDS = ['yoko', 'sl', 'tt', 'note'], PREP_LBL = { yoko: '要項', sl: 'スタートリスト', tt: 'タイムテーブル', note: '注意事項' };
+  function prepKeep(kind) { return 30; }   // 大会終了の1か月後に自動で消えます（4種類とも）
+  function prepExp(kind, p) { return Date.parse((p.end || p.date) + 'T00:00:00+09:00') + (prepKeep(kind) + 1) * 864e5; }
+  function prepOwnerStr(o) { return (o.uid || '') + '|' + (o.team || ''); }
+  function prepDocId(k) { return String(k).replace(/\//g, '∕'); }
+  function prepUid() { return FB && FB.auth && FB.auth.currentUser ? FB.auth.currentUser.uid : ''; }
+  function prepLive(p) { p = p || PREP; return !!p && PREP === p && p.epoch === authEpoch && prepUid() === p.owner.uid; }
+  function prepIdb() { return new Promise(function (ok, ng) { if (!window.indexedDB) return ng(new Error('IndexedDB が使えません')); var r = indexedDB.open(PREP_DB, 1); r.onupgradeneeded = function () { r.result.createObjectStore('snap', { keyPath: 'id' }); }; r.onsuccess = function () { ok(r.result); }; r.onerror = function () { ng(r.error); }; }); }
+  async function prepDb(mode, fn) { var db = await prepIdb(); return new Promise(function (ok, ng) { var tx = db.transaction('snap', mode), q = fn(tx.objectStore('snap')), res; if (q) q.onsuccess = function () { res = q.result; }; tx.oncomplete = function () { db.close(); ok(res); }; tx.onerror = function () { db.close(); ng(tx.error); }; }); }
+  function prepIdx(fn) { var o = {}; try { o = JSON.parse(localStorage.getItem(PREP_IDX) || '{}') || {}; } catch (e) { } fn(o); try { localStorage.setItem(PREP_IDX, JSON.stringify(o)); } catch (e) { } }
+  function prepPath(o, key, c) { var a = o.team ? ['teams', o.team, 'meets', prepDocId(key)] : ['users', o.uid, 'meets', prepDocId(key)]; if (c) a = a.concat(['pdf', c]); return FB.F.doc.apply(null, [FB.fs].concat(a)); }
+  async function prepWho() {
+    var uid = ''; if (FB || CLOUD_OK) { try { await withTimeout(loadFirebase(), 8000); } catch (e) { } uid = prepUid(); }
+    return { uid: uid, team: uid && typeof LanePlans !== 'undefined' && LanePlans.team ? LanePlans.team(uid) : '' };
+  }
+  function prepWhere(o) {
+    return !o.uid ? 'この端末にだけ保存します（ログインすると、ほかのPCでも続きを開けます）。<b>大会終了の1か月後に自動で消えます。</b>'
+      : (o.team ? '<b>チーム（顧問・マネージャー）で共有</b>します。' : '<b>あなたのクラウド（自分だけ）</b>にも保存します。') + 'ファイルで入れたPDFは5MBまでクラウドに、URLから読んだ資料はURLだけを保存し、開くときに取り直します。読み取った結果はこの端末にも控えます。<b>大会終了の1か月後に自動で消えます。</b>';
+  }
+  function prepBar(msg) {
+    var bar = $('prepBar'); if (!bar) { bar = document.createElement('div'); bar.id = 'prepBar'; bar.className = 'plan-bar prep-bar'; var pb = $('planBar'), mn = document.querySelector('main'); if (pb) pb.parentNode.insertBefore(bar, pb.nextSibling); else if (mn) mn.insertBefore(bar, mn.firstChild); else return; }
+    if (!PREP) { bar.innerHTML = msg ? esc(msg) : ''; bar.hidden = !msg; return; }
+    var d = PREP.docs, has = PREP_KINDS.some(function (k) { return d[k]; });
+    bar.hidden = false;
+    bar.innerHTML = (msg ? '<div>' + msg + '</div>' : '') + '💾 <b>' + esc(PREP.p.meet) + '</b> の準備' + (PREP.resumed ? '（続きから）' : '') + '：' +
+      PREP_KINDS.filter(function (k) { return k !== 'note' || d.note; }).map(function (k) { return '<span class="pp-b ' + (d[k] ? 'on' : 'wait') + '" data-pk="' + k + '">' + PREP_LBL[k] + (d[k] ? ' ✓' : ' 待ち') + '</span>'; }).join(' ') +
+      (has ? ' <button type="button" class="btn sub small" id="prepErase">🗑 保存を消す</button>' : '') + '<br><small class="muted">' + prepWhere(PREP.owner) + '</small>';
+    var b = $('prepErase'); if (b) b.onclick = function () { prepErase().catch(function (e) { prepBar('✖ 消せませんでした：' + esc(e.message)); }); };
+  }
+  function prepDetach(msg) { PREP = null; clearTimeout(prepTimer); var bar = $('prepBar'); if (bar) { if (msg) { bar.innerHTML = esc(msg); bar.hidden = false; } else bar.remove(); } if (!msg) { var pb = $('planBar'); if (pb) pb.remove(); try { if (/[?&]plan=/.test(location.search)) history.replaceState(null, '', selfPath()); } catch (e) { } } }
+  function prepLocalSave(now) {
+    if (!PREP || PREP.quiet || PREP.paused || !prepLive()) return;
+    var p = PREP; clearTimeout(prepTimer);
+    var go = function () {
+      if (!prepLive(p)) return;
+      var rec = { id: prepOwnerStr(p.owner) + '|' + p.key, owner: prepOwnerStr(p.owner), key: p.key, end: p.p.end || p.p.date, at: Date.now(), docs: p.docs, snap: ssSnap() };
+      prepDb('readwrite', function (st) { return st.put(rec); }).catch(function () { });
+      prepIdx(function (o) { var w = o[rec.owner] = o[rec.owner] || {}, k = {}; PREP_KINDS.forEach(function (x) { if (p.docs[x]) k[x] = 1; }); w[p.key] = { kinds: k, end: rec.end, at: rec.at }; });
+    };
+    if (now) go(); else prepTimer = setTimeout(go, 300);
+  }
+  function b64Of(buf) { var u = new Uint8Array(buf), s = ''; for (var i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); }
+  function bytesOf(b64) { var s = atob(b64), u = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; }
+  function prepSlOk(o) {
+    var k = 'lanenote.prep.slok.' + prepOwnerStr(o); try { if (localStorage.getItem(k)) return true; } catch (e) { }
+    var ok = confirm('スタートリストには、ほかの学校の選手の名前も入っています。\n' + (o.team ? 'チームのメンバー（顧問・マネージャー）だけが見られる場所' : 'あなただけが見られる場所') + 'に保存します。大会終了の1か月後に自動で消えます。保存しますか？\n（「キャンセル」なら、この端末にだけ保存します）');
+    if (ok) try { localStorage.setItem(k, '1'); } catch (e) { }
+    return ok;
+  }
+  function prepInfo() {
+    var r = {}; RULES.forEach(function (x) { if (ruleState[x.k] === 'ok') r[x.k] = String(ruleVal(x.k)).slice(0, 60); });
+    return { name: String($('meetName').value || '').slice(0, 100), date: String($('meetDate').value || '').slice(0, 60), rules: r, fees: state.feeParsed && state.feeParsed.cats ? JSON.parse(JSON.stringify(state.feeParsed.cats)) : {} };
+  }
+  async function prepCloudDoc(p, kind, d) {
+    var F = FB.F, ref = prepPath(p.owner, p.key), at = new Date().toISOString(), info = prepInfo();
+    if (JSON.stringify(info).length > 20000) info = { name: info.name, date: info.date };
+    try { await F.updateDoc(ref, 'prep.docs.' + kind, d === null ? F.deleteField() : d, 'prep.at', at, 'prep.info', info); }
+    catch (e) { if (!/not-found/.test(e.code || '')) throw e; var o = { at: at, info: info, docs: {} }; if (d) o.docs[kind] = d; await F.setDoc(ref, { prep: o }, { merge: true }); }
+    p.cloud = p.cloud || { docs: {} }; p.cloud.docs = p.cloud.docs || {}; if (d) p.cloud.docs[kind] = d; else delete p.cloud.docs[kind];
+  }
+  async function prepDelChunks(p, kind, from, to) { for (var i = from; i < to; i++) { if (!prepLive(p)) return; try { await FB.F.deleteDoc(prepPath(p.owner, p.key, kind + '_' + i)); } catch (e) { } } }
+  async function prepDocDone(kind, file) {
+    if (!PREP || PREP.quiet || !prepLive()) return;
+    PREP.paused = false; var p = PREP, o = p.owner, url = String(file.srcUrl || ''), d = { name: String(file.name || '').slice(0, 200), size: file.size || 0, at: new Date().toISOString(), exp: prepExp(kind, p.p) }, note = '';
+    if (url) d.url = url.slice(0, 1000);
+    p.docs[kind] = d; prepLocalSave(true); prepBar();
+    if (!o.uid || !FB) return;
+    var old = p.cloud && p.cloud.docs && p.cloud.docs[kind], cd = { name: d.name, size: d.size, at: d.at, exp: d.exp };
+    if (url) cd.url = d.url;
+    else if (file.size > PREP_CAP) { cd.here = 1; note = '「' + esc(d.name) + '」は5MBより大きいので、この端末にだけ保存しました。ほかのPCでも開けるようにするには「URLから読み込む」で入れてください。'; }
+    else if (kind === 'sl' && !prepSlOk(o)) { cd.here = 1; note = 'スタートリストはこの端末にだけ保存しました。'; }
+    else {
+      var b64 = b64Of(await file.arrayBuffer()), n = Math.ceil(b64.length / PREP_CH), exp = FB.F.Timestamp.fromMillis(d.exp);
+      prepBar('⏳ 「' + esc(d.name) + '」を保存しています…');
+      for (var i = 0; i < n; i++) { if (!prepLive(p)) return; await FB.F.setDoc(prepPath(o, p.key, kind + '_' + i), { kind: kind, i: i, n: n, data: b64.slice(i * PREP_CH, (i + 1) * PREP_CH), name: d.name, size: d.size, exp: exp, by: o.uid }); }
+      cd.n = n;
+    }
+    if (!prepLive(p)) return;
+    if (old && old.n) await prepDelChunks(p, kind, cd.n || 0, old.n);
+    await prepCloudDoc(p, kind, cd);
+    p.docs[kind] = Object.assign(d, cd.here ? { here: 1 } : {}); prepLocalSave(true); prepBar(note);
+  }
+  async function prepFetchKind(p, kind, d) {
+    var file = null;
+    if (d.url) {
+      setStatus(SID[kind], '⏳ 保存したURLから取り直しています…', 'busy');
+      var r = await LaneUrl.fetchUrl(d.url, { noRedirect: true }); if (r.kind !== 'pdf') throw new Error('PDFではありませんでした');
+      file = LaneUrl.toFile(r);
+    } else if (d.n) {
+      setStatus(SID[kind], '⏳ 保存した「' + esc(d.name) + '」を読み込んでいます…', 'busy');
+      var parts = []; for (var i = 0; i < d.n; i++) { var s = await withTimeout(FB.F.getDoc(prepPath(p.owner, p.key, kind + '_' + i)), 20000); if (!s.exists()) throw new Error('保存したファイルが見つかりません（期限が過ぎたか、消されました）'); parts.push(s.data().data); }
+      if (!prepLive(p)) return;
+      file = new File([bytesOf(parts.join(''))], d.name || (kind + '.pdf'), { type: 'application/pdf' });
+    } else return;
+    if (!prepLive(p)) return;
+    await handleFile(kind, file);
+  }
+  async function prepOpen(pl) {
+    if (!pl || !pl.date || !pl.meet) return;
+    var who = await prepWho(), ep = authEpoch; if (who.uid !== prepUid()) return;
+    var p = PREP = { key: pl.date + '|' + pl.meet, p: pl, owner: who, epoch: ep, docs: {}, cloud: null, quiet: true };
+    var today = Date.now(), snap = null;
+    try {   // この端末の控え：期限（大会の30日後）が過ぎたものは消す
+      var all = await prepDb('readonly', function (st) { return st.getAll(); }) || [];
+      for (var i = 0; i < all.length; i++) { var x = all[i]; if (x && x.end && Date.parse(x.end + 'T00:00:00+09:00') + 31 * 864e5 < today) { await prepDb('readwrite', function (st) { return st.delete(x.id); }); prepIdx(function (o) { if (o[x.owner]) delete o[x.owner][x.key]; }); } else if (x && x.id === prepOwnerStr(who) + '|' + p.key) snap = x; }
+    } catch (e) { }
+    if (who.uid && FB) { try { var ds = await withTimeout(FB.F.getDoc(prepPath(who, p.key)), 10000); p.cloud = ds.exists() && ds.data().prep || null; } catch (e) { } }
+    if (!prepLive(p)) return;
+    if (snap && snap.snap && snap.owner === prepOwnerStr(who)) { ssApply(snap.snap); p.docs = snap.docs || {}; p.resumed = true; }
+    var cd = p.cloud && p.cloud.docs || {}, ng = [];
+    for (var j = 0; j < PREP_KINDS.length; j++) {
+      var k = PREP_KINDS[j], c = cd[k];
+      if (!c || c.here || c.exp && c.exp < today) continue;
+      if (p.docs[k] && (p.docs[k].at || '') >= (c.at || '')) continue;   // この端末の控えが新しい
+      try { await prepFetchKind(p, k, c); if (!prepLive(p)) return; p.docs[k] = c; p.resumed = true; } catch (e) { if (!prepLive(p)) return; ng.push(PREP_LBL[k] + '：' + e.message); setStatus(SID[k], '✖ 保存した' + PREP_LBL[k] + 'を読めませんでした：' + esc(e.message), 'ng'); }
+    }
+    p.quiet = false; prepLocalSave(true);
+    prepBar(ng.length ? '<span class="warn">⚠ ' + esc(ng.join('／')) + '</span>' : '');
+  }
+  async function prepErase() {
+    var p = PREP; if (!p || !confirm('「' + p.p.meet + '」の大会準備の保存（この端末' + (p.owner.uid ? '・クラウド' : '') + '）を消します。今の画面の内容はそのままです。よろしいですか？')) return;
+    if (p.owner.uid && FB && prepLive(p)) {
+      var cd = p.cloud && p.cloud.docs || {};
+      for (var k in cd) if (cd[k] && cd[k].n) await prepDelChunks(p, k, 0, cd[k].n);
+      if (!prepLive(p)) return;
+      try { await FB.F.updateDoc(prepPath(p.owner, p.key), 'prep', FB.F.deleteField()); } catch (e) { if (!/not-found/.test(e.code || '')) throw e; }
+      p.cloud = null;
+    }
+    await prepDb('readwrite', function (st) { return st.delete(prepOwnerStr(p.owner) + '|' + p.key); }).catch(function () { });
+    prepIdx(function (o) { var w = o[prepOwnerStr(p.owner)]; if (w) delete w[p.key]; });
+    p.docs = {}; p.resumed = false; p.paused = true;   // 消したあとは、もう一度資料を入れるまで保存しない
+    prepBar('✔ 保存を消しました。もう一度資料を入れると、また保存します。');
+  }
   function resetAll() {
-    if (!confirm('読み込んだPDF・学校・クラブ名・設定・枚数をすべて消して、新しい大会を始めます。よろしいですか？')) return;
+    if (!confirm('読み込んだPDF・学校・クラブ名・設定・枚数をすべて消して、新しい大会を始めます。よろしいですか？' + (PREP ? '\n（大会予定の「' + PREP.p.meet + '」に保存した準備は消えません。消すときは上の「保存を消す」）' : ''))) return;
+    prepDetach('');
     ssClear(); var sn = $('ssNote'); if (sn) sn.hidden = true;
     state.docText = {};
     Object.keys(loadSeq).forEach(function (k) { loadSeq[k]++; });   // 読み込み途中のものも捨てる
@@ -1929,5 +2087,5 @@
     $('teamList').dataset.q = ''; ruleState = {}; renderRuleMarks(); renderFeePrices(); renderDateMark(); updateTeams(); render();
     window.scrollTo(0, 0);
   }
-  window.__meetApp = { pdfName: pdfName, openVenues: openVenues, ssSave: ssSave, ssRestore: ssRestore, ssClear: ssClear, resetAll: resetAll, openPersonal: openPersonal, openPlayers: openPlayers, openPlayer: openPlayer, encodePayload: encodePayload, decodePayload: decodePayload, payloadFromState: payloadFromState, openShare: openShare, refreshPrint: refreshPrint, tableData: tableData, feeData: feeData, totalText: totalText, safeCell: safeCell, state: state, handleFile: handleFile, render: render, updateTeams: updateTeams };
+  window.__meetApp = { handleFile: handleFile, prep: function () { return PREP; }, prepOpen: prepOpen, setFB: function (f) { FB = f; }, pdfName: pdfName, openVenues: openVenues, ssSave: ssSave, ssRestore: ssRestore, ssClear: ssClear, resetAll: resetAll, openPersonal: openPersonal, openPlayers: openPlayers, openPlayer: openPlayer, encodePayload: encodePayload, decodePayload: decodePayload, payloadFromState: payloadFromState, openShare: openShare, refreshPrint: refreshPrint, tableData: tableData, feeData: feeData, totalText: totalText, safeCell: safeCell, state: state, handleFile: handleFile, render: render, updateTeams: updateTeams };
 })();

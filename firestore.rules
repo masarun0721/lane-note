@@ -16,6 +16,7 @@ rules_version = '2';
 //   記録（teams/{T}/records）は書くたびに変更履歴（teams/{T}/hist）を同じまとめ書きで残す（前と後の中身をルールで照合）。消すのは「削除の印」だけ。
 //   マネージャーが書いた記録は必ず「未確認」（_st:'pending'）。「確認済み」（'ok'）にできるのは顧問だけ。
 //   チームの持ち主（ownerUid）を変えられるのは持ち主だけで、渡す相手はチームの顧問だけ。
+// ・v0.26.33 teams/{T}/meets/{k}/pdf/{c}：大会準備のPDF（4種類）をチームで共有。ファイルで入れたものだけ・メンバーだけ・大会終了の1か月後まで読める・5MBまで・一覧不可
 // ・v0.26.11 記録に aid（選手台帳のID・A＋10文字）と legs（リレーの走順・300文字まで）を追加
 // ・v0.26.9 安全面：
 //   config/flags（機能の一時停止）：だれでも読める。書けるのは管理者（admins/{uid} がある人。admins は Firebase コンソールでだけ作る）。
@@ -200,6 +201,19 @@ service cloud.firestore {
       return signedIn() && exists(memberPath(t, request.auth.uid))
         && (memberOf(t).role == 'coach'
             || (memberOf(t).role == 'manager' && memberOf(t).expiresAt is timestamp && request.time < memberOf(t).expiresAt));
+    }
+    // v0.26.33 大会準備のPDFのかけら（チーム）
+    function validPdfChunk(c, d) {
+      return c.matches('^(yoko|sl|tt|note)_[0-9]{1,2}$')
+        && d.keys().hasOnly(['kind', 'i', 'n', 'data', 'name', 'size', 'exp', 'by'])
+        && d.keys().hasAll(['kind', 'i', 'n', 'data', 'name', 'size', 'exp', 'by'])
+        && d.kind in ['yoko', 'sl', 'tt', 'note'] && c == d.kind + '_' + string(d.i)
+        && d.i is int && d.n is int && d.i >= 0 && d.i < d.n && d.n <= 10
+        && d.data is string && d.data.size() <= 900000
+        && d.name is string && d.name.size() <= 200
+        && d.size is int && d.size > 0 && d.size <= 5242880
+        && d.exp is timestamp && d.exp > request.time && d.exp < request.time + duration.value(430, 'd')
+        && d.by == request.auth.uid;
     }
     function isCoach(t) {
       return signedIn() && exists(memberPath(t, request.auth.uid)) && memberOf(t).role == 'coach';
@@ -466,6 +480,14 @@ service cloud.firestore {
       // 大会ごとの天気など：メンバーが読み書き
       match /meets/{k} {
         allow read, write: if activeMember(t);
+      }
+      // v0.26.33 大会準備のPDF（要項・スタートリスト・タイムテーブル・注意事項）をチームで共有。ファイルで入れたものだけ（URLから読んだものはURLだけを大会の印に）。最大10個に分けた base64（1個 90万文字まで・元のファイル 5MB まで）
+      // 読めるのはメンバーだけ・期限（exp＝大会の終わりの日＋30日。大会終了の1か月後に自動で消えます）まで。一覧は不可（大会の印 prep.files に書いた ID で読む）。消すのはメンバー（期限後も可）
+      match /meets/{k}/pdf/{c} {
+        allow get: if activeMember(t) && resource.data.exp > request.time;
+        allow list: if false;
+        allow create, update: if activeMember(t) && validPdfChunk(c, request.resource.data);
+        allow delete: if activeMember(t);
       }
       // 設定：中学/高校の選択（divOverrides）はメンバー、それ以外は顧問だけ
       match /settings/{sid} {

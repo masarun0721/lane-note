@@ -641,6 +641,8 @@ body.fb-open{overflow:hidden}
 .lp-st{display:inline-block;font-size:12px;font-weight:bold;border-radius:10px;padding:1px 8px;margin-right:2px;border:1px solid #c9d2e0;background:#f4f6fa;color:#33415c}.lp-st.st-ng{background:#fde8e8;border-color:#e3a0a0;color:#b42318}.lp-st.st-todo{background:#fff7e0;border-color:#e8cf8a;color:#7a5600}.lp-st.st-ok{background:#e7f6ec;border-color:#9fd3b0;color:#17663a}.lp-st.st-warn{background:#fff0e6;border-color:#f0b48a;color:#a33a14}.lp-st.st-now{background:#e8f0fe;border-color:#a8c2f0;color:#1d3b6b}
 .lp-cks{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:4px;font-size:13px}.lp-ck{display:inline-flex;align-items:center;gap:4px;cursor:pointer}.lp-ck input{width:auto;margin:0}.lp-acts a.btn{width:auto;flex:0 0 auto;text-decoration:none}.lp-pd{background:#6b3fa0!important}
 .imp-bar,.plan-bar{background:#e8f0fe;border:1px solid #a8c2f0;border-radius:8px;padding:8px 10px;margin:0 0 10px;font-size:14px}
+/* v0.26.33 大会準備の保存 */
+.prep-bar .pp-b{border-radius:8px;padding:0 6px;font-size:12px;border:1px solid #c9d2e0;display:inline-block;margin:1px 0}.prep-bar .pp-b.on{background:#e7f6ec;border-color:#9fd3b0;color:#17663a}.prep-bar .pp-b.wait{background:#f6f6f6;color:#666}.prep-bar .btn.small{width:auto;padding:2px 8px;font-size:12px}
 </style>
 </head>
 <body>
@@ -729,11 +731,11 @@ __TOPBAR__
 </div>
 <section class="box howto">
   <div class="quick"><b>使い方</b>：①スタートリストとタイムテーブルのPDFを入れる → ②学校・クラブ名を入れる → ③時間順・選手別・記録用紙ができる</div>
-  <p class="privacy-line" id="dataPolicy">🔒 PDF本文はサーバーへ送りません。共有リンクを作ったときだけ、その中身を保存します。「URLから読み込む」のときは、URLと中身が LANE NOTE の中継を通ります（保存しません）。詳しくは <a href="guide.html#data">はじめての人はこちら（データの取り扱い）</a></p>
+  <p class="privacy-line" id="dataPolicy">🔒 読み込んだPDFはふだんこの端末の中だけで読みます。<b>大会予定から開いた大会</b>では、ログインしていれば準備の続きのために保存します：ファイルで入れたPDF（5MBまで）は自分だけ／チームのメンバーだけが見られるクラウドに、URLから読んだものはURLだけ（大会終了の1か月後に自動で消えます）。共有リンクを作ったときは、その中身を保存します。「URLから読み込む」のときは、URLと中身が LANE NOTE の中継を通ります（保存しません）。詳しくは <a href="guide.html#data">はじめての人はこちら（データの取り扱い）</a></p>
 </section>
 
 <section class="box" id="inputs">
-  <h2><span class="no">1</span>PDFを入れる <a href="guide.html#data" class="lockbadge">🔒 PDF本文はサーバーへ送りません</a> <button class="btn sub" id="btnReset" type="button">新しい大会を始める（全消去）</button></h2>
+  <h2><span class="no">1</span>PDFを入れる <a href="guide.html#data" class="lockbadge">🔒 保存するのは大会予定から開いたときだけ</a> <button class="btn sub" id="btnReset" type="button">新しい大会を始める（全消去）</button></h2>
   <div class="drops">
     <div class="drop" id="slDrop" tabindex="0"><div class="big">📄 スタートリスト</div><div class="muted small">ここにドラッグ／クリックして選ぶ</div><input type="file" id="slFile" accept="application/pdf,.pdf"><div class="status" id="slStatus"></div></div>
     <div class="drop" id="ttDrop" tabindex="0"><div class="big">🕘 タイムテーブル（競技時間）</div><div class="muted small">ここにドラッグ／クリックして選ぶ<br>（プログラムに時刻が載っている大会は不要）</div><input type="file" id="ttFile" accept="application/pdf,.pdf"><div class="status" id="ttStatus"></div></div>
@@ -842,7 +844,7 @@ __MODEPICK__
     <li>Wordのナンバーカードは「HGP創英角ｺﾞｼｯｸUB」「ＭＳ ゴシック」を使います。フォントは同梱していません（各パソコンに入っているものを使います。無い場合は別のフォントで表示されます）。</li>
     <li>既知の制限：対応を確認した形式は北区型スタートリスト＋タイムテーブル／江東区型プログラムのみ。スキャン（画像）PDFは読めません。複数日の大会は対象日を選んで1日分ずつ出します（日付が書かれていない資料は日付を区別できません）。タイムテーブルの時刻は「組のまとまり」の開始時刻で、後ろの組は遅くなります。参加料は「1種目あたり」の単価だけ自動計算します。</li>
   </ul></details>
-<div class="f-disc">ⓘ 本ツールはPDFの文字を読み取って自動で整理しているだけです。内容は必ず元のスタートリスト・タイムテーブル等と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div><div><b class="f-brand">LANE NOTE</b>（レーンノート）試作版 ／ <span class="f-credit">Presented by Sakata</span></div>🔒 PDF本文はサーバーへ送りません（選手情報は「短いリンク」を作ったときだけ Firebase に保存。部品取得のため外部CDNへ通信します）。 <a href="#dataPolicy" onclick="document.getElementById('dataPolicy').open=true">データの取り扱いについて</a> ／ <a href="records.html">記録（試作）</a><br><button type="button" class="fb-btn" data-feedback="1">📮 不具合・要望を送る</button></footer>
+<div class="f-disc">ⓘ 本ツールはPDFの文字を読み取って自動で整理しているだけです。内容は必ず元のスタートリスト・タイムテーブル等と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div><div><b class="f-brand">LANE NOTE</b>（レーンノート）試作版 ／ <span class="f-credit">Presented by Sakata</span></div>🔒 PDFをクラウドに保存するのは、大会予定から開いた大会でログインしているときだけ（チームはメンバーだけ・期限つき）。選手情報はそのときと「短いリンク」を作ったときだけ Firebase に保存。部品取得のため外部CDNへ通信します）。 <a href="#dataPolicy" onclick="document.getElementById('dataPolicy').open=true">データの取り扱いについて</a> ／ <a href="records.html">記録（試作）</a><br><button type="button" class="fb-btn" data-feedback="1">📮 不具合・要望を送る</button></footer>
 
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG" crossorigin="anonymous"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
