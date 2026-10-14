@@ -625,8 +625,8 @@
     existing.forEach(index);
     var add = [], review = 0;
     list.forEach(function (r0) {
-      var r = Object.assign({}, r0), tg = R.splitTeamGrade(r.team, r.grade);
-      if (tg.changed) { r.team = tg.team; r.grade = tg.grade; }   // v0.26.34「本郷・3」→ 所属「本郷」・学年「3」
+      var r = Object.assign({}, r0), tg = R.fixRecord(r);
+      if (tg.changed) { r.team = tg.team; r.grade = tg.grade; r.event = tg.event; }   // v0.26.34「本郷・3」→ 所属「本郷」・学年「3」
       var fi = R.fullIdentity(r);
       if (hasOwn(full, fi)) return;                                  // 同じ記録
       if (!r.id || hasOwn(byId, r.id)) r.id = R.recId(r.meet, r.date, r);   // IDだけぶつかった別の記録
@@ -1811,10 +1811,12 @@
     var dupHtml = dups.length ? '<details class="card review" open><summary><span class="rv">要確認</span> <b>前の記録と同じかもしれない記録 ' + dups.length + '件</b></summary><p class="small muted">前に保存した記録にナンバーが無いなどで、同じ記録か別の選手か決められなかったので、消さずに入れました。</p><ul class="rvlist">' +
       dups.map(function (r) { var o = ALL.filter(function (x) { return x.id === r.dupOf; })[0]; return '<li><div><b>' + esc(r.name) + '</b> ' + esc(r.event) + ' <b>' + esc(r.mark) + '</b>' + (r.bib ? '（No.' + esc(r.bib) + '）' : '') + '<br><small class="muted">' + esc(r.date + ' ' + r.meet) + (o ? '／前の記録：' + esc(o.name + ' ' + o.mark) + (o.bib ? '（No.' + esc(o.bib) + '）' : '（ナンバーなし）') : '') + '</small></div><span class="rvbtn"><button type="button" class="btn sub" data-dupkeep="' + esc(r.id) + '">別の記録（両方残す）</button><button type="button" class="btn sub danger-t" data-dupdrop="' + esc(r.id) + '">同じ記録（こちらを消す）</button></span></li>'; }).join('') + '</ul></details>' : '';
     // v0.26.34 所属に学年・番号がくっついた記録（「本郷・3」）を直す
-    var tgs = ALL.map(function (r) { return { r: r, x: R.splitTeamGrade(r.team, r.grade) }; }).filter(function (o) { return o.x.changed; });
+    // v0.26.34.1「・3」は支部の番号：学年にしない。学年は種目名（「3支部1年 100m」の「1年」）から。v0.26.34 の「直す」で入った学年のまちがいも直す
+    var tgs = ALL.map(function (r) { return { r: r, x: R.fixRecord(r) }; }).filter(function (o) { return o.x.changed; });
     if (tgs.length) {
-      var grp = {}; tgs.forEach(function (o) { var k = o.r.team + '→' + o.x.team + (o.x.toGrade ? '（学年 ' + o.x.grade + '）' : ''); grp[k] = (grp[k] || 0) + 1; });
-      dupHtml = '<details class="card review" open id="tgFix"><summary><span class="rv">要確認</span> <b>所属に学年・番号がついた記録 ' + tgs.length + '件</b></summary><p class="small muted">「本郷・3」のように、所属の後ろに学年（または速報の支部の番号）がついて保存されています。所属を学校名だけにし、学年が空のときは数字を学年に入れます（1〜3のとき）。</p><ul>' +
+      var nre = tgs.filter(function (o) { return o.x.regrade; }).length;
+      var grp = {}; tgs.forEach(function (o) { var k = tgDesc(o.r, o.x); grp[k] = (grp[k] || 0) + 1; });
+      dupHtml = '<details class="card review" open id="tgFix"><summary><span class="rv">要確認</span> <b>所属・学年・種目名を直せる記録 ' + tgs.length + '件</b>' + (nre ? '（学年のまちがい ' + nre + '件）' : '') + '</summary><p class="small muted">「本郷・3」の「・3」は速報の<b>支部の番号</b>なので、所属から外します（学年にはしません）。学年は種目名の「1年」「中2」から入れ、種目名は「100m」にそろえます。' + (nre ? '前の版の「直す」で、種目名とちがう学年（支部の番号）が入った記録も、種目名の学年に直します。' : '') + '</p><ul>' +
         Object.keys(grp).map(function (k) { return '<li>' + esc(k) + '　<small class="muted">' + grp[k] + '件</small></li>'; }).join('') + '</ul><button class="btn" type="button" data-tgfix="1">直す（' + tgs.length + '件）</button></details>' + dupHtml;
     }
     if (!list.length && !chosen.length) { box.innerHTML = dupHtml; return; }
@@ -1822,14 +1824,21 @@
       list.map(function (x) { return '<li><div><b>' + esc(x.name) + '</b>' + (x.kana ? ' <small class="muted">' + esc(x.kana) + '</small>' : '') + '<br><small class="muted">' + esc(x.team) + '・' + x.ids.length + '件（' + esc(x.dates[0]) + (x.dates.length > 1 && x.dates[x.dates.length - 1] !== x.dates[0] ? '〜' + esc(x.dates[x.dates.length - 1]) : '') + '）<br>' + esc(x.reason) + '</small></div><span class="rvbtn"><button type="button" class="btn sub" data-divpick="jh" data-person="' + esc(x.person) + '">中学</button><button type="button" class="btn sub" data-divpick="hs" data-person="' + esc(x.person) + '">高校</button></span></li>'; }).join('') + '</ul></details>' : '') +
       (chosen.length ? '<details class="small rvdone"><summary>中学/高校を選んだ選手（' + chosen.length + '人）</summary><ul>' + chosen.map(function (k) { return '<li>' + esc(k.split('@')[0]) + '：' + R.divLabel(DIV_OV[k]) + ' <button type="button" class="btn sub" data-divpick="" data-person="' + esc(k) + '">選び直す</button></li>'; }).join('') + '</ul></details>' : '');
   }
+  function tgDesc(r, x) {
+    var a = [];
+    if (x.team !== r.team) a.push('所属 ' + r.team + ' → ' + x.team);
+    if (String(x.grade || '') !== String(r.grade || '')) a.push('学年 ' + (r.grade || '（空）') + ' → ' + (x.grade || '（空）'));
+    if (x.event !== r.event) a.push('種目 ' + r.event + ' → ' + x.event);
+    return a.join('／');
+  }
   $('rbReview').addEventListener('click', async function (e) {
     if (e.target.closest('[data-tgfix]')) {
-      var sc0 = scope(), fx = ALL.map(function (r) { var x = R.splitTeamGrade(r.team, r.grade); if (!x.changed) return null; var o = Object.assign({}, r); o.team = x.team; o.grade = x.grade; return { o: o, from: r.team, to: x.team, g: x.toGrade ? x.grade : '' }; }).filter(Boolean);
+      var sc0 = scope(), fx = ALL.map(function (r) { var x = R.fixRecord(r); if (!x.changed) return null; var o = Object.assign({}, r); o.team = x.team; o.grade = x.grade; o.event = x.event; return { o: o, k: tgDesc(r, x) }; }).filter(Boolean);
       if (!fx.length) return;
       try { await relinkRecs(fx.map(function (x) { return x.o; }), sc0); check(sc0); } catch (x) { if (!isAbort(x)) status('rbDataStatus', '✖ 直せませんでした：' + esc(x.message), 'ng'); return; }
-      var sm = {}; fx.forEach(function (x) { var k = x.from + ' → ' + x.to + (x.g ? '・学年 ' + x.g : ''); sm[k] = (sm[k] || 0) + 1; });
+      var sm = {}; fx.forEach(function (x) { sm[x.k] = (sm[x.k] || 0) + 1; });
       await reload(sc0);
-      status('rbDataStatus', '✔ 所属を直しました（' + fx.length + '件）：' + Object.keys(sm).map(function (k) { return esc(k) + '（' + sm[k] + '件）'; }).join('、'), 'ok');
+      status('rbDataStatus', '✔ 所属・学年・種目名を直しました（' + fx.length + '件）：' + Object.keys(sm).map(function (k) { return esc(k) + '（' + sm[k] + '件）'; }).join('、'), 'ok');
       return;
     }
     var dk = e.target.closest('[data-dupkeep],[data-dupdrop]');

@@ -13,7 +13,7 @@ import base64, hashlib, html as htmlmod, json, pathlib, re, sys
 ROOT = pathlib.Path(__file__).resolve().parent
 S = ROOT / 'src'
 SHARE_BASE = 'https://masarun0721.github.io/lane-note/'   # 共有リンク・QRの公開アドレス（file:// で開いたとき用）
-VERSION = 'v0.26.34'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
+VERSION = 'v0.26.34.1'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
 # 作成日は版番号から取れないので固定（ビルドした日で変わると、公開時の一致検査ができないため）
 BUILD_DATE = '2026年10月12日'
 REC_VERSION = 'v0.11.1'   # LANE LOG（records.html）だけの版
@@ -224,9 +224,25 @@ NAV_CSS = (
     '.pagenav.ln-nav{gap:6px}.ln-nav .pn-main,.ln-nav .pn-menu{padding:3px 9px;font-size:13px}.ln-nav .pn-menu{display:inline-flex}'
     '.ln-nav .pn-sub{display:none;flex-basis:100%;flex-direction:column;align-items:stretch;gap:6px;box-sizing:border-box;max-width:100%;background:rgba(15,22,40,.92);border:1px solid rgba(255,255,255,.35);border-radius:12px;padding:10px}'
     '.ln-nav.open .pn-sub{display:flex}.ln-nav .pn-sub>*{justify-content:flex-start;min-height:40px;font-size:15px}}'
+    # v0.26.34.1 PCでもボタンが入りきらないときは、使うことの少ないものから「≡ メニュー」へ（JSで幅を測る）。利用回数の分は右をあける
+    '@media screen and (min-width:721px){.pagenav.ln-nav{flex-wrap:nowrap}.ln-nav.fold .pn-menu{display:inline-flex}'
+    '.ln-nav .pn-more{display:none}.ln-nav.fold.open .pn-more{display:flex;flex-direction:column;align-items:stretch;gap:6px;position:absolute;right:0;top:calc(100% + 6px);z-index:30;min-width:220px;background:rgba(15,22,40,.96);border:1px solid rgba(255,255,255,.35);border-radius:12px;padding:10px}'
+    '.ln-nav .pn-more>*{justify-content:flex-start;min-height:36px}}'
+    '@media screen and (max-width:720px){.ln-nav .pn-more{display:none!important}}'
     '@media print{.ln-nav{display:none!important}}'
     '</style>')
 NAV_JS = ('<script>(function () { var n = document.currentScript.parentNode, m = n.querySelector(".pn-menu");'
+          ' var sub = n.querySelector(".pn-sub"), more = document.createElement("div"); more.className = "pn-more"; more.id = "lnNavMore"; n.insertBefore(more, sub);'
+          ' var orig = [].slice.call(sub.children), ORD = ["guide", "try", "manual", "changelog", "team", "feedback", ".mode-sw", "schedule"];'
+          ' function el(k) { return k.charAt(0) === "." ? sub.querySelector(k) || more.querySelector(k) : n.querySelector("[data-tb=" + k + "]:not(.pn-main)"); }'
+          ' function fit() { orig.forEach(function (x) { sub.appendChild(x); }); n.classList.remove("fold"); n.style.paddingRight = "";'
+          '  var c = document.querySelector(".hdr-meta>.use-count"), nr = n.getBoundingClientRect();'
+          '  if (c && !c.hidden && c.offsetWidth) { var cr = c.getBoundingClientRect(); if (cr.bottom > nr.top - 2 && cr.top < nr.top + 34 && cr.left < nr.right) n.style.paddingRight = Math.ceil(nr.right - cr.left + 8) + "px"; }'
+          '  if (window.matchMedia && window.matchMedia("(max-width:720px)").matches) return;'
+          '  for (var i = 0; i < ORD.length && over(); i++) { var x = el(ORD[i]); if (x && x.offsetWidth) { more.appendChild(x); n.classList.add("fold"); } } }'
+          ' function over() { var lim = n.getBoundingClientRect().right - (parseFloat(n.style.paddingRight) || 0) + 1; return [].some.call(n.querySelectorAll(".pn-main,.pn-menu,.pn-sub>*"), function (x) { return x.offsetWidth && x.getBoundingClientRect().right > lim; }); }'
+          ' window.__lnNavFit = fit; window.addEventListener("resize", fit); window.addEventListener("load", fit); setTimeout(fit, 0);'
+          ' var cc = document.querySelector(".hdr-meta>.use-count"); if (cc && window.MutationObserver) new MutationObserver(function () { setTimeout(fit, 0); }).observe(cc, { attributes: true, childList: true, subtree: true });'
           ' m.addEventListener("click", function (e) { e.stopPropagation(); var o = n.classList.toggle("open"); m.setAttribute("aria-expanded", o); });'
           ' document.addEventListener("click", function (e) { if (!n.contains(e.target) && n.classList.contains("open")) { n.classList.remove("open"); m.setAttribute("aria-expanded", "false"); } });'
           ' document.addEventListener("keydown", function (e) { if (e.key === "Escape" && n.classList.contains("open")) { n.classList.remove("open"); m.setAttribute("aria-expanded", "false"); m.focus(); } });'

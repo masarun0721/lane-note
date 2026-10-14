@@ -11,7 +11,7 @@ await check('どのページの見出しにも「⏱ 3分体験」と「👥 チ
 });
 await check('選手モード（body.ln-player）では「チーム」を出さない', () => { for (const p of PAGES) assert.match(dist(p), /body\.ln-player \.ln-nav \.pn-main,body\.ln-player \.ln-nav \.tb-team/, p); });
 await check('team.html は記録のページと同じ部品で、team-page の印・題名・今のページの印', () => { const t = dist('team.html'); assert.match(t, /<body class="records team-page">/); assert.match(t, /<title>LANE NOTE チームの設定<\/title>/); assert.match(t, /tb-team on" data-tb="team" aria-current="page"/); assert.doesNotMatch(t, /pn-main on/); assert.doesNotMatch(dist('records.html'), /team-page">/); });
-await check('Service Worker：team.html も保存・ページは毎回サーバーに確かめる（古い記録ページを出さない）・キャッシュ名は版つき', () => { const s = dist('sw.js'); assert.match(s, /\.\/team\.html/); assert.match(s, /fetch\(r, \{ cache: 'no-cache' \}\)/); assert.match(s, /var CACHE = 'lanenote-page-v0\.26\.\d+-r/); });
+await check('Service Worker：team.html も保存・ページは毎回サーバーに確かめる（古い記録ページを出さない）・キャッシュ名は版つき', () => { const s = dist('sw.js'); assert.match(s, /\.\/team\.html/); assert.match(s, /fetch\(r, \{ cache: 'no-cache' \}\)/); assert.match(s, /var CACHE = 'lanenote-page-v0\.26\.\d+(\.\d+)?-r/); });
 async function recW(teamPage) {
   const html = src('records_template.html').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '').replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '').replace(/__[A-Z_]+__/g, '').replace('<body class="records">', teamPage ? '<body class="records team-page">' : '<body class="records">');
   const d = new JSDOM(html, { url: 'https://masarun0721.github.io/lane-note/' + (teamPage ? 'team' : 'records') + '.html', runScripts: 'outside-only', virtualConsole: new VirtualConsole() }); await delay();

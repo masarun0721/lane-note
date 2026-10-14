@@ -22,13 +22,14 @@ const st = () => p.evaluate(() => {
   const cur = [...n.querySelectorAll('[aria-current="page"]')].map(e => e.getAttribute('data-tb'));
   const navs = document.querySelectorAll('nav.pagenav').length, rows = [...document.querySelectorAll('.topbar .tb-btn, .topbar summary')].filter(e => e.getBoundingClientRect().height > 0).length;
   const over = [...n.querySelectorAll('[data-tb],#modeSw,.pn-menu')].filter(vis).some(e => e.getBoundingClientRect().right > innerWidth + 0.5 || e.getBoundingClientRect().left < -0.5);
-  return { items, shown, cur, navs, rows, over, sw: document.documentElement.scrollWidth, iw: innerWidth, inHeader: !!n.closest('header') };
+  const more = [...(document.getElementById('lnNavMore') || { children: [] }).children].map(e => e.getAttribute('data-tb') || 'mode');
+  return { more, items, shown, cur, navs, rows, over, sw: document.documentElement.scrollWidth, iw: innerWidth, inHeader: !!n.closest('header') };
 });
 const sets = {};
 for (const [u, k] of PAGES) {
   await open(u, PC); let s = await st(); sets[u] = s.items;
   ok(u + ' PC：ヘッダーの中に1つだけ・ページ内の別のボタン列はない・今のページを強調', s.navs === 1 && s.inHeader && s.rows === 0 && s.cur.length === 1 && s.cur[0] === k, JSON.stringify(s));
-  ok(u + ' PC：全部のボタンが同じ順で見えて、はみ出さない', s.items === ORDER + ',mode' && s.shown.join(',') === ORDER + ',mode' && !s.over, JSON.stringify(s));
+  ok(u + ' PC：全部のボタンが同じ順で見える（入りきらない分は「≡ メニュー」の中・v0.26.34.1）、はみ出さない', s.items.split(',').sort().join() === (ORDER + ',mode').split(',').sort().join() && (() => { const all = (ORDER + ',mode').split(','), sh = s.shown.filter(x => x !== 'menu'); return all.filter(x => sh.includes(x)).join() === sh.join() && all.every(x => sh.includes(x) || s.more.includes(x)) && (s.more.length === 0 || s.shown.includes('menu')); })() && !s.over, JSON.stringify(s));
   if (SHOT && ['records.html', 'team.html', 'guide.html', 'try.html'].includes(u)) { await (await p.$('header')).screenshot({ path: SHOT + '_' + k + '_pc.png' }); }
   await open(u, PH); s = await st();
   ok(u + ' スマホ：記録・大会準備・照合と「≡ メニュー」だけ・はみ出さない', s.shown.join(',') === 'records,index,check,menu' && !s.over && s.sw <= s.iw, JSON.stringify(s));

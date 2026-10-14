@@ -114,7 +114,7 @@ console.log('[6] 中学・高校の区分と学年別（v0.4・同じ系列の�
   {type:'text',v:'男子中学2年 １００ｍ 決勝'},{type:'row',cells:['順位','ﾚｰﾝ','Bib','氏名','所属','記録','風']},{type:'row',cells:['1','4','12','中二 次郎(2)','架空中','12.40','+0.3']},
   {type:'text',v:'男子高校 １００ｍ 決勝'},{type:'row',cells:['順位','ﾚｰﾝ','Bib','氏名','所属','記録','風']},{type:'row',cells:['1','4','13','高二 五郎(2)','架空高','11.10','+1.2']},{type:'row',cells:['','5','14','高一 欠場(1)','架空高','DNS','+1.2']}];
  const pr=R.parseCells(st,{school:'架空'});
- ok(pr.recs.map(r=>R.eventKey(r)).join()==='jh:男子100m,jh:男子100m,hs:男子100m,hs:男子100m'&&pr.recs[0].event!==pr.recs[1].event,'見出しごとに種目・区分が切り替わる（元の種目名は残る）');
+ ok(pr.recs.map(r=>R.eventKey(r)).join()==='jh:男子100m,jh:男子100m,hs:男子100m,hs:男子100m'&&pr.recs[0].grade==='中1'&&pr.recs[1].grade==='中2','見出しごとに種目・区分が切り替わる（v0.26.34.1：種目名の「中学1年」は学年に入れて、種目は100mにそろえる）');
  ok(pr.recs[3].mark==='DNS'&&pr.recs[3].wind===''&&R.shownWind(pr.recs[3])===''&&R.shownWind(pr.recs[2])==='+1.2','DNSには風を入れない・出さない');
  ok(R.shownWind({event:'男子100m',mark:'DNF',wind:'+1.0'})===''&&R.shownWind({event:'男子100m',mark:'DQ',wind:'+1.0'})===''&&R.shownWind({event:'男子400m',mark:'55.00',wind:'+1.0'})==='','DNF・失格・風のない種目は風を出さない');}
 console.log('[7] 選手別の並び・グラフの参考記録');

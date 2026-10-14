@@ -7,7 +7,8 @@ const R = createRequire(import.meta.url)('../src/results.js');
 let pass = 0, fail = 0; async function check(n, f) { try { await f(); pass++; console.log('  ok', n); } catch (e) { fail++; console.log('  NG', n, '\n    ', e && e.stack || e); } }
 console.log('[v0.26.34] 所属と学年・中学/高校・種目の一覧');
 await check('「架空・3」「架空･2」「架空 3年」を所属と学年に分ける（学年が空のときだけ学年に。4以上の番号は学年にしない）', () => {
-  assert.deepEqual([R.splitTeamGrade('架空・3', '').team, R.splitTeamGrade('架空・3', '').grade], ['架空', '3']);
+  assert.deepEqual([R.splitTeamGrade('架空・3', '').team, R.splitTeamGrade('架空・3', '').grade], ['架空', '']);   // v0.26.34.1 ・3 は支部の番号
+  assert.equal(R.splitTeamGrade('架空・3', '', { gradeHeader: true }).grade, '3');
   assert.deepEqual([R.splitTeamGrade('架空･2', '1').team, R.splitTeamGrade('架空･2', '1').grade], ['架空', '1']);
   assert.deepEqual([R.splitTeamGrade('架空 3年', '').team, R.splitTeamGrade('架空 3年', '').grade], ['架空', '3']);
   assert.equal(R.splitTeamGrade('架空・5', '').grade, ''); assert.equal(R.splitTeamGrade('架空・5', '').team, '架空');
@@ -74,11 +75,11 @@ await check('保存済みの「架空・3」：要確認に件数と直し方を
   const stn = db.objectStoreNames[0];
   await new Promise(ok => { const tx = db.transaction(stn, 'readwrite'), st = tx.objectStore(stn); for (const [i, t, g] of [[1, '架空・3', ''], [2, '架空・3', ''], [3, '架空･2', '2']]) st.put({ id: 'old' + i, name: '架空 五郎' + i, team: t, grade: g, event: '男子110mJH', mark: '16.51', date: '2026-05-30', meet: '架空学年別' }); tx.oncomplete = ok; });
   db.close(); await T.reload(sc); await delay(100);
-  const box = doc.getElementById('tgFix'); assert(box, doc.getElementById('rbReview').textContent.slice(0, 200)); assert(/3件/.test(box.textContent) && /架空・3→架空（学年 3）/.test(box.textContent), box.textContent);
+  const box = doc.getElementById('tgFix'); assert(box, doc.getElementById('rbReview').textContent.slice(0, 200)); assert(/3件/.test(box.textContent) && /所属 架空・3 → 架空/.test(box.textContent), box.textContent);
   doc.querySelector('[data-tgfix]').click(); await delay(400);
   const rs = T.all().filter(x => /^old/.test(x.id)).sort((a, b) => a.id < b.id ? -1 : 1).map(x => [x.id, x.team, x.grade, x.event]);
-  assert.deepEqual(rs, [['old1', '架空', '3', '男子110mJH'], ['old2', '架空', '3', '男子110mJH'], ['old3', '架空', '2', '男子110mJH']]);
-  const st = doc.getElementById('rbDataStatus').textContent; assert(/所属を直しました（3件）/.test(st) && /架空・3 → 架空・学年 3（2件）/.test(st), st);
+  assert.deepEqual(rs, [['old1', '架空', '', '男子110mJH'], ['old2', '架空', '', '男子110mJH'], ['old3', '架空', '2', '男子110mJH']]);
+  const st = doc.getElementById('rbDataStatus').textContent; assert(/所属・学年・種目名を直しました（3件）/.test(st) && /所属 架空・3 → 架空（2件）/.test(st), st);
   assert(!doc.getElementById('tgFix'));
 });
 console.log(`v02634_team_grade: ${pass} ok / ${fail} NG`); process.exit(fail ? 1 : 0);
