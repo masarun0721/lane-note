@@ -73,9 +73,39 @@ var ResultParser = (function () {
   // 中学／高校：所属の「中・高」→ 種目見出しの「中学・高校」→ 学年の「中2・高1」の順で決める。決められなければ ''
   var DIV_HINTS = {};   // v0.5：所属に中・高の無い記録の区分（推測・手で選んだもの）。記録の id → 'jh'|'hs'
   function setDivisionHints(m) { DIV_HINTS = m || {}; }
+  /* v0.26.34 記録の中学／高校（ランキング・PB の区分）。決め方の順：
+     ①学年に「中／高」がある（中2・高1）②所属の学校名（〜中・〜高・中体連の「地区・学校」）③大会予定の区分（中学／高校）④種目名（中学100m）
+     ⑤同じ選手のほかの記録からの推測（DIV_HINTS）⑥わからなければ ''（学年の数字だけ「3」では中学にしない）
+     「110mJH」は種目名のまま別の種目（110mH にまとめない）。区分は選手（学年・学校名など）に従う。
+     ※ rawDivisionOf は記録のID・同じ記録の判定に使うので変えない */
+  var MEET_DIV = {};   // 大会（日付|大会名）→ 'jh'|'hs'（大会予定で選んだ区分）
+  function setMeetDivs(m) { MEET_DIV = m || {}; }
+  function divSource(r) {
+    r = r || {};
+    var g = nk(r.grade || '').trim(); if (/^中/.test(g)) return { d: 'jh', src: 'grade' }; if (/^高/.test(g)) return { d: 'hs', src: 'grade' };
+    var t = normSchool(r.team || '');
+    if (/(中学校|中学|中等教育学校|中)$/.test(t) || cyuTeam(r.team)) return { d: 'jh', src: 'team' };
+    if (/(高等学校|高校|高)$/.test(t)) return { d: 'hs', src: 'team' };
+    var md = r.date && r.meet ? MEET_DIV[r.date + '|' + r.meet] : ''; if (md) return { d: md, src: 'meet' };
+    var e = nk(r.event || '').replace(/\s+/g, '');
+    if (/中学|中[1-3](?!\d)/.test(e)) return { d: 'jh', src: 'event' };
+    if (/高校|高[1-3](?!\d)/.test(e)) return { d: 'hs', src: 'event' };
+    return { d: '', src: '' };
+  }
+  function jhOnlyEvent(ev) { return /\d+mJH|ジュニアハードル/i.test(nk(ev || '').replace(/\s+/g, '')); }
   function divisionOf(r) {
-    if (r && r.id && DIV_HINTS[r.id]) return DIV_HINTS[r.id];
-    return rawDivisionOf(r);
+    var s = divSource(r); return s.d || (r && r.id && DIV_HINTS[r.id]) || '';
+  }
+  // 画面に出す「なぜ中学／高校か」
+  function divisionWhy(r) { var s = divSource(r); if (s.d) return { grade: '学年', team: '学校名', meet: '大会予定の区分', event: '種目名' }[s.src]; return r && r.id && DIV_HINTS[r.id] ? '同じ選手のほかの記録から推測' : ''; }
+  /* v0.26.34 所属の欄に学年・番号がくっついた形「本郷・3」「本郷･3」「本郷 3年」を分ける。学年が空で 1〜3（「年」つきは1〜6）なら学年にする */
+  function splitTeamGrade(team, grade) {
+    var t = nk(String(team || '')).replace(/[\s\u3000]+$/, ''), g = nk(String(grade == null ? '' : grade)).trim(), m, num = '', yr = false;
+    if ((m = t.match(/^(.*?[^\s・･])[\s\u3000]*[・･][\s\u3000]*(\d{1,2})$/))) num = m[2];
+    else if ((m = t.match(/^(.*?\S)[\s\u3000]+([1-6])[\s\u3000]*年生?$/))) { num = m[2]; yr = true; }
+    if (!num || /^\d+$/.test(m[1].replace(/[\s・･]/g, ''))) return { team: team, grade: grade, changed: false };
+    var ng = grade; if (!g && (yr ? /^[1-6]$/ : /^[1-3]$/).test(num)) ng = num;
+    return { team: m[1].trim(), grade: ng, changed: true, num: num, toGrade: ng !== grade };
   }
   function rawDivisionOf(r) {
     var t = normSchool(r && r.team || '');
@@ -105,8 +135,10 @@ var ResultParser = (function () {
   function genderText(r) {
     var g = (normEvent(r && r.event || '').match(/^(男子|女子)/) || [])[1]; if (g) return g;
     var x = nk(String(r && (r.sex || r.gender) || '')); if (/女|^f/i.test(x)) return '女子'; if (/男|^m/i.test(x)) return '男子';
-    return G_HINT[athleteKey(r)] || '';
+    return G_HINT[athleteKey(r)] || G_DEF;
   }
+  var G_DEF = '';   // v0.26.34：表に男女が1つだけのとき、男女の書いていない記録もそれにそろえる（種目の重複を防ぐ）
+  function setGenderDefault(g) { G_DEF = g === 'm' ? '男子' : g === 'f' ? '女子' : ''; }
   function baseEvent(ev) {
     var n = normEvent(ev).replace(/^(男子|女子)/, ''), prev;
     do { prev = n; n = n.replace(CAT_RE, ''); } while (n !== prev && n);
@@ -458,6 +490,7 @@ var ResultParser = (function () {
     return res;
   }
   function dedupe(recs) {
+    recs.forEach(function (r) { var x = splitTeamGrade(r.team, r.grade); if (x.changed) { r.team = x.team; r.grade = x.grade; } });   // v0.26.34「本郷・3」→ 所属・学年
     var seen = {}, out = [];
     // v0.6（監査F06）：所属（完全な形）・中学/高校・ナンバーもキーに入れる（別の学校の同じ名前・同じ記録の選手を1人にまとめない）
     // v0.7（再監査A03）：保存のID・保存時の重なり判定と同じ identityParts を使う
@@ -691,7 +724,12 @@ var ResultParser = (function () {
   function groupEvents(keys, rows, noGender) {
     var rep = {}; rows.forEach(function (r) { var k = eventKey(r); if (!rep[k]) rep[k] = r; });
     var list = keys.filter(function (k) { return rep[k]; }).map(function (k) { return rep[k]; }).sort(cmpEventRec), out = [], cur = null;
-    list.forEach(function (r) { var g = divGroup(r); if (!cur || cur.group !== g) { cur = { group: g, items: [] }; out.push(cur); } cur.items.push({ key: eventKey(r), label: eventKeyLabel(r, noGender), rec: r }); });
+    var by = {}, seen = {};
+    list.forEach(function (r) {   // v0.26.34：同じ区分の見出しは1つ・同じ表示の種目は1つ（先に並んだほう）
+      var g = divGroup(r), lb = eventKeyLabel(r, noGender); if (seen[g + '|' + lb]) return; seen[g + '|' + lb] = 1;
+      if (!by[g]) { by[g] = { group: g, items: [] }; out.push(by[g]); } by[g].items.push({ key: eventKey(r), label: lb, rec: r });
+    });
+    cur = out[out.length - 1] || null;
     keys.filter(function (k) { return !rep[k]; }).forEach(function (k) { if (!cur || cur.group !== 'その他') { cur = { group: 'その他', items: [] }; out.push(cur); } cur.items.push({ key: k, label: k, rec: null }); });
     return out;
   }
@@ -706,7 +744,7 @@ var ResultParser = (function () {
     overrides = overrides || {};
     var known = {}, unknown = {};
     recs.forEach(function (r) {
-      var k = personKey(r), d = rawDivisionOf(r);
+      var k = personKey(r), d = divSource(r).d;
       if (d) (known[k] = known[k] || []).push(r); else (unknown[k] = unknown[k] || []).push(r);
     });
     var hints = {}, review = [];
@@ -714,7 +752,7 @@ var ResultParser = (function () {
       var us = unknown[k], ov = overrides[k];
       if (ov === 'jh' || ov === 'hs') { us.forEach(function (r) { hints[r.id] = ov; }); return; }
       var ks = (known[k] || []).filter(function (x) { var a = kanaKey(x.kana), b = kanaKey(us[0].kana); return !a || !b || a === b; });
-      var divs = {}; ks.forEach(function (x) { divs[rawDivisionOf(x)] = 1; });
+      var divs = {}; ks.forEach(function (x) { divs[divSource(x).d] = 1; });
       var dl = Object.keys(divs), reason = '', undecided = [];
       if (!dl.length) reason = 'ほかの大会に、中学か高校かがわかる記録がありません';
       else if (dl.length > 1) reason = '同じ名前の選手が中学にも高校にもいます';
@@ -725,6 +763,12 @@ var ResultParser = (function () {
           if (u != null && ss.length) {
             if (d === 'jh') { var mx = ss.reduce(function (a, b) { return b.s > a.s || (b.s === a.s && (b.g || 0) > (a.g || 0)) ? b : a; }); if (u > mx.s) ok = mx.g != null && u - mx.s <= 3 - mx.g; }
             else { var mn = ss.reduce(function (a, b) { return b.s < a.s || (b.s === a.s && (b.g || 9) < (a.g || 9)) ? b : a; }); if (u < mn.s) ok = mn.g != null && mn.s - u <= mn.g - 1; }
+          }
+          // v0.26.34：記録に学年の数字があるときは、前の記録から数えた学年と合うときだけ（高3の「3」を中3にしない）
+          var rg = gradeNum(r.grade);
+          if (ok && rg != null && u != null && ss.length) {
+            var ref = ss.filter(function (x) { return x.g != null; }).sort(function (a, b) { return Math.abs(u - a.s) - Math.abs(u - b.s); })[0];
+            if (!ref || (d === 'jh' ? ref.g + (u - ref.s) : ref.g + (u - ref.s)) !== rg) ok = false;
           }
           if (ok) hints[r.id] = d; else undecided.push(r);
         });
@@ -1201,7 +1245,7 @@ var ResultParser = (function () {
   }
   var PLAN_TEMPLATE = '大会名,日付,終了日,会場,区分,締切\n東京都高校新人陸上競技大会 支部予選,2026/9/12,2026/9/13,駒沢オリンピック公園陸上競技場,高,2026/8/28\n江東区中学校秋季陸上競技大会,2026/10/4,,夢の島競技場,中,\n';
   /* v0.26.30 Google カレンダーなどの iCal（.ics）→ 大会予定の行（parseMeetPlan と同じ形）。終日の DTEND は「次の日」なので1日戻す。時刻つきは日本時間の日付 */
-  function guessDiv(name) { var s = nk(String(name || '')); return /(中学|中体連|中学校|中学生|ジュニア|JH)/i.test(s) && !/高校|高体連/.test(s) ? '中学' : /(高校|高体連|高等学校|インターハイ|IH)/i.test(s) ? '高校' : ''; }
+  function guessDiv(name) { var s = nk(String(name || '')); return /(中学|中体連|中学校|中学生|JH)/i.test(s) && !/高校|高体連/.test(s) ? '中学' : /(高校|高体連|高等学校|インターハイ|IH)/i.test(s) ? '高校' : ''; }
   /* v0.26.32 カレンダーの予定が大会らしいか（meet：大会らしい／not：大会ではなさそう／unk：大会か不明） */
   var MEET_RE = /(大会|選手権|記録会|競技会|駅伝|支部|ジュニア|新人|総体|インハイ|インターハイ|通信|公式|予選|決勝|マラソン|リレー|秋季|春季|夏季|冬季|区大会|都大会|県大会|府大会|道大会|陸上競技|陸協|中体連|高体連)/i;
   var NOT_RE = /(部活|練習|会議|休み|休養|オフ|OFF|清掃|保護者会|面談|終了後|活動なし|自主練|朝練|ミーティング|打ち合わせ|打合せ|説明会|試験|テスト期間|職員|研修)/i;
@@ -1284,7 +1328,7 @@ var ResultParser = (function () {
     computeBests: computeBests, baseEvent: baseEvent, learnGenders: learnGenders, isRelay: isRelay, relayEvent: relayEvent, relayTeamBase: relayTeamBase, matchRelayTeam: matchRelayTeam, parseRelayGold: parseRelayGold, parseRelayPdf: parseRelayPdf, mergeRelays: mergeRelays, legsText: legsText, parseLegs: parseLegs, relayRecord: relayRecord, pbLookup: pbLookup, nameKey: nameKey, athleteKey: athleteKey, matchSchool: matchSchool, cleanMark: cleanMark, isTag: isTag, canonSchool: canonSchool, cyuTeam: cyuTeam, recId: recId, recIdLegacy: recIdLegacy, recIdV6: recIdV6, identityKey: identityKey, fullIdentity: fullIdentity, looseIdentity: looseIdentity, manualRecord: manualRecord, sanitizeRecord: sanitizeRecord, validDate: validDate, normManualWind: normManualWind, dedupe: dedupe, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
     guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText,
     eventCat: eventCat, divisionOf: divisionOf, divLabel: divLabel, eventKey: eventKey, eventKeyLabel: eventKeyLabel, shownWind: shownWind, hasMark: hasMark, sortAthletes: sortAthletes, kanaKey: kanaKey,
-    setDivisionHints: setDivisionHints, rawDivisionOf: rawDivisionOf, genderOf: genderOf, divGroup: divGroup, disciplineOrder: disciplineOrder, groupEvents: groupEvents, gendersIn: gendersIn, GROUPS: GROUPS,
+    setGenderDefault: setGenderDefault, setDivisionHints: setDivisionHints, setMeetDivs: setMeetDivs, divSource: divSource, divisionWhy: divisionWhy, splitTeamGrade: splitTeamGrade, jhOnlyEvent: jhOnlyEvent, rawDivisionOf: rawDivisionOf, genderOf: genderOf, divGroup: divGroup, disciplineOrder: disciplineOrder, groupEvents: groupEvents, gendersIn: gendersIn, GROUPS: GROUPS,
     personKey: personKey, inferDivisions: inferDivisions, mapHeaders: mapHeaders, findHeaderRow: findHeaderRow, parseDateCell: parseDateCell, normImportMark: normImportMark, dupCheck: dupCheck, parseMeetPlan: parseMeetPlan, parseIcs: parseIcs, icsBytesToText: icsBytesToText, guessDiv: guessDiv, meetClass: meetClass, splitVenue: splitVenue, meetNorm: meetNorm, planKey: planKey, PLAN_TEMPLATE: PLAN_TEMPLATE, sheetEvent: sheetEvent, sheetBlocks: sheetBlocks, importBlock: importBlock, importWorkbook: importWorkbook, importRows: importRows, splitTable: splitTable, isTable: isTable, FIELD_LABELS: FIELD_LABELS, isFieldEvent: isFieldEvent };
 })();
 if (typeof module !== 'undefined') module.exports = ResultParser;

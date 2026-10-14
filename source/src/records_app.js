@@ -573,7 +573,8 @@
     finally { b.disabled = false; if (msg) status('rbDataStatus', msg, /^✖/.test(msg) ? 'ng' : /^✔/.test(msg) ? 'ok' : ''); }
     await reload(sc);
   }
-  function applyInference() { var inf = R.inferDivisions(ALL, DIV_OV); R.setDivisionHints(inf.hints); REVIEW = inf.review; R.learnGenders(ALL); }
+  function meetDivs() { var o = {}; Object.keys(METS).forEach(function (k) { var d = METS[k] && METS[k].div; if (d === '中学' || d === '高校') o[k] = d === '中学' ? 'jh' : 'hs'; }); return o; }   // v0.26.34 大会予定の区分
+  function applyInference() { R.setMeetDivs(meetDivs()); var inf = R.inferDivisions(ALL, DIV_OV); R.setDivisionHints(inf.hints); REVIEW = inf.review; R.learnGenders(ALL); }
   var WEATHERS = [['晴', '☀️'], ['晴時々曇', '🌤'], ['曇', '⛅'], ['小雨', '🌦'], ['雨', '🌧'], ['雪', '❄'], ['強風', '🌬']];
   function wIcon(w) { for (var i = 0; i < WEATHERS.length; i++) if (WEATHERS[i][0] === w) return WEATHERS[i][1]; return ''; }
   function weatherText(key) { var m = METS[key]; if (!m) return ''; var t = []; if (m.weather) t.push(wIcon(m.weather) + ' ' + m.weather); if (m.temp != null) t.push(m.temp + '℃'); if (m.humidity != null) t.push('湿度' + m.humidity + '%'); return t.join(' '); }
@@ -624,7 +625,9 @@
     existing.forEach(index);
     var add = [], review = 0;
     list.forEach(function (r0) {
-      var r = Object.assign({}, r0), fi = R.fullIdentity(r);
+      var r = Object.assign({}, r0), tg = R.splitTeamGrade(r.team, r.grade);
+      if (tg.changed) { r.team = tg.team; r.grade = tg.grade; }   // v0.26.34「本郷・3」→ 所属「本郷」・学年「3」
+      var fi = R.fullIdentity(r);
       if (hasOwn(full, fi)) return;                                  // 同じ記録
       if (!r.id || hasOwn(byId, r.id)) r.id = R.recId(r.meet, r.date, r);   // IDだけぶつかった別の記録
       if (hasOwn(byId, r.id)) return;
@@ -1807,12 +1810,28 @@
     var dups = ALL.filter(function (r) { return r.dupOf; });
     var dupHtml = dups.length ? '<details class="card review" open><summary><span class="rv">要確認</span> <b>前の記録と同じかもしれない記録 ' + dups.length + '件</b></summary><p class="small muted">前に保存した記録にナンバーが無いなどで、同じ記録か別の選手か決められなかったので、消さずに入れました。</p><ul class="rvlist">' +
       dups.map(function (r) { var o = ALL.filter(function (x) { return x.id === r.dupOf; })[0]; return '<li><div><b>' + esc(r.name) + '</b> ' + esc(r.event) + ' <b>' + esc(r.mark) + '</b>' + (r.bib ? '（No.' + esc(r.bib) + '）' : '') + '<br><small class="muted">' + esc(r.date + ' ' + r.meet) + (o ? '／前の記録：' + esc(o.name + ' ' + o.mark) + (o.bib ? '（No.' + esc(o.bib) + '）' : '（ナンバーなし）') : '') + '</small></div><span class="rvbtn"><button type="button" class="btn sub" data-dupkeep="' + esc(r.id) + '">別の記録（両方残す）</button><button type="button" class="btn sub danger-t" data-dupdrop="' + esc(r.id) + '">同じ記録（こちらを消す）</button></span></li>'; }).join('') + '</ul></details>' : '';
+    // v0.26.34 所属に学年・番号がくっついた記録（「本郷・3」）を直す
+    var tgs = ALL.map(function (r) { return { r: r, x: R.splitTeamGrade(r.team, r.grade) }; }).filter(function (o) { return o.x.changed; });
+    if (tgs.length) {
+      var grp = {}; tgs.forEach(function (o) { var k = o.r.team + '→' + o.x.team + (o.x.toGrade ? '（学年 ' + o.x.grade + '）' : ''); grp[k] = (grp[k] || 0) + 1; });
+      dupHtml = '<details class="card review" open id="tgFix"><summary><span class="rv">要確認</span> <b>所属に学年・番号がついた記録 ' + tgs.length + '件</b></summary><p class="small muted">「本郷・3」のように、所属の後ろに学年（または速報の支部の番号）がついて保存されています。所属を学校名だけにし、学年が空のときは数字を学年に入れます（1〜3のとき）。</p><ul>' +
+        Object.keys(grp).map(function (k) { return '<li>' + esc(k) + '　<small class="muted">' + grp[k] + '件</small></li>'; }).join('') + '</ul><button class="btn" type="button" data-tgfix="1">直す（' + tgs.length + '件）</button></details>' + dupHtml;
+    }
     if (!list.length && !chosen.length) { box.innerHTML = dupHtml; return; }
     box.innerHTML = dupHtml + (list.length ? '<details class="card review" open><summary><span class="rv">要確認</span> <b>中学か高校かわからない選手 ' + list.length + '人</b></summary><p class="small muted">所属が「' + esc(s || '学校・クラブ名') + '」だけで、ほかの大会からも決められなかった選手です。選ぶとこの端末（ログイン中はクラウド）に覚えて、ランキングや自己ベストに入ります。選ぶまでは「すべて」にだけ出ます。</p><ul class="rvlist">' +
       list.map(function (x) { return '<li><div><b>' + esc(x.name) + '</b>' + (x.kana ? ' <small class="muted">' + esc(x.kana) + '</small>' : '') + '<br><small class="muted">' + esc(x.team) + '・' + x.ids.length + '件（' + esc(x.dates[0]) + (x.dates.length > 1 && x.dates[x.dates.length - 1] !== x.dates[0] ? '〜' + esc(x.dates[x.dates.length - 1]) : '') + '）<br>' + esc(x.reason) + '</small></div><span class="rvbtn"><button type="button" class="btn sub" data-divpick="jh" data-person="' + esc(x.person) + '">中学</button><button type="button" class="btn sub" data-divpick="hs" data-person="' + esc(x.person) + '">高校</button></span></li>'; }).join('') + '</ul></details>' : '') +
       (chosen.length ? '<details class="small rvdone"><summary>中学/高校を選んだ選手（' + chosen.length + '人）</summary><ul>' + chosen.map(function (k) { return '<li>' + esc(k.split('@')[0]) + '：' + R.divLabel(DIV_OV[k]) + ' <button type="button" class="btn sub" data-divpick="" data-person="' + esc(k) + '">選び直す</button></li>'; }).join('') + '</ul></details>' : '');
   }
   $('rbReview').addEventListener('click', async function (e) {
+    if (e.target.closest('[data-tgfix]')) {
+      var sc0 = scope(), fx = ALL.map(function (r) { var x = R.splitTeamGrade(r.team, r.grade); if (!x.changed) return null; var o = Object.assign({}, r); o.team = x.team; o.grade = x.grade; return { o: o, from: r.team, to: x.team, g: x.toGrade ? x.grade : '' }; }).filter(Boolean);
+      if (!fx.length) return;
+      try { await relinkRecs(fx.map(function (x) { return x.o; }), sc0); check(sc0); } catch (x) { if (!isAbort(x)) status('rbDataStatus', '✖ 直せませんでした：' + esc(x.message), 'ng'); return; }
+      var sm = {}; fx.forEach(function (x) { var k = x.from + ' → ' + x.to + (x.g ? '・学年 ' + x.g : ''); sm[k] = (sm[k] || 0) + 1; });
+      await reload(sc0);
+      status('rbDataStatus', '✔ 所属を直しました（' + fx.length + '件）：' + Object.keys(sm).map(function (k) { return esc(k) + '（' + sm[k] + '件）'; }).join('、'), 'ok');
+      return;
+    }
     var dk = e.target.closest('[data-dupkeep],[data-dupdrop]');
     if (dk) {
       var sc = scope(), keep = dk.getAttribute('data-dupkeep'), id = keep || dk.getAttribute('data-dupdrop');
@@ -1883,8 +1902,9 @@
       return true;
     });
     // v0.5：男女どちらもいるときだけ男子/女子の切り替えを出し、選んだほうだけにする
-    GENDERS = R.gendersIn(base); NOG = GENDERS.length < 2;
+    R.setGenderDefault(''); GENDERS = R.gendersIn(base); NOG = GENDERS.length < 2;
     if (!NOG && GENDERS.indexOf(SEX) < 0) SEX = GENDERS[0];
+    R.setGenderDefault(NOG ? GENDERS[0] : '');   // v0.26.34：男女が1つだけなら、男女の無い記録も同じ種目にまとめる（種目の二重を防ぐ）
     return base.filter(function (r) {
       if (!NOG) { var g = R.genderOf(r); if (g && g !== SEX) return false; }
       if (!q) return true;
@@ -2053,7 +2073,7 @@
     if (!evs.length) return ctl + '<p class="muted small">この条件の公認記録がありません。期間や学年を変えてみてください。</p>';
     return ctl + [rankOpt.ev].map(function (ev) {
       return '<div class="card"><div class="card-h"><b>' + esc(evLabel(rows, ev)) + '</b><span class="small muted">' + rk[ev].length + '人</span></div><ol class="rank">' + rk[ev].map(function (x) {
-        return '<li><span class="no n' + x.rank + '">' + x.rank + '</span>' + athLink(x.key, x.name) + '<span class="gr">' + (x.grade ? (R.divisionOf(x.best) === 'jh' ? '中' : R.divisionOf(x.best) === 'hs' ? '高' : '') + x.grade + '年' : '') + '</span><b class="lmk">' + esc(x.best.mark) + '</b><span class="sub">' + (R.shownWind(x.best) ? '風' + esc(x.best.wind) + '・' : '') + esc(x.best.date) + '</span></li>';
+        return '<li><span class="no n' + x.rank + '">' + x.rank + '</span>' + athLink(x.key, x.name) + '<span class="gr" title="' + esc(R.divisionWhy(x.best) ? '中学／高校：' + R.divisionWhy(x.best) : '') + '">' + (x.grade ? (R.divisionOf(x.best) === 'jh' ? '中' : R.divisionOf(x.best) === 'hs' ? '高' : '') + x.grade + '年' : '') + '</span><b class="lmk">' + esc(x.best.mark) + '</b><span class="sub">' + (R.shownWind(x.best) ? '風' + esc(x.best.wind) + '・' : '') + esc(x.best.date) + '</span></li>';
       }).join('') + '</ol></div>';
     }).join('');
   }

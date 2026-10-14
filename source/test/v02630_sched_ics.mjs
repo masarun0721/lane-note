@@ -41,7 +41,7 @@ await check('iCal：名前・日付・会場・2日間（終日の DTEND は次�
   assert.deepEqual(r.rows.map(x => [x.meet, x.date, x.end, x.venue, x.div]), [['架空夏季記録会', '2026-09-05', '', '', ''], ['架空高校新人大会 支部予選', '2026-10-24', '2026-10-25', '架空競技場, 架空区1-2-3', '高校'], ['架空区中学校秋季陸上競技大会', '2026-11-03', '', '', '中学'], ['部活の保護者会', '2026-11-08', '', '架空高校', '']]);
   assert(!/\ufffd/.test(JSON.stringify(r.rows)), '折り返しで文字化けしない');
   assert.equal(R.parseIcs('こんにちは').err, 'カレンダー（iCal）の形ではありません');
-  assert.deepEqual(['架空中体連 支部大会', '都高体連 新人戦', '架空ジュニア陸上', '架空記録会'].map(R.guessDiv), ['中学', '高校', '中学', '']);
+  assert.deepEqual(['架空中体連 支部大会', '都高体連 新人戦', '架空ジュニア陸上', '架空記録会'].map(R.guessDiv), ['中学', '高校', '', '']);
 });
 // 記録のページ
 const html = src('records_template.html').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '').replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '').replace(/__[A-Z_]+__/g, '');
