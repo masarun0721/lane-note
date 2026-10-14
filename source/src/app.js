@@ -1278,7 +1278,7 @@
     if (o.k === 'p') {
       if (!o.a || typeof o.a !== 'object') throw new Error('リンクの中身を読めませんでした');
       return { v: 1, k: 'p', n: sStr(o.n), d: sStr(o.d, 60), pl: sStr(o.pl), cp: sStr(o.cp), g: sStr(o.g, 40), a: { name: sStr(o.a.name, 60), grade: sStr(o.a.grade, 10), team: sStr(o.a.team, 80), bib: sStr(o.a.bib, 20) },
-        e: sList(o.e, 200).map(function (x) { return sRow(x, 12); }) };
+        e: sList(o.e, 200).map(function (x) { return sRow(x, 12); }), sc: typeof LanePlans !== 'undefined' ? LanePlans.fromSc(o.sc) : [] };
     }
     if (!Array.isArray(o.r)) throw new Error('リンクの中身を読めませんでした');
     return { v: 1, n: sStr(o.n), d: sStr(o.d, 60), g: sStr(o.g, 40), rule: sStr(o.rule, 500), ts: sList(o.ts, 50).map(function (t) { return sStr(t, 80); }),
@@ -1373,7 +1373,7 @@
     try { await FB.auth.authStateReady(); } catch (e) { }
     LaneAuth.redirectResult(FB);   // v0.15（再監査A06）：ログインは popup だけ（v0.14 の redirect の印を消すだけ）
     lastUid = FB.auth.currentUser ? FB.auth.currentUser.uid : null;
-    if (lastUid) planPickCloud();
+    try { planPickFill(); } catch (e) { } if (lastUid) planPickCloud();
     if (FB.A.onAuthStateChanged) FB.A.onAuthStateChanged(FB.auth, onShareAuth);
     return FB;
   }
@@ -1393,7 +1393,7 @@
   function planPickFill() {
     var sel = $('planPick'); if (!sel || typeof LanePlans === 'undefined') return;
     var P = LanePlans, seen = {}, list = [];
-    PLANS.concat(P.load()).forEach(function (p) { var c = P.clean(p), k = c && c.date + '|' + c.meet; if (c && !seen[k]) { seen[k] = 1; list.push(c); } });
+    PLANS.concat(P.load(curUid())).forEach(function (p) { var c = P.clean(p), k = c && c.date + '|' + c.meet; if (c && !seen[k]) { seen[k] = 1; list.push(c); } });
     PLANS = list;
     var up = P.upcoming(list), past = P.past(list).slice(0, 30), o = function (p) { return '<option value="' + P.esc(p.date + '|' + p.meet) + '">' + P.esc(P.range(p) + ' ' + p.meet + (p.venue ? '（' + p.venue + '）' : '') + (up.indexOf(p) >= 0 ? '・' + P.leftLabel(p) : '')) + '</option>'; };
     sel.innerHTML = '<option value="">📅 大会予定から選ぶ（' + up.length + '件）</option>' + (up.length ? '<optgroup label="これからの大会">' + up.map(o).join('') + '</optgroup>' : '') + (past.length ? '<optgroup label="終わった大会">' + past.map(o).join('') + '</optgroup>' : '');
@@ -1700,7 +1700,8 @@
     var stop = function () { btn.disabled = false; btn.textContent = '🔗 全員分のリンクを作る'; PL.links = {}; renderPlayerList(); $('plMsg').innerHTML = '<span class="warn">ログインしているアカウントが変わったので、作るのを止めました。もう一度押してください。</span>'; };   // 電波が悪くても止まらない（長いリンクで作る）
     for (var i = 0; i < PL.list.length; i++) {
       var a = PL.list[i]; btn.textContent = '作っています… ' + (i + 1) + '／' + PL.list.length;
-      var str = await encodePayload(PlayerLogic.payloadFor(dispRows(), a, meta)), url = shareBase() + '#p=' + str, short = false;
+      var pl0 = PlayerLogic.payloadFor(dispRows(), a, meta); if (typeof LanePlans !== 'undefined') { var sc0 = LanePlans.toSc(PLANS); if (sc0.length) pl0.sc = sc0; }   // v0.26.30 これからの大会（名前・日付・会場だけ）
+      var str = await encodePayload(pl0), url = shareBase() + '#p=' + str, short = false;
       if (!authOk(sc)) return stop();
       if (signed) { try { var s = await makeShortUrl(str, '選手：' + (a.name || '') + '（' + (meta.n || '大会') + '）', sc); if (s) { url = s; short = true; } } catch (e) { if (e.code === 'auth-context-changed' || !authOk(sc)) return stop(); errs++; } }
       PL.links[a.key] = { url: url, short: short, qr: qrSvg(url, short), name: a.name };

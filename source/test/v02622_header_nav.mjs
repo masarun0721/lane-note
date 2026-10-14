@@ -11,8 +11,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 let pass = 0, fail = 0; const ok = (n, c, d) => { if (c) { pass++; console.log('  ok', n); } else { fail++; console.log('  NG', n, d || ''); } };
 const p = await b.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message)); await p.setRequestInterception(true);
 p.on('request', r => /^http:\/\/127\.0\.0\.1/.test(r.url()) ? r.continue() : r.respond({ status: 404, body: '' }));
-const PAGES = [['index.html', 'index'], ['records.html', 'records'], ['check.html', 'check'], ['team.html', 'team'], ['guide.html', 'guide'], ['try.html', 'try']];
-const ORDER = 'records,index,check,changelog,guide,try,team,manual,feedback';
+const PAGES = [['index.html', 'index'], ['records.html', 'records'], ['check.html', 'check'], ['team.html', 'team'], ['schedule.html', 'schedule'], ['guide.html', 'guide'], ['try.html', 'try']];
+const ORDER = 'records,index,check,schedule,changelog,guide,try,team,manual,feedback';
 const PC = { width: 1280, height: 900 }, PH = { width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true };
 async function open(u, vp, mode = 'coach') { await p.setViewport(vp); await p.goto(B + 'guide.html'); await p.evaluate(m => { localStorage.clear(); localStorage.setItem('lanenote.mode.v1', m); }, mode); await p.goto(B + u, { waitUntil: 'load' }); await sleep(700); }
 const st = () => p.evaluate(() => {
@@ -33,7 +33,7 @@ for (const [u, k] of PAGES) {
   await open(u, PH); s = await st();
   ok(u + ' スマホ：記録・大会準備・照合と「≡ メニュー」だけ・はみ出さない', s.shown.join(',') === 'records,index,check,menu' && !s.over && s.sw <= s.iw, JSON.stringify(s));
   await p.click('#lnNav .pn-menu'); await sleep(300); s = await st();
-  ok(u + ' スマホ：メニューを開くと残り全部（全ページ同じ）・画面からはみ出さない', s.shown.join(',') === 'records,index,check,menu,changelog,guide,try,team,manual,feedback,mode' && !s.over, JSON.stringify(s.shown));
+  ok(u + ' スマホ：メニューを開くと残り全部（全ページ同じ）・画面からはみ出さない', s.shown.join(',') === 'records,index,check,menu,schedule,changelog,guide,try,team,manual,feedback,mode' && !s.over, JSON.stringify(s.shown));
   if (SHOT && ['records.html', 'team.html', 'guide.html', 'try.html'].includes(u)) { await p.screenshot({ path: SHOT + '_' + k + '_phone_menu.png', clip: { x: 0, y: 0, width: 390, height: 640 } }); }
   await p.keyboard.press('Escape'); await sleep(200); s = await st(); ok(u + ' スマホ：Esc で閉じる', s.shown.join(',') === 'records,index,check,menu', JSON.stringify(s.shown));
 }

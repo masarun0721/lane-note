@@ -13,7 +13,7 @@ import base64, hashlib, html as htmlmod, json, pathlib, re, sys
 ROOT = pathlib.Path(__file__).resolve().parent
 S = ROOT / 'src'
 SHARE_BASE = 'https://masarun0721.github.io/lane-note/'   # 共有リンク・QRの公開アドレス（file:// で開いたとき用）
-VERSION = 'v0.26.29'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
+VERSION = 'v0.26.30'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
 # 作成日は版番号から取れないので固定（ビルドした日で変わると、公開時の一致検査ができないため）
 BUILD_DATE = '2026年10月12日'
 REC_VERSION = 'v0.11.1'   # LANE LOG（records.html）だけの版
@@ -84,12 +84,13 @@ def build():
     assert 'records.html?fb=1' in trial
     trial = trial.replace('__MODEPICK__', MODEPICK).replace('__MODE__', (text('src/mode.js') + '\n' + text('src/plans.js')))
     team = build_team(rec)
+    sched = build_sched(rec)
     # v0.14（監査F13）：Service Worker のキャッシュ名に版とページの中身のハッシュを入れる（公開のたびに古いページが入れ替わる）
-    h = hashlib.sha256((html + rec + guide + chk + trial + team).encode('utf-8')).hexdigest()[:10]
+    h = hashlib.sha256((html + rec + guide + chk + trial + team + sched).encode('utf-8')).hexdigest()[:10]
     sw = text('src/sw.js')
     assert '__CACHE__' in sw
     sw = sw.replace('__CACHE__', 'lanenote-page-%s-r%s-%s' % (VERSION, REC_VERSION, h))
-    return html, sw, rec, text('src/firebase-config.js'), guide, chk, trial, team, build_intro()
+    return html, sw, rec, text('src/firebase-config.js'), guide, chk, trial, team, build_intro(), sched
 
 
 def build_intro():
@@ -216,7 +217,7 @@ NAV_CSS = (
     '.ln-nav .tb-btn.mode-sw small{font-size:11px;opacity:.8;margin-left:4px}'
     '.ln-nav .cl-new{background:#e4572e;color:#fff;border-radius:999px;font-size:10px;padding:0 6px;font-weight:800}'
     '.ln-nav .pn-sub{display:contents}.ln-nav .pn-menu{display:none}'
-    'body.ln-player .ln-nav .pn-main,body.ln-player .ln-nav .tb-team,body.ln-player .ln-nav [data-tb="changelog"]{display:none!important}'
+    'body.ln-player .ln-nav .pn-main,body.ln-player .ln-nav .tb-team,body.ln-player .ln-nav .tb-sched,body.ln-player .ln-nav [data-tb="changelog"]{display:none!important}'
     '#lnTopbar{max-width:1100px;margin:8px auto 0;padding:0 10px}#lnTopbar .changelog:not([open]){display:none}'
     '#lnTopbar .changelog summary{display:none}#lnTopbar .changelog{background:#fff;border:1px solid #c9d2e0;border-radius:10px;padding:8px 12px;margin:0}'
     '@media screen and (max-width:720px){'
@@ -239,6 +240,7 @@ def hdrnav(cur=''):
     h = '<nav class="pagenav ln-nav" id="lnNav" aria-label="ページ" data-nav="v0.26.22">'
     h += ''.join('<a href="%s" class="pn-main%s" data-tb="%s"%s>%s</a>' % (href, ' on' if k == cur else '', k, ' aria-current="page"' if k == cur else '', label) for k, href, label in NAV_MAIN)
     h += '<button type="button" class="pn-b pn-menu" aria-expanded="false" aria-controls="lnNavSub">≡ メニュー</button><div class="pn-sub" id="lnNavSub">'
+    h += '<a href="schedule.html" class="tb-btn tb-guide tb-sched%s" data-tb="schedule"%s>📅 大会予定</a>' % (' on' if cur == 'schedule' else '', ' aria-current="page"' if cur == 'schedule' else '')   # v0.26.30
     h += '<button type="button" class="pn-b" data-tb="changelog">📰 更新情報<span class="cl-new">NEW</span></button>'
     for k, href, cls, label in NAV_SUB:
         h += '<a href="%s" class="tb-btn tb-guide %s%s" data-tb="%s"%s>%s</a>' % (href, cls, ' on' if k == cur else '', k, ' aria-current="page"' if k == cur else '', label)
@@ -273,6 +275,17 @@ def build_team(rec):
     return t
 
 
+def build_sched(rec):
+    """v0.26.30 大会予定のページ（schedule.html）：records.html と同じ部品（ログイン・チームの切り替え・保存先も同じ）に sched-page の印をつけ、大会予定の欄だけを見せる"""
+    assert '<body class="records">' in rec and '<title>' in rec
+    t = rec.replace('<body class="records">', '<body class="records sched-page">', 1)
+    t = re.sub(r'<title>[^<]*</title>', '<title>LANE NOTE 大会予定</title>', t, count=1)
+    t = t.replace('<a href="records.html" class="pn-main on" data-tb="records" aria-current="page">', '<a href="records.html" class="pn-main" data-tb="records">', 1)
+    t = t.replace('<a href="schedule.html" class="tb-btn tb-guide tb-sched" data-tb="schedule">', '<a href="schedule.html" class="tb-btn tb-guide tb-sched on" data-tb="schedule" aria-current="page">', 1)
+    assert 'tb-sched on' in t
+    return t
+
+
 def build_records(index_html):
     """LANE LOGのページ。見た目は大会準備のページと同じCSSを使う（template.html の <style> をそのまま入れる）"""
     base = text('src/template.html')
@@ -291,7 +304,7 @@ def build_records(index_html):
     return rec
 
 
-OUTPUTS = ('index.html', 'sw.js', 'records.html', 'firebase-config.js', 'guide.html', 'check.html', 'try.html', 'team.html', 'intro.html')   # 公開するファイル（--check もこれらを確かめる）
+OUTPUTS = ('index.html', 'sw.js', 'records.html', 'firebase-config.js', 'guide.html', 'check.html', 'try.html', 'team.html', 'intro.html', 'schedule.html')   # 公開するファイル（--check もこれらを確かめる）
 
 
 def write(out, *bodies):

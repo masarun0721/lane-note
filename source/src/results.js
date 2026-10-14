@@ -1200,11 +1200,66 @@ var ResultParser = (function () {
     return { rows: out, err: out.length ? '' : '大会の行がありません' };
   }
   var PLAN_TEMPLATE = '大会名,日付,終了日,会場,区分,締切\n東京都高校新人陸上競技大会 支部予選,2026/9/12,2026/9/13,駒沢オリンピック公園陸上競技場,高,2026/8/28\n江東区中学校秋季陸上競技大会,2026/10/4,,夢の島競技場,中,\n';
+  /* v0.26.30 Google カレンダーなどの iCal（.ics）→ 大会予定の行（parseMeetPlan と同じ形）。終日の DTEND は「次の日」なので1日戻す。時刻つきは日本時間の日付 */
+  function guessDiv(name) { var s = nk(String(name || '')); return /(中学|中体連|中学校|中学生|ジュニア|JH)/i.test(s) && !/高校|高体連/.test(s) ? '中学' : /(高校|高体連|高等学校|インターハイ|IH)/i.test(s) ? '高校' : ''; }
+  function icsDay(v, p) {
+    var m = String(v || '').match(/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})(Z)?)?/); if (!m) return '';
+    if (!m[4]) return okDate(m[1], m[2], m[3]);
+    var ms = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]);
+    if (m[7]) ms += 9 * 36e5;   // UTC → 日本時間
+    else if (/TZID=/i.test(p || '') && !/Tokyo|Japan|JST/i.test(p)) ms += 0;   // ほかの地域の時刻はそのままの日付で読む
+    var d = new Date(ms); return okDate(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate());
+  }
+  function icsText(v) { return String(v || '').replace(/\\n/gi, ' ').replace(/\\([,;\\])/g, '$1').replace(/\s+/g, ' ').trim(); }
+  // 折り返し（改行＋空白）を文字に直す前に取る（日本語の途中で折り返されていても文字化けしない）
+  function icsBytesToText(b) {
+    var out = new Uint8Array(b.length), n = 0;
+    for (var i = 0; i < b.length; i++) {
+      if (b[i] === 13 && b[i + 1] === 10 && (b[i + 2] === 32 || b[i + 2] === 9)) { i += 2; continue; }
+      if (b[i] === 10 && (b[i + 1] === 32 || b[i + 1] === 9)) { i += 1; continue; }
+      out[n++] = b[i];
+    }
+    return new TextDecoder('utf-8').decode(out.subarray(0, n));
+  }
+  function parseIcs(text) {
+    var t = String(text || '').replace(/^\ufeff/, '');
+    if (!/BEGIN:VCALENDAR/i.test(t)) return { rows: [], err: 'カレンダー（iCal）の形ではありません' };
+    var lines = t.replace(/\r\n?/g, '\n').replace(/\n[ \t]/g, '').split('\n'), out = [], ev = null, cal = '', depth = 0, n = 0;
+    lines.forEach(function (l) {
+      var i = l.indexOf(':'); if (i < 0) return;
+      var head = l.slice(0, i), val = l.slice(i + 1), name = head.split(';')[0].toUpperCase(), par = head.slice(name.length);
+      if (name === 'BEGIN' && /^VEVENT$/i.test(val)) { ev = {}; depth = 0; return; }
+      if (!ev) { if (name === 'X-WR-CALNAME') cal = icsText(val); return; }
+      if (name === 'BEGIN') { depth++; return; }   // VALARM など
+      if (name === 'END' && depth) { depth--; return; }
+      if (name === 'END' && /^VEVENT$/i.test(val)) {
+        n++;
+        if (!/CANCELLED/i.test(ev.status || '') && !ev.rid) {
+          var meet = nk(ev.summary || '').slice(0, 100), date = icsDay(ev.ds, ev.dsp), end = '', err = [];
+          if (ev.de) { end = icsDay(ev.de, ev.dep); if (end && /^\d{8}$/.test(ev.de)) end = new Date(Date.parse(end + 'T00:00:00Z') - 864e5).toISOString().slice(0, 10); }
+          if (end && (end <= date)) end = '';
+          if (!meet) err.push('名前がありません'); if (!date) err.push('日付が読めません');
+          out.push({ meet: meet, date: date, end: end, venue: nk(ev.loc || '').replace(/\s+/g, ' ').trim().slice(0, 100), div: guessDiv(meet), deadline: '', key: date && meet ? planKey(date, meet) : '', row: n, err: err.join('・'), rrule: !!ev.rrule });
+        }
+        ev = null; return;
+      }
+      if (depth) return;
+      if (name === 'SUMMARY') ev.summary = icsText(val);
+      else if (name === 'LOCATION') ev.loc = icsText(val);
+      else if (name === 'DTSTART') { ev.ds = val.trim(); ev.dsp = par; }
+      else if (name === 'DTEND') { ev.de = val.trim(); ev.dep = par; }
+      else if (name === 'STATUS') ev.status = val;
+      else if (name === 'RRULE') ev.rrule = val;
+      else if (name === 'RECURRENCE-ID') ev.rid = val;
+    });
+    out.sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+    return { rows: out, cal: cal, err: out.length ? '' : '予定（VEVENT）がありません' };
+  }
   return { parsePdf: parsePdf, parseCells: parseCells, goldMobileStream: goldMobileStream, parsePlain: parsePlain, textToStream: textToStream, normEvent: normEvent, markValue: markValue, windApplies: windApplies, windClass: windClass, windNum: windNum,
     computeBests: computeBests, baseEvent: baseEvent, learnGenders: learnGenders, isRelay: isRelay, relayEvent: relayEvent, relayTeamBase: relayTeamBase, matchRelayTeam: matchRelayTeam, parseRelayGold: parseRelayGold, parseRelayPdf: parseRelayPdf, mergeRelays: mergeRelays, legsText: legsText, parseLegs: parseLegs, relayRecord: relayRecord, pbLookup: pbLookup, nameKey: nameKey, athleteKey: athleteKey, matchSchool: matchSchool, cleanMark: cleanMark, isTag: isTag, canonSchool: canonSchool, cyuTeam: cyuTeam, recId: recId, recIdLegacy: recIdLegacy, recIdV6: recIdV6, identityKey: identityKey, fullIdentity: fullIdentity, looseIdentity: looseIdentity, manualRecord: manualRecord, sanitizeRecord: sanitizeRecord, validDate: validDate, normManualWind: normManualWind, dedupe: dedupe, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
     guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText,
     eventCat: eventCat, divisionOf: divisionOf, divLabel: divLabel, eventKey: eventKey, eventKeyLabel: eventKeyLabel, shownWind: shownWind, hasMark: hasMark, sortAthletes: sortAthletes, kanaKey: kanaKey,
     setDivisionHints: setDivisionHints, rawDivisionOf: rawDivisionOf, genderOf: genderOf, divGroup: divGroup, disciplineOrder: disciplineOrder, groupEvents: groupEvents, gendersIn: gendersIn, GROUPS: GROUPS,
-    personKey: personKey, inferDivisions: inferDivisions, mapHeaders: mapHeaders, findHeaderRow: findHeaderRow, parseDateCell: parseDateCell, normImportMark: normImportMark, dupCheck: dupCheck, parseMeetPlan: parseMeetPlan, planKey: planKey, PLAN_TEMPLATE: PLAN_TEMPLATE, sheetEvent: sheetEvent, sheetBlocks: sheetBlocks, importBlock: importBlock, importWorkbook: importWorkbook, importRows: importRows, splitTable: splitTable, isTable: isTable, FIELD_LABELS: FIELD_LABELS, isFieldEvent: isFieldEvent };
+    personKey: personKey, inferDivisions: inferDivisions, mapHeaders: mapHeaders, findHeaderRow: findHeaderRow, parseDateCell: parseDateCell, normImportMark: normImportMark, dupCheck: dupCheck, parseMeetPlan: parseMeetPlan, parseIcs: parseIcs, icsBytesToText: icsBytesToText, guessDiv: guessDiv, planKey: planKey, PLAN_TEMPLATE: PLAN_TEMPLATE, sheetEvent: sheetEvent, sheetBlocks: sheetBlocks, importBlock: importBlock, importWorkbook: importWorkbook, importRows: importRows, splitTable: splitTable, isTable: isTable, FIELD_LABELS: FIELD_LABELS, isFieldEvent: isFieldEvent };
 })();
 if (typeof module !== 'undefined') module.exports = ResultParser;

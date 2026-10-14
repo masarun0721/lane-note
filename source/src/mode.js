@@ -82,6 +82,13 @@ var LaneMode = (function () {
       if (up.length > 1) h += '<ul class="ph-list">' + up.slice(1, 6).map(function (m) { return '<li><a href="' + esc(m.L.url) + '">' + esc(m.o.n || '大会') + '<small>' + esc(m.o.d || '') + '</small></a></li>'; }).join('') + '</ul>';
     } else h += '<p class="ph-empty">まだありません。先生から「大会当日の予定」のリンクをもらって開くと、ここに出ます。</p>';
     h += '</section>';
+    // v0.26.30 これからの大会：先生のリンク（大会当日の予定・個人ページ）に入っている予定。いちばん新しいリンクのもの（ほかのリンクにしかない大会も足す）
+    if (typeof LanePlans !== 'undefined') {
+      var src = meets.map(function (m) { return m.o; }).concat(pps.map(function (p) { return p.o; })).filter(function (o) { return o.sc && o.sc.length; }).sort(function (a, b) { return String(b.g || '') < String(a.g || '') ? -1 : 1; });
+      var seen = {}, sc = []; src.forEach(function (o) { o.sc.forEach(function (p) { var k = p.date + '|' + p.meet; if (!seen[k]) { seen[k] = 1; sc.push(p); } }); });
+      var sch = LanePlans.scHtml(sc, td, 8);
+      if (sch) h += '<section class="ph-card ph-sc"><h3>🗓 これからの大会</h3><p class="ph-sub">先生のリンクに入っていた予定です（' + esc(LanePlans.md(String(src[0].g || '').slice(0, 10) || td)) + 'の時点）。</p>' + sch + '</section>';
+    }
     // 2 自己ベスト
     h += '<section class="ph-card"><h3>🏅 自己ベスト・グラフ</h3>';
     if (pps.length) {

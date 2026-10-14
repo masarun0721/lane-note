@@ -1,4 +1,4 @@
-// LANE NOTE URL読み込み用の中継（Cloudflare Workers）v0.26.25（公開サイトならどこでも・非公開の宛先は通さない）
+// LANE NOTE URL読み込み用の中継（Cloudflare Workers）v0.26.30（公開サイトならどこでも・非公開の宛先は通さない・カレンダー iCal も通す）
 // 使い方: https://<worker>.workers.dev/?url=<読み込みたいPDFやWebページのURL>
 // v0.25（Astra 第3回監査 C308〜C311 の修正）
 //  ・Origin は必須（LANE NOTE の公開アドレスだけ）。※Origin は偽装できるので、守りの本体は宛先の検査と回数制限
@@ -76,7 +76,7 @@ function rateOk(ip, now) {
   r.n++; return r.n <= RATE.limit;
 }
 export function _resetRate() { hits.clear(); }
-const TYPE_OK = /^(application\/pdf|application\/x-pdf|text\/html|application\/xhtml\+xml|text\/plain)\b/i;
+const TYPE_OK = /^(application\/pdf|application\/x-pdf|text\/html|application\/xhtml\+xml|text\/plain|text\/calendar|text\/x-vcalendar|application\/ics)\b/i;   // v0.26.30：カレンダー（iCal）も通す
 const TYPE_MAYBE_PDF = /^(application\/octet-stream|binary\/octet-stream|application\/download|application\/force-download)\b/i;   // 中身が %PDF のときだけ通す
 
 export default {
@@ -105,7 +105,7 @@ export default {
     try {
       for (let hop = 0; ; hop++) {
         // Cookie・Authorization などは付けない（利用者の情報は上流に渡さない）
-        res = await fetch(url.toString(), { redirect: "manual", signal: ctl.signal, headers: { "User-Agent": "LANE-NOTE-fetch/1.2", "Accept": "application/pdf,text/html,text/plain;q=0.9,*/*;q=0.1" } });
+        res = await fetch(url.toString(), { redirect: "manual", signal: ctl.signal, headers: { "User-Agent": "LANE-NOTE-fetch/1.2", "Accept": "application/pdf,text/html,text/calendar,text/plain;q=0.9,*/*;q=0.1" } });
         if (res.status >= 300 && res.status < 400 && res.headers.get("Location")) {
           try { await res.body?.cancel(); } catch {}
           if (hop >= MAX_REDIRECTS) { clearTimeout(timer); return txt("too many redirects", 400, h); }

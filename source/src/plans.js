@@ -15,8 +15,24 @@ var LanePlans = (function () {
   }
   function sort(list) { return list.slice().sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : a.meet < b.meet ? -1 : 1; }); }
   function fromMets(mets) { return sort(Object.keys(mets || {}).map(function (k) { var m = mets[k]; return m && m.plan ? clean(m) : null; }).filter(Boolean)); }
-  function save(list) { try { localStorage.setItem(KEY, JSON.stringify({ at: Date.now(), list: sort((list || []).map(clean).filter(Boolean)).slice(0, 300) })); } catch (e) { } }
-  function load() { try { var o = JSON.parse(localStorage.getItem(KEY) || 'null'); return o && Array.isArray(o.list) ? o.list.map(clean).filter(Boolean) : []; } catch (e) { return []; } }
+  // v0.26.30（A01）：この端末の写しは、写したアカウント（uid。ログインなしは ''）を付けて、同じアカウントのときだけ使う
+  function save(list, uid) { try { localStorage.setItem(KEY, JSON.stringify({ at: Date.now(), uid: String(uid || ''), list: sort((list || []).map(clean).filter(Boolean)).slice(0, 300) })); } catch (e) { } }
+  function load(uid) { try { var o = JSON.parse(localStorage.getItem(KEY) || 'null'); return o && Array.isArray(o.list) && String(o.uid || '') === String(uid || '') ? o.list.map(clean).filter(Boolean) : []; } catch (e) { return []; } }
+  /* v0.26.30 選手へのリンクに入れる「これからの大会」：[日付, 終了日, 大会名, 会場] だけ（選手の情報は入れない）。20件まで */
+  var SC_MAX = 20;
+  function toSc(list, td) { return upcoming((list || []).map(clean).filter(Boolean), td).slice(0, SC_MAX).map(function (p) { return [p.date, p.end || '', p.meet, p.venue || '']; }); }
+  function fromSc(a) {
+    if (a == null) return []; if (!Array.isArray(a)) throw new Error('リンクの中身の形が違います');
+    return a.slice(0, SC_MAX).map(function (r) {
+      if (!Array.isArray(r)) throw new Error('リンクの中身の形が違います');
+      var st = function (v, n) { return typeof v === 'string' ? v.slice(0, n) : ''; };
+      return clean({ date: st(r[0], 10), end: st(r[1], 10), meet: st(r[2], 100), venue: st(r[3], 100) });
+    }).filter(Boolean);
+  }
+  function scHtml(list, td, max) {
+    td = td || today(); var up = upcoming(list, td).slice(0, max || 8); if (!up.length) return '';
+    return '<ul class="lp-list lp-sc">' + up.map(function (p) { var n = daysLeft(p.date, td); return '<li><span class="lp-left' + (n <= 7 ? ' soon' : '') + '">' + esc(leftLabel(p, td)) + '</span> <b>' + esc(range(p)) + '</b> ' + esc(p.meet) + (p.venue ? '<br><small class="muted">📍 ' + esc(p.venue) + '</small>' : '') + '</li>'; }).join('') + '</ul>';
+  }
   function upcoming(list, td) { td = td || today(); return sort((list || []).filter(function (p) { return (p.end || p.date) >= td; })); }
   function past(list, td) { td = td || today(); return sort((list || []).filter(function (p) { return (p.end || p.date) < td; })).reverse(); }
   function daysLeft(day, td) { td = td || today(); return Math.round((Date.parse(day + 'T00:00:00Z') - Date.parse(td + 'T00:00:00Z')) / 864e5); }
@@ -51,6 +67,6 @@ var LanePlans = (function () {
     return h + '</tr></table>';
   }
   function addMonth(ym, k) { var d = new Date(Date.UTC(+ym.slice(0, 4), +ym.slice(5, 7) - 1 + k, 1)); return d.toISOString().slice(0, 7); }
-  return { KEY: KEY, clean: clean, fromMets: fromMets, save: save, load: load, upcoming: upcoming, past: past, daysLeft: daysLeft, jp: jp, jpRange: jpRange, md: md, range: range, leftLabel: leftLabel, deadlineLabel: deadlineLabel, monthHtml: monthHtml, addMonth: addMonth, today: today, esc: esc };
+  return { KEY: KEY, toSc: toSc, fromSc: fromSc, scHtml: scHtml, clean: clean, fromMets: fromMets, save: save, load: load, upcoming: upcoming, past: past, daysLeft: daysLeft, jp: jp, jpRange: jpRange, md: md, range: range, leftLabel: leftLabel, deadlineLabel: deadlineLabel, monthHtml: monthHtml, addMonth: addMonth, today: today, esc: esc };
 })();
 if (typeof module !== 'undefined') module.exports = LanePlans;

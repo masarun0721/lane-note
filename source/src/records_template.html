@@ -305,6 +305,12 @@ tr.rc.editing td{background:#fff3ec!important}
 .lp-cal td.meet{background:#fff4e5}.lp-cal td.meet b{font-weight:bold;color:#a33a14}.lp-ev{display:block;font-size:10.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lp-dl{display:block;font-size:10px;color:#c0392b}
 .lp-pick{margin:6px 0;font-size:13px}.lp-pick select{max-width:100%}
 @media (max-width:520px){.lp-cal td{height:44px}.lp-ev{font-size:9.5px}}
+/* v0.26.30 大会予定のページ（schedule.html＝記録のページと同じ部品に sched-page の印） */
+body:not(.sched-page) #lpHome,body:not(.sched-page) #spAdd,body:not(.sched-page) #spHead{display:none!important}
+body.sched-page #spLink{display:none!important}
+#rpPaste{width:100%;box-sizing:border-box}
+body.sched-page main>:not(.box:first-of-type):not(#lpHome):not(#spAdd):not(#phBack),body.sched-page .tagline,body.sched-page .beta-line{display:none!important}
+body.sched-page main>.box:first-of-type>:not(#rbAuth):not(#rbAuthStatus):not(#rbTeam):not(#spHead){display:none!important}
 </style>
 </head>
 <body class="records">
@@ -331,6 +337,7 @@ __MODEPICK__
 <section class="box">
   <div id="tpHead"><h2>👥 チームの設定</h2><p class="small">チームを作る・参加コードで入る、メンバーと役割、参加コード、引き継ぎ、見える人とリンクをここで扱います。<a href="records.html">📒 記録のページへ戻る</a></p></div>
   <p id="tpGate" class="tm-warn">チームの設定は、顧問・マネージャーの方が<b>Googleでログイン</b>してから使います（選手・保護者の方は使いません）。</p>
+  <div id="spHead"><h2>📅 大会予定</h2><p class="small">これからの大会を登録して、あと何日・エントリー締切をカレンダーで見られます。登録した予定は、大会準備の「大会予定から選ぶ」と、選手に送るリンク（これからの大会）で使います。ログインしているときは記録と同じ保存先（自分のクラウド／チーム）に保存します。</p></div>
   <h2><span class="no">1</span>学校・クラブ名と結果の資料</h2>
   <p class="privacy-line">🔒 ログインすると自分専用のクラウドに保存（ほかの人には見えません。「チームで共有」を使ったときだけ、そのチームのメンバーに見えます）。ログインなしはこの端末だけ。「URLから読み込む」のときは、URLと中身が LANE NOTE の中継を通ります（保存しません）。利用回数だけを数えます（個人の情報は集めません）。詳しくは <a href="guide.html#data">はじめての人はこちら</a></p>
   <div class="rb-row" id="rbAuth" style="margin:10px 0;align-items:center">
@@ -389,20 +396,28 @@ __MODEPICK__
       <div class="rb-row"><button class="btn" type="submit" id="rmSave">記録に保存</button><button class="btn sub" type="button" id="rmCancel" hidden>直すのをやめる</button><button class="btn sub danger-t" type="button" id="rmDelete" hidden>🗑 この記録を消す</button></div>
     </form>
   </details>
-  <details class="rb-manual" id="rbPlanBox"><summary><b>📅 大会予定をまとめて追加</b>（記録はまだ無い、これからの大会）</summary>
-    <p class="small">CSV（Excel なら「CSV UTF-8」で保存）を選ぶか、表を貼り付けてください。1行目は <code>大会名,日付,終了日,会場,区分,締切</code>。大会名と日付は必須、終了日（2日以上の大会）・会場・区分（中／高）・締切（エントリー締切）は空でかまいません。登録済みの大会はとばします。</p>
-    <div class="rb-row"><button class="btn sub" type="button" id="rpTemplate">ひな形（CSV）をダウンロード</button><label class="btn sub">CSV を選ぶ<input type="file" id="rpFile" accept=".csv,.txt,text/csv" hidden></label></div>
-    <textarea id="rpPaste" rows="4" placeholder="大会名,日付,終了日,会場,区分&#10;江東区中学校秋季陸上競技大会,2026/10/4,,夢の島競技場,中"></textarea>
-    <div class="rb-row"><button class="btn sub" type="button" id="rpRead">貼り付けた表を読む</button></div>
-    <div id="rpPreview"></div>
-    <div class="status" id="rpStatus" aria-live="polite"></div>
-  </details>
+  <p class="small sp-link" id="spLink">📅 これからの大会の予定（今後の大会・カレンダー・まとめて追加・Google カレンダーから）は <a href="schedule.html">大会予定</a> のページへ。</p>
   <div id="rbBatches"></div>
   <div class="status" id="rbDone" aria-live="polite"></div>
   <details class="rb-meets" id="rbMeetsBox"><summary><b>取り込み済みの大会</b> <span class="small muted" id="rbMeetsN"></span></summary><ul class="rb-meetlist" id="rbMeets"></ul></details>
 </section>
 
 <section class="box lp-home" id="lpHome" hidden aria-label="今後の大会"></section>
+<section class="box sp-add" id="spAdd" aria-label="大会予定をまとめて追加">
+  <details class="rb-manual" id="rbPlanBox" open><summary><b>➕ 大会予定をまとめて追加</b>（CSV・Excel から貼り付け・Google カレンダー）</summary>
+    <p class="small">CSV（Excel なら「CSV UTF-8」で保存）を選ぶか、表を貼り付けてください。1行目は <code>大会名,日付,終了日,会場,区分,締切</code>。大会名と日付は必須、終了日（2日以上の大会）・会場・区分（中／高）・締切（エントリー締切）は空でかまいません。登録済みの大会はとばします。</p>
+    <div class="rb-row"><button class="btn sub" type="button" id="rpTemplate">ひな形（CSV）をダウンロード</button><label class="btn sub">CSV／.ics を選ぶ<input type="file" id="rpFile" accept=".csv,.txt,.ics,text/csv,text/calendar" hidden></label></div>
+    <textarea id="rpPaste" rows="4" placeholder="大会名,日付,終了日,会場,区分&#10;江東区中学校秋季陸上競技大会,2026/10/4,,夢の島競技場,中"></textarea>
+    <div class="rb-row"><button class="btn sub" type="button" id="rpRead">貼り付けた表を読む</button></div>
+    <details class="rp-gcal small"><summary><b>Google カレンダーから入れる</b>（CSV を作らずに）</summary>
+      <p>① パソコンで Google カレンダーを開き、左の「マイカレンダー」で大会を入れているカレンダーの「︙」→「設定と共有」。<br>② 下の方の「カレンダーの統合」にある <b>「iCal 形式の公開URL」</b>（カレンダーを公開しているとき）か <b>「iCal 形式の非公開URL」</b> をコピーして、下に貼ります。<br>
+      ・非公開URLを知っている人は、そのカレンダーの予定をすべて見られます。人に送ったり、ほかの所に貼ったりしないでください（LANE NOTE はアドレスを保存しません。読み込みは LANE NOTE の中継を通ります）。<br>・アドレスを使いたくないときは、「設定」→「インポート／エクスポート」→「エクスポート」で出したファイル（.zip の中の .ics）を、上の「CSV／.ics を選ぶ」で選んでも入ります。</p>
+      <div class="rb-row"><input type="url" id="rpIcsUrl" placeholder="https://calendar.google.com/calendar/ical/…/basic.ics" size="40" autocomplete="off"><button class="btn sub" type="button" id="rpIcsGo">カレンダーを読み込む</button></div>
+    </details>
+    <div id="rpPreview"></div>
+    <div class="status" id="rpStatus" aria-live="polite"></div>
+  </details>
+</section>
 <section class="box">
   <h2><span class="no">2</span>記録</h2>
   <div class="divsw" role="radiogroup" aria-label="中学・高校の切り替え" id="rbDiv"><button type="button" data-div="all">すべて</button><button type="button" data-div="jh">中学</button><button type="button" data-div="hs">高校</button></div>

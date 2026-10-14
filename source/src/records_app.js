@@ -246,9 +246,11 @@
   function planState() {
     var have = {}; Object.keys(METS).forEach(function (k) { have[planNorm(k)] = METS[k].plan ? 'plan' : 'meet'; });
     ALL.forEach(function (r) { if (r.date && r.meet) { var k = planNorm(r.date + '|' + r.meet); if (!have[k]) have[k] = 'rec'; } });
-    var seen = {};
+    var seen = {}, f = PLAN.f, kws = f ? f.kw.split(/[\s　,、]+/).filter(Boolean).map(function (x) { return x.normalize('NFKC').toLowerCase(); }) : [];
     PLAN.rows.forEach(function (r) {
       var k = planNorm(r.key);
+      // v0.26.30 カレンダーから：言葉（どれか1つを含む）と期間でしぼる
+      if (f && (kws.length && !kws.some(function (w) { return (r.meet + ' ' + r.venue).normalize('NFKC').toLowerCase().indexOf(w) >= 0; }) || f.from && (r.end || r.date) < f.from || f.to && r.date > f.to)) { r.st = 'out'; return; }
       r.st = r.err ? 'err' : have[k] === 'plan' ? 'dup' : have[k] ? 'rec' : seen[k] ? 'same' : 'new';
       if (!r.err) seen[k] = 1;
     });
@@ -258,20 +260,23 @@
     if (!PLAN) { box.innerHTML = ''; return; }
     if (PLAN.err) { box.innerHTML = '<p class="status ng">✖ ' + esc(PLAN.err) + '</p>'; return; }
     planState();
-    var n = { new: 0, dup: 0, rec: 0, same: 0, err: 0 }; PLAN.rows.forEach(function (r) { n[r.st]++; });
+    var n = { new: 0, dup: 0, rec: 0, same: 0, err: 0, out: 0 }; PLAN.rows.forEach(function (r) { n[r.st]++; });
+    var fl = PLAN.f ? '<div class="rp-ics small"><p>📅 カレンダー' + (PLAN.cal ? '「' + esc(PLAN.cal) + '」' : '') + 'の予定 ' + PLAN.rows.length + '件。陸上の大会だけになるよう、<b>言葉と期間でしぼれます</b>。区分（中学／高校）は名前から推測しています。</p><div class="rb-row">' +
+      '<label>名前か会場にこの言葉（空白で区切ると、どれか1つ） <input id="rpKw" value="' + esc(PLAN.f.kw) + '" placeholder="例：大会 記録会 陸上" size="22"></label><label>この日から <input type="date" id="rpFrom" value="' + esc(PLAN.f.from) + '"></label><label>この日まで <input type="date" id="rpTo" value="' + esc(PLAN.f.to) + '"></label></div>' + (n.out ? '<p class="muted">しぼった結果、対象外 ' + n.out + '件（表に出しません）</p>' : '') + '</div>' : '';
     var lab = { new: '追加', dup: '登録済み（とばす）', rec: '記録がある大会（とばす）', same: '表の中で2回目（とばす）', err: '読めない' };
-    box.innerHTML = '<p class="small rpcount">追加 <b>' + n.new + '件</b>・登録済み ' + n.dup + '件・記録がある大会 ' + n.rec + '件・表の中の重複 ' + n.same + '件・読めない ' + n.err + '件</p>' +
-      '<div class="tblwrap"><table class="rbt rpt"><tr><th>状態</th><th>日付</th><th>大会名</th><th>会場</th><th>区分</th><th>締切</th></tr>' + PLAN.rows.map(function (r) {
+    box.innerHTML = fl + '<p class="small rpcount">追加 <b>' + n.new + '件</b>・登録済み ' + n.dup + '件・記録がある大会 ' + n.rec + '件・表の中の重複 ' + n.same + '件・読めない ' + n.err + '件</p>' +
+      '<div class="tblwrap"><table class="rbt rpt"><tr><th>状態</th><th>日付</th><th>大会名</th><th>会場</th><th>区分</th><th>締切</th></tr>' + PLAN.rows.filter(function (r) { return r.st !== 'out'; }).map(function (r) {
         return '<tr class="rp-' + r.st + '"><td>' + (r.st === 'new' ? '<b>追加</b>' : r.st === 'err' ? '<b class="ng">読めない</b><br><small class="ng">' + r.row + '行目：' + esc(r.err) + '</small>' : '<span class="muted">' + lab[r.st] + '</span>') + '</td><td>' + esc(r.date) + (r.end ? '〜' + esc(r.end.slice(5)) : '') + '</td><td>' + esc(r.meet) + '</td><td>' + esc(r.venue) + '</td><td>' + esc(r.div) + '</td><td>' + esc(r.deadline ? r.deadline.slice(5).replace('-', '/') : '') + '</td></tr>';
       }).join('') + '</table></div>' +
       '<div class="rb-row"><button class="btn" type="button" id="rpSave"' + (n.new ? '' : ' disabled') + '>大会予定を追加（' + n.new + '件）</button><button class="btn sub" type="button" id="rpClear">やめる</button></div>';
   }
   /* v0.26.29 今後の大会（一覧・1か月のカレンダー・1件ずつ直す／消す）。名前・日付・会場・区分・締切だけをこの端末に写して、大会準備・選手のページで使う */
   var LP = { ym: '', edit: '' };
+  function ppSc(o) { if (typeof LanePlans !== 'undefined') { var sc = LanePlans.toSc(LanePlans.fromMets(METS)); if (sc.length) o.sc = sc; } return o; }   // v0.26.30 個人ページにも、これからの大会（名前・日付・会場だけ）
   function planList() {
     var box = $('lpHome'); if (!box || typeof LanePlans === 'undefined') return;
     var P = LanePlans, all = P.fromMets(METS), td = P.today(), up = P.upcoming(all, td), keyOf = function (p) { return p.date + '|' + p.meet; };
-    P.save(all);
+    P.save(all, scope().uid || '');
     if (!LP.ym) LP.ym = (up[0] ? (up[0].date < td ? td : up[0].date) : td).slice(0, 7);
     var e = LP.edit && METS[LP.edit] ? METS[LP.edit] : null;
     var row = function (p) {
@@ -331,7 +336,19 @@
     PLAN = null; planRender(); planList(); fillDatalists();
     status('rpStatus', '✔ 大会予定を ' + done + '件 追加しました。記録を入れるときに、大会名の候補に出ます。', 'ok');
   }
-  function planRead(text) { PLAN = R.parseMeetPlan(text); status('rpStatus', '', ''); planRender(); }
+  function planRead(text) { PLAN = /BEGIN:VCALENDAR/i.test(String(text || '').slice(0, 2000)) ? icsPlan(R.parseIcs(text)) : R.parseMeetPlan(text); status('rpStatus', '', ''); planRender(); }
+  function icsPlan(p) { p.f = { kw: '', from: typeof LanePlans !== 'undefined' ? LanePlans.today() : '', to: '' }; return p; }
+  async function planReadIcsUrl() {
+    var u = $('rpIcsUrl').value.trim().replace(/^webcal:\/\//i, 'https://');
+    if (!/^https:\/\/\S+$/i.test(u)) { status('rpStatus', '✖ https:// で始まるカレンダーのアドレスを入れてください', 'ng'); return; }
+    if (!window.LaneUrl || !LaneUrl.fetchUrl) { status('rpStatus', '✖ このページではアドレスから読めません。.ics ファイルを選んでください', 'ng'); return; }
+    status('rpStatus', '⏳ カレンダーを読み込んでいます…', '');
+    try {
+      var r = await LaneUrl.fetchUrl(u), t = r.bytes ? R.icsBytesToText(r.bytes) : r.html || '';
+      if (!/BEGIN:VCALENDAR/i.test(t)) { status('rpStatus', '✖ カレンダー（iCal）ではありませんでした。Google カレンダーの「iCal 形式の公開URL」か「iCal 形式の非公開URL」を貼ってください', 'ng'); return; }
+      PLAN = icsPlan(R.parseIcs(t)); status('rpStatus', '', ''); planRender();
+    } catch (e) { if (isAbort(e)) return; status('rpStatus', esc('✖ 読み込めませんでした：' + e.message + (e.code === 'type' ? '（中継の更新が必要かもしれません。.ics ファイルを選ぶ方法でも入れられます）' : '')), 'ng'); }
+  }
   async function saveOverrides(sc) {
     need(sc);
     if (sc.team) { await FB.F.setDoc(FB.F.doc(FB.fs, 'teams', sc.team.id, 'settings', 'divOverrides'), { map: DIV_OV, updatedAt: new Date().toISOString() }); check(sc); return; }
@@ -1363,10 +1380,17 @@
     var f = this.files[0]; this.value = ''; if (!f) return;
     if (f.size > 1e6) { status('rpStatus', '✖ ファイルが大きすぎます（1MBまで）', 'ng'); return; }
     var buf = new Uint8Array(await f.arrayBuffer()), t = new TextDecoder('utf-8').decode(buf);
-    if ((t.match(/\ufffd/g) || []).length > 3) t = new TextDecoder('shift_jis').decode(buf);
+    if (/BEGIN:VCALENDAR/i.test(t.slice(0, 2000))) t = R.icsBytesToText(buf);   // v0.26.30 Google カレンダーの書き出し（.ics）
+    else if ((t.match(/\ufffd/g) || []).length > 3) t = new TextDecoder('shift_jis').decode(buf);
     planRead(t);
   });
   $('rpRead').addEventListener('click', function () { planRead($('rpPaste').value); });
+  $('rpIcsGo').addEventListener('click', planReadIcsUrl);
+  $('rpPreview').addEventListener('change', function (e) {
+    if (!PLAN || !PLAN.f) return; var id = e.target.id;
+    if (id === 'rpKw') PLAN.f.kw = e.target.value.trim(); else if (id === 'rpFrom') PLAN.f.from = e.target.value; else if (id === 'rpTo') PLAN.f.to = e.target.value; else return;
+    planRender();
+  });
   $('lpHome').addEventListener('click', async function (e) {
     var t = e.target, k;
     if (t.hasAttribute('data-lpm')) { LP.ym = LanePlans.addMonth(LP.ym, +t.getAttribute('data-lpm')); planList(); }
@@ -2175,13 +2199,13 @@
     var order = []; R.groupEvents(Object.keys(byKey), mine, NOG).forEach(function (g) { g.items.forEach(function (it) { byKey[it.key].eventLabel = it.label; order.push(byKey[it.key]); }); });
     var b4 = function (r) { return r ? [r.mark || '', R.shownWind(r), r.date || '', r.meet || ''] : null; };
     var last = mine.filter(function (r) { return R.rawDivisionOf(r); }).sort(function (x, y) { return cmp(x.date, y.date); }).pop() || pf;
-    return { v: 1, k: 'pp', g: new Date().toISOString(), a: { name: pf.name || '', team: last.team || pf.team || '', grade: pf.grade || '' },
+    return ppSc({ v: 1, k: 'pp', g: new Date().toISOString(), a: { name: pf.name || '', team: last.team || pf.team || '', grade: pf.grade || '' },
       e: order.slice(0, LanePersonal.MAX_EV).map(function (e) {
         return { l: e.eventLabel, lw: e.lower ? 1 : 0, n: e.count, b: b4(e.best), rf: b4(e.ref),
           p: e.allPoints.slice(-LanePersonal.MAX_P).map(function (p) { return [p.date, Math.round(p.v * 1000) / 1000, p.mark, p.wind || '', p.ref ? 1 : 0]; }),
           x: (e.noMarks || []).slice(-LanePersonal.MAX_X).map(function (p) { return [p.date, p.mark, p.meet, p.round]; }),
           r: e.recent.slice(0, LanePersonal.MAX_R).map(function (r) { return [r.date, r.mark, R.shownWind(r), r.meet, r.round || '', (pd[r.id] && pd[r.id].flag) || '']; }) };
-      }) };
+      }) });
   }
   async function encodePP(obj) {
     if (typeof CompressionStream === 'undefined') throw new Error('このブラウザは圧縮に対応していません（新しいChrome／Safari／Edgeを使ってください）');

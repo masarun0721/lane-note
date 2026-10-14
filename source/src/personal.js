@@ -108,6 +108,7 @@ var LanePersonal = (function () {
           r: arr(e.r, MAX_R).map(function (p) { return row(p, 6); }) };
       }),
       nx: o.nx && typeof o.nx === 'object' && /^[A-Za-z0-9]{6,40}$/.test(String(o.nx.s || '')) ? { s: String(o.nx.s), n: S(o.nx.n, 100) } : null,
+      sc: typeof LanePlans !== 'undefined' ? LanePlans.fromSc(o.sc) : [],   // v0.26.30 これからの大会（先生の予定）
       tk: '' };   // v0.24.3：個人ページからのやり取りは一時停止（監査 C302）   // v0.24：先生とのやり取り（先生がオンにしたときだけ入る）
   }
   function snapLabel(g) { var d = g ? new Date(g) : null; return d && !isNaN(d) ? (d.getMonth() + 1) + '月' + d.getDate() + '日' : '作成した日'; }
@@ -124,6 +125,7 @@ var LanePersonal = (function () {
     if (o.nx && opts.base) links.push('<a class="pp-go" href="' + esc(opts.base + '?s=' + o.nx.s) + '">📅 大会当日の予定を見る' + (o.nx.n ? '<small>' + esc(o.nx.n) + '</small>' : '') + '</a>');
     (opts.schedules || []).forEach(function (s) { links.push('<a class="pp-go sub" href="' + esc(s.url) + '">📅 ' + esc(s.label) + '<small>このスマホに保存している予定</small></a>'); });
     if (links.length) h += '<div class="pp-links">' + links.join('') + '</div>';
+    if (o.sc && o.sc.length && typeof LanePlans !== 'undefined') { var sch = LanePlans.scHtml(o.sc); if (sch) h += '<div class="pp-card pp-sc"><div class="pp-h">📅 これからの大会</div>' + sch + '</div>'; }
     if (!o.e.length) return box.innerHTML = h + '<p class="muted">まだ記録がありません。</p>' + condSection(o, opts), bindAll(o, box, opts);
     h += '<div class="pp-card"><div class="pp-h">🏅 自己ベスト</div><ul class="pp-pbs">' + o.e.map(function (e) { var b = e.b || e.rf;
       return '<li><button type="button" class="pp-ev" data-ppev="' + esc(e.l) + '">' + esc(e.l) + '</button><b>' + esc(b ? b[0] : '—') + (e.b ? '' : b ? '<span class="ref">参考</span>' : '') + '</b><small>' + esc(b ? [b[1] ? '風' + b[1] : '', b[2], b[3]].filter(Boolean).join('・') : '') + '</small></li>'; }).join('') + '</ul></div>';

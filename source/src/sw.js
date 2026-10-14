@@ -12,6 +12,7 @@ var GUIDE = new URL('./guide.html', self.location).href;   // v0.18：はじめ�
 var CHECK = new URL('./check.html', self.location).href;   // v0.19：エントリー照合
 var TRY = new URL('./try.html', self.location).href;   // v0.26.8：3分体験
 var TEAMP = new URL('./team.html', self.location).href;   // v0.26.10：チームの設定
+var SCHEDP = new URL('./schedule.html', self.location).href;   // v0.26.30：大会予定
 function getPage(u) { return fetch(new Request(u, { cache: 'reload', credentials: 'same-origin' })).then(function (res) { if (!res || !res.ok) throw new Error('page fetch failed: ' + (res && res.status)); return res; }); }
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) {
@@ -26,7 +27,7 @@ self.addEventListener('install', function (e) {
     }).then(function () {
       return getPage(TRY).then(function (res) { return c.put(TRY, res); }, function () { });
     }).then(function () {
-      return getPage(TEAMP).then(function (res) { return c.put(TEAMP, res); }, function () { });
+      return getPage(TEAMP).then(function (res) { return c.put(TEAMP, res); }, function () { }).then(function () { return getPage(SCHEDP).then(function (res) { return c.put(SCHEDP, res); }, function () { }); });
     });
   }).then(function () { return self.skipWaiting(); }));
 });
@@ -47,7 +48,7 @@ self.addEventListener('fetch', function (e) {
     return caches.open(CACHE).then(function (c) {
       return c.match(u.origin + u.pathname).then(function (m) {
         if (m) return m;
-        if (/(records|team)\.html$/.test(u.pathname)) return offlineRecords();
+        if (/(records|team|schedule)\.html$/.test(u.pathname)) return offlineRecords();
         return c.match(PAGE);
       });
     });
