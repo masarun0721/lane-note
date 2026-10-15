@@ -339,13 +339,15 @@
     if (ref) { if (o) await FB.F.setDoc(ref, o); else await FB.F.deleteDoc(ref); check(sc); }
   }
   /* v0.26.33 大会準備のPDF（meets/{大会}/pdf）を消す：大会予定を消したとき・期限（大会終了の1か月後）が過ぎたとき */
+  // v0.26.40 C505：かけらのIDは版ごと（種類_版ID_番号）。古い保存は種類_番号。n は10まで（ルールと同じ）
+  function pdfChunkIds(k, d) { var out = []; if (!d || !/^(yoko|sl|tt|note)$/.test(k)) return out; var n = Math.min(+d.n || 0, 10), v = /^[a-z0-9]{8}$/.test(d.v || '') ? d.v : ''; for (var i = 0; i < n; i++) out.push(v ? k + '_' + v + '_' + i : k + '_' + i); return out; }
   function pdfRef(sc, key, c) { return sc.team ? FB.F.doc(FB.fs, 'teams', sc.team.id, 'meets', docId(key), 'pdf', c) : FB.F.doc(FB.fs, 'users', sc.uid, 'meets', docId(key), 'pdf', c); }
   async function prepPurge(key, m, sc, onlyExpired) {
     if (!sc.uid || !FB || !m || !m.prep || !m.prep.docs) return false;
     var docs = m.prep.docs, now = Date.now(), ch = false;
     for (var k in docs) {
       var d = docs[k]; if (!d || onlyExpired && !(d.exp && d.exp < now)) continue;
-      for (var i = 0; i < (d.n || 0); i++) { check(sc); try { await FB.F.deleteDoc(pdfRef(sc, key, d.v ? k + '_' + d.v + '_' + i : k + '_' + i));   /* v0.26.40 C505：版ごとのID（古い保存は種類_番号） */ } catch (e) { if (isAbort(e)) throw e; } }
+      var ids = pdfChunkIds(k, d); for (var i = 0; i < ids.length; i++) { check(sc); try { await FB.F.deleteDoc(pdfRef(sc, key, ids[i])); } catch (e) { if (isAbort(e)) throw e; } }
       delete docs[k]; ch = true;
     }
     return ch;
@@ -684,7 +686,10 @@
   // v0.14（監査F07）：クラウドに置いたものを全部消す（記録・天気・中学/高校の選択）
   async function clearCloudSide(sc) {
     check(sc); if (!sc.uid || sc.team) return;
-    var keys = []; (await serverDocs(colFor(sc.uid, 'meets'))).forEach(function (d) { keys.push(d.id); }); check(sc);
+    var keys = [], chunks = []; (await serverDocs(colFor(sc.uid, 'meets'))).forEach(function (d) { keys.push(d.id); var v = d.data() || {}, docs = v.prep && v.prep.docs || {}; for (var k in docs) chunks = chunks.concat(pdfChunkIds(k, docs[k]).map(function (c) { return [d.id, c]; })); }); check(sc);
+    // v0.26.41（監査 C508）：大会準備のPDFのかけら（meets/{k}/pdf）も消す。親の文書を消しても下のかけらは残るため、先に消す（一覧は不可なので大会の印の v・n からIDを作る）
+    for (var ci = 0; ci < chunks.length; ci++) { check(sc); try { await FB.F.deleteDoc(FB.F.doc(FB.fs, 'users', sc.uid, 'meets', chunks[ci][0], 'pdf', chunks[ci][1])); } catch (e) { if (isAbort(e)) throw e; } }
+    check(sc);
     var b = FB.F.writeBatch(FB.fs);
     keys.forEach(function (k) { b.delete(FB.F.doc(FB.fs, 'users', sc.uid, 'meets', k)); });
     b.delete(FB.F.doc(FB.fs, 'users', sc.uid, 'settings', 'divOverrides'));
@@ -1477,7 +1482,15 @@
   function isUrlOnly(t) { return window.LaneUrl ? LaneUrl.isUrlOnly(t) : false; }
   var urlUi = window.LaneUrl && $('rbUrlLoad') ? LaneUrl.mount($('rbUrlLoad'), { id: 'ru', targets: [{ k: 'res', label: '結果' }], accept: ['pdf', 'html'], multiple: true,
     begin: function () { var sc = scope(), u = ($('ruUrl') || {}).value || ''; sc.srcUrl = u; if (RES.pick && (RES.pick.url === u || LaneUrl.normUrl(RES.pick.url) === u)) sc.pub = RES.pick; return sc; },
-    onFiles: function (files, k, sc) { return handleFiles(files, sc); } }) : null;
+    onFiles: function (files, k, sc) { if (sc && sc.pub) resSrc(sc.pub, files); return handleFiles(files, sc); } }) : null;
+  // v0.26.41（監査 C509）：みんなの結果から取り込むときは、出典として実際に読んだ先（中継の転送のあとのURL）を出す。登録されたサイトとちがえば ⚠
+  function resSrc(pub, files) {
+    var f = Array.prototype.slice.call(files || []).filter(function (x) { return x && x.srcUrl; })[0], u = f ? String(f.srcUrl) : String(pub.url || ''), h = LanePub.hostOf(u) || '';
+    RES.src = { url: u, host: h, from: pub.url, moved: !!h && h !== pub.host };
+    var el = $('resSrc'); if (!el) { var box = $('resBox'); if (!box) return; el = document.createElement('div'); el.id = 'resSrc'; el.className = 'small'; box.insertBefore(el, box.firstChild); }
+    el.innerHTML = '📊 出典（実際に読んだ先）：<b>' + esc(h || u) + '</b>' + (LanePub.official(h) ? '（公式のサイト）' : '（公式かどうか未確認）') + ' <small class="muted">' + esc(u.slice(0, 200)) + '</small>' +
+      (RES.src.moved ? '<br><b class="warn">⚠ 登録されたURL（' + esc(pub.host) + '）から、ちがうサイトへ転送されました。大会名・日付・記録をよく確かめてください。</b>' : '');
+  }
   // v0.26.28 大会予定
   $('rpTemplate').addEventListener('click', function () {
     var u = URL.createObjectURL(new Blob(['\ufeff' + R.PLAN_TEMPLATE], { type: 'text/csv;charset=utf-8' })), a = document.createElement('a');
@@ -1588,7 +1601,7 @@
       ms.slice(0, 3).map(function (e, i) {
         return '<div class="res-c"><div class="small">' + esc(e.name) + '（' + esc(e.date) + (e.end && e.end !== e.date ? '〜' + esc(e.end) : '') + '）・' + { live: '速報のページ', gold: 'gold.jaic.org', pdf: '結果のPDF' }[e.kind] + '<br>' + esc(LanePub.srcText(e)) + '</div>' +
           '<button type="button" class="btn" data-resuse="' + i + '">この結果を取り込む</button> <button type="button" class="btn sub small" data-resrep="' + i + '">⚠ 報告</button>' + (e.by === USER.uid ? ' <button type="button" class="btn sub small" data-resdel="' + i + '">登録を取り消す</button>' : '') + '</div>';
-      }).join('') + '<div class="status" id="resMsg"></div>');
+      }).join('') + (ms.truncated || ms.length > 3 ? '<small class="warn">⚠ ほかにも候補があります（似ている順に' + Math.min(3, ms.length) + '件だけ出しています）。大会名・日付をよく確かめてください。</small>' : '') + '<div class="status" id="resMsg"></div>');   // v0.26.41 C510：一部だけのときは、そう書く
   }
   document.addEventListener('click', async function (e) {
     var t = e.target, i;

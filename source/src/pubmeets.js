@@ -8,7 +8,7 @@
  *   ほかの先生は「報告」だけ。読めるのは Google でログインした人だけで、期限（exp）が過ぎたものは読めない（一覧も exp の条件つき） */
 var LanePub = (function () {
   var OFFICIAL = [/(^|\.)jaaf\.or\.jp$/, /(^|\.)kotorikkyo\.info$/, /\.lg\.jp$/, /\.ed\.jp$/, /\.go\.jp$/, /\.ac\.jp$/];
-  var DAY_MAX = 20, GAP_S = 30, HIDE_AT = 3;
+  var DAY_MAX = 20, GAP_S = 30, HIDE_AT = 3, PAGE = 20, PAGES = 5, SPAN_MAX = 7;   // v0.26.41 C510：一覧は1回20件（ルールの上限）×5回まで。大会の期間は7日まで
   function nk(s) { return String(s == null ? '' : s).normalize('NFKC'); }
   // 大会名をそろえる：空白・記号・「第n回」・年度・西暦/令和を落とす
   function normName(s) {
@@ -25,6 +25,8 @@ var LanePub = (function () {
   function h8(s) { var h = 0x811c9dc5; s = String(s); for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return ('0000000' + h.toString(16)).slice(-8); }
   function isDay(d) { return /^\d{4}-\d{2}-\d{2}$/.test(String(d || '')); }
   function docId(date, name) { return date + '_' + h8(normName(name)); }
+  // v0.26.41（監査 C510）：大会の初日から最終日までの毎日（最大 SPAN_MAX 日）
+  function dayList(a, b) { if (!isDay(a)) return []; var out = [a], t = Date.parse(a + 'T00:00:00Z'), e = isDay(b) ? Date.parse(b + 'T00:00:00Z') : t; while (out.length < SPAN_MAX && (t += 864e5) <= e) out.push(new Date(t).toISOString().slice(0, 10)); return out; }
   function hostOf(u) { try { var x = new URL(u); return x.protocol === 'https:' ? x.hostname.toLowerCase() : ''; } catch (e) { return ''; } }
   function official(host) { host = String(host || '').toLowerCase(); return OFFICIAL.some(function (r) { return r.test(host); }); }
   function okUrl(u) { var h = hostOf(u); return !!h && h.indexOf('.') > 0 && !/^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(h) && String(u).length <= 1000; }
@@ -66,18 +68,46 @@ var LanePub = (function () {
     }
     async function myQuota() { var s = await F.getDoc(d('pubQuota', uid)); if (!s.exists()) return null; var v = s.data(); return { day: v.day, n: v.n, atMs: v.at && v.at.toMillis ? v.at.toMillis() : 0 }; }
     function plain(id, v) { return Object.assign({}, v, { id: id, at: v.at && v.at.toDate ? v.at.toDate().toISOString() : v.at, exp: v.exp && v.exp.toMillis ? v.exp.toMillis() : v.exp }); }
+    // v0.26.41（監査 C510）：hid==false・exp>少し先 の条件つきで、20件ずつ PAGES 回までページ送り。続きが残れば more
+    async function listAll(cond) {
+      var err = null;
+      for (var k = 0, ahead = [36e5, 2 * 864e5]; k < ahead.length; k++) {
+        var docs = [], last = null, more = false;
+        try {
+          for (var pg = 0; pg < PAGES; pg++) {
+            var parts = [F.collection(fs, COL)].concat(cond, [F.where('hid', '==', false), F.where('exp', '>', F.Timestamp.fromMillis(Date.now() + ahead[k]))]);
+            if (last && F.startAfter) parts.push(F.startAfter(last));
+            parts.push(F.limit(PAGE));
+            var s = await F.getDocs(F.query.apply(null, parts)), n = 0; s.forEach(function (x) { docs.push(x); last = x; n++; });
+            if (n < PAGE) { more = false; break; } more = true;
+            if (!F.startAfter) break;
+          }
+          return { docs: docs, more: more };
+        } catch (e) { err = e; if (!/permission/.test(String(e && e.code || ''))) break; }
+      }
+      throw err;
+    }
     return {
       // 検索：その日の大会（隠れていないもの）
       //   v0.26.39 期限（exp）が過ぎたものはルールで読めないので、一覧も exp の条件をつける（ルールは request.time と比べるので、少し先の時刻で問い合わせる。
-      //   端末の時計が遅れていて断られたときは、もっと先の時刻でもう一度）。本番では date・hid・exp の複合インデックスが要る
+      //   端末の時計が遅れていて断られたときは、もっと先の時刻でもう一度）。本番では date・hid・exp と key・hid・exp の複合インデックスが要る
+      //   v0.26.41（監査 C510）：1) 決まったID（日付_名前のハッシュ）を直接読む → 2) そろえた大会名（key）で一覧 → 3) 大会の期間の毎日を日付で一覧。
+      //   一覧は1回20件（ルールの上限）で、PAGES 回までページ送り。それでも続きがあれば結果に truncated＝true をつける（「候補1つ」とは扱わない）
       search: async function (plan) {
-        var s = null, err = null, out = [];
-        for (var k = 0, ahead = [36e5, 2 * 864e5]; k < ahead.length && !s; k++) {
-          var q = F.query(F.collection(fs, COL), F.where('date', '==', plan.date), F.where('hid', '==', false), F.where('exp', '>', F.Timestamp.fromMillis(Date.now() + ahead[k])), F.limit(20));
-          try { s = await F.getDocs(q); } catch (e) { err = e; if (!/permission/.test(String(e && e.code || ''))) break; }
+        var seen = {}, out = [], truncated = false, okAny = false, err = null, meet = plan.meet;
+        var add = function (id, v) { if (!seen[id]) { seen[id] = 1; out.push(plain(id, v)); } };
+        var days = dayList(plan.date, plan.end);
+        for (var i = 0; i < days.length; i++) {   // 1) 決まったID（その日に、その名前で登録されたもの）
+          try { var g = await F.getDoc(d(COL, docId(days[i], meet))); okAny = true; if (g.exists()) add(g.id || docId(days[i], meet), g.data()); }
+          catch (e) { if (/permission/.test(String(e && e.code || ''))) okAny = true; else err = err || e; }   // 隠れた・期限切れはルールで読めない
         }
-        if (!s) throw err;
-        s.forEach(function (x) { out.push(plain(x.id, x.data())); }); return match(out, plan);
+        var conds = [[F.where('key', '==', normName(meet))]].concat(days.map(function (x) { return [F.where('date', '==', x)]; }));
+        for (var c = 0; c < conds.length; c++) {
+          try { var r = await listAll(conds[c]); okAny = true; if (r.more) truncated = true; r.docs.forEach(function (x) { add(x.id, x.data()); }); }
+          catch (e) { err = err || e; }
+        }
+        if (!okAny && err) throw err;
+        var ms = match(out, plan); ms.truncated = truncated; ms.total = out.length; return ms;
       },
       get: async function (plan) { var id = docId(plan.date, plan.meet); try { var s = await F.getDoc(d(COL, id)); return s.exists() ? plain(id, s.data()) : null; } catch (e) { return null; } },
       isCoach: async function (team) { if (!team) return false; try { var s = await F.getDoc(d('teams', team, 'members', uid)); return s.exists() && s.data().role === 'coach'; } catch (e) { return false; } },
@@ -106,6 +136,6 @@ var LanePub = (function () {
       setPref: async function (on) { await F.setDoc(d('users', uid, 'settings', PREF), { on: !!on, at: new Date().toISOString() }); }
     };
   }
-  return { normName: normName, sim: sim, h8: h8, docId: docId, hostOf: hostOf, official: official, okUrl: okUrl, match: match, pickAuto: pickAuto, srcText: srcText, entry: entry, entryRes: entryRes, resKind: resKind, exp: exp, make: make, DAY_MAX: DAY_MAX, GAP_S: GAP_S, HIDE_AT: HIDE_AT };
+  return { normName: normName, sim: sim, h8: h8, docId: docId, dayList: dayList, PAGE: PAGE, PAGES: PAGES, hostOf: hostOf, official: official, okUrl: okUrl, match: match, pickAuto: pickAuto, srcText: srcText, entry: entry, entryRes: entryRes, resKind: resKind, exp: exp, make: make, DAY_MAX: DAY_MAX, GAP_S: GAP_S, HIDE_AT: HIDE_AT };
 })();
 if (typeof module !== 'undefined') module.exports = LanePub;

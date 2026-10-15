@@ -101,7 +101,7 @@ export default {
 
     const ctl = new AbortController();
     const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);
-    let res, url = t.url;
+    let res, url = t.url, sawHttps = false;
     try {
       for (let hop = 0; ; hop++) {
         // Cookie・Authorization などは付けない（利用者の情報は上流に渡さない）
@@ -111,6 +111,9 @@ export default {
           if (hop >= MAX_REDIRECTS) { clearTimeout(timer); return txt("too many redirects", 400, h); }
           t = checkTarget(new URL(res.headers.get("Location"), url).toString(), self);
           if (t.err) { clearTimeout(timer); return txt(t.err, 400, h); }
+          // v0.26.41（監査 C509）：一度 https になったら、途中で http へ下がる転送は受けない（https→http→https の鎖も止める。最後が https でも、途中の http で中身が差し替えられうるため）
+          if (url.protocol === "https:") sawHttps = true;
+          if (sawHttps && t.url.protocol === "http:") { clearTimeout(timer); return txt("blocked: insecure redirect", 400, h); }
           url = t.url; continue;
         }
         break;

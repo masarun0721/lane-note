@@ -47,10 +47,10 @@ const chunkOf = (k, i) => { const m = store.get('teams/T1/meets/' + K); const d 
 const noChunk = k => !pdfKeys().some(x => x.startsWith('teams/T1/meets/' + K + '/pdf/' + k + '_'));
 const EXP = Date.parse('2026-10-25T00:00:00+09:00') + 31 * 864e5;
 let w1;
-await check('チームで開く：保存先の説明（チームで共有・大会終了の1か月後に自動で消えます）と、4種類の待ち', async () => {
+await check('チームで開く：保存先の説明（チームで共有・大会終了の1か月後から使えなくなる）と、4種類の待ち', async () => {
   w1 = await open({ uid: 'uA', team: 'T1', idb: idbA });
   const p = w1.__meetApp.prep(); assert.deepEqual([p.key, p.owner.uid, p.owner.team], [K, 'uA', 'T1']);
-  const t = bar(w1); assert(/チーム（顧問・マネージャー）で共有/.test(t) && /大会終了の1か月後に自動で消えます/.test(t) && /要項 待ち/.test(t) && /スタートリスト 待ち/.test(t) && /タイムテーブル 待ち/.test(t), t);
+  const t = bar(w1); assert(/チーム（顧問・マネージャー）で共有/.test(t) && /大会終了の1か月後から使えなくな/.test(t) && /要項 待ち/.test(t) && /スタートリスト 待ち/.test(t) && /タイムテーブル 待ち/.test(t), t);
 });
 await check('ファイルで入れた要項：チームのクラウド（meets/{大会}/pdf）に保存・期限は大会終了の1か月後・大会の印に名前と数', async () => {
   await w1.__meetApp.handleFile('yoko', file(w1, 'f5_note_fee500.pdf', '架空要項.pdf')); await delay(200);
@@ -59,9 +59,9 @@ await check('ファイルで入れた要項：チームのクラウド（meets/{
   const m = store.get('teams/T1/meets/' + K).prep; assert.equal(m.docs.yoko.n, 1); assert.equal(m.docs.yoko.exp, EXP); assert(!m.docs.yoko.url);
   assert(/要項 ✓/.test(bar(w1)));
 });
-await check('スタートリスト：最初の保存で「ほかの学校の選手名」「チームのメンバーだけ」「大会終了の1か月後に自動で消えます」を確かめる（2回目は聞かない）', async () => {
+await check('スタートリスト：最初の保存で「ほかの学校の選手名」「チームのメンバーだけ」「大会終了の1か月後から使えなくなる」を確かめる（2回目は聞かない）', async () => {
   await w1.__meetApp.handleFile('sl', file(w1, 'f3_sl_heats.pdf', '架空SL.pdf')); await delay(200);
-  assert.equal(w1.__confirms.length, 1); const m = w1.__confirms[0]; assert(/ほかの学校の選手の名前/.test(m) && /チームのメンバー（顧問・マネージャー）だけ/.test(m) && /大会終了の1か月後に自動で消えます/.test(m), m);
+  assert.equal(w1.__confirms.length, 1); const m = w1.__confirms[0]; assert(/ほかの学校の選手の名前/.test(m) && /チームのメンバー（顧問・マネージャー）だけ/.test(m) && /大会終了の1か月後から使えなくな/.test(m), m);
   assert(chunkOf('sl', 0));
   await w1.__meetApp.handleFile('sl', file(w1, 'f3_sl_heats.pdf', '架空SL2.pdf')); await delay(200); assert.equal(w1.__confirms.length, 1);
 });
@@ -103,7 +103,7 @@ await check('A01：ほかのアカウントでは、前の人の保存（この�
 });
 await check('ログインなし：この端末だけに保存（クラウドには書かない）・説明', async () => {
   const n = writes.length, w = await open({ uid: null, idb: new IDBFactory() });
-  assert(/この端末にだけ保存します/.test(bar(w)) && /大会終了の1か月後に自動で消えます/.test(bar(w)));
+  assert(/この端末にだけ保存します/.test(bar(w)) && /大会終了の1か月後から使えなくな/.test(bar(w)));
   await w.__meetApp.handleFile('yoko', file(w, 'f5_note_fee500.pdf', '架空要項.pdf')); await delay(500);
   assert.equal(writes.length, n); assert(JSON.parse(w.localStorage.getItem('lanenote.prep.idx.v1'))['|'][K].kinds.yoko);
 });
@@ -119,6 +119,6 @@ await check('新しい大会を始める（全消去）：保存は消さずに�
 });
 await check('文言：「PDF本文はサーバーへ送りません」は無くし、正しい説明に', () => {
   for (const f of ['index.html', 'guide.html', 'records.html', 'schedule.html']) assert(!/PDF本文はサーバーへ送りません|PDF本文はどこにも送りません/.test(fs.readFileSync(path.join(ROOT, f), 'utf8')), f);
-  assert(/大会終了の1か月後に自動で消えます/.test(html)); assert(/大会終了の1か月後に自動で消えます/.test(fs.readFileSync(path.join(ROOT, 'guide.html'), 'utf8')));
+  assert(/大会終了の1か月後から使えなくな/.test(html)); assert(/大会終了の1か月後から使えなくな/.test(fs.readFileSync(path.join(ROOT, 'guide.html'), 'utf8')));
 });
 console.log(`v02633_prep_save: ${pass} ok / ${fail} NG`); process.exit(fail ? 1 : 0);

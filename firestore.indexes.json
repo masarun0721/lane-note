@@ -1,7 +1,9 @@
 {
   "indexes": [
     { "collectionGroup": "pubMeets", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "date", "order": "ASCENDING" }, { "fieldPath": "hid", "order": "ASCENDING" }, { "fieldPath": "exp", "order": "ASCENDING" } ] },
-    { "collectionGroup": "pubResults", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "date", "order": "ASCENDING" }, { "fieldPath": "hid", "order": "ASCENDING" }, { "fieldPath": "exp", "order": "ASCENDING" } ] }
+    { "collectionGroup": "pubResults", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "date", "order": "ASCENDING" }, { "fieldPath": "hid", "order": "ASCENDING" }, { "fieldPath": "exp", "order": "ASCENDING" } ] },
+    { "collectionGroup": "pubMeets", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "key", "order": "ASCENDING" }, { "fieldPath": "hid", "order": "ASCENDING" }, { "fieldPath": "exp", "order": "ASCENDING" } ] },
+    { "collectionGroup": "pubResults", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "key", "order": "ASCENDING" }, { "fieldPath": "hid", "order": "ASCENDING" }, { "fieldPath": "exp", "order": "ASCENDING" } ] }
   ],
   "fieldOverrides": []
 }

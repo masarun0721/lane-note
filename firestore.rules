@@ -1,7 +1,8 @@
 rules_version = '2';
 // LANE NOTE firestore.rules（v0.25 で talks を作り直し。2026-10-12。もとは v0.14／記録 v0.6.0 の版）：Astra 監査版をベースに、リポジトリ d489257 の現行ルールと統合
 // ※アプリ v0.14 より前の版は、ログインなしの不具合送信がこのルールで断られる。v0.14 を公開してから（または同時に）Firebase コンソールに貼り替えること
-// ・users/{uid}/**（records・meets・settings/divOverrides・将来の shareIndex）：本人だけ読み書き（現行と同じ）
+// ・users/{uid}/{コレクション}/{文書}（records・meets・settings・shareIndex・talkIndex・teams）：本人だけ読み書き。v0.26.41 から1段だけ（下の階層は個別のルール）
+// ・v0.26.41 users/{uid}/meets/{k}/pdf/{c}：大会準備のPDFのかけら（自分だけ）。チームと同じ形・大きさ・期限を確かめる。期限後は読めない・書き換え不可
 // ・shares/{id}：IDを知っていれば期限内だけ読める（expiresAt と createdAt+120日の早い方）。作成はGoogleログイン本人・形式/サイズ/期限を検査。変更不可・一覧不可・削除は本人（期限後も可）
 // ・feedback/{id}：Googleログイン必須（匿名送信は停止）。読む・直す・消すはアプリから不可
 // ・talks/{tid}（v0.24 選手とのやり取り）：tid は推測できない20文字。顧問（Googleログイン本人）が作る。
@@ -317,9 +318,26 @@ service cloud.firestore {
     // Preserve the existing owner-only users subtree for compatibility with
     // records, weather, division settings, and existing user-owned data.
     // This rule does not validate record schemas or enforce storage quotas.
-    match /users/{userId}/{document=**} {
+    // v0.26.41 users ここから
+    // v0.26.41（監査 C508）：前は users/{userId}/{document=**} の1本で、下の階層（大会準備のPDFのかけら）まで本人なら何でも書けた。
+    //   ルールは「どれか1つが許せば通る」ので、広いルールが狭いルールを上書きしないよう、広いルールは1段（コレクション/文書）だけにした。
+    //   アプリが使う users の下は records・meets・settings・shareIndex・talkIndex・teams（すべて1段）。2段目は meets/{k}/pdf だけで、下の専用ルールで確かめる
+    match /users/{userId} {
       allow read, write: if owner(userId);
     }
+    match /users/{userId}/{col}/{docId} {
+      allow read, write: if owner(userId);
+      // v0.26.41（監査 C508）大会準備のPDFのかけら（自分だけ）：チームと同じ形・大きさ・期限の確かめ。期限が過ぎたものは読めない。
+      //   書いたかけらは書き換えない（create だけ）。一覧は不可（消すときは大会の印の v・n からIDを作る）。古い形（種類_番号）は読む・消すだけ
+      match /pdf/{c} {
+        allow get: if owner(userId) && col == 'meets' && resource.data.exp > request.time;
+        allow list: if false;
+        allow create: if owner(userId) && col == 'meets' && validPdfChunk(c, request.resource.data);
+        allow update: if false;
+        allow delete: if owner(userId) && col == 'meets';
+      }
+    }
+    // v0.26.41 users ここまで
     match /shares/{shareId} {
       allow get: if validShareId(shareId) && shareReadable(resource.data);
       allow list: if false;

@@ -23,7 +23,11 @@ const PUB_RE = / *\/\/ v0\.26\.35 みんなの要項 ここから[\s\S]*?\/\/ v0
 const BAN_NEW = "        // v0.26.35：外された本人は、自分の印だけ読める（参加できない理由を出すため。名前・日時は自分のもの）\n        allow get: if isCoach(t) || (signedIn() && uid == request.auth.uid);\n        allow list: if isCoach(t);\n";
 const RES_RE = / *\/\/ v0\.26\.38 みんなの結果 ここから[\s\S]*?\/\/ v0\.26\.38 みんなの結果 ここまで\n/;
 const RES_HEAD = /\/\/ ・v0\.26\.38 pubResults[^\n]*\n/;
-const rulesBase = rules.replace(RES_RE, '').replace(RES_HEAD, '').replace(PUB_RE, '').replace(BAN_NEW, '        allow get, list: if isCoach(t);\n');
+// v0.26.41（監査 C508）：users の広いルールを1段にし、個人のPDFのかけらに専用のルール（監査待ち）。監査済みの最終案と比べるときは、元の1本に戻して比べる
+const USERS_RE = / *\/\/ v0\.26\.41 users ここから[\s\S]*?\/\/ v0\.26\.41 users ここまで\n/;
+const USERS_OLD = '    match /users/{userId}/{document=**} {\n      allow read, write: if owner(userId);\n    }\n';
+ok('v0.26.41 users は1段だけ（{document=**} の広いルールは無い）・個人のPDFのかけらは validPdfChunk', () => { const m = rules.match(USERS_RE); assert(m, 'users のルールがない'); assert(!/users\/\{userId\}\/\{document=\*\*\}/.test(rules.replace(/^\s*\/\/.*$/gm, ''))); assert.match(m[0], /match \/users\/\{userId\}\/\{col\}\/\{docId\}/); assert.match(m[0], /match \/pdf\/\{c\}[\s\S]*allow create: if owner\(userId\) && col == 'meets' && validPdfChunk/); assert.match(m[0], /allow update: if false/); });
+const rulesBase = rules.replace(USERS_RE, USERS_OLD).replace(RES_RE, '').replace(RES_HEAD, '').replace(PUB_RE, '').replace(BAN_NEW, '        allow get, list: if isCoach(t);\n');
 ok('v0.26.35 外された本人だけが自分の banned を読める（監査待ちの変更・1か所）', () => assert(rules.includes(BAN_NEW)));
 ok('v0.26.38 みんなの結果の追加分が、監査待ちの案（/workspace/astra_audit/firestore.rules.v0.26.38.pubresults）と同じ（比較元が無ければ SKIP）', () => {
   const f = '/workspace/astra_audit/firestore.rules.v0.26.38.pubresults'; if (!fs.existsSync(f)) return SKIP;
