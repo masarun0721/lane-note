@@ -19,9 +19,9 @@ await check('日付：同じ日、または大会の期間に入るものだけ�
   assert.equal(P.match([E({}), E({ id: 'b', date: '2026-11-04' }), E({ id: 'c', date: '2026-11-10' })], pl).length, 2);
   assert.equal(P.match([E({ hid: true }), E({ rep: 3 }), E({ exp: Date.now() - 1 }), E({ url: 'javascript:alert(1)' }), E({ host: 'evil.example' })], pl).length, 0);
 });
-await check('自動で読むのは：公式のサイト・報告0件・よく似ている・候補が1つのときだけ', () => {
+await check('v0.26.39（監査 C509）自動では読まない：公式のサイト・報告0件・よく似ている・候補が1つでも pickAuto は null', () => {
   const pl = { date: '2026-11-03', meet: '架空区中学校陸上競技大会' };
-  assert(P.pickAuto(P.match([E({})], pl)));
+  assert.equal(P.pickAuto(P.match([E({})], pl)), null);
   assert(!P.pickAuto(P.match([E({ url: 'https://kaku.example/y.pdf', host: 'kaku.example' })], pl)), '公式でない');
   assert(!P.pickAuto(P.match([E({ rep: 1 })], pl)), '報告あり');
   assert(!P.pickAuto(P.match([E({}), E({ id: 'b', url: 'https://www.jaaf.or.jp/y.pdf', host: 'www.jaaf.or.jp' })], pl)), '候補が2つ');
@@ -45,8 +45,8 @@ const setPath = (o, p, v) => { const a = p.split('.'); let x = o; for (let i = 0
 const fix = o => { const r = {}; for (const k of Object.keys(o)) r[k] = val(o[k]); return r; };
 const F = {
   doc: (fs_, ...a) => ({ path: a.join('/') }), collection: (fs_, ...a) => ({ path: a.join('/') }),
-  where: (f, op, v) => ({ f, v }), limit: n => ({ n }), query: (c, ...q) => ({ c, q }),
-  getDocs: async q => { const pre = q.c.path + '/'; const out = [...store.entries()].filter(([k, v]) => k.startsWith(pre) && !k.slice(pre.length).includes('/') && q.q.every(x => !x.f || v[x.f] === x.v)); return { forEach: f => out.forEach(([k, v]) => f({ id: k.slice(pre.length), data: () => v })) }; },
+  where: (f, op, v) => ({ f, op, v }), /* v0.26.39 exp > の条件も見る */ limit: n => ({ n }), query: (c, ...q) => ({ c, q }),
+  getDocs: async q => { const pre = q.c.path + '/'; const out = [...store.entries()].filter(([k, v]) => k.startsWith(pre) && !k.slice(pre.length).includes('/') && q.q.every(x => !x.f || (x.op === '>' ? (v[x.f] && v[x.f].toMillis ? v[x.f].toMillis() : v[x.f]) > x.v.toMillis() : v[x.f] === x.v))); return { forEach: f => out.forEach(([k, v]) => f({ id: k.slice(pre.length), data: () => v })) }; },
   getDoc: async r => { const v = store.get(r.path); return { exists: () => !!v, data: () => v }; },
   setDoc: async (r, d, o) => { store.set(r.path, Object.assign(o && o.merge && store.get(r.path) || {}, fix(d))); },
   updateDoc: async (r, ...a) => { if (!store.has(r.path)) throw Object.assign(new Error('nf'), { code: 'not-found' }); if (typeof a[0] === 'object') Object.assign(store.get(r.path), fix(a[0])); else for (let i = 0; i < a.length; i += 2) setPath(store.get(r.path), a[i], a[i + 1]); },
@@ -99,11 +99,13 @@ await check('ファイルで入れた要項は登録しない', async () => {
   const w = await open({ uid: 'uD', team: 'T4', pl: { date: '2026-12-01', meet: '架空冬季記録会' } }); await w.__meetApp.handleFile('yoko', new File([fs.readFileSync(YOKO)], 'y.pdf', { type: 'application/pdf' })); await delay(300);
   assert(!pubs().some(k => k.startsWith('pubMeets/2026-12-01'))); assert(!w.__confirms.some(m => /みんなの要項/.test(m)));
 });
-await check('ほかの学校の先生：名前が少しちがっても同じ日なら見つかる・公式のサイトで報告0件 → 自動で読み込み・出典を出す', async () => {
+await check('ほかの学校の先生：名前が少しちがっても同じ日なら見つかる・公式のサイトで報告0件でも自動では読まない（v0.26.39 C509）→ 押したら読み、実際に読んだ先を出す', async () => {
   const w = await open({ uid: 'uB', team: 'T2', pl: PL2 }); await delay(800);
-  assert(w.__fetched.includes('https://www.kotorikkyo.info/m/3/yoko.pdf'), w.__fetched.join(','));
+  assert(!w.__fetched.includes('https://www.kotorikkyo.info/m/3/yoko.pdf') && !w.__meetApp.prep().docs.yoko, '自動で読んだ ' + w.__fetched.join(','));
+  assert(/出典：www\.kotorikkyo\.info（公式のサイト）/.test(box(w)) && /この要項を使う/.test(box(w)), box(w));
+  w.document.querySelector('[data-pubuse]').click(); await delay(1200);
   assert(w.__meetApp.prep().docs.yoko, '要項が読み込まれていない'); const t = box(w);
-  assert(/自動で読み込みました/.test(t) && /出典：www\.kotorikkyo\.info（公式のサイト）/.test(t) && /報告/.test(t), t);
+  assert(/要項を読み込みました（実際に読んだ先：www\.kotorikkyo\.info）/.test(t) && !/転送/.test(t) && /報告/.test(t), t);
   assert.equal(store.get(pubs()[0]).ver, 1, '自分が読んだだけでは差し替えない');
 });
 await check('報告：顧問が「報告」→ 1件。報告ありは自動で読まず「この要項を使う」の1クリック', async () => {
@@ -120,11 +122,16 @@ await check('公式でないサイトの登録は自動で読まない（提案�
   const w = await open({ uid: 'uD', team: 'T4', pl: { date: '2026-11-20', meet: '架空 秋季記録会' } }); await delay(800);
   assert(!w.__meetApp.prep().docs.yoko); assert(/公式かどうか未確認/.test(box(w)) && /この要項を使う/.test(box(w)), box(w));
 });
-await check('差し替え：ちがうURLの要項を読んだ顧問 → 確かめてから差し替え（版2）', async () => {
+await check('差し替え（v0.26.39 C502）：ほかの先生の登録は差し替えない（聞かずに「⚠ 報告」を案内）。登録した本人は確かめてから差し替え（版2・by はそのまま）', async () => {
   const w = await open({ uid: 'uB', team: 'T2', pl: PL2, answer: m => true }); await delay(800); NOW += 60000;
   await w.__meetApp.handleFile('yoko', urlFile('https://www.kotorikkyo.info/m/3/yoko2.pdf')); await delay(400);
-  assert(w.__confirms.some(m => /差し替えますか/.test(m)), w.__confirms.join('|'));
-  const e = store.get(pubs()[0]); assert.deepEqual([e.url, e.ver, e.by, e.rep], ['https://www.kotorikkyo.info/m/3/yoko2.pdf', 2, 'uB', 1]);
+  assert(!w.__confirms.some(m => /差し替えますか/.test(m)), w.__confirms.join('|')); assert(/ほかの先生が登録した/.test(box(w)) && /報告/.test(box(w)), box(w));
+  let e = store.get(pubs()[0]); assert.deepEqual([e.url, e.ver, e.by, e.rep], ['https://www.kotorikkyo.info/m/3/yoko.pdf', 1, 'uA', 1]);
+  NOW += 60000; store.delete('pubQuota/uA'); const wa = await open({ uid: 'uA', team: 'T1', pl: PL, answer: m => true }); await delay(800);
+  await wa.__meetApp.handleFile('yoko', urlFile('https://www.kotorikkyo.info/m/3/yoko2.pdf')); await delay(400);
+  assert(wa.__confirms.some(m => /差し替えますか/.test(m)), wa.__confirms.join('|'));
+  e = store.get(pubs()[0]); assert.deepEqual([e.url, e.ver, e.by, e.rep], ['https://www.kotorikkyo.info/m/3/yoko2.pdf', 2, 'uA', 1]);
+  const q = store.get('pubQuota/uA'); assert.equal(q.op, 'update'); assert.equal(q.tgt, pubs()[0]);
 });
 await check('先生ごとにやめられる：「これからは登録しない」→ 次から登録しない', async () => {
   store.delete('pubQuota/uA');

@@ -1650,6 +1650,8 @@
     if (!on || sc.epoch !== authEpoch) return;
     var ms = await api.search(p), old = ms.filter(function (e) { return e.score >= 0.85; })[0] || null;
     if (old && old.url === url) return;
+    // v0.26.39（監査 C502）：ほかの先生の登録は差し替えない（まちがっていれば「⚠ 報告」）
+    if (old && old.by !== USER.uid) { resBox('<small class="muted">📊 「みんなの結果」には、ほかの先生が登録したこの大会の結果のURL（' + esc(old.host) + '）があります。差し替えはできません。</small>'); return; }
     if (old && !confirm('「みんなの結果」に、この大会のべつの結果のURL（' + old.host + '）が登録されています。あなたが読んだURLに差し替えますか？')) return;
     try { await api.publish(p, url, null, tm, old); } catch (x) { resBox('<small class="ng">✖ 「みんなの結果」に登録できませんでした：' + esc(x.message) + '</small>'); return; }
     resBox('📊 「みんなの結果」に' + (old ? '差し替えました' : '登録しました') + '（大会名・日付・会場・URLだけ）。 <button type="button" class="btn sub small" data-respref="0">これからは登録しない</button>');

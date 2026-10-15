@@ -2046,14 +2046,18 @@
     if (!on) return;
     var ms = await api.search(p.p), old = ms.filter(function (e) { return e.score >= 0.85; })[0] || null; if (!prepLive(p)) return;
     if (old && old.url === url) { pubMsg('📚 この要項は、もう「みんなの要項」にあります。'); return; }
+    // v0.26.39（監査 C502）：ほかの先生の登録は差し替えない（まちがっていれば「⚠ 報告」）
+    if (old && old.by !== p.owner.uid) { pubShow(p, [old], '📚 「みんなの要項」には、ほかの先生が登録したこの大会の要項（' + esc(old.host) + '）があります。まちがっていれば「⚠ 報告」してください。'); return; }
     if (old && !confirm('「みんなの要項」に、この大会のべつの要項（' + old.host + '）が登録されています。あなたが読んだURLに差し替えますか？')) return;
     await api.publish(p.p, url, prepInfo(), p.owner.team, old); if (!prepLive(p)) return;
     pubMsg('📚 「みんなの要項」に' + (old ? '差し替えました' : '登録しました') + '（URLと大会の情報だけ）。 <button type="button" class="btn sub small" data-pubpref="0">これからは登録しない</button>');
   }
-  async function pubLoad(p, e, auto) {
+  // v0.26.39（監査 C509）：押したときだけ読む（自動では読まない）。出典は実際に読んだ先（転送のあとのURL）を出す
+  async function pubLoad(p, e) {
     var f, r = await LaneUrl.fetchUrl(e.url, { noRedirect: true }); if (r.kind !== 'pdf') throw new Error('PDFではありませんでした');
-    if (!prepLive(p)) return; f = LaneUrl.toFile(r); p.pubFrom = e; await handleFile('yoko', f);
-    pubShow(p, [e], (auto ? '📚 「みんなの要項」から要項を自動で読み込みました。' : '📚 「みんなの要項」の要項を読み込みました。') + 'ちがう要項なら、ご自分で入れ直してください。');
+    if (!prepLive(p)) return; f = LaneUrl.toFile(r); p.pubFrom = Object.assign({}, e, { url: r.url }); await handleFile('yoko', f);
+    var fh = LanePub.hostOf(r.url) || String(r.url || '').split('/')[2] || '';
+    pubShow(p, [e], '📚 「みんなの要項」の要項を読み込みました（実際に読んだ先：' + esc(fh) + '）。' + (fh !== e.host ? '<b>⚠ 登録されたURL（' + esc(e.host) + '）から、ちがうサイトへ転送されました。中身をよく確かめてください。</b>' : '') + 'ちがう要項なら、ご自分で入れ直してください。');
   }
   function pubShow(p, ms, head) {
     var b = pubBox(); if (!b) return; p.pubList = ms;
@@ -2062,19 +2066,17 @@
         '<a href="' + esc(e.url) + '" target="_blank" rel="noopener noreferrer">ページを見る</a> ' +
         (head ? '' : '<button type="button" class="btn small" data-pubuse="' + i + '">この要項を使う</button> ') +
         (e.by === p.owner.uid ? '<button type="button" class="btn sub small" data-pubdel="' + i + '">登録を取り消す</button>' : '<button type="button" class="btn sub small" data-pubrep="' + i + '">⚠ 報告</button>') + '</li>';
-    }).join('') + '</ul><small class="muted">報告が' + LanePub.HIDE_AT + '件になると出なくなります。登録は大会終了の1か月後に自動で消えます。</small>';
+    }).join('') + '</ul><small class="muted">報告が' + LanePub.HIDE_AT + '件になると出なくなります。登録は大会終了の1か月後から出なくなります。</small>';
   }
   async function pubSuggest(p) {
     var api = pubApi(p); if (!api || p.docs.yoko) return;
     var ms = []; try { ms = await api.search(p.p); } catch (e) { return; } if (!prepLive(p) || p.docs.yoko || !ms.length) return;
-    var a = LanePub.pickAuto(ms);
-    if (a) { try { await pubLoad(p, a, true); return; } catch (e) { if (!prepLive(p)) return; } }
-    pubShow(p, ms);
+    pubShow(p, ms);   // v0.26.39（監査 C509）：自動では読み込まない。「この要項を使う」を押したときだけ
   }
   document.addEventListener('click', function (ev) {
     var t = ev.target, p = PREP, i; if (!t || !t.dataset || !p) return;
     var api = pubApi(p), L = p.pubList || [];
-    if ((i = t.dataset.pubuse) != null && L[i]) pubLoad(p, L[i], false).catch(function (e) { pubMsg('✖ 読み込めませんでした：' + esc(e.message)); });
+    if ((i = t.dataset.pubuse) != null && L[i]) pubLoad(p, L[i]).catch(function (e) { pubMsg('✖ 読み込めませんでした：' + esc(e.message)); });
     else if ((i = t.dataset.pubrep) != null && L[i] && api) {
       if (!confirm('この登録を報告しますか？（まちがった要項・関係のないページなど）\n報告が' + LanePub.HIDE_AT + '件になると、ほかの先生にも出なくなります。')) return;
       (async function () {

@@ -3031,7 +3031,7 @@ if (typeof module !== 'undefined') module.exports = LaneRoster;
 
 </script>
 <script>
-var APP_VERSION = "v0.26.38.1", REC_VERSION = "v0.11.1";
+var APP_VERSION = "v0.26.39", REC_VERSION = "v0.11.1";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>
@@ -3947,14 +3947,18 @@ if (typeof module !== 'undefined') module.exports = LanePrint;
     var type = res.headers.get('X-Lane-Type') || res.headers.get('Content-Type') || '', kind = sniff(buf, type);
     if (kind === 'text') kind = 'html';
     if (kind !== 'pdf' && kind !== 'html') throw err('type');
-    var out = { url: u, kind: kind, bytes: buf, type: type, name: fileName(u, kind) };
+    // v0.26.39（監査 C509）：中継が HTTP の転送（302 など）についていったときは、X-Lane-Url に実際に読んだ先が入る。
+    //   それを url に入れて出典として出す（頼んだURLは from）。https から http への転送は受け取らない
+    var fin = u, xl = res.headers.get('X-Lane-Url');
+    if (xl) { var fu = normUrl(xl); if (!fu) throw err('bad'); if (/^https:/i.test(u) && !/^https:/i.test(fu)) throw err('blocked'); fin = fu; }
+    var out = { url: fin, from: u, redirected: fin !== u, kind: kind, bytes: buf, type: type, name: fileName(fin, kind) };
     if (kind === 'html') {
       out.html = decodeHtml(buf, type);
       if (looksLogin(out.html)) throw err('login');
       var t = (out.html.match(/<title[^>]*>([^<]*)<\/title>/i) || [])[1]; out.title = t ? t.trim() : '';
       // 転送だけのページ（meta refresh・location.href=）は1回だけついていく
       var rd = out.html.length < 4000 && (out.html.match(/http-equiv\s*=\s*["']?refresh["']?[^>]*url\s*=\s*['"]?([^"'>\s]+)/i) || out.html.match(/location\.href\s*=\s*["']([^"']+)["']/i));
-      if (rd && !opt.noRedirect) { try { return await fetchUrl(new URL(rd[1], u).href, Object.assign({}, opt, { noRedirect: true })); } catch (e) { if (e && e.name === 'AbortError') throw e; } }
+      if (rd && !opt.noRedirect) { try { return await fetchUrl(new URL(rd[1], fin).href, Object.assign({}, opt, { noRedirect: true })); } catch (e) { if (e && e.name === 'AbortError') throw e; } }
     }
     return out;
   }
@@ -4210,7 +4214,9 @@ if (typeof module !== 'undefined') module.exports = LanePrint;
  * ・登録できるのは顧問だけ（pubQuota/{uid} にチームを書き、ルールで顧問か確かめる）。1日20件・30秒に1回まで
  * ・v0.26.38 みんなの結果（pubResults）：同じ作りで、結果のURL（速報・gold.jaic.org・PDF）と大会の情報だけ。読み取った中身（選手・記録・学校名）は入れない。
  *   自動では読み込まない（押したら、その先生の端末が読む→自分の学校の行だけ→確認画面）
- * ・報告3件で見えなくなる（hid）。公式のサイトで報告0件のときだけ自動で読み込み、ほかは「この要項を使う」の1クリック */
+ * ・報告3件で見えなくなる（hid）。v0.26.39（監査 C509）：自動では読み込まない。いつも「この要項を使う」を押したときだけ
+ * ・v0.26.39（監査 C501・C502・C508・C512）：quota は1つの対象（tgt）・1つの操作（op）だけに使える。差し替えは登録した本人だけ（by は作成者のまま）。
+ *   ほかの先生は「報告」だけ。読めるのは Google でログインした人だけで、期限（exp）が過ぎたものは読めない（一覧も exp の条件つき） */
 var LanePub = (function () {
   var OFFICIAL = [/(^|\.)jaaf\.or\.jp$/, /(^|\.)kotorikkyo\.info$/, /\.lg\.jp$/, /\.ed\.jp$/, /\.go\.jp$/, /\.ac\.jp$/];
   var DAY_MAX = 20, GAP_S = 30, HIDE_AT = 3;
@@ -4244,8 +4250,8 @@ var LanePub = (function () {
     }).map(function (e) { return Object.assign({}, e, { score: sim(e.name, plan.meet) }); })
       .filter(function (e) { return e.score >= 0.6; }).sort(function (a, b) { return b.score - a.score || (b.at || '') .localeCompare(a.at || ''); });
   }
-  // 自動で読み込むのは「公式のサイト・報告0件・よく似ている・候補が1つ」のときだけ
-  function pickAuto(ms) { var e = ms && ms.length === 1 ? ms[0] : null; return e && e.score >= 0.85 && official(e.host) && !(e.rep > 0) ? e : null; }
+  // v0.26.39（監査 C509）：自動では読み込まない（転送先・別の大会の資料を確かめられないため）。いつも先生が押したときだけ
+  function pickAuto(ms) { return null; }
   function srcText(e) {
     return '出典：' + (e.host || '') + (official(e.host) ? '（公式のサイト）' : '（公式かどうか未確認）') + '・' + String(e.at || '').slice(0, 10) + ' にほかの先生が登録' + (e.ver > 1 ? '（差し替え' + (e.ver - 1) + '回）' : '') + (e.rep ? '・報告 ' + e.rep + '件' : '');
   }
@@ -4263,36 +4269,44 @@ var LanePub = (function () {
   function make(o) {
     var F = o.F, fs = o.fs, uid = o.uid, COL = o.col === 'pubResults' ? 'pubResults' : 'pubMeets', RES = COL === 'pubResults', PREF = RES ? 'pubres' : 'pub';
     function d() { return F.doc.apply(null, [fs].concat([].slice.call(arguments))); }
-    function quota(b, team, q) {
+    function quota(b, team, q, id, op) {
       var now = Date.now(), day = Math.floor(now / 864e5), same = q && q.day === day, n = same ? (q.n || 0) + 1 : 1;
       if (same && n > DAY_MAX) throw Object.assign(new Error('今日はもう登録できません（1日' + DAY_MAX + '件まで）'), { code: 'rate' });
       if (q && q.atMs && now - q.atMs < GAP_S * 1000) throw Object.assign(new Error('少し待ってからもう一度（' + GAP_S + '秒に1回まで）'), { code: 'rate' });
-      b.set(d('pubQuota', uid), { team: team, at: F.serverTimestamp(), day: day, n: n });
+      b.set(d('pubQuota', uid), { team: team, at: F.serverTimestamp(), day: day, n: n, tgt: COL + '/' + id, op: op });   // v0.26.39 C501：この1件・この操作だけ
     }
     async function myQuota() { var s = await F.getDoc(d('pubQuota', uid)); if (!s.exists()) return null; var v = s.data(); return { day: v.day, n: v.n, atMs: v.at && v.at.toMillis ? v.at.toMillis() : 0 }; }
     function plain(id, v) { return Object.assign({}, v, { id: id, at: v.at && v.at.toDate ? v.at.toDate().toISOString() : v.at, exp: v.exp && v.exp.toMillis ? v.exp.toMillis() : v.exp }); }
     return {
       // 検索：その日の大会（隠れていないもの）
+      //   v0.26.39 期限（exp）が過ぎたものはルールで読めないので、一覧も exp の条件をつける（ルールは request.time と比べるので、少し先の時刻で問い合わせる。
+      //   端末の時計が遅れていて断られたときは、もっと先の時刻でもう一度）。本番では date・hid・exp の複合インデックスが要る
       search: async function (plan) {
-        var q = F.query(F.collection(fs, COL), F.where('date', '==', plan.date), F.where('hid', '==', false), F.limit(20)), s = await F.getDocs(q), out = [];
+        var s = null, err = null, out = [];
+        for (var k = 0, ahead = [36e5, 2 * 864e5]; k < ahead.length && !s; k++) {
+          var q = F.query(F.collection(fs, COL), F.where('date', '==', plan.date), F.where('hid', '==', false), F.where('exp', '>', F.Timestamp.fromMillis(Date.now() + ahead[k])), F.limit(20));
+          try { s = await F.getDocs(q); } catch (e) { err = e; if (!/permission/.test(String(e && e.code || ''))) break; }
+        }
+        if (!s) throw err;
         s.forEach(function (x) { out.push(plain(x.id, x.data())); }); return match(out, plan);
       },
       get: async function (plan) { var id = docId(plan.date, plan.meet); try { var s = await F.getDoc(d(COL, id)); return s.exists() ? plain(id, s.data()) : null; } catch (e) { return null; } },
       isCoach: async function (team) { if (!team) return false; try { var s = await F.getDoc(d('teams', team, 'members', uid)); return s.exists() && s.data().role === 'coach'; } catch (e) { return false; } },
-      // 登録・差し替え（old があれば差し替え）
+      // 登録・差し替え（old があれば差し替え。v0.26.39 C502：差し替えは登録した本人だけ）
       publish: async function (plan, url, info, team, old) {
         if (!okUrl(url)) throw new Error('公開ページ（https）のURLだけ登録できます');
+        if (old && old.by !== uid) throw Object.assign(new Error('ほかの先生が登録したものは差し替えられません（まちがっていれば「⚠ 報告」してください）'), { code: 'notmine' });
         var id = old ? old.id : docId(plan.date, plan.meet), e = RES ? entryRes(plan, url) : entry(plan, url, info), b = F.writeBatch(fs);
-        quota(b, team, await myQuota());
-        var v = RES ? { url: e.url, host: e.host, kind: e.kind, by: uid, at: F.serverTimestamp() } : { url: e.url, host: e.host, info: e.info, by: uid, at: F.serverTimestamp() };
-        if (old) b.update(d(COL, id), Object.assign(v, { ver: (old.ver || 1) + 1 }));   // 差し替え：大会名・日付・期限はそのまま
-        else b.set(d(COL, id), Object.assign(e, v, { exp: F.Timestamp.fromMillis(exp(plan)), ver: 1, rep: 0, hid: false }));
+        quota(b, team, await myQuota(), id, old ? 'update' : 'create');
+        var v = RES ? { url: e.url, host: e.host, kind: e.kind, at: F.serverTimestamp() } : { url: e.url, host: e.host, info: e.info, at: F.serverTimestamp() };
+        if (old) b.update(d(COL, id), Object.assign(v, { ver: (old.ver || 1) + 1 }));   // 差し替え：大会名・日付・期限・登録した人（by）はそのまま
+        else b.set(d(COL, id), Object.assign(e, v, { by: uid, exp: F.Timestamp.fromMillis(exp(plan)), ver: 1, rep: 0, hid: false }));
         await b.commit(); return id;
       },
       // 報告（1人1回）。3件で隠れる
       report: async function (e, team) {
         var b = F.writeBatch(fs), rep = (e.rep || 0) + 1;
-        quota(b, team, await myQuota());
+        quota(b, team, await myQuota(), e.id, 'report');
         b.set(d(COL, e.id, 'reports', uid), { at: F.serverTimestamp() });
         b.update(d(COL, e.id), { rep: rep, hid: rep >= HIDE_AT });
         await b.commit(); return rep;
@@ -6167,6 +6181,8 @@ var LanePdf = (function () {
     if (!on || sc.epoch !== authEpoch) return;
     var ms = await api.search(p), old = ms.filter(function (e) { return e.score >= 0.85; })[0] || null;
     if (old && old.url === url) return;
+    // v0.26.39（監査 C502）：ほかの先生の登録は差し替えない（まちがっていれば「⚠ 報告」）
+    if (old && old.by !== USER.uid) { resBox('<small class="muted">📊 「みんなの結果」には、ほかの先生が登録したこの大会の結果のURL（' + esc(old.host) + '）があります。差し替えはできません。</small>'); return; }
     if (old && !confirm('「みんなの結果」に、この大会のべつの結果のURL（' + old.host + '）が登録されています。あなたが読んだURLに差し替えますか？')) return;
     try { await api.publish(p, url, null, tm, old); } catch (x) { resBox('<small class="ng">✖ 「みんなの結果」に登録できませんでした：' + esc(x.message) + '</small>'); return; }
     resBox('📊 「みんなの結果」に' + (old ? '差し替えました' : '登録しました') + '（大会名・日付・会場・URLだけ）。 <button type="button" class="btn sub small" data-respref="0">これからは登録しない</button>');

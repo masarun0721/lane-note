@@ -84,14 +84,18 @@
     var type = res.headers.get('X-Lane-Type') || res.headers.get('Content-Type') || '', kind = sniff(buf, type);
     if (kind === 'text') kind = 'html';
     if (kind !== 'pdf' && kind !== 'html') throw err('type');
-    var out = { url: u, kind: kind, bytes: buf, type: type, name: fileName(u, kind) };
+    // v0.26.39（監査 C509）：中継が HTTP の転送（302 など）についていったときは、X-Lane-Url に実際に読んだ先が入る。
+    //   それを url に入れて出典として出す（頼んだURLは from）。https から http への転送は受け取らない
+    var fin = u, xl = res.headers.get('X-Lane-Url');
+    if (xl) { var fu = normUrl(xl); if (!fu) throw err('bad'); if (/^https:/i.test(u) && !/^https:/i.test(fu)) throw err('blocked'); fin = fu; }
+    var out = { url: fin, from: u, redirected: fin !== u, kind: kind, bytes: buf, type: type, name: fileName(fin, kind) };
     if (kind === 'html') {
       out.html = decodeHtml(buf, type);
       if (looksLogin(out.html)) throw err('login');
       var t = (out.html.match(/<title[^>]*>([^<]*)<\/title>/i) || [])[1]; out.title = t ? t.trim() : '';
       // 転送だけのページ（meta refresh・location.href=）は1回だけついていく
       var rd = out.html.length < 4000 && (out.html.match(/http-equiv\s*=\s*["']?refresh["']?[^>]*url\s*=\s*['"]?([^"'>\s]+)/i) || out.html.match(/location\.href\s*=\s*["']([^"']+)["']/i));
-      if (rd && !opt.noRedirect) { try { return await fetchUrl(new URL(rd[1], u).href, Object.assign({}, opt, { noRedirect: true })); } catch (e) { if (e && e.name === 'AbortError') throw e; } }
+      if (rd && !opt.noRedirect) { try { return await fetchUrl(new URL(rd[1], fin).href, Object.assign({}, opt, { noRedirect: true })); } catch (e) { if (e && e.name === 'AbortError') throw e; } }
     }
     return out;
   }

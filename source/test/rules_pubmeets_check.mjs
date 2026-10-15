@@ -34,12 +34,12 @@ try {
   await test('回数の制限：30秒に1回・1日20件まで（pubQuota を同じ書き込みで書かないと不可）', async () => {
     const b = writeBatch(db('carol')); b.set(doc(db('carol'), 'pubMeets', LanePub.docId(PL.date, '架空A')), Object.assign(LanePub.entry(Object.assign({}, PL, { meet: '架空A' }), 'https://kaku.example/a.pdf', {}), { by: 'carol', at: serverTimestamp(), exp: Timestamp.fromMillis(LanePub.exp(PL)), ver: 1, rep: 0, hid: false })); await assertFails(b.commit());
     await adminSet('pubQuota/carol', { team: T2, at: Timestamp.fromMillis(Date.now() - 5000), day: day(), n: 1 });
-    const c = writeBatch(db('carol')); c.set(doc(db('carol'), 'pubQuota', 'carol'), { team: T2, at: serverTimestamp(), day: day(), n: 2 }); await assertFails(c.commit());
-    await cool('carol', 20, T2); const e = writeBatch(db('carol')); e.set(doc(db('carol'), 'pubQuota', 'carol'), { team: T2, at: serverTimestamp(), day: day(), n: 21 }); await assertFails(e.commit());
-    await cool('carol', 3, T2); const g = writeBatch(db('carol')); g.set(doc(db('carol'), 'pubQuota', 'carol'), { team: T2, at: serverTimestamp(), day: day(), n: 9 }); await assertFails(g.commit());
+    const c = writeBatch(db('carol')); c.set(doc(db('carol'), 'pubQuota', 'carol'), { team: T2, at: serverTimestamp(), day: day(), n: 2, tgt: 'pubMeets/' + ID, op: 'create' }); await assertFails(c.commit());
+    await cool('carol', 20, T2); const e = writeBatch(db('carol')); e.set(doc(db('carol'), 'pubQuota', 'carol'), { team: T2, at: serverTimestamp(), day: day(), n: 21, tgt: 'pubMeets/' + ID, op: 'create' }); await assertFails(e.commit());
+    await cool('carol', 3, T2); const g = writeBatch(db('carol')); g.set(doc(db('carol'), 'pubQuota', 'carol'), { team: T2, at: serverTimestamp(), day: day(), n: 9, tgt: 'pubMeets/' + ID, op: 'create' }); await assertFails(g.commit());
   });
   await test('形の検査：選手の項目・http や javascript のURL・ほかの人の名前（by）・反則の報告数は不可', async () => {
-    await cool('alice'); const mk = (o) => { const b = writeBatch(db('alice')); b.set(doc(db('alice'), 'pubQuota', 'alice'), { team: T, at: serverTimestamp(), day: day(), n: 2 }); b.set(doc(db('alice'), 'pubMeets', LanePub.docId(PL.date, '架空B')), Object.assign(LanePub.entry(Object.assign({}, PL, { meet: '架空B' }), 'https://kaku.example/b.pdf', {}), { by: 'alice', at: serverTimestamp(), exp: Timestamp.fromMillis(LanePub.exp(PL)), ver: 1, rep: 0, hid: false }, o)); return b.commit(); };
+    await cool('alice'); const mk = (o) => { const b = writeBatch(db('alice')); b.set(doc(db('alice'), 'pubQuota', 'alice'), { team: T, at: serverTimestamp(), day: day(), n: 2, tgt: 'pubMeets/' + LanePub.docId(PL.date, '架空B'), op: 'create' }); b.set(doc(db('alice'), 'pubMeets', LanePub.docId(PL.date, '架空B')), Object.assign(LanePub.entry(Object.assign({}, PL, { meet: '架空B' }), 'https://kaku.example/b.pdf', {}), { by: 'alice', at: serverTimestamp(), exp: Timestamp.fromMillis(LanePub.exp(PL)), ver: 1, rep: 0, hid: false }, o)); return b.commit(); };
     await assertFails(mk({ athletes: ['架空 一郎'] })); await assertFails(mk({ url: 'http://kaku.example/b.pdf' })); await assertFails(mk({ url: 'javascript:alert(1)' }));
     await assertFails(mk({ by: 'carol' })); await assertFails(mk({ rep: 0, hid: true })); await assertFails(mk({ info: 'x'.repeat(8001) }));
     await assertSucceeds(mk({}));
@@ -50,11 +50,14 @@ try {
     await assertFails(getDocs(query(collection(db('carol'), 'pubMeets'), where('hid', '==', false), limit(50))));
     await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), 'pubMeets', ID)));
   });
-  await test('差し替え：ほかの顧問がURLを差し替えられる（版+1）。大会名・日付・期限・報告数は変えられない', async () => {
+  await test('差し替え（v0.26.39 監査 C502）：登録した本人だけが差し替えられる（版+1・by は作成者のまま）。ほかの顧問は差し替えられない。大会名・日付・期限・報告数・by は変えられない', async () => {
     await cool('carol', 1, T2); const old = (await api('carol').search(PL))[0];
-    await assertSucceeds(api('carol').publish(PL, 'https://www.kotorikkyo.info/m/12/yoko_v2.pdf', {}, T2, old));
-    const v = await adminGet('pubMeets/' + ID); if (v.ver !== 2 || v.by !== 'carol' || !/v2/.test(v.url) || v.name !== old.name) throw new Error(JSON.stringify(v));
-    await cool('alice'); const b = writeBatch(db('alice')); b.set(doc(db('alice'), 'pubQuota', 'alice'), { team: T, at: serverTimestamp(), day: day(), n: 2 }); b.update(doc(db('alice'), 'pubMeets', ID), { date: '2026-11-04', by: 'alice', at: serverTimestamp(), ver: 3 }); await assertFails(b.commit());
+    let threw = false; try { await api('carol').publish(PL, 'https://www.kotorikkyo.info/m/12/yoko_v2.pdf', {}, T2, old); } catch (e) { threw = e.code === 'notmine'; } if (!threw) throw new Error('ほかの人の差し替えをアプリが止めない');
+    await cool('carol', 1, T2); const r = writeBatch(db('carol')); r.set(doc(db('carol'), 'pubQuota', 'carol'), { team: T2, at: serverTimestamp(), day: day(), n: 2, tgt: 'pubMeets/' + ID, op: 'update' }); r.update(doc(db('carol'), 'pubMeets', ID), { url: 'https://www.kotorikkyo.info/m/12/yoko_v2.pdf', host: 'www.kotorikkyo.info', at: serverTimestamp(), ver: 2 }); await assertFails(r.commit());
+    await cool('alice'); const mine = (await api('alice').search(PL))[0]; await assertSucceeds(api('alice').publish(PL, 'https://www.kotorikkyo.info/m/12/yoko_v2.pdf', {}, T, mine));
+    const v = await adminGet('pubMeets/' + ID); if (v.ver !== 2 || v.by !== 'alice' || !(/v2/.test(v.url)) || v.name !== old.name) throw new Error(JSON.stringify(v));
+    await cool('alice'); const b = writeBatch(db('alice')); b.set(doc(db('alice'), 'pubQuota', 'alice'), { team: T, at: serverTimestamp(), day: day(), n: 2, tgt: 'pubMeets/' + ID, op: 'update' }); b.update(doc(db('alice'), 'pubMeets', ID), { date: '2026-11-04', at: serverTimestamp(), ver: 3 }); await assertFails(b.commit());
+    await cool('alice'); const c = writeBatch(db('alice')); c.set(doc(db('alice'), 'pubQuota', 'alice'), { team: T, at: serverTimestamp(), day: day(), n: 2, tgt: 'pubMeets/' + ID, op: 'update' }); c.update(doc(db('alice'), 'pubMeets', ID), { by: 'carol', at: serverTimestamp(), ver: 3 }); await assertFails(c.commit());
   });
   await test('報告：顧問が1人1回。3件で隠れて、だれも読めない・差し替えもできない', async () => {
     for (const u of ['dan', 'eve']) { await cool(u, 1, T2); const e = (await api(u).search(PL))[0]; await assertSucceeds(api(u).report(e, T2)); }
@@ -66,8 +69,8 @@ try {
   });
   await test('報告数を一気に増やす・下げる・報告の記録なしで増やすのは不可', async () => {
     const id2 = LanePub.docId(PL.date, '架空B'); await cool('dan', 1, T2);
-    const b = writeBatch(db('dan')); b.set(doc(db('dan'), 'pubQuota', 'dan'), { team: T2, at: serverTimestamp(), day: day(), n: 2 }); b.update(doc(db('dan'), 'pubMeets', id2), { rep: 1, hid: false }); await assertFails(b.commit());
-    const c = writeBatch(db('dan')); c.set(doc(db('dan'), 'pubQuota', 'dan'), { team: T2, at: serverTimestamp(), day: day(), n: 2 }); c.set(doc(db('dan'), 'pubMeets', id2, 'reports', 'dan'), { at: serverTimestamp() }); c.update(doc(db('dan'), 'pubMeets', id2), { rep: 3, hid: true }); await assertFails(c.commit());
+    const b = writeBatch(db('dan')); b.set(doc(db('dan'), 'pubQuota', 'dan'), { team: T2, at: serverTimestamp(), day: day(), n: 2, tgt: 'pubMeets/' + id2, op: 'report' }); b.update(doc(db('dan'), 'pubMeets', id2), { rep: 1, hid: false }); await assertFails(b.commit());
+    const c = writeBatch(db('dan')); c.set(doc(db('dan'), 'pubQuota', 'dan'), { team: T2, at: serverTimestamp(), day: day(), n: 2, tgt: 'pubMeets/' + id2, op: 'report' }); c.set(doc(db('dan'), 'pubMeets', id2, 'reports', 'dan'), { at: serverTimestamp() }); c.update(doc(db('dan'), 'pubMeets', id2), { rep: 3, hid: true }); await assertFails(c.commit());
   });
   await test('消す：登録した本人はできる・ほかの人はできない・期限切れはだれでも片づけられる', async () => {
     const id2 = LanePub.docId(PL.date, '架空B'); await assertFails(deleteDoc(doc(db('carol'), 'pubMeets', id2))); await assertSucceeds(deleteDoc(doc(db('alice'), 'pubMeets', id2)));
