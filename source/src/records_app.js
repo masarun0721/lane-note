@@ -344,14 +344,19 @@
   function pdfRef(sc, key, c) { return sc.team ? FB.F.doc(FB.fs, 'teams', sc.team.id, 'meets', docId(key), 'pdf', c) : FB.F.doc(FB.fs, 'users', sc.uid, 'meets', docId(key), 'pdf', c); }
   async function prepPurge(key, m, sc, onlyExpired) {
     if (!sc.uid || !FB || !m || !m.prep || !m.prep.docs) return false;
-    var docs = m.prep.docs, now = Date.now(), ch = false;
+    var docs = m.prep.docs, now = Date.now(), ch = false, ng = 0, last = null;
     for (var k in docs) {
       var d = docs[k]; if (!d || onlyExpired && !(d.exp && d.exp < now)) continue;
-      var ids = pdfChunkIds(k, d); for (var i = 0; i < ids.length; i++) { check(sc); try { await FB.F.deleteDoc(pdfRef(sc, key, ids[i])); } catch (e) { if (isAbort(e)) throw e; } }
+      // v0.26.43（監査 C602）：1かけらでも消せなければ、その種類の印（v・n＝かけらの場所）は残して、あとでやり直せるようにする
+      var ids = pdfChunkIds(k, d), bad = 0; for (var i = 0; i < ids.length; i++) { check(sc); try { await FB.F.deleteDoc(pdfRef(sc, key, ids[i])); } catch (e) { if (isAbort(e)) throw e; bad++; last = e; } }
+      if (bad) { ng += bad; continue; }
       delete docs[k]; ch = true;
     }
+    if (ng) throw prepPartialErr(ng, last);
     return ch;
   }
+  // v0.26.43（監査 C602）：PDFのかけらの一部を消せなかった（成功とは言わない）。もう一度押すと、残りを消す
+  function prepPartialErr(n, cause) { var e = new Error('一部未削除：大会準備のPDFのかけら ' + n + '件を消せませんでした（' + (cause && (cause.code || cause.message) || '不明') + '）。もう一度押すと、残りを消します'); e.code = 'prep-partial'; e.n = n; e.cause = cause; return e; }
   var SWEPT = -1;
   async function prepSweep(sc) {
     if (SWEPT === sc.epoch || !sc.uid || !document.body.classList.contains('sched-page')) return; SWEPT = sc.epoch;
@@ -688,14 +693,17 @@
     check(sc); if (!sc.uid || sc.team) return;
     var keys = [], chunks = []; (await serverDocs(colFor(sc.uid, 'meets'))).forEach(function (d) { keys.push(d.id); var v = d.data() || {}, docs = v.prep && v.prep.docs || {}; for (var k in docs) chunks = chunks.concat(pdfChunkIds(k, docs[k]).map(function (c) { return [d.id, c]; })); }); check(sc);
     // v0.26.41（監査 C508）：大会準備のPDFのかけら（meets/{k}/pdf）も消す。親の文書を消しても下のかけらは残るため、先に消す（一覧は不可なので大会の印の v・n からIDを作る）
-    for (var ci = 0; ci < chunks.length; ci++) { check(sc); try { await FB.F.deleteDoc(FB.F.doc(FB.fs, 'users', sc.uid, 'meets', chunks[ci][0], 'pdf', chunks[ci][1])); } catch (e) { if (isAbort(e)) throw e; } }
+    //   v0.26.43（監査 C602）：消せなかったかけらがある大会の文書（かけらの場所の印）は消さずに残し、最後に「一部未削除」を返す（成功とは表示しない）
+    var failed = {}, ng = 0, last = null;
+    for (var ci = 0; ci < chunks.length; ci++) { check(sc); try { await FB.F.deleteDoc(FB.F.doc(FB.fs, 'users', sc.uid, 'meets', chunks[ci][0], 'pdf', chunks[ci][1])); } catch (e) { if (isAbort(e)) throw e; failed[chunks[ci][0]] = 1; ng++; last = e; } }
     check(sc);
     var b = FB.F.writeBatch(FB.fs);
-    keys.forEach(function (k) { b.delete(FB.F.doc(FB.fs, 'users', sc.uid, 'meets', k)); });
+    keys.forEach(function (k) { if (!failed[k]) b.delete(FB.F.doc(FB.fs, 'users', sc.uid, 'meets', k)); });
     b.delete(FB.F.doc(FB.fs, 'users', sc.uid, 'settings', 'divOverrides'));
     b.delete(FB.F.doc(FB.fs, 'users', sc.uid, 'settings', 'roster'));   // v0.26.13：選手台帳も消す
     b.delete(FB.F.doc(FB.fs, 'users', sc.uid, 'settings', 'mode'));
     await b.commit(); check(sc);
+    if (ng) throw prepPartialErr(ng, last);   // 画面の控え（METS）はそのまま。reload で残った大会を読み直す
     METS = {}; DIV_OV = {}; lsSet(metsKey(sc.uid), {}); lsSet(ovKey(sc.uid), {});
   }
 
@@ -1596,16 +1604,19 @@
   async function resSuggest() {
     var api = resApi(), p = resPlan(); if (!api || !p) return;
     var ep = authEpoch, ms = await api.search(p); if (ep !== authEpoch) return;
-    if (!ms.length) { resBox('<small class="muted">📊 みんなの結果：この大会の結果のURLは、まだだれも登録していません。</small>'); return; }
+    // v0.26.43（監査 C604）：検索の一部が失敗したときは「だれも登録していない」とは言わない（再試行を出す）
+    var inc = ms.incomplete ? '<small class="warn">⚠ 検索の一部を取得できませんでした（' + esc(ms.reason || '') + '）。ほかにも登録があるかもしれません。</small> <button type="button" class="btn sub small" data-resretry="1">もう一度さがす</button>' : '';
+    if (!ms.length) { resBox(inc ? '📊 みんなの結果：' + inc : '<small class="muted">📊 みんなの結果：この大会の結果のURLは、まだだれも登録していません。</small>'); return; }
     RES.list = ms;
     resBox('<b>📊 みんなの結果</b>：ほかの先生が、この大会の結果のURLを登録しています。押すと、この端末がそのページを読み、<b>あなたの学校の選手の記録だけ</b>を確認画面に出します（まだ何も読み込んでいません）。' +
       ms.slice(0, 3).map(function (e, i) {
         return '<div class="res-c"><div class="small">' + esc(e.name) + '（' + esc(e.date) + (e.end && e.end !== e.date ? '〜' + esc(e.end) : '') + '）・' + { live: '速報のページ', gold: 'gold.jaic.org', pdf: '結果のPDF' }[e.kind] + '<br>' + esc(LanePub.srcText(e)) + '</div>' +
           '<button type="button" class="btn" data-resuse="' + i + '">この結果を取り込む</button> <button type="button" class="btn sub small" data-resrep="' + i + '">⚠ 報告</button>' + (e.by === USER.uid ? ' <button type="button" class="btn sub small" data-resdel="' + i + '">登録を取り消す</button>' : '') + '</div>';
-      }).join('') + (ms.truncated || ms.length > 3 ? '<small class="warn">⚠ ほかにも候補があります（似ている順に' + Math.min(3, ms.length) + '件だけ出しています）。大会名・日付をよく確かめてください。</small>' : '') + '<div class="status" id="resMsg"></div>');   // v0.26.41 C510：一部だけのときは、そう書く
+      }).join('') + (ms.truncated || ms.length > 3 ? '<small class="warn">⚠ ほかにも候補があります（似ている順に' + Math.min(3, ms.length) + '件だけ出しています）。大会名・日付をよく確かめてください。</small>' : '') + (inc ? '<br>' + inc : '') + '<div class="status" id="resMsg"></div>');   // v0.26.41 C510：一部だけのときは、そう書く
   }
   document.addEventListener('click', async function (e) {
     var t = e.target, i;
+    if (t.getAttribute && t.getAttribute('data-resretry') != null) { resBox(''); resSuggest().catch(function () { }); return; }   // v0.26.43 C604：再試行
     if ((i = t.getAttribute('data-resuse')) != null) {
       var en = RES.list && RES.list[+i]; if (!en || !urlUi) return;
       if (!school() && !MODE.personal) { resMsg('✖ 先に「学校・クラブ名」を入れてください（自分の学校の選手だけを取り込むため）。', 'ng'); var sb = $('rbSchool'); if (sb) sb.focus(); return; }
@@ -1664,6 +1675,7 @@
     if (!on || sc.epoch !== authEpoch) return;
     var ms = await api.search(p), old = ms.filter(function (e) { return e.score >= 0.85; })[0] || null;
     if (old && old.url === url) return;
+    if (!old && ms.incomplete) { resBox('<small class="warn">📊 「みんなの結果」の検索の一部を取得できなかったため、登録しませんでした（すでに登録があるかもしれません）。</small>'); return; }   // v0.26.43 C604
     // v0.26.39（監査 C502）：ほかの先生の登録は差し替えない（まちがっていれば「⚠ 報告」）
     if (old && old.by !== USER.uid) { resBox('<small class="muted">📊 「みんなの結果」には、ほかの先生が登録したこの大会の結果のURL（' + esc(old.host) + '）があります。差し替えはできません。</small>'); return; }
     if (old && !confirm('「みんなの結果」に、この大会のべつの結果のURL（' + old.host + '）が登録されています。あなたが読んだURLに差し替えますか？')) return;
@@ -2466,6 +2478,11 @@
       await fn(function (d, n) { last = [d, n]; status('rbDataStatus', '⏳ 消しています… ' + d + ' / ' + n + '件', ''); });
     } catch (e) {
       btn.disabled = false; if (isAbort(e) || sc.epoch !== authEpoch) return;
+      if (e && e.code === 'prep-partial') {   // v0.26.43（監査 C602）：一部未削除（成功とは出さない）＋再試行
+        status('rbDataStatus', '⚠ <b>一部未削除</b>：' + esc(e.message) + ' <button type="button" class="btn sub" id="rbClearRetry">もう一度消す</button>', 'ng');
+        var rb = $('rbClearRetry'); if (rb) rb.addEventListener('click', function () { btn.click(); });
+        try { await reload(sc); } catch (e2) { } return;
+      }
       status('rbDataStatus', '✖ 消せませんでした：' + esc(clearErr(e)) + (last[1] ? '<br>（' + last[1] + '件中 ' + last[0] + '件まで進みました。もう一度押すと、残りを消します）' : ''), 'ng');
       try { await reload(sc); } catch (e2) { } return;
     }

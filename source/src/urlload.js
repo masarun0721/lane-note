@@ -66,6 +66,9 @@
   async function fetchUrl(url, opt) {
     opt = opt || {};
     var u = normUrl(url); if (!u) throw err('bad');
+    // v0.26.43（監査 C603）：最初が https なら「https 必須」を、HTML の転送（meta refresh・location.href）の先まで持ち回る。取りに行く前に止める
+    var httpsOnly = !!opt.httpsOnly || /^https:/i.test(u);
+    if (opt.httpsOnly && !/^https:/i.test(u)) throw err('blocked');
     var res;
     try { res = await (opt.fetch || root.fetch).call(root, PROXY + '?url=' + encodeURIComponent(u), { method: 'GET', credentials: 'omit', signal: opt.signal }); }
     catch (e) { if (e && e.name === 'AbortError') throw e; throw err('net'); }
@@ -87,7 +90,7 @@
     // v0.26.39（監査 C509）：中継が HTTP の転送（302 など）についていったときは、X-Lane-Url に実際に読んだ先が入る。
     //   それを url に入れて出典として出す（頼んだURLは from）。https から http への転送は受け取らない
     var fin = u, xl = res.headers.get('X-Lane-Url');
-    if (xl) { var fu = normUrl(xl); if (!fu) throw err('bad'); if (/^https:/i.test(u) && !/^https:/i.test(fu)) throw err('blocked'); fin = fu; }
+    if (xl) { var fu = normUrl(xl); if (!fu) throw err('bad'); if (httpsOnly && !/^https:/i.test(fu)) throw err('blocked'); fin = fu; }
     var out = { url: fin, from: u, redirected: fin !== u, kind: kind, bytes: buf, type: type, name: fileName(fin, kind) };
     if (kind === 'html') {
       out.html = decodeHtml(buf, type);
@@ -95,7 +98,11 @@
       var t = (out.html.match(/<title[^>]*>([^<]*)<\/title>/i) || [])[1]; out.title = t ? t.trim() : '';
       // 転送だけのページ（meta refresh・location.href=）は1回だけついていく
       var rd = out.html.length < 4000 && (out.html.match(/http-equiv\s*=\s*["']?refresh["']?[^>]*url\s*=\s*['"]?([^"'>\s]+)/i) || out.html.match(/location\.href\s*=\s*["']([^"']+)["']/i));
-      if (rd && !opt.noRedirect) { try { return await fetchUrl(new URL(rd[1], fin).href, Object.assign({}, opt, { noRedirect: true })); } catch (e) { if (e && e.name === 'AbortError') throw e; } }
+      if (rd && !opt.noRedirect) {
+        var nx = ''; try { nx = new URL(rd[1], fin).href; } catch (e) { }
+        if (nx && (httpsOnly || /^https:/i.test(fin)) && !/^https:/i.test(nx)) throw err('blocked');   // C603：http へ下がる転送は、取りに行かずに止める（握りつぶさない）
+        if (nx) { try { return await fetchUrl(nx, Object.assign({}, opt, { noRedirect: true, httpsOnly: httpsOnly || /^https:/i.test(fin) })); } catch (e) { if (e && (e.name === 'AbortError' || e.code === 'blocked')) throw e; } }
+      }
     }
     return out;
   }

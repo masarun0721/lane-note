@@ -2142,6 +2142,7 @@
     if (!on) return;
     var ms = await api.search(p.p), old = ms.filter(function (e) { return e.score >= 0.85; })[0] || null; if (!prepLive(p)) return;
     if (old && old.url === url) { pubMsg('📚 この要項は、もう「みんなの要項」にあります。'); return; }
+    if (!old && ms.incomplete) { pubMsg('📚 「みんなの要項」の検索の一部を取得できなかったため、登録しませんでした（すでに登録があるかもしれません）。'); return; }   // v0.26.43 C604
     // v0.26.39（監査 C502）：ほかの先生の登録は差し替えない（まちがっていれば「⚠ 報告」）
     if (old && old.by !== p.owner.uid) { pubShow(p, [old], '📚 「みんなの要項」には、ほかの先生が登録したこの大会の要項（' + esc(old.host) + '）があります。まちがっていれば「⚠ 報告」してください。'); return; }
     if (old && !confirm('「みんなの要項」に、この大会のべつの要項（' + old.host + '）が登録されています。あなたが読んだURLに差し替えますか？')) return;
@@ -2162,11 +2163,15 @@
         '<a href="' + esc(e.url) + '" target="_blank" rel="noopener noreferrer">ページを見る</a> ' +
         (head ? '' : '<button type="button" class="btn small" data-pubuse="' + i + '">この要項を使う</button> ') +
         (e.by === p.owner.uid ? '<button type="button" class="btn sub small" data-pubdel="' + i + '">登録を取り消す</button>' : '<button type="button" class="btn sub small" data-pubrep="' + i + '">⚠ 報告</button>') + '</li>';
-    }).join('') + '</ul>' + (ms.truncated ? '<small class="warn">⚠ 登録が多いため、似ている順に一部だけ出しています（ほかにも候補があります）。中身をよく確かめてください。</small><br>' : '') + '<small class="muted">報告が' + LanePub.HIDE_AT + '件になると出なくなります。登録は大会終了の1か月後から出なくなります。</small>';
+    }).join('') + '</ul>' + (ms.incomplete ? PUB_INC(ms) + '<br>' : '') + (ms.truncated ? '<small class="warn">⚠ 登録が多いため、似ている順に一部だけ出しています（ほかにも候補があります）。中身をよく確かめてください。</small><br>' : '') + '<small class="muted">報告が' + LanePub.HIDE_AT + '件になると出なくなります。登録は大会終了の1か月後から出なくなります。</small>';
   }
+  function PUB_INC(ms) { return '<small class="warn">⚠ 検索の一部を取得できませんでした（' + esc(ms.reason || '') + '）。ほかにも登録があるかもしれません。</small> <button type="button" class="btn sub small" data-pubretry="1">もう一度さがす</button>'; }
+  document.addEventListener('click', function (ev) { var t = ev.target; if (t && t.dataset && t.dataset.pubretry && PREP) { var b = pubBox(); if (b) b.innerHTML = ''; pubSuggest(PREP).catch(function () { }); } });
   async function pubSuggest(p) {
     var api = pubApi(p); if (!api || p.docs.yoko) return;
-    var ms = []; try { ms = await api.search(p.p); } catch (e) { return; } if (!prepLive(p) || p.docs.yoko || !ms.length) return;
+    var ms = []; try { ms = await api.search(p.p); } catch (e) { return; } if (!prepLive(p) || p.docs.yoko) return;
+    // v0.26.43（監査 C604）：0件でも、検索の一部が失敗していたら「ない」とは言わずに再試行を出す
+    if (!ms.length) { if (ms.incomplete) { var b = pubBox(); if (b) b.innerHTML = '<div>📚 <b>みんなの要項</b>：' + PUB_INC(ms) + '</div>'; } return; }
     pubShow(p, ms);   // v0.26.39（監査 C509）：自動では読み込まない。「この要項を使う」を押したときだけ
   }
   document.addEventListener('click', function (ev) {
@@ -2199,6 +2204,11 @@
     if (!prepLive(p)) return;
     await handleFile(kind, file);
   }
+  // v0.26.43（監査 C605）：親の文書（大会の印）を読み直す。チームの大会は、在籍していないと読めない（ルール）ので、在籍の確認も兼ねる
+  async function prepRecheck(p) {
+    try { var ds = await withTimeout(FB.F.getDoc(prepPath(p.owner, p.key)), 10000), pr = ds.exists() && ds.data().prep || null; return { ok: true, prep: pr, docs: pr && pr.docs || {} }; }
+    catch (e) { return /permission-denied/.test(String(e && e.code || '')) ? { denied: true } : { err: e }; }
+  }
   async function prepOpen(pl) {
     if (!pl || !pl.date || !pl.meet) return;
     var gen = ++prepGen;   // v0.26.40 C503：前の大会の保存・読み込みは、ここから先は使わない
@@ -2223,10 +2233,24 @@
       var k = PREP_KINDS[j], c = cd[k];
       if (!c || c.here || c.exp && c.exp < today) continue;
       if (p.docs[k] && (p.docs[k].at || '') >= (c.at || '')) continue;   // この端末の控えが新しい
-      try { await prepFetchKind(p, k, c); if (!prepLive(p)) return; p.docs[k] = c; p.resumed = true; } catch (e) {
-        if (!prepLive(p)) return;
-        if (/permission-denied/.test(String(e && e.code || ''))) { await prepPurge(who); resetScreen(); if (!prepLive(p)) return; try { prepBar(''); } catch (e) { } prepDetach('この大会準備を開く権限がありません（チームから外れたか、期限が切れました）。この端末に残っていた控えも消しました。'); return; }
-        ng.push(PREP_LBL[k] + '：' + e.message); setStatus(SID[k], '✖ 保存した' + PREP_LBL[k] + 'を読めませんでした：' + esc(e.message), 'ng'); }
+      for (var tries = 0; ; ) {
+        try { await prepFetchKind(p, k, c); if (!prepLive(p)) return; p.docs[k] = c; p.resumed = true; break; } catch (e) {
+          if (!prepLive(p)) return;
+          var pd = /permission-denied/.test(String(e && e.code || ''));
+          // v0.26.43（監査 C605）：かけらが読めない（権限なし・見つからない）ときは、先に親の文書を読み直す。
+          //   親も権限なし＝本当に外された → 控えを消す。版が変わった → 新しい版を読み直す（2回まで）。それ以外 → 「更新されました。再読み込みしてください」（消さない）
+          if (pd || e.code === 'prep-bad') {
+            var chk = await prepRecheck(p); if (!prepLive(p)) return;
+            if (chk.denied) { await prepPurge(who); resetScreen(); if (!prepLive(p)) return; try { prepBar(''); } catch (e2) { } prepDetach('この大会準備を開く権限がありません（チームから外れたか、期限が切れました）。この端末に残っていた控えも消しました。'); return; }
+            if (chk.ok) {
+              var nc = chk.docs[k];
+              if (nc && nc.n && !nc.here && !(nc.exp && nc.exp < today) && (nc.v || '') !== (c.v || '') && tries < 2) { tries++; c = nc; continue; }
+              if (pd || !nc || (nc.v || '') !== (c.v || '')) { e = new Error('更新されました。再読み込みしてください'); e.code = 'prep-updated'; }
+            }
+          }
+          ng.push(PREP_LBL[k] + '：' + e.message); setStatus(SID[k], '✖ 保存した' + PREP_LBL[k] + 'を読めませんでした：' + esc(e.message), 'ng'); break;
+        }
+      }
     }
     p.quiet = false; prepLocalSave(true);
     prepBar(ng.length ? '<span class="warn">⚠ ' + esc(ng.join('／')) + '</span>' : '');
@@ -2248,17 +2272,30 @@
   async function prepErase() {
     var p = PREP; if (!p || !confirm('「' + p.p.meet + '」の大会準備の保存（この端末' + (p.owner.uid ? '・クラウド' : '') + '）を消します。今の画面の内容はそのままです。よろしいですか？')) return;
     if (p.owner.uid && FB && prepLive(p)) {
-      var cd = p.cloud && p.cloud.docs || {};
-      for (var k in cd) if (cd[k] && cd[k].n) await prepDelVer(p, k, cd[k].v || '', 0, cd[k].n);
+      // v0.26.43（監査 C602）：失敗を無視する片づけ（prepDelVer）は使わない。1かけらでも消せなければ、その種類の印は残して「一部未削除」と再試行を出す
+      var cd = p.cloud && p.cloud.docs || {}, left = {}, ng = 0, last = null;
+      for (var k in cd) {
+        if (!cd[k] || !cd[k].n) continue;
+        for (var i = 0; i < Math.min(+cd[k].n || 0, 10); i++) { try { await FB.F.deleteDoc(prepPath(p.owner, p.key, prepChunkId(k, cd[k].v || '', i))); } catch (e) { left[k] = cd[k]; ng++; last = e; } }
+        if (!prepLive(p)) return;
+      }
       if (!prepLive(p)) return;
-      try { await FB.F.updateDoc(prepPath(p.owner, p.key), 'prep', FB.F.deleteField()); } catch (e) { if (!/not-found/.test(e.code || '')) throw e; }
-      p.cloud = null;
+      try {
+        if (ng) { var args = []; for (var k2 in cd) if (!left[k2]) args.push('prep.docs.' + k2, FB.F.deleteField()); if (args.length) await FB.F.updateDoc.apply(null, [prepPath(p.owner, p.key)].concat(args)); }
+        else await FB.F.updateDoc(prepPath(p.owner, p.key), 'prep', FB.F.deleteField());
+      } catch (e) { if (!/not-found/.test(e.code || '')) throw e; }
+      p.cloud = ng ? { docs: left } : null;
+      if (ng) {
+        prepBar('<span class="warn">⚠ <b>一部未削除</b>：クラウドの' + Object.keys(left).map(function (x) { return esc(PREP_LBL[x] || x); }).join('・') + 'のPDF（' + ng + 'かけら）を消せませんでした（' + esc(last && (last.code || last.message) || '') + '）。</span> <button type="button" class="btn sub small" data-preperase="1">もう一度消す</button>');
+        return;
+      }
     }
     await prepDb('readwrite', function (st) { return st.delete(prepOwnerStr(p.owner) + '|' + p.key); }).catch(function () { });
     prepIdx(function (o) { var w = o[prepOwnerStr(p.owner)]; if (w) delete w[p.key]; });
     p.docs = {}; p.resumed = false; p.paused = true;   // 消したあとは、もう一度資料を入れるまで保存しない
     prepBar('✔ 保存を消しました。もう一度資料を入れると、また保存します。');
   }
+  document.addEventListener('click', function (ev) { var t = ev.target; if (t && t.dataset && t.dataset.preperase && PREP) prepErase().catch(function (e) { prepBar('✖ 消せませんでした：' + esc(e.message)); }); });   // v0.26.43 C602：再試行
   function resetAll() {
     if (!confirm('読み込んだPDF・学校・クラブ名・設定・枚数をすべて消して、新しい大会を始めます。よろしいですか？' + (PREP ? '\n（大会予定の「' + PREP.p.meet + '」に保存した準備は消えません。消すときは上の「保存を消す」）' : ''))) return;
     prepDetach('');

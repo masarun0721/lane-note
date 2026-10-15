@@ -94,20 +94,21 @@ var LanePub = (function () {
       //   v0.26.41（監査 C510）：1) 決まったID（日付_名前のハッシュ）を直接読む → 2) そろえた大会名（key）で一覧 → 3) 大会の期間の毎日を日付で一覧。
       //   一覧は1回20件（ルールの上限）で、PAGES 回までページ送り。それでも続きがあれば結果に truncated＝true をつける（「候補1つ」とは扱わない）
       search: async function (plan) {
-        var seen = {}, out = [], truncated = false, okAny = false, err = null, meet = plan.meet;
+        var seen = {}, out = [], truncated = false, okAny = false, err = null, meet = plan.meet, why = [];   // v0.26.43 C604：why＝取れなかった検索（incomplete の理由）
         var add = function (id, v) { if (!seen[id]) { seen[id] = 1; out.push(plain(id, v)); } };
         var days = dayList(plan.date, plan.end);
         for (var i = 0; i < days.length; i++) {   // 1) 決まったID（その日に、その名前で登録されたもの）
           try { var g = await F.getDoc(d(COL, docId(days[i], meet))); okAny = true; if (g.exists()) add(g.id || docId(days[i], meet), g.data()); }
-          catch (e) { if (/permission/.test(String(e && e.code || ''))) okAny = true; else err = err || e; }   // 隠れた・期限切れはルールで読めない
+          catch (e) { if (/permission/.test(String(e && e.code || ''))) okAny = true; else { err = err || e; why.push('get:' + (e && e.code || 'error')); } }   // 隠れた・期限切れはルールで読めない
         }
         var conds = [[F.where('key', '==', normName(meet))]].concat(days.map(function (x) { return [F.where('date', '==', x)]; }));
         for (var c = 0; c < conds.length; c++) {
           try { var r = await listAll(conds[c]); okAny = true; if (r.more) truncated = true; r.docs.forEach(function (x) { add(x.id, x.data()); }); }
-          catch (e) { err = err || e; }
+          catch (e) { err = err || e; why.push((c ? 'date' : 'key') + ':' + (e && e.code || 'error')); }
         }
         if (!okAny && err) throw err;
-        var ms = match(out, plan); ms.truncated = truncated; ms.total = out.length; return ms;
+        // v0.26.43（監査 C604）：一部の検索が失敗した（incomplete）は、件数の上限（truncated）とは別に返す。0件でも「だれも登録していない」とは言えない
+        var ms = match(out, plan); ms.truncated = truncated; ms.total = out.length; ms.incomplete = why.length > 0; ms.reason = why.length ? (err && err.code || 'error') : ''; ms.failed = why; return ms;
       },
       get: async function (plan) { var id = docId(plan.date, plan.meet); try { var s = await F.getDoc(d(COL, id)); return s.exists() ? plain(id, s.data()) : null; } catch (e) { return null; } },
       isCoach: async function (team) { if (!team) return false; try { var s = await F.getDoc(d('teams', team, 'members', uid)); return s.exists() && s.data().role === 'coach'; } catch (e) { return false; } },

@@ -3035,7 +3035,7 @@ if (typeof module !== 'undefined') module.exports = LaneRoster;
 
 </script>
 <script>
-var APP_VERSION = "v0.26.42", REC_VERSION = "v0.11.1";
+var APP_VERSION = "v0.26.43", REC_VERSION = "v0.11.1";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>
@@ -3935,6 +3935,9 @@ if (typeof module !== 'undefined') module.exports = LanePrint;
   async function fetchUrl(url, opt) {
     opt = opt || {};
     var u = normUrl(url); if (!u) throw err('bad');
+    // v0.26.43（監査 C603）：最初が https なら「https 必須」を、HTML の転送（meta refresh・location.href）の先まで持ち回る。取りに行く前に止める
+    var httpsOnly = !!opt.httpsOnly || /^https:/i.test(u);
+    if (opt.httpsOnly && !/^https:/i.test(u)) throw err('blocked');
     var res;
     try { res = await (opt.fetch || root.fetch).call(root, PROXY + '?url=' + encodeURIComponent(u), { method: 'GET', credentials: 'omit', signal: opt.signal }); }
     catch (e) { if (e && e.name === 'AbortError') throw e; throw err('net'); }
@@ -3956,7 +3959,7 @@ if (typeof module !== 'undefined') module.exports = LanePrint;
     // v0.26.39（監査 C509）：中継が HTTP の転送（302 など）についていったときは、X-Lane-Url に実際に読んだ先が入る。
     //   それを url に入れて出典として出す（頼んだURLは from）。https から http への転送は受け取らない
     var fin = u, xl = res.headers.get('X-Lane-Url');
-    if (xl) { var fu = normUrl(xl); if (!fu) throw err('bad'); if (/^https:/i.test(u) && !/^https:/i.test(fu)) throw err('blocked'); fin = fu; }
+    if (xl) { var fu = normUrl(xl); if (!fu) throw err('bad'); if (httpsOnly && !/^https:/i.test(fu)) throw err('blocked'); fin = fu; }
     var out = { url: fin, from: u, redirected: fin !== u, kind: kind, bytes: buf, type: type, name: fileName(fin, kind) };
     if (kind === 'html') {
       out.html = decodeHtml(buf, type);
@@ -3964,7 +3967,11 @@ if (typeof module !== 'undefined') module.exports = LanePrint;
       var t = (out.html.match(/<title[^>]*>([^<]*)<\/title>/i) || [])[1]; out.title = t ? t.trim() : '';
       // 転送だけのページ（meta refresh・location.href=）は1回だけついていく
       var rd = out.html.length < 4000 && (out.html.match(/http-equiv\s*=\s*["']?refresh["']?[^>]*url\s*=\s*['"]?([^"'>\s]+)/i) || out.html.match(/location\.href\s*=\s*["']([^"']+)["']/i));
-      if (rd && !opt.noRedirect) { try { return await fetchUrl(new URL(rd[1], fin).href, Object.assign({}, opt, { noRedirect: true })); } catch (e) { if (e && e.name === 'AbortError') throw e; } }
+      if (rd && !opt.noRedirect) {
+        var nx = ''; try { nx = new URL(rd[1], fin).href; } catch (e) { }
+        if (nx && (httpsOnly || /^https:/i.test(fin)) && !/^https:/i.test(nx)) throw err('blocked');   // C603：http へ下がる転送は、取りに行かずに止める（握りつぶさない）
+        if (nx) { try { return await fetchUrl(nx, Object.assign({}, opt, { noRedirect: true, httpsOnly: httpsOnly || /^https:/i.test(fin) })); } catch (e) { if (e && (e.name === 'AbortError' || e.code === 'blocked')) throw e; } }
+      }
     }
     return out;
   }
@@ -4311,20 +4318,21 @@ var LanePub = (function () {
       //   v0.26.41（監査 C510）：1) 決まったID（日付_名前のハッシュ）を直接読む → 2) そろえた大会名（key）で一覧 → 3) 大会の期間の毎日を日付で一覧。
       //   一覧は1回20件（ルールの上限）で、PAGES 回までページ送り。それでも続きがあれば結果に truncated＝true をつける（「候補1つ」とは扱わない）
       search: async function (plan) {
-        var seen = {}, out = [], truncated = false, okAny = false, err = null, meet = plan.meet;
+        var seen = {}, out = [], truncated = false, okAny = false, err = null, meet = plan.meet, why = [];   // v0.26.43 C604：why＝取れなかった検索（incomplete の理由）
         var add = function (id, v) { if (!seen[id]) { seen[id] = 1; out.push(plain(id, v)); } };
         var days = dayList(plan.date, plan.end);
         for (var i = 0; i < days.length; i++) {   // 1) 決まったID（その日に、その名前で登録されたもの）
           try { var g = await F.getDoc(d(COL, docId(days[i], meet))); okAny = true; if (g.exists()) add(g.id || docId(days[i], meet), g.data()); }
-          catch (e) { if (/permission/.test(String(e && e.code || ''))) okAny = true; else err = err || e; }   // 隠れた・期限切れはルールで読めない
+          catch (e) { if (/permission/.test(String(e && e.code || ''))) okAny = true; else { err = err || e; why.push('get:' + (e && e.code || 'error')); } }   // 隠れた・期限切れはルールで読めない
         }
         var conds = [[F.where('key', '==', normName(meet))]].concat(days.map(function (x) { return [F.where('date', '==', x)]; }));
         for (var c = 0; c < conds.length; c++) {
           try { var r = await listAll(conds[c]); okAny = true; if (r.more) truncated = true; r.docs.forEach(function (x) { add(x.id, x.data()); }); }
-          catch (e) { err = err || e; }
+          catch (e) { err = err || e; why.push((c ? 'date' : 'key') + ':' + (e && e.code || 'error')); }
         }
         if (!okAny && err) throw err;
-        var ms = match(out, plan); ms.truncated = truncated; ms.total = out.length; return ms;
+        // v0.26.43（監査 C604）：一部の検索が失敗した（incomplete）は、件数の上限（truncated）とは別に返す。0件でも「だれも登録していない」とは言えない
+        var ms = match(out, plan); ms.truncated = truncated; ms.total = out.length; ms.incomplete = why.length > 0; ms.reason = why.length ? (err && err.code || 'error') : ''; ms.failed = why; return ms;
       },
       get: async function (plan) { var id = docId(plan.date, plan.meet); try { var s = await F.getDoc(d(COL, id)); return s.exists() ? plain(id, s.data()) : null; } catch (e) { return null; } },
       isCoach: async function (team) { if (!team) return false; try { var s = await F.getDoc(d('teams', team, 'members', uid)); return s.exists() && s.data().role === 'coach'; } catch (e) { return false; } },
@@ -4911,14 +4919,19 @@ var LanePdf = (function () {
   function pdfRef(sc, key, c) { return sc.team ? FB.F.doc(FB.fs, 'teams', sc.team.id, 'meets', docId(key), 'pdf', c) : FB.F.doc(FB.fs, 'users', sc.uid, 'meets', docId(key), 'pdf', c); }
   async function prepPurge(key, m, sc, onlyExpired) {
     if (!sc.uid || !FB || !m || !m.prep || !m.prep.docs) return false;
-    var docs = m.prep.docs, now = Date.now(), ch = false;
+    var docs = m.prep.docs, now = Date.now(), ch = false, ng = 0, last = null;
     for (var k in docs) {
       var d = docs[k]; if (!d || onlyExpired && !(d.exp && d.exp < now)) continue;
-      var ids = pdfChunkIds(k, d); for (var i = 0; i < ids.length; i++) { check(sc); try { await FB.F.deleteDoc(pdfRef(sc, key, ids[i])); } catch (e) { if (isAbort(e)) throw e; } }
+      // v0.26.43（監査 C602）：1かけらでも消せなければ、その種類の印（v・n＝かけらの場所）は残して、あとでやり直せるようにする
+      var ids = pdfChunkIds(k, d), bad = 0; for (var i = 0; i < ids.length; i++) { check(sc); try { await FB.F.deleteDoc(pdfRef(sc, key, ids[i])); } catch (e) { if (isAbort(e)) throw e; bad++; last = e; } }
+      if (bad) { ng += bad; continue; }
       delete docs[k]; ch = true;
     }
+    if (ng) throw prepPartialErr(ng, last);
     return ch;
   }
+  // v0.26.43（監査 C602）：PDFのかけらの一部を消せなかった（成功とは言わない）。もう一度押すと、残りを消す
+  function prepPartialErr(n, cause) { var e = new Error('一部未削除：大会準備のPDFのかけら ' + n + '件を消せませんでした（' + (cause && (cause.code || cause.message) || '不明') + '）。もう一度押すと、残りを消します'); e.code = 'prep-partial'; e.n = n; e.cause = cause; return e; }
   var SWEPT = -1;
   async function prepSweep(sc) {
     if (SWEPT === sc.epoch || !sc.uid || !document.body.classList.contains('sched-page')) return; SWEPT = sc.epoch;
@@ -5255,14 +5268,17 @@ var LanePdf = (function () {
     check(sc); if (!sc.uid || sc.team) return;
     var keys = [], chunks = []; (await serverDocs(colFor(sc.uid, 'meets'))).forEach(function (d) { keys.push(d.id); var v = d.data() || {}, docs = v.prep && v.prep.docs || {}; for (var k in docs) chunks = chunks.concat(pdfChunkIds(k, docs[k]).map(function (c) { return [d.id, c]; })); }); check(sc);
     // v0.26.41（監査 C508）：大会準備のPDFのかけら（meets/{k}/pdf）も消す。親の文書を消しても下のかけらは残るため、先に消す（一覧は不可なので大会の印の v・n からIDを作る）
-    for (var ci = 0; ci < chunks.length; ci++) { check(sc); try { await FB.F.deleteDoc(FB.F.doc(FB.fs, 'users', sc.uid, 'meets', chunks[ci][0], 'pdf', chunks[ci][1])); } catch (e) { if (isAbort(e)) throw e; } }
+    //   v0.26.43（監査 C602）：消せなかったかけらがある大会の文書（かけらの場所の印）は消さずに残し、最後に「一部未削除」を返す（成功とは表示しない）
+    var failed = {}, ng = 0, last = null;
+    for (var ci = 0; ci < chunks.length; ci++) { check(sc); try { await FB.F.deleteDoc(FB.F.doc(FB.fs, 'users', sc.uid, 'meets', chunks[ci][0], 'pdf', chunks[ci][1])); } catch (e) { if (isAbort(e)) throw e; failed[chunks[ci][0]] = 1; ng++; last = e; } }
     check(sc);
     var b = FB.F.writeBatch(FB.fs);
-    keys.forEach(function (k) { b.delete(FB.F.doc(FB.fs, 'users', sc.uid, 'meets', k)); });
+    keys.forEach(function (k) { if (!failed[k]) b.delete(FB.F.doc(FB.fs, 'users', sc.uid, 'meets', k)); });
     b.delete(FB.F.doc(FB.fs, 'users', sc.uid, 'settings', 'divOverrides'));
     b.delete(FB.F.doc(FB.fs, 'users', sc.uid, 'settings', 'roster'));   // v0.26.13：選手台帳も消す
     b.delete(FB.F.doc(FB.fs, 'users', sc.uid, 'settings', 'mode'));
     await b.commit(); check(sc);
+    if (ng) throw prepPartialErr(ng, last);   // 画面の控え（METS）はそのまま。reload で残った大会を読み直す
     METS = {}; DIV_OV = {}; lsSet(metsKey(sc.uid), {}); lsSet(ovKey(sc.uid), {});
   }
 
@@ -6163,16 +6179,19 @@ var LanePdf = (function () {
   async function resSuggest() {
     var api = resApi(), p = resPlan(); if (!api || !p) return;
     var ep = authEpoch, ms = await api.search(p); if (ep !== authEpoch) return;
-    if (!ms.length) { resBox('<small class="muted">📊 みんなの結果：この大会の結果のURLは、まだだれも登録していません。</small>'); return; }
+    // v0.26.43（監査 C604）：検索の一部が失敗したときは「だれも登録していない」とは言わない（再試行を出す）
+    var inc = ms.incomplete ? '<small class="warn">⚠ 検索の一部を取得できませんでした（' + esc(ms.reason || '') + '）。ほかにも登録があるかもしれません。</small> <button type="button" class="btn sub small" data-resretry="1">もう一度さがす</button>' : '';
+    if (!ms.length) { resBox(inc ? '📊 みんなの結果：' + inc : '<small class="muted">📊 みんなの結果：この大会の結果のURLは、まだだれも登録していません。</small>'); return; }
     RES.list = ms;
     resBox('<b>📊 みんなの結果</b>：ほかの先生が、この大会の結果のURLを登録しています。押すと、この端末がそのページを読み、<b>あなたの学校の選手の記録だけ</b>を確認画面に出します（まだ何も読み込んでいません）。' +
       ms.slice(0, 3).map(function (e, i) {
         return '<div class="res-c"><div class="small">' + esc(e.name) + '（' + esc(e.date) + (e.end && e.end !== e.date ? '〜' + esc(e.end) : '') + '）・' + { live: '速報のページ', gold: 'gold.jaic.org', pdf: '結果のPDF' }[e.kind] + '<br>' + esc(LanePub.srcText(e)) + '</div>' +
           '<button type="button" class="btn" data-resuse="' + i + '">この結果を取り込む</button> <button type="button" class="btn sub small" data-resrep="' + i + '">⚠ 報告</button>' + (e.by === USER.uid ? ' <button type="button" class="btn sub small" data-resdel="' + i + '">登録を取り消す</button>' : '') + '</div>';
-      }).join('') + (ms.truncated || ms.length > 3 ? '<small class="warn">⚠ ほかにも候補があります（似ている順に' + Math.min(3, ms.length) + '件だけ出しています）。大会名・日付をよく確かめてください。</small>' : '') + '<div class="status" id="resMsg"></div>');   // v0.26.41 C510：一部だけのときは、そう書く
+      }).join('') + (ms.truncated || ms.length > 3 ? '<small class="warn">⚠ ほかにも候補があります（似ている順に' + Math.min(3, ms.length) + '件だけ出しています）。大会名・日付をよく確かめてください。</small>' : '') + (inc ? '<br>' + inc : '') + '<div class="status" id="resMsg"></div>');   // v0.26.41 C510：一部だけのときは、そう書く
   }
   document.addEventListener('click', async function (e) {
     var t = e.target, i;
+    if (t.getAttribute && t.getAttribute('data-resretry') != null) { resBox(''); resSuggest().catch(function () { }); return; }   // v0.26.43 C604：再試行
     if ((i = t.getAttribute('data-resuse')) != null) {
       var en = RES.list && RES.list[+i]; if (!en || !urlUi) return;
       if (!school() && !MODE.personal) { resMsg('✖ 先に「学校・クラブ名」を入れてください（自分の学校の選手だけを取り込むため）。', 'ng'); var sb = $('rbSchool'); if (sb) sb.focus(); return; }
@@ -6231,6 +6250,7 @@ var LanePdf = (function () {
     if (!on || sc.epoch !== authEpoch) return;
     var ms = await api.search(p), old = ms.filter(function (e) { return e.score >= 0.85; })[0] || null;
     if (old && old.url === url) return;
+    if (!old && ms.incomplete) { resBox('<small class="warn">📊 「みんなの結果」の検索の一部を取得できなかったため、登録しませんでした（すでに登録があるかもしれません）。</small>'); return; }   // v0.26.43 C604
     // v0.26.39（監査 C502）：ほかの先生の登録は差し替えない（まちがっていれば「⚠ 報告」）
     if (old && old.by !== USER.uid) { resBox('<small class="muted">📊 「みんなの結果」には、ほかの先生が登録したこの大会の結果のURL（' + esc(old.host) + '）があります。差し替えはできません。</small>'); return; }
     if (old && !confirm('「みんなの結果」に、この大会のべつの結果のURL（' + old.host + '）が登録されています。あなたが読んだURLに差し替えますか？')) return;
@@ -7033,6 +7053,11 @@ var LanePdf = (function () {
       await fn(function (d, n) { last = [d, n]; status('rbDataStatus', '⏳ 消しています… ' + d + ' / ' + n + '件', ''); });
     } catch (e) {
       btn.disabled = false; if (isAbort(e) || sc.epoch !== authEpoch) return;
+      if (e && e.code === 'prep-partial') {   // v0.26.43（監査 C602）：一部未削除（成功とは出さない）＋再試行
+        status('rbDataStatus', '⚠ <b>一部未削除</b>：' + esc(e.message) + ' <button type="button" class="btn sub" id="rbClearRetry">もう一度消す</button>', 'ng');
+        var rb = $('rbClearRetry'); if (rb) rb.addEventListener('click', function () { btn.click(); });
+        try { await reload(sc); } catch (e2) { } return;
+      }
       status('rbDataStatus', '✖ 消せませんでした：' + esc(clearErr(e)) + (last[1] ? '<br>（' + last[1] + '件中 ' + last[0] + '件まで進みました。もう一度押すと、残りを消します）' : ''), 'ng');
       try { await reload(sc); } catch (e2) { } return;
     }
