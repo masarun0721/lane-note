@@ -129,9 +129,9 @@
         var cf = RULES.filter(function (r) { return conflictOf(r.k); });
         var cfMsg = cf.length ? '<br><span class="warn">⚠ 手入力した招集ルールと注意事項の記載が違います（手入力の値を使っています）：' + cf.map(function (r) { return esc(r.label + ' 手入力 ' + ruleVal(r.k) + '／注意事項 ' + conflictOf(r.k)); }).join('、') + '</span>' : '';
         var feeOk = /^・/.test(feeMsg), feeNote = feeMsg && !feeOk ? '<br><span class="small">' + esc(feeMsg) + '</span>' : '';
-        var ttMsg = nt.callInTT ? '<br><span class="small">招集時刻は「タイムテーブルに記載」の大会です。' + (ttCallCount() ? 'タイムテーブルの招集開始・完了の列（' + ttCallCount() + '種目分）を使います。' : '<span class="warn">タイムテーブルを入れると、その招集の列を使います（今は仮の「〇分前」で計算）。</span>') + '</span>' : '';
+        var ttMsg = nt.callInTT ? '<br><span class="small">招集時刻は「タイムテーブルに記載」の大会です。' + (ttCallCount() ? 'タイムテーブルの招集開始・完了の列（' + ttCallCount() + '種目分）を使います。' : '<span class="warn">タイムテーブルを入れると、その招集の列を使います（今は招集時刻は空欄です。手入力したときだけ「〇分前」で計算）。</span>') + '</span>' : '';
         var got = nt.track || nt.field || nt.relayOrder || nt.callInTT;
-        setStatus(sid, got ? '✔ 「' + esc(file.name) + '」 招集ルール' + (feeOk ? feeMsg : '') + 'を読み取りました' + ttMsg + (nt.specific.length ? '<br><span class="warn">種目別のルール ' + nt.specific.length + '件は自動では当てはめていません（個別確認）</span>' : '') + cfMsg + feeNote : '△ 「' + esc(file.name) + '」 招集ルールが見つかりませんでした（手入力していない項目は仮の初期値に戻しました）' + cfMsg + feeNote, got ? (cf.length || (nt.callInTT && !ttCallCount()) ? 'ok warnst' : 'ok') : 'busy');
+        setStatus(sid, got ? '✔ 「' + esc(file.name) + '」 招集ルール' + (feeOk ? feeMsg : '') + 'を読み取りました' + ttMsg + (nt.specific.length ? '<br><span class="warn">種目別のルール ' + nt.specific.length + '件は自動では当てはめていません（個別確認）</span>' : '') + cfMsg + feeNote : '△ 「' + esc(file.name) + '」 招集ルールが見つかりませんでした（手入力していない項目は空欄に戻しました）' + cfMsg + feeNote, got ? (cf.length || (nt.callInTT && !ttCallCount()) ? 'ok warnst' : 'ok') : 'busy');
       } else {
         var tt = MeetParser.parseTimetable(pages);
         if (!tt.length) throw new Error('種目と時刻を見つけられませんでした');
@@ -151,19 +151,20 @@
     updateTeams(); render();
   }
   var RULES = [
-    { k: 'track', label: 'トラック', ids: ['cT0', 'cT1'], def: '30〜20分前' },
-    { k: 'field', label: 'フィールド', ids: ['cF0', 'cF1'], def: '40〜30分前' },
+    { k: 'track', label: 'トラック', ids: ['cT0', 'cT1'], def: '空欄（読めませんでした）' },
+    { k: 'field', label: 'フィールド', ids: ['cF0', 'cF1'], def: '空欄（読めませんでした）' },
     { k: 'relay', label: 'リレー', ids: ['cR0', 'cR1'], def: 'トラックと同じ' },
     { k: 'dist', label: '長距離', ids: ['cD0', 'cD1'], def: 'トラックと同じ' },
     { k: 'place', label: '招集場所', ids: ['cPlace'], def: '未設定' },
     { k: 'relayOrder', label: 'リレーオーダー提出', ids: ['roMin', 'roBase'], def: '表示しない' }];
   var ruleState = {};   // k -> 'ok' | 'ng' | 'man' | 'na'
-  var RULE_DEF = { cT0: '30', cT1: '20', cF0: '40', cF1: '30', cR0: '', cR1: '', cD0: '', cD1: '', cPlace: '', roMin: '', roBase: '招集完了' };
+  var RULE_DEF = { cT0: '', cT1: '', cF0: '', cF1: '',   // v0.26.37 仮の値は入れない（読めなければ空欄・⚠）
+    cR0: '', cR1: '', cD0: '', cD1: '', cPlace: '', roMin: '', roBase: '招集完了' };
   function resetRules() { Object.keys(RULE_DEF).forEach(function (id) { $(id).value = RULE_DEF[id]; }); ruleState = {}; renderRuleMarks(); }
   function ruleVal(k) {
     var v = function (id) { return $(id).value; };
-    if (k === 'track') return v('cT0') + '〜' + v('cT1') + '分前';
-    if (k === 'field') return v('cF0') + '〜' + v('cF1') + '分前';
+    if (k === 'track') return v('cT0') !== '' && v('cT1') !== '' ? v('cT0') + '〜' + v('cT1') + '分前' : '未設定（招集時刻は空欄）';
+    if (k === 'field') return v('cF0') !== '' && v('cF1') !== '' ? v('cF0') + '〜' + v('cF1') + '分前' : '未設定（招集時刻は空欄）';
     if (k === 'relay') return v('cR0') ? v('cR0') + '〜' + v('cR1') + '分前' : 'トラックと同じ';
     if (k === 'dist') return v('cD0') ? v('cD0') + '〜' + v('cD1') + '分前' : 'トラックと同じ';
     if (k === 'place') return v('cPlace') || '未設定';
@@ -173,9 +174,9 @@
   function ruleTitle(k) {
     var nt = state.notes, s = ruleState[k] || 'na';
     if (s === 'ok') return '競技注意事項の原文：' + nt.src[k];
-    if (s === 'ng') return '競技注意事項に見つかりませんでした。仮の初期値（' + RULES.filter(function (r) { return r.k === k; })[0].def + '）を使っています。';
+    if (s === 'ng') return '競技注意事項に見つかりませんでした。招集時刻は空欄にしています（「⚙ 設定」で手入力できます）。';
     if (s === 'man') return '手入力で変更しました' + (conflictOf(k) ? '（⚠ 競技注意事項の記載は「' + conflictOf(k) + '」で、手入力と違います。手入力の値を使っています）' : state.notes && !state.notes[k] ? '（今の競技注意事項には記載なし。手入力の値を使っています）' : '');
-    return '競技注意事項は未読込です（仮の初期値）';
+    return '競技注意事項は未読込です（招集時刻は空欄。手入力できます）';
   }
   function renderRuleMarks() {
     document.querySelectorAll('.rs[data-rule]').forEach(function (el) {
@@ -184,17 +185,18 @@
     });
     var box = $('rulesBox'), loaded = !!state.notes;
     var auto = RULES.filter(function (r) { return ruleState[r.k] === 'ok'; }).length;
-    var line = '<div class="rsum"><b>招集時刻：</b>' + (loaded ? '注意事項から自動設定 <span class="rs ok">〇</span>' + auto + '項目 ／ 仮の初期値・手入力 <span class="rs ng">×</span>' + (RULES.length - auto) + '項目' + (auto ? '' : '　<span class="warn">（この注意事項からは招集ルールを読み取れませんでした。仮の初期値です）</span>') : '競技注意事項が未読込のため仮の初期値（右の枠に入れると自動設定します）') + '</div>';
+    var line = '<div class="rsum"><b>招集時刻：</b>' + (loaded ? '注意事項から自動設定 <span class="rs ok">〇</span>' + auto + '項目 ／ 見つからず空欄・手入力 <span class="rs ng">×</span>' + (RULES.length - auto) + '項目' + (auto ? '' : '　<span class="warn">（この注意事項からは招集ルールを読み取れませんでした。招集時刻は空欄です）</span>') : '競技注意事項が未読込のため仮の初期値（右の枠に入れると自動設定します）') + '</div>';
     var items = RULES.map(function (r) {
       var s = ruleState[r.k] || 'na', src = s === 'ok' ? state.notes.src[r.k] : '';
       return '<details class="rd"><summary><span class="rs ' + s + '">' + markOf(r.k) + '</span>' + r.label + '：<b>' + esc(ruleVal(r.k)) + '</b>' +
-        (s === 'ng' ? ' <small class="muted">（見つからず仮の初期値' + (ttCallRows() && /^(track|field|relay|dist)$/.test(r.k) ? '。タイムテーブルに招集時刻が無い種目だけに使います' : '') + '）</small>' : s === 'man' ? ' <small class="muted">（手入力）</small>' + (conflictOf(r.k) ? ' <small class="warn">⚠ 注意事項では「' + esc(conflictOf(r.k)) + '」</small>' : '') : '') + '</summary>' +
+        (s === 'ng' ? ' <small class="muted">（見つかりませんでした。招集時刻は空欄です' + (ttCallRows() && /^(track|field|relay|dist)$/.test(r.k) ? '。タイムテーブルに招集時刻が無い種目だけに使います' : '') + '）</small>' : s === 'man' ? ' <small class="muted">（手入力）</small>' + (conflictOf(r.k) ? ' <small class="warn">⚠ 注意事項では「' + esc(conflictOf(r.k)) + '」</small>' : '') : '') + '</summary>' +
         (src ? '<q>' + esc(src) + '</q>' : '<small class="muted">' + esc(ruleTitle(r.k)) + '</small>') + '</details>';
     }).join('');
     var cfl = RULES.filter(function (r) { return conflictOf(r.k); });
     if (cfl.length) line += '<div class="warn">⚠ 手入力した値と競技注意事項の記載が違う項目があります（手入力の値を使っています）：' + cfl.map(function (r) { return esc(r.label + '：手入力 ' + ruleVal(r.k) + '／注意事項 ' + conflictOf(r.k)); }).join('、') + '</div>';
     var spec = loaded && state.notes.specific && state.notes.specific.length ? '<div class="warn"><b>個別確認</b>（特定の種目だけのルール。全体には当てはめていません）：' + state.notes.specific.map(function (o) { return '<q>' + esc(o) + '</q>'; }).join('') + '</div>' : '';
     var others = loaded && state.notes.others.length ? '<div>その他「分前」の記載（自動では反映していません）：' + state.notes.others.map(function (o) { return '<q>' + esc(o) + '</q>'; }).join('') + '</div>' : '';
+    var cng = callNgCount(); if (cng) line += '<div class="warn"><b>' + MeetLogic.CALL_NG + '</b>（' + cng + '件。一覧・印刷・共有では空欄に「⚠」を出します）。要項・競技注意事項で確かめ、「⚙ 設定」で手入力できます。</div>';
     box.innerHTML = line + ttCallHtml() + (loaded ? '<div class="small muted">各項目を押すと原文が出ます。値は「⚙ 設定」で変更できます。</div>' + items + spec + others : '');
     box.hidden = false;
     if ($('printRule')) $('printRule').textContent = ruleSummaryText();
@@ -212,11 +214,12 @@
       (n ? ' <small class="muted">（' + used + '件はタイムテーブルの時刻' + (rule ? '／' + rule + '件は時刻が合わないため「〇分前」のルールで計算' : '') + '）</small>' : ' <small class="warn">（注意事項では「タイムテーブルに記載」。' + (state.tt ? 'タイムテーブルに招集の列を読み取れなかったため、' : 'タイムテーブル未読込のため、') + '下の「〇分前」で計算しています）</small>') + '</summary>' +
       (inTT ? '<q>' + esc(nt.src.callTT) + '</q>' : '') + (ex ? '<small class="muted">タイムテーブルの例：' + esc(ex.raw) + '（招集 ' + esc(ex.callStart + '〜' + ex.callEnd) + '）</small>' : '') + '</details>';
   }
+  function callNgCount() { return (state.rows || []).filter(function (r) { return r.callNG; }).length; }
   function ruleSummaryText() {
-    var ttc = ttCallRows();
-    return (ttc ? '招集時刻：〇タイムテーブルの招集の列（' + ttc + '件）。そのほかは次のルールで計算　' : '') + '招集ルール：' + RULES.filter(function (r) { return r.k !== 'relayOrder' || $('roMin').value; }).map(function (r) { return markOf(r.k) + r.label + ' ' + ruleVal(r.k); }).join('　') +
+    var ttc = ttCallRows(), cng = callNgCount();
+    return (cng ? MeetLogic.CALL_NG + '（' + cng + '件・空欄）　' : '') + (ttc ? '招集時刻：〇タイムテーブルの招集の列（' + ttc + '件）。そのほかは次のルールで計算　' : '') + '招集ルール：' + RULES.filter(function (r) { return r.k !== 'relayOrder' || $('roMin').value; }).map(function (r) { return markOf(r.k) + r.label + ' ' + ruleVal(r.k); }).join('　') +
       RULES.filter(function (r) { return conflictOf(r.k); }).map(function (r) { return '　⚠' + r.label + '：注意事項では' + conflictOf(r.k) + '（手入力を使用）'; }).join('') +
-      '（〇＝自動抽出（未照合）、×＝見つからず仮の初期値、手＝手入力、－＝注意事項未読込）' + (state.notes && state.notes.specific && state.notes.specific.length ? '　※種目別ルールあり：個別確認' : '');
+      '（〇＝自動抽出（未照合）、×＝見つからず空欄、手＝手入力、－＝注意事項未読込）' + (state.notes && state.notes.specific && state.notes.specific.length ? '　※種目別ルールあり：個別確認' : '');
   }
   // 競技注意事項の記載を、設定欄と同じ書き方の文字にする
   function noteValStr(k, nt) {
@@ -265,7 +268,7 @@
   function shownName(r) { return r.tent ? MeetLogic.tentName(r) : (r.typ === 'relay' ? r.relayTeam : r.name); }
   function recRows() {
     return MeetLogic.byTime(dispRows()).map(function (r) {
-      return { tent: !!r.tent, g: grpKey(r), start: r.start || '', event: r.event + (r.round ? ' ' + r.round : ''), heat: r.heat, pos: r.posLabel + ' ' + r.pos, bib: r.typ === 'relay' ? '' : r.bib,
+      return { tent: !!r.tent, g: grpKey(r), start: r.start || '', event: r.event + (r.round ? ' ' + r.round : ''), heat: MeetLogic.heatText(r), pos: r.posLabel + ' ' + r.pos, bib: r.typ === 'relay' ? '' : r.bib,
         name: shownName(r), members: r.typ === 'relay' ? r.members.map(function (m) { return m.bib + ' ' + m.name; }).join('、') : '',
         grade: r.grade || '', team: r.team, wind: isWind(r), pb: pbOf(r) };
     });
@@ -278,7 +281,7 @@
     var groups = [], cur = null;
     MeetLogic.byTime(dispRows()).forEach(function (r) {
       var g = grpKey(r);
-      if (!cur || cur.key !== g) { cur = { tent: !!r.tent, key: g, start: r.start || '', call: r.call || '', event: r.event, round: r.round || '', rows: [], wind: isWind(r) }; groups.push(cur); }
+      if (!cur || cur.key !== g) { cur = { tent: !!r.tent, key: g, start: r.start || '', call: MeetLogic.callText(r), event: r.event, round: r.round || '', rows: [], wind: isWind(r) }; groups.push(cur); }
       cur.rows.push(r);
     });
     // 長いまとまりは12行ずつに分け、2つ目以降は「（続き）」の見出しを付ける → ページをまたいでも種目・時刻がわかる
@@ -315,7 +318,7 @@
       return '<tbody class="pg' + (g.cont ? ' cont' : '') + (g.tent ? ' tent' : '') + '">' + grpBar(g, N) + g.rows.map(function (r, ri) {
         var prevN = ri ? g.rows[ri - 1].note : '';
         var noteCell = (ri && prevN && r.note === prevN) ? '<span class="muted">〃</span>' : esc(r.note);
-        return '<tr><td class="c">' + esc(r.heat) + '</td><td class="c p-pos">' + posHtml(r) + '</td><td class="c p-bib">' + esc(r.typ === 'relay' ? '' : r.bib) + '</td><td class="p-name">' + nameHtml(r, false) +
+        return '<tr><td class="c">' + esc(MeetLogic.heatText(r)) + '</td><td class="c p-pos">' + posHtml(r) + '</td><td class="c p-bib">' + esc(r.typ === 'relay' ? '' : r.bib) + '</td><td class="p-name">' + nameHtml(r, false) +
           '</td><td class="c">' + esc(r.grade) + '</td><td class="p-tm">' + esc(r.team) + '</td><td class="p-note">' + noteCell + '</td></tr>';
       }).join('') + '</tbody>';
     }).join('');
@@ -360,7 +363,7 @@
     var body = G.map(function (g) {
       return '<tbody class="pg' + (g.cont ? ' cont' : '') + (g.tent ? ' tent' : '') + '">' + grpBar(g, N, '<span class="g-wind">' + (g.wind ? '風 計測あり' : '風 なし') + '</span>') + g.rows.map(function (r) {
         var w = isWind(r);
-        return '<tr class="rr"><td class="c">' + esc(r.heat) + '</td><td class="c p-pos">' + posHtml(r) + '</td><td class="c p-bib">' + esc(r.typ === 'relay' ? '' : r.bib) + '</td><td class="p-name">' + nameHtml(r, multi) +
+        return '<tr class="rr"><td class="c">' + esc(MeetLogic.heatText(r)) + '</td><td class="c p-pos">' + posHtml(r) + '</td><td class="c p-bib">' + esc(r.typ === 'relay' ? '' : r.bib) + '</td><td class="p-name">' + nameHtml(r, multi) +
           '</td><td class="c p-gr">' + esc(gradeText(r.grade)) + '</td><td class="p-pb">' + pbHtml(pbOf(r)) + '</td><td class="p-pb">' + lastHtml(pbOf(r)) + '</td><td class="wc"><div class="wl"></div></td><td class="wc' + (w ? '' : ' nowind') + '">' + (w ? '<div class="wl"></div>' : '') + '</td><td class="wc"><div class="wl"></div></td></tr>';
       }).join('') + '</tbody>';
     }).join('');
@@ -408,7 +411,7 @@
     var pg = null;
     return [[h.title], [h.sub], [], ['時刻', '種目', '組', 'レーン/順', 'ナンバー', '氏名', '学年', 'PB', '前回大会', '記録', '風', '順位']].concat(recRows().map(function (r) {
       var same = r.g === pg; pg = r.g;
-      return [same ? '' : r.start, same ? '' : r.event + (r.tent ? '（通過したら）' : ''), r.tent ? '' : r.heat, r.tent ? '未定' : r.pos, r.bib, r.name + (r.members ? '（' + r.members + '）' : '') + (state.teams.length > 1 ? ' ' + r.team : ''), gradeText(r.grade), pbText(r.pb), lastText(r.pb), '', r.wind ? '' : '－', ''];
+      return [same ? '' : r.start, same ? '' : r.event + (r.tent ? '（通過したら）' : ''), r.tent ? '' : MeetLogic.heatText(r), r.tent ? '未定' : r.pos, r.bib, r.name + (r.members ? '（' + r.members + '）' : '') + (state.teams.length > 1 ? ' ' + r.team : ''), gradeText(r.grade), pbText(r.pb), lastText(r.pb), '', r.wind ? '' : '－', ''];
     }));
   }
   function recWs() {
@@ -603,14 +606,16 @@
       var a = $(p[0]).value, b = $(p[1]).value, ok = a === '' || b === '' || +a > +b;
       $(p[1]).classList.toggle('bad', !ok); $(p[1]).title = ok ? '' : '招集完了は招集開始より後（小さい「分前」）にしてください';
     });
+    // v0.26.37 両方とも正しく入っているときだけ使う（空欄・おかしな値は null ＝招集時刻を空欄にして ⚠）
+    function pair(a, b) { var x = n(a, null), y = n(b, null); return x == null || y == null ? null : [x, y]; }
     return {
-      callTrack: [n('cT0', 30), n('cT1', 20)], callField: [n('cF0', 40), n('cF1', 30)],
+      callTrack: pair('cT0', 'cT1'), callField: pair('cF0', 'cF1'),
       timeSource: $('timeSrc') ? $('timeSrc').value : 'program',
       ordThreshold: n('ordTh', 3000, 100000), relayKoshi: $('relayKoshi').checked,
       bibCopies: Math.min(10, Math.max(1, n('bibCopies', 2))), ordCopies: Math.min(10, Math.max(1, n('ordCopies', 2))),
       relayOrderMin: n('roMin', 0), relayOrderBase: $('roBase').value,
-      callRelay: $('cR0').value !== '' ? [n('cR0', 30), n('cR1', 20)] : null,
-      callDist: $('cD0').value !== '' ? [n('cD0', 30), n('cD1', 20)] : null, callPlace: $('cPlace').value,
+      callRelay: $('cR0').value !== '' ? pair('cR0', 'cR1') : null,
+      callDist: $('cD0').value !== '' ? pair('cD0', 'cD1') : null, callPlace: $('cPlace').value,
       relayOrderFirst: ruleState.relayOrder === 'ok' && !!(state.notes && state.notes.relayOrder && state.notes.relayOrder.first)
     };
   }
@@ -680,6 +685,7 @@
     // 表示用：対象日のTTだけでもう一度照合（その日の時刻を正確に）
     var ttUse = state.tt && state.day ? state.tt.filter(function (s) { return !s.date || s.date === state.day; }) : state.tt;
     state.rows = (state.day ? MeetLogic.build(state.sl, ttUse, state.teams, S) : state.allRows.slice());
+    try { renderRuleMarks(); } catch (e) { }   // v0.26.37 招集時刻を読めなかった件数を出す
     if (state.day && slNoDate) {
       // allRows で付けた日付を表示用 rows にも引き継ぐ
       var byKey = {};
@@ -715,8 +721,8 @@
     var bt = MeetLogic.byTime(dispRows()), prev = null, prevNote = null, html = [];
     bt.forEach(function (r, i) {
       var g = grpKey(r), first = prev !== g;
-      html.push('<tr class="' + teamClass(r.team) + (first && i ? ' gsep' : first ? '' : ' gcont') + (r.tent ? ' tent' : '') + '"><td class="t">' + (first ? esc(r.start || '時刻不明') : '') + '</td><td class="nw">' + (first ? esc(r.call) : '') +
-        '</td><td class="nw">' + (first ? esc(r.event) + (r.round ? ' <small class="pl">' + esc(r.round) + '</small>' : '') + (r.tent ? ' <small class="tentlab">通過したら</small>' : '') : '') + '</td><td class="c">' + esc(r.heat) + '</td><td class="c nw">' + posCell(r) +
+      html.push('<tr class="' + teamClass(r.team) + (first && i ? ' gsep' : first ? '' : ' gcont') + (r.tent ? ' tent' : '') + '"><td class="t">' + (first ? esc(r.start || '時刻不明') : '') + '</td><td class="nw">' + (first ? esc(MeetLogic.callText(r)) : '') +
+        '</td><td class="nw">' + (first ? esc(r.event) + (r.round ? ' <small class="pl">' + esc(r.round) + '</small>' : '') + (r.tent ? ' <small class="tentlab">通過したら</small>' : '') : '') + '</td><td class="c">' + esc(MeetLogic.heatText(r)) + '</td><td class="c nw">' + posCell(r) +
         '</td><td class="c">' + esc(r.typ === 'relay' ? '' : r.bib) + '</td><td class="nm">' + nameCell(r) + '</td><td class="c">' + esc(r.grade) + '</td><td class="nw">' + esc(r.team) + '</td><td class="note">' + (!first && prevNote && r.note === prevNote ? '<span class="muted">〃</span>' : esc(r.note)) + '</td></tr>');
       prev = g; prevNote = r.note;
     });
@@ -730,7 +736,7 @@
     var ba = athSorted(dispRows()); renderAthHead();
     $('athBody').innerHTML = ba.map(function (r) {
       return '<tr class="' + teamClass(r.team) + (r.tent ? ' tent' : '') + '"><td class="nw">' + esc(r.team) + '</td><td class="c">' + esc(r.typ === 'relay' ? '' : r.bib) + '</td><td class="nm">' + nameCell(r) + '</td><td class="c">' + esc(r.grade) +
-        '</td><td class="nw">' + esc(r.event) + '</td><td class="nw">' + esc(r.round) + (r.tent ? ' <small class="tentlab">通過したら</small>' : '') + '</td><td class="c">' + esc(r.heat) + '</td><td class="c nw">' + posCell(r) + '</td><td class="nw">' + esc(r.call) + '</td><td class="c">' + esc(r.start) + '</td><td class="note">' + esc(r.note) + '</td></tr>';
+        '</td><td class="nw">' + esc(r.event) + '</td><td class="nw">' + esc(r.round) + (r.tent ? ' <small class="tentlab">通過したら</small>' : '') + '</td><td class="c">' + esc(MeetLogic.heatText(r)) + '</td><td class="c nw">' + posCell(r) + '</td><td class="nw">' + esc(MeetLogic.callText(r)) + '</td><td class="c">' + esc(r.start) + '</td><td class="note">' + esc(r.note) + '</td></tr>';
     }).join('');
 
     // ナンバーカード
@@ -846,13 +852,13 @@
       var pg = null;
       return [['競技開始', '招集', '種目', 'ラウンド', '組', '区分', 'レーン/順番', 'ナンバー', '氏名', '学年', '所属', '備考']].concat(MeetLogic.byTime(rows).map(function (r) {
         var g = grpKey(r), same = grouped && g === pg; pg = g;
-        if (same) return ['', '', '', '', r.heat, r.posLabel, r.pos, r.bib, nmX(r), r.grade, r.team, r.note];
-        return [r.start, r.call, r.event, rdX(r), r.heat, r.posLabel, r.pos, r.bib, nmX(r), r.grade, r.team, r.note];
+        if (same) return ['', '', '', '', MeetLogic.heatText(r), r.posLabel, r.pos, r.bib, nmX(r), r.grade, r.team, r.note];
+        return [r.start, MeetLogic.callText(r), r.event, rdX(r), MeetLogic.heatText(r), r.posLabel, r.pos, r.bib, nmX(r), r.grade, r.team, r.note];
       }));
     }
     if (kind === 'ath') {
       return [['所属', 'ナンバー', '氏名', '学年', '種目', 'ラウンド', '組', '区分', 'レーン/順番', '招集', '競技開始', '備考']].concat(MeetLogic.byAthlete(rows).map(function (r) {
-        return [r.team, r.bib, nmX(r), r.grade, r.event, rdX(r), r.heat, r.posLabel, r.pos, r.call, r.start, r.note];
+        return [r.team, r.bib, nmX(r), r.grade, r.event, rdX(r), MeetLogic.heatText(r), r.posLabel, r.pos, MeetLogic.callText(r), r.start, r.note];
       }));
     }
     var S = settings(), out = [['所属', '項目', '必要枚数', '作成枚数', '番号（作成枚数）']];
@@ -1234,7 +1240,7 @@
   /* ---------- スマホで見る／共有（長いリンク：URLの # 以降に結果を圧縮して入れる＝サーバーに送らない／短いリンク：Firebase の shares/{id} に置く） ---------- */
   var SAVE_KEY = 'lanenote.saved.v1', QR_MAX = 2900, URL_WARN = 8000;
   function shareRow(r) {
-    return [r.start || '', r.call || '', r.event || '', r.round || '', r.heat == null ? '' : String(r.heat), r.posLabel || '', r.pos == null ? '' : String(r.pos),
+    return [r.start || '', MeetLogic.callText(r), r.event || '', r.round || '', String(MeetLogic.heatText(r)), r.posLabel || '', r.pos == null ? '' : String(r.pos),
       r.typ === 'relay' ? '' : String(r.bib || ''), r.typ === 'relay' ? (r.relayTeam || '') : (r.name || ''), r.grade || '', r.team || '', r.note || '',
       r.typ === 'relay' ? 'r' : '', r.typ === 'relay' ? (r.members || []).map(function (m) { return m.bib + ' ' + m.name; }).join('、') : '', r.kana || ''];
   }
@@ -1327,11 +1333,11 @@
       var k = r.start + '|' + r.event + '|' + r.round;
       if (k !== prev) {
         if (cur) out.push('</div>');
-        out.push('<div class="mc-g' + (r.tent ? ' tent' : '') + '"><div class="mc-h"><b class="mc-t">' + esc(r.start || '時刻不明') + '</b>' + (r.call ? '<span class="mc-call">招集 ' + esc(r.call) + '</span>' : '') +
+        out.push('<div class="mc-g' + (r.tent ? ' tent' : '') + '"><div class="mc-h"><b class="mc-t">' + esc(r.start || '時刻不明') + '</b>' + (r.call ? '<span class="mc-call">招集 ' + esc(r.call) + '</span>' : r.callNG ? '<span class="mc-call warn">' + MeetLogic.CALL_NG + '</span>' : '') +
           '<span class="mc-ev">' + esc(r.event) + '</span>' + (r.round ? '<span class="mc-rd">' + esc(r.round) + '</span>' : '') + (r.tent ? '<span class="mc-tent">通過したら</span>' : '') + '</div>');
         cur = true; prev = k;
       }
-      out.push('<div class="mc-r"><span class="mc-heat">' + (r.heat && r.heat !== '-' ? esc(r.heat) + '組' : '') + '</span><span class="mc-pos"><small>' + esc(r.posLabel) + '</small>' + esc(r.pos) + '</span>' +
+      out.push('<div class="mc-r"><span class="mc-heat">' + (r.heatNG ? MeetLogic.HEAT_NG : r.heat && r.heat !== '-' ? esc(r.heat) + '組' : '') + '</span><span class="mc-pos"><small>' + esc(r.posLabel) + '</small>' + esc(r.pos) + '</span>' +
         '<span class="mc-bib">' + esc(r.bib) + '</span><span class="mc-name"><b>' + esc(r.name) + '</b><small>' + esc([r.grade, r.team].filter(Boolean).join('・')) + '</small>' +
         (r.members ? '<small class="mc-mem">' + esc(r.members) + '</small>' : '') + (r.note ? '<small class="mc-note">' + esc(r.note) + '</small>' : '') + '</span></div>');
     });
@@ -1351,7 +1357,7 @@
         (f.members ? '<div class="mc-mem2">' + esc(f.members) + '</div>' : '') +
         L.map(function (r) {
           return '<div class="mc-r' + (r.tent ? ' tent' : '') + '"><span class="mc-t2">' + esc(r.start || '—') + '</span><span class="mc-name"><b>' + esc(r.event) + (r.round ? ' <small class="mc-rd">' + esc(r.round) + '</small>' : '') + (r.tent ? ' <small class="mc-tent">通過したら</small>' : '') + '</b>' +
-            '<small>' + esc([(r.heat && r.heat !== '-' ? r.heat + '組' : ''), r.tent ? '' : r.posLabel + ' ' + r.pos, r.call ? '招集 ' + r.call : ''].filter(Boolean).join('・')) + '</small></span></div>';
+            '<small>' + esc([(r.heatNG ? MeetLogic.HEAT_NG : r.heat && r.heat !== '-' ? r.heat + '組' : ''), r.tent ? '' : r.posLabel + ' ' + r.pos, r.call ? '招集 ' + r.call : r.callNG ? MeetLogic.CALL_NG : ''].filter(Boolean).join('・')) + '</small></span></div>';
         }).join('') + '</div>';
     }).join('') || '<p class="muted">該当なし</p>';
   }
@@ -1917,7 +1923,10 @@
         if ('c' in x) el.checked = !!x.c; else { el.value = x.v; if (x.m) el.dataset.manual = x.m; if (x.a) el.dataset.auto = x.a; }
       });
       Object.keys(o.stat || {}).forEach(function (k) { var x = o.stat[k]; if (SID[k] && x && typeof x.t === 'string') setStatus(SID[k], String(x.t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }), ((x.c || '').match(/\b(ok|ng)\b/) || [''])[0]); });
-      ruleState = o.rule || {}; renderRuleMarks(); renderFeePrices();
+      ruleState = o.rule || {};
+      // v0.26.37 前の版で保存した「仮の初期値」（読めなかった・未読込の項目の 30/20・40/30）は使わない
+      RULES.forEach(function (r) { if (ruleState[r.k] !== 'ok' && ruleState[r.k] !== 'man') r.ids.forEach(function (id) { $(id).value = RULE_DEF[id]; }); });
+      renderRuleMarks(); renderFeePrices();
       try { updateDate(); } catch (e) { }
       renderDateMark(); updateTeams(); render();
       var n = $('ssNote'); if (n) n.hidden = false;

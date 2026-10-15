@@ -33,7 +33,8 @@ ok(h1.start==='11:15'&&!h1.conflict&&h1.call==='10:50〜11:00'&&h1.callSrc==='tt
 ok(h8.start==='11:30'&&!h8.conflict&&h8.call==='11:05〜11:15','8組：プログラム11:15（種目の開始）とタイムテーブル7〜12組11:30は食い違いにしない → 11:30（'+h8.note+'）');
 const m800=R.find(r=>/800m/.test(r.event));
 ok(!m800.start||m800.start==='12:30','男子800mに女子800m（12:15）の時刻を使わない（'+m800.start+' / '+m800.note+'）');
-ok(m800.callSrc==='rule','タイムテーブルに無い種目は「〇分前」のルールで招集を計算');
+ok(m800.callSrc==='none'&&m800.callNG&&m800.call==='','タイムテーブルに無い種目は、ルールを読めていなければ招集を空欄（⚠）にする（v0.26.37）');
+ok(L.build(sl,T,['架空高'],{callTrack:[30,20]}).find(r=>/800m/.test(r.event)).callSrc==='rule','ルールがあれば「〇分前」で計算');
 const rl=R.find(r=>r.typ==='relay');
 ok(rl.start==='18:10'&&rl.orderDeadline==='16:40','リレー6組：18:10、オーダー締切は最初の組の招集完了17:40の60分前＝16:40（'+rl.orderDeadline+'）');
 console.log('[3] 注意事項');

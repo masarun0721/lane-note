@@ -39,7 +39,7 @@ var MeetLogic = (function () {
   var POS_LABEL = { track: 'レーン', dist: 'ORD', long: 'ORD', field: '試技順', relay: 'レーン' };
   function build(sl, ttSegs, teams, settings) {
     settings = settings || {};
-    var cT = settings.callTrack || [30, 20], cF = settings.callField || [40, 30];
+    var cT = settings.callTrack || null, cF = settings.callField || null;   // v0.26.37 読めなかったら null（仮の値で計算しない）
     var T = allTeams(sl), sel = new Set(teams);
     var rows = [];
     function ttInfo(title, round, heat, typ, date) {
@@ -85,7 +85,8 @@ var MeetLogic = (function () {
       }
       r.callSrc = s == null ? '' : 'rule';
       var c = r.typ === 'field' ? cF : (r.typ === 'relay' && settings.callRelay) ? settings.callRelay : ((r.typ === 'long' || r.typ === 'dist') && settings.callDist) ? settings.callDist : cT;
-      r.callRule = c;
+      r.callRule = c || null;
+      if (!c) { r.callSrc = s == null ? '' : 'none'; r.callNG = s != null; r.callStart = ''; r.callEnd = ''; r.call = ''; r.startMin = s; return; }   // v0.26.37 招集時刻は空のまま（⚠ を出す）
       r.callStart = s == null ? '' : fmt(s - c[0]); r.callEnd = s == null ? '' : fmt(s - c[1]);
       r.call = s == null ? '' : r.callStart + '〜' + r.callEnd;
       r.startMin = s;
@@ -93,10 +94,11 @@ var MeetLogic = (function () {
     sl.entries.forEach(function (e) {
       var team = nk(e.team).trim(); if (!sel.has(team)) return;
       var typ = evType(e.event, e.posKind, settings);
-      var heat = typ === 'field' ? (e.heat != null ? e.heat : '-') : (e.heat == null ? 1 : e.heat);
-      var ti = timeInfo(e.event, e.round, heat, typ, e.time, e.date, e.timeNote);
+      var heat = typ === 'field' ? (e.heat != null ? e.heat : '-') : (e.heat == null ? '' : e.heat);   // v0.26.37 組が読めなければ空（⚠）。「1組」にしない
+      var ti = timeInfo(e.event, e.round, heat === '' ? null : heat, typ, e.time, e.date, e.timeNote);
       var r = { team: team, event: e.event, round: e.round, heat: heat, pos: e.pos, posLabel: POS_LABEL[typ], typ: typ, ttHit: hit(e.event, e.round, e.date),
         bib: e.bib, name: e.name, kana: e.kana || '', grade: e.grade, start: ti.start, note: ti.note, page: e.page, conflict: !!ti.conflict, date: e.date || '' };
+      if (typ !== 'field' && e.heat == null) r.heatNG = true;
       addCall(r, ti.seg); rows.push(r);
     });
     sl.relays.forEach(function (rl) {
@@ -105,6 +107,7 @@ var MeetLogic = (function () {
       var r = { team: base, event: rl.event, round: rl.round, heat: rl.heat, pos: rl.pos, posLabel: 'レーン', typ: 'relay', ttHit: hit(rl.event, rl.round, rl.date),
         bib: rl.members.map(function (m) { return m.bib; }).join('/'), name: nk(rl.team).trim(), relayTeam: nk(rl.team).trim(),
         members: rl.members, grade: '', start: ti.start, note: ti.note, page: rl.page, conflict: !!ti.conflict, date: rl.date || '' };
+      if (rl.heat == null) { r.heat = ''; r.heatNG = true; }
       addCall(r, ti.seg);
       if (settings.relayOrderMin && r.startMin != null) {
         var bm = r.startMin, bc = r.callRule, fs = ti.firstSeg;
@@ -113,9 +116,11 @@ var MeetLogic = (function () {
           bm = toMin(fs.time);
           bc = fs.callStart && fs.callEnd && settings.ttCall !== false ? [bm - toMin(fs.callStart), bm - toMin(fs.callEnd)] : r.callRule;
         }
+        if (!bc && settings.relayOrderBase !== '競技開始') { r.note = (r.note ? r.note + '／' : '') + '⚠ オーダー用紙提出の時刻は、招集時刻を読めなかったため出せません'; }
+        else {
         var base = settings.relayOrderBase === '招集開始' ? bm - bc[0] : settings.relayOrderBase === '競技開始' ? bm : bm - bc[1];
         r.orderDeadline = fmt(base - settings.relayOrderMin);
-        r.note = (r.note ? r.note + '／' : '') + 'オーダー用紙提出 ' + r.orderDeadline + 'まで';
+        r.note = (r.note ? r.note + '／' : '') + 'オーダー用紙提出 ' + r.orderDeadline + 'まで'; }
       }
       rows.push(r);
     });
@@ -187,7 +192,7 @@ var MeetLogic = (function () {
   function tentative(rows, ttSegs, sl, settings) {
     settings = settings || {};
     if (!ttSegs || !ttSegs.length || !rows || !rows.length) return [];
-    var cT = settings.callTrack || [30, 20], cF = settings.callField || [40, 30];
+    var cT = settings.callTrack || null, cF = settings.callField || null;   // v0.26.37 読めなかったら null（仮の値で計算しない）
     var loaded = {}, maxLoaded = {};   // 種目|ラウンド種別 → スタートリストに載っている／種目 → 載っているいちばん後のラウンド
     if (sl) (sl.entries || []).concat(sl.relays || []).forEach(function (e) { var k = P.roundKind(e.round); if (k) { loaded[nk(e.event) + '|' + k] = 1; var ev = nk(e.event); maxLoaded[ev] = Math.max(maxLoaded[ev] == null ? -1 : maxLoaded[ev], RORD[k]); } });
     var groups = {}, order = [];
@@ -224,8 +229,8 @@ var MeetLogic = (function () {
         var st = toMin(s.time);
         if (s.callStart && s.callEnd && settings.ttCall !== false) { t.callStart = s.callStart; t.callEnd = s.callEnd; t.callSrc = 'tt'; }
         else { var c = r.typ === 'field' ? cF : (r.typ === 'relay' && settings.callRelay) ? settings.callRelay : ((r.typ === 'long' || r.typ === 'dist') && settings.callDist) ? settings.callDist : cT;
-          t.callStart = fmt(st - c[0]); t.callEnd = fmt(st - c[1]); t.callSrc = 'rule'; }
-        t.call = t.callStart + '〜' + t.callEnd; t.startMin = st;
+          if (c) { t.callStart = fmt(st - c[0]); t.callEnd = fmt(st - c[1]); t.callSrc = 'rule'; } else { t.callStart = ''; t.callEnd = ''; t.callSrc = 'none'; t.callNG = true; } }
+        t.call = t.callStart ? t.callStart + '〜' + t.callEnd : ''; t.startMin = st;
         out.push(t);
         prevLabel = RLABEL[kk];
       });
@@ -233,6 +238,10 @@ var MeetLogic = (function () {
     return out;
   }
   function tentName(r) { return '（' + (r.typ === 'relay' ? r.relayTeam : r.name) + '）'; }
-  return { tentative: tentative, tentName: tentName, UNKNOWN: UNKNOWN, fees: fees, feeCat: feeCat, CATS: CATS, build: build, byAthlete: byAthlete, byTime: byTime, cards: cards, findTeams: findTeams, allTeams: allTeams, fmt: fmt, toMin: toMin };
+  // v0.26.37 読めなかった印（一覧・印刷・共有で同じ文言）
+  var CALL_NG = '⚠ 招集時刻を読めませんでした', HEAT_NG = '⚠組?';
+  function callText(r) { return r.call || (r.callNG ? CALL_NG : ''); }
+  function heatText(r) { return r.heatNG ? HEAT_NG : (r.heat == null ? '' : r.heat); }
+  return { CALL_NG: CALL_NG, HEAT_NG: HEAT_NG, callText: callText, heatText: heatText, tentative: tentative, tentName: tentName, UNKNOWN: UNKNOWN, fees: fees, feeCat: feeCat, CATS: CATS, build: build, byAthlete: byAthlete, byTime: byTime, cards: cards, findTeams: findTeams, allTeams: allTeams, fmt: fmt, toMin: toMin };
 })();
 if (typeof module !== 'undefined') module.exports = MeetLogic;

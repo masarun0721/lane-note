@@ -751,8 +751,8 @@ __TOPBAR__
   <details class="settings">
     <summary>⚙ 設定（招集時刻・ナンバーカードの枚数など）</summary>
     <div class="sgrid">
-      <label><span class="rs" data-rule="track"></span>トラック招集：開始 <input type="number" class="setting" id="cT0" value="30" min="0">分前〜完了 <input type="number" class="setting" id="cT1" value="20" min="0">分前</label>
-      <label><span class="rs" data-rule="field"></span>フィールド招集：開始 <input type="number" class="setting" id="cF0" value="40" min="0">分前〜完了 <input type="number" class="setting" id="cF1" value="30" min="0">分前</label>
+      <label><span class="rs" data-rule="track"></span>トラック招集：開始 <input type="number" class="setting" id="cT0" value="" placeholder="－" min="0">分前〜完了 <input type="number" class="setting" id="cT1" value="" placeholder="－" min="0">分前</label>
+      <label><span class="rs" data-rule="field"></span>フィールド招集：開始 <input type="number" class="setting" id="cF0" value="" placeholder="－" min="0">分前〜完了 <input type="number" class="setting" id="cF1" value="" placeholder="－" min="0">分前</label>
       <label><span class="rs" data-rule="relay"></span>リレー招集：開始 <input type="number" class="setting" id="cR0" value="" min="0" placeholder="－">分前〜完了 <input type="number" class="setting" id="cR1" value="" min="0" placeholder="－">分前<br><small class="muted">空欄ならトラックと同じ</small></label>
       <label><span class="rs" data-rule="dist"></span>長距離（ORD種目）招集：開始 <input type="number" class="setting" id="cD0" value="" min="0" placeholder="－">分前〜完了 <input type="number" class="setting" id="cD1" value="" min="0" placeholder="－">分前<br><small class="muted">空欄ならトラックと同じ</small></label>
       <label><span class="rs" data-rule="place"></span>招集場所：<input type="text" class="setting" id="cPlace" value="" placeholder="（未設定）" style="width:12em"></label>
@@ -763,7 +763,7 @@ __TOPBAR__
       <label>時刻の優先（プログラムとタイムテーブルの両方に時刻があり、違うとき）：<select class="setting" id="timeSrc"><option value="program">プログラムの時刻</option><option value="timetable">タイムテーブルの時刻</option></select><br><small class="muted">新しく出た方の資料を選んでください</small></label>
       <label><span class="rs" data-rule="relayOrder"></span>リレーのオーダー用紙提出：<select class="setting" id="roBase"><option>招集完了</option><option>招集開始</option><option>競技開始</option></select>の <input type="number" class="setting" id="roMin" value="" min="0" placeholder="－"> 分前<br><small class="muted">空欄なら表示しません</small></label>
     </div>
-    <p class="small muted">〇＝自動抽出（未照合）：競技注意事項から読み取った値（〇にマウスを乗せる／押すと原文が出ます）、×＝見つからなかったので仮の初期値（自由に変更できます）。数字を自分で変えると「手入力」になります。</p>
+    <p class="small muted">〇＝自動抽出（未照合）：競技注意事項から読み取った値（〇にマウスを乗せる／押すと原文が出ます）、×＝見つからなかったので空欄（招集時刻は出しません。手入力できます）。数字を自分で変えると「手入力」になります。</p>
     <div id="ruleSrc" class="rules" hidden></div>
   </details>
 </section>

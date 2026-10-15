@@ -29,7 +29,7 @@ var PlayerLogic = (function () {
   function payloadFor(rows, a, meta) {
     meta = meta || {};
     var e = rows.filter(function (r) { return mine(r, a); }).map(function (r) {
-      return [r.start || '', r.callStart || '', r.callEnd || '', nk(r.event), nk(r.round), r.heat == null || r.heat === '-' ? '' : String(r.heat),
+      return [r.start || '', r.callNG ? '!' : r.callStart || '', r.callEnd || '', nk(r.event), nk(r.round), r.heatNG ? '?' : r.heat == null || r.heat === '-' ? '' : String(r.heat),   // v0.26.37 '!'＝招集時刻を読めなかった・'?'＝組を読めなかった
         r.tent ? '' : (r.posLabel || ''), r.tent || r.pos == null ? '' : String(r.pos), r.typ === 'relay' ? 1 : 0, r.typ === 'relay' ? nk(r.relayTeam) : '', r.tent ? 1 : 0];
     }).sort(function (x, y) { var p = toMin(x[0]), q = toMin(y[0]); return (p == null ? 9999 : p) - (q == null ? 9999 : q); });
     return { v: 1, k: 'p', n: nk(meta.n), d: nk(meta.d), pl: nk(meta.pl), cp: nk(meta.cp), g: meta.g || new Date().toISOString(),
@@ -41,9 +41,10 @@ var PlayerLogic = (function () {
   function autoItems(p) {
     var out = [];
     (p.e || []).forEach(function (x, i) {
-      var e = entryObj(x), where = [e.heat ? e.heat + '組' : '', e.pos ? (e.posLabel === 'レーン' ? e.pos + 'レーン' : (e.posLabel || '') + ' ' + e.pos) : ''].filter(Boolean).join('・');
+      var e = entryObj(x), where = [e.heat === '?' ? '⚠組?' : e.heat ? e.heat + '組' : '', e.pos ? (e.posLabel === 'レーン' ? e.pos + 'レーン' : (e.posLabel || '') + ' ' + e.pos) : ''].filter(Boolean).join('・');
       var ev = e.event + (e.round ? ' ' + e.round : ''), tk = e.tent ? tentKey(e) : '';
-      if (e.callStart || e.callEnd) out.push({ id: 'c' + i, auto: true, kind: 'call', t: e.callStart || e.callEnd, t2: e.callStart && e.callEnd ? e.callEnd : '',
+      if (e.callStart === '!') out.push({ id: 'c' + i, auto: true, kind: 'call', t: e.start, t2: '', label: '⚠ 招集時刻を読めませんでした（' + ev + '）', sub: '要項・注意事項で確かめてください', tent: tk, event: e.event });
+      else if (e.callStart || e.callEnd) out.push({ id: 'c' + i, auto: true, kind: 'call', t: e.callStart || e.callEnd, t2: e.callStart && e.callEnd ? e.callEnd : '',
         label: '招集（' + ev + '）', sub: (p.cp ? '場所：' + p.cp : ''), tent: tk, event: e.event });
       out.push({ id: 'r' + i, auto: true, kind: 'race', t: e.start, label: (e.relay ? 'リレー ' : '') + ev, sub: e.tent ? '組・レーンは前のラウンドのあとに決まります' : [where, e.relay && e.relayTeam ? e.relayTeam : ''].filter(Boolean).join('・'), tent: tk, event: e.event });
     });

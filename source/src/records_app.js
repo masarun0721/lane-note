@@ -1073,7 +1073,23 @@
     if (sc.uid && !sc.team && !GUEST_SKIP[sc.uid]) { var l = []; try { l = await lgetAll(LOCAL_DB, sc); } catch (e) { if (isAbort(e)) throw e; } check(sc); GUEST_N = l.length; }
     renderGuest();
   }
+  /* v0.26.37 ログインしていない人へ：この端末だけの記録は、ブラウザが消すことがある（iPhone の Safari では、しばらく開かないと）。
+     閉じても14日たったらまた出す。ログイン中は出さない。navigator.storage.persist() が使えるブラウザでは、消されにくくする */
+  var LN_KEY = 'lanenote.localnote.v1', LN_AGAIN = 14 * 864e5;
+  function renderLocalNote() {
+    var box = $('rbLocalNote'); if (!box) return;
+    var hid = 0; try { hid = +localStorage.getItem(LN_KEY) || 0; } catch (e) { }
+    if (USER || !AUTH_SEEN || (hid && Date.now() - hid < LN_AGAIN)) { box.hidden = true; return; }
+    box.hidden = false;
+    box.innerHTML = '<b>⚠ この記録は、このブラウザの中だけに保存しています。</b><br>ブラウザが消すことがあります（iPhone の Safari では、7日ほど開かないと消えることがあります）。<br>' +
+      'なくしたくない記録は、<b>Googleでログイン</b>してクラウドに保存するか、「💾 ファイルに書き出す」で残してください。' +
+      '<div><button class="btn sub" type="button" id="rbLocalNoteIn">Googleでログイン</button><button class="btn sub" type="button" id="rbLocalNoteX">閉じる（しばらく出しません）</button></div>';
+    $('rbLocalNoteX').addEventListener('click', function () { try { localStorage.setItem(LN_KEY, String(Date.now())); } catch (e) { } box.hidden = true; });
+    var lb = $('rbLocalNoteIn'); if (typeof CLOUD_READY !== 'undefined' && !CLOUD_READY) lb.hidden = true; lb.addEventListener('click', function () { var b = $('rbSignIn'); if (b) b.click(); });
+  }
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persisted().then(function (p) { if (!p) return navigator.storage.persist(); }).catch(function () { }); } catch (e) { }
   function renderGuest() {
+    renderLocalNote();
     var box = $('rbGuest'); if (!box) return;
     if (!USER || !GUEST_N) { box.hidden = true; box.innerHTML = ''; return; }
     box.hidden = false;
@@ -1120,6 +1136,7 @@
   });
 
   function renderAuth() {
+    renderLocalNote();
     var info = $('rbAuthInfo'), inB = $('rbSignIn'), outB = $('rbSignOut');
     if (!CLOUD_READY) { info.innerHTML = '💻 <b>この端末だけに保存中</b>（クラウド保存はまだ準備中です）'; inB.hidden = true; outB.hidden = true; return; }
     $('rbClearCloud').hidden = !USER;
@@ -1157,7 +1174,7 @@
   async function initCloud() {
     renderAuth(); renderJoin();
     if (!CLOUD_READY) return;
-    try { await loadFirebase(); } catch (e) { AUTH_SEEN = true; status('rbAuthStatus', '✖ ログインの部品を読み込めませんでした（' + esc(e.message) + '）。この端末だけに保存します。', 'ng'); reload(); return; }
+    try { await loadFirebase(); } catch (e) { AUTH_SEEN = true; renderLocalNote(); status('rbAuthStatus', '✖ ログインの部品を読み込めませんでした（' + esc(e.message) + '）。この端末だけに保存します。', 'ng'); reload(); return; }
     loadFlags();
     FB.A.onAuthStateChanged(FB.auth, onAuth);
   }

@@ -69,7 +69,7 @@ var LaneParent = (function () {
     var groups = [], cur = null;
     (byTime ? byTime(rows) : rows).forEach(function (r) {
       var k = (r.start || '?') + '|' + r.event + '|' + (r.round || '') + '|' + (r.tent ? 1 : 0);
-      if (!cur || cur.k !== k) { cur = { k: k, start: r.start || '', call: r.call || '', event: evLabel(r.event) + (r.round ? ' ' + nk(r.round) : ''), tent: !!r.tent, names: [] }; groups.push(cur); }
+      if (!cur || cur.k !== k) { cur = { k: k, start: r.start || '', call: r.call || (r.callNG ? '⚠ 招集時刻を読めませんでした' : ''), event: evLabel(r.event) + (r.round ? ' ' + nk(r.round) : ''), tent: !!r.tent, names: [] }; groups.push(cur); }
       var n = r.typ === 'relay' ? nk(r.relayTeam || r.name).trim() + ((r.members || []).length ? '（' + r.members.map(function (m) { return nk(m.name).replace(/\s+/g, ' ').trim(); }).join('・') + '）' : '') : nk(r.name).replace(/\s+/g, ' ').trim();
       if (cur.names.indexOf(n) < 0) cur.names.push(n);
     });

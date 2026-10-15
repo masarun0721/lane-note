@@ -47,11 +47,11 @@
     return _recs;
   }
   function donePrep() {
-    var rows = ML.build(S.prep.sl, S.prep.tt, ML.findTeams(S.prep.sl, st.school), {});
+    var rows = ML.build(S.prep.sl, S.prep.tt, ML.findTeams(S.prep.sl, st.school), { callTrack: [30, 20], callField: [40, 30] });   // v0.26.37 見本の競技注意事項に書いてある招集ルール（本番は、読めなければ空欄）
     if (!rows.length) return false;
     rows.sort(function (a, b) { return (a.date || '').localeCompare(b.date || '') || (a.startMin || 0) - (b.startMin || 0); });
     show('<h2>④ できあがり：時間順の一覧</h2><div class="tr-done">✔ 「' + esc(st.school) + '」の選手 ' + uniq(rows.map(function (r) { return r.name; })).length + '人・' + rows.length + '種目の一覧ができました。招集の時刻はタイムテーブルから自動で計算しています。</div>' +
-      '<p class="small">（架空の大会：' + esc(S.prep.meet) + '）</p><table class="tr-tbl" id="trOut"><tr><th>日</th><th>招集</th><th>開始</th><th>種目</th><th>ラウンド・組</th><th>選手</th><th>メモ</th></tr>' +
+      '<p class="small">（架空の大会：' + esc(S.prep.meet) + '。招集時刻は、見本の競技注意事項の「トラック30〜20分前・フィールド40〜30分前」で計算しています）</p><table class="tr-tbl" id="trOut"><tr><th>日</th><th>招集</th><th>開始</th><th>種目</th><th>ラウンド・組</th><th>選手</th><th>メモ</th></tr>' +
       rows.map(function (r) { return '<tr><td>' + esc(r.date) + '</td><td>' + esc(r.call || '') + '</td><td><b>' + esc(r.start || '未定') + '</b></td><td>' + esc(r.event) + '</td><td>' + esc(r.round) + ' ' + esc(r.heat) + '組 ' + esc(r.posLabel || '') + esc(r.pos) + '</td><td>' + esc(r.name) + '(' + esc(r.grade) + ')</td><td class="small">' + esc(r.note || '') + '</td></tr>'; }).join('') + '</table>' +
       '<p class="small muted">本物のページでは、このほかに記録用紙・保護者への案内表・ナンバーカードの枚数なども作れます。</p>' + finish('index.html', '🏁 自分の大会で使ってみる（大会準備へ）'), 3);
     return true;
