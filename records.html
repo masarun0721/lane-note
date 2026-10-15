@@ -278,7 +278,7 @@ footer a{color:var(--navy)}
 }
 .outgrp{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center}.outgrp>b{font-size:13px}
 @media (max-width:600px){.outgrp{flex:1 1 100%}.outgrp>b{flex:1 1 100%}.toolbar .outgrp .btn{flex:1 1 30%;padding:9px 6px;font-size:13.5px}}
-.ss-note{background:#eef4ff;border:1px solid #c9d8f5;border-radius:10px;padding:6px 10px;font-size:13px;margin:8px 0}.ss-note .btn{min-height:32px;font-size:13px;margin-left:6px}
+.ss-note{overflow-wrap:anywhere;background:#eef4ff;border:1px solid #c9d8f5;border-radius:10px;padding:6px 10px;font-size:13px;margin:8px 0}.ss-note .btn{min-height:32px;font-size:13px;margin-left:6px}
 #venueView{position:fixed;inset:0;z-index:1010;background:#f3f5f9;display:flex;flex-direction:column}#venueView[hidden]{display:none}#vnMsg{color:#d7f5df;width:100%}.vn-body{flex:1;overflow:auto;padding:12px;max-width:720px;width:100%;margin:0 auto;box-sizing:border-box}
 .vn-lead{font-size:14px;color:#334;margin:0 0 10px}.vn-card{background:#fff;border:1px solid #d5dae3;border-radius:12px;padding:10px 12px;margin:0 0 10px;box-shadow:0 1px 2px rgba(20,33,61,.06)}.vn-card h3{margin:0 0 6px;font-size:16px}.vn-card dl{margin:0;display:grid;grid-template-columns:5.5em 1fr;gap:2px 8px;font-size:13px}.vn-card dl>div{display:contents}.vn-card dt{color:#667;font-weight:700}.vn-card dd{margin:0;overflow-wrap:anywhere}
 .vn-act{display:flex;gap:8px;margin-top:8px}.vn-act .btn{min-height:40px}.vn-del{color:#b3261e}.vn-add{width:100%;min-height:48px}.vn-empty{background:#fff;border:1px dashed #b9c1ce;border-radius:12px;padding:16px;text-align:center;color:#556}
@@ -1411,6 +1411,9 @@ var LaneAuth = (function () {
   var REDIRECT_KEY = 'lanenote-login-redirect';
   function userKeys(uid) { return ['lanenote-rec-meets-' + uid, 'lanenote-rec-divov-' + uid, 'lanenote-migrated-' + uid, 'lanenote-rec-mode-' + uid]; }
   function cacheName(uid) { return 'lanenote-cache-' + uid; }
+  // v0.26.42（監査 C601）：大会準備のタブの一時保存（sessionStorage）。ログアウト・アカウントの切り替えでは、どのページでも消す
+  var MEET_SESSION = 'lanenote-meet-session';
+  function clearMeetSession() { try { sessionStorage.removeItem(MEET_SESSION); } catch (e) { } }
   // IndexedDB を消す。ほかのタブが開いたままなら少し待ち、それでも消えなければ失敗として返す（何度やり直しても安全）
   function eraseDatabase(name, waitMs) {
     return new Promise(function (ok, ng) {
@@ -1434,6 +1437,7 @@ var LaneAuth = (function () {
   async function signOutAndWipe(FB, uid, close) {
     var r = { signedOut: false, wiped: false, error: null };
     try { await FB.A.signOut(FB.auth); r.signedOut = true; } catch (e) { r.error = e; return r; }
+    clearMeetSession();   // v0.26.42 C601：端末の控えを消すのに失敗しても、大会準備の一時保存は先に消す
     try { await wipeUser(uid, close); r.wiped = true; } catch (e) { r.error = e; }
     return r;
   }
@@ -1458,7 +1462,7 @@ var LaneAuth = (function () {
   // v0.14 で redirect 中だった人のための後始末（フラグを消すだけ。redirect の結果待ちはしない）
   function redirectResult() { try { sessionStorage.removeItem(REDIRECT_KEY); } catch (e) { } return Promise.resolve(null); }
   function isGoogle(u) { return !!(u && (u.providerData || []).some(function (p) { return p && p.providerId === 'google.com'; })); }
-  return { eraseDatabase: eraseDatabase, wipeUser: wipeUser, signOutAndWipe: signOutAndWipe, signIn: signIn, redirectResult: redirectResult, errorText: errorText, userKeys: userKeys, cacheName: cacheName, isGoogle: isGoogle };
+  return { clearMeetSession: clearMeetSession, MEET_SESSION: MEET_SESSION, eraseDatabase: eraseDatabase, wipeUser: wipeUser, signOutAndWipe: signOutAndWipe, signIn: signIn, redirectResult: redirectResult, errorText: errorText, userKeys: userKeys, cacheName: cacheName, isGoogle: isGoogle };
 })();
 if (typeof module !== 'undefined') module.exports = LaneAuth;
 
@@ -3031,7 +3035,7 @@ if (typeof module !== 'undefined') module.exports = LaneRoster;
 
 </script>
 <script>
-var APP_VERSION = "v0.26.41", REC_VERSION = "v0.11.1";
+var APP_VERSION = "v0.26.42", REC_VERSION = "v0.11.1";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>
@@ -5730,6 +5734,7 @@ var LanePdf = (function () {
     var prev = USER ? USER.uid : null;
     authEpoch++; USER = u || null;
     if (prev !== (USER ? USER.uid : null)) resetView();
+    if (prev && prev !== (USER ? USER.uid : null) && window.LaneAuth && LaneAuth.clearMeetSession) LaneAuth.clearMeetSession();   // v0.26.42 C601：ログアウト・別のアカウントでは大会準備の一時保存も消す
     var sc0e = authEpoch;
     GUEST_N = 0; renderAuth(); renderGuest();
     if (USER) { try { await checkAdmin(scope()); } catch (e) { if (isAbort(e)) return; } }

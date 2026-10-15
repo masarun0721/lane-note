@@ -1465,7 +1465,7 @@
     if (uid === lastUid) return;
     var prevUid = lastUid; lastUid = uid; authEpoch++;
     Object.keys(loadSeq).forEach(function (k) { loadSeq[k]++; });   // v0.26.40（監査 C507）：読み込み途中のもの（前のアカウントで始めたもの）は画面に出さない
-    if (prevUid && prevUid !== uid) { try { resetScreen(); } catch (e) { } }   // ログアウト・別のアカウント：前の人の読み取り結果を消す
+    if (prevUid && prevUid !== uid) { ssClear(); try { resetScreen(); } catch (e) { } }   // v0.26.42 C601：一時保存も必ず消す   // ログアウト・別のアカウント：前の人の読み取り結果を消す
     if (PREP && PREP.owner.uid !== (uid || '')) prepDetach('アカウントが変わったので、「' + PREP.p.meet + '」への保存をやめました（前のアカウントの保存は出しません）。');   // A01
     PLANS = []; try { planPickFill(); } catch (e) { } if (uid) planPickCloud();
     clearAllShares(); shareShort = ''; PL.links = {}; PBS = { sc: null, look: null }; setTimeout(function () { loadPBs().catch(function () { }); }, 0);
@@ -1907,6 +1907,13 @@
   var SS_KEY = 'lanenote-meet-session', ssTimer = 0, ssRestoring = false;
   var SS_STATE = ['sl', 'tt', 'notes', 'slName', 'ttName', 'noteName', 'yokoName', 'dateCands', 'feeParsed', 'feeFrom', 'prices', 'priceSrc', 'make', 'teamCat', 'teams', 'allTeams', 'progCopies', 'docText', 'day', 'athSort'];
   function ssClear() { clearTimeout(ssTimer); try { sessionStorage.removeItem(SS_KEY); } catch (e) { } }
+  // v0.26.42（監査 C601）：一時保存の持ち主（アカウント・チーム・大会準備のキー）と期限。戻すときに今の利用者と照らし合わせる
+  var SS_TTL = 24 * 36e5;
+  function ssOwner() {
+    var uid = prepUid(), now = Date.now(), exp = now + SS_TTL, p = PREP;
+    if (p && p.p) exp = Math.min(exp, prepExp('yoko', p.p));
+    return { uid: uid || 'anon', team: p ? (p.owner.team || '') : (uid && typeof LanePlans !== 'undefined' && LanePlans.team ? LanePlans.team(uid) || '' : ''), plan: p ? p.key : '', exp: exp };
+  }
   function ssSnap() {
     var st = {}, inp = {}, stat = {};
     SS_STATE.forEach(function (k) { st[k] = state[k]; });
@@ -1915,7 +1922,7 @@
       inp[el.id] = el.type === 'checkbox' || el.type === 'radio' ? { c: el.checked } : { v: el.value, m: el.dataset.manual || '', a: el.dataset.auto || '' };
     });
     Object.keys(SID).forEach(function (k) { var el = $(SID[k]); stat[k] = { t: el.textContent, c: el.className }; /* S11：HTML ではなく文字だけ控える */ });
-    return { v: 1, t: Date.now(), st: st, inp: inp, stat: stat, rule: ruleState };
+    return { v: 1, t: Date.now(), own: ssOwner(), st: st, inp: inp, stat: stat, rule: ruleState };
   }
   function ssSave() {
     if (ssRestoring) return; clearTimeout(ssTimer);
@@ -1927,11 +1934,33 @@
       } catch (e) { }   // 入りきらないときは控えない（今まで通り）
     }, 400);
   }
-  function ssRestore() {
+  // v0.26.42（監査 C601）：ログインの状態がわかってから戻す。持ち主が今の利用者と同じで、期限内のものだけ。
+  //   ・持ち主のない古い形の一時保存は戻さずに消す ・ログインなしで作ったもの（anon）はログインしていないときだけ
+  //   ・チームの大会準備のものは、そのチームの大会の印を読めるか（権限）を確かめる。permission-denied なら消して控えも消す（通信できないだけなら戻す）
+  async function ssRestore() {
     if (/^#[dp]=/.test(location.hash) || /[?&]s=/.test(location.search)) return false;   // 共有リンクを開いたときは戻さない
     if (/[?&]plan=/.test(location.search)) return false;   // v0.26.33 大会予定から開いたときは、その大会の保存から戻す
     var o = null; try { o = JSON.parse(sessionStorage.getItem(SS_KEY) || 'null'); } catch (e) { }
+    if (!o) return false;
+    var own = o.own;
+    if (!own || typeof own.uid !== 'string' || !own.uid || !(+own.exp > Date.now())) { ssClear(); return false; }
+    var ep = authEpoch, who = await prepWho();
+    if (ep !== authEpoch || who.uid !== prepUid()) return false;   // 待っているあいだにログインが変わった（そちらの処理に任せる）
+    if (own.uid !== (who.uid || 'anon') || (own.team && own.team !== who.team)) { ssClear(); return false; }
+    if (own.team && own.plan && FB) {
+      try { await withTimeout(FB.F.getDoc(prepPath(who, own.plan)), 10000); }
+      catch (e) { if (/permission-denied/.test(String(e && e.code || ''))) { await prepPurge(who); return false; } }
+      if (ep !== authEpoch || who.uid !== prepUid()) return false;
+    }
+    if (PREP || state.sl || state.tt || state.notes || state.yokoName) return false;   // 待っているあいだに、もう読み込みを始めた
     return ssApply(o);
+  }
+  // v0.26.42：戻した内容がどの大会のものかを帯に出す（戻した画面の大会名・日付。なければ読み込んだファイルの名前。どちらもなければ今までの文）
+  function ssNoteHtml() {
+    var nm = String(($('meetName') || {}).value || '').trim().slice(0, 100), dt = String(($('meetDate') || {}).value || '').trim().slice(0, 60), what = '';
+    if (nm) what = '<b>' + esc(nm) + '</b>' + (dt ? '（' + esc(dt) + '）' : '');
+    else { var f = state.yokoName || state.slName || state.ttName || state.noteName || ''; f = String(f).trim().slice(0, 100); if (f) what = '「' + esc(f) + '」' + (dt ? '（' + esc(dt) + '）' : ''); }
+    return '↺ 前に読み込んだ内容を戻しました' + (what ? '：' + what : '') + '（このタブを閉じると消えます）。';
   }
   function ssApply(o) {
     if (!o || o.v !== 1 || !o.st) return false;
@@ -1949,13 +1978,13 @@
       renderRuleMarks(); renderFeePrices();
       try { updateDate(); } catch (e) { }
       renderDateMark(); updateTeams(); render();
-      var n = $('ssNote'); if (n) n.hidden = false;
+      var n = $('ssNote'), nt = $('ssNoteText'); if (nt) nt.innerHTML = ssNoteHtml(); if (n) n.hidden = false;
     } catch (e) { console.error(e); ssClear(); }
     ssRestoring = false;
     return true;
   }
   document.addEventListener('DOMContentLoaded', function () {
-    setTimeout(ssRestore, 0);
+    setTimeout(function () { ssRestore().catch(function (e) { console.error(e); }); }, 0);
     document.addEventListener('input', function (e) { if (!e.target.closest('[role=dialog]')) ssSave(); });
     document.addEventListener('change', function (e) { if (!e.target.closest('[role=dialog]')) ssSave(); });
     var c = $('ssClearBtn'); if (c) c.addEventListener('click', resetAll);
@@ -2214,6 +2243,7 @@
     var own = prepOwnerStr(o);
     try { var all = await prepDb('readonly', function (st) { return st.getAll(); }) || []; for (var i = 0; i < all.length; i++) if (all[i] && all[i].owner === own) { var id = all[i].id; await prepDb('readwrite', function (st) { return st.delete(id); }); } } catch (e) { }
     prepIdx(function (x) { delete x[own]; });
+    ssClear();   // v0.26.42 C601：権限がないときは、このタブの一時保存も消す
   }
   async function prepErase() {
     var p = PREP; if (!p || !confirm('「' + p.p.meet + '」の大会準備の保存（この端末' + (p.owner.uid ? '・クラウド' : '') + '）を消します。今の画面の内容はそのままです。よろしいですか？')) return;
@@ -2250,5 +2280,5 @@
     $('teamList').dataset.q = ''; ruleState = {}; renderRuleMarks(); renderFeePrices(); renderDateMark(); updateTeams(); render();
     var pp = $('planPicked'); if (pp) pp.hidden = true; PICKED = null;
   }
-  window.__meetApp = { handleFile: handleFile, prep: function () { return PREP; }, pubSuggest: pubSuggest, prepOpen: prepOpen, prepSweep: prepSweep, setFB: function (f) { FB = f; }, pdfName: pdfName, openVenues: openVenues, ssSave: ssSave, ssRestore: ssRestore, ssClear: ssClear, resetAll: resetAll, openPersonal: openPersonal, openPlayers: openPlayers, openPlayer: openPlayer, encodePayload: encodePayload, decodePayload: decodePayload, payloadFromState: payloadFromState, openShare: openShare, refreshPrint: refreshPrint, tableData: tableData, feeData: feeData, totalText: totalText, safeCell: safeCell, state: state, handleFile: handleFile, render: render, updateTeams: updateTeams };
+  window.__meetApp = { handleFile: handleFile, prep: function () { return PREP; }, pubSuggest: pubSuggest, prepOpen: prepOpen, prepSweep: prepSweep, onShareAuth: onShareAuth, setFB: function (f) { FB = f; }, pdfName: pdfName, openVenues: openVenues, ssSave: ssSave, ssRestore: ssRestore, ssClear: ssClear, resetAll: resetAll, openPersonal: openPersonal, openPlayers: openPlayers, openPlayer: openPlayer, encodePayload: encodePayload, decodePayload: decodePayload, payloadFromState: payloadFromState, openShare: openShare, refreshPrint: refreshPrint, tableData: tableData, feeData: feeData, totalText: totalText, safeCell: safeCell, state: state, handleFile: handleFile, render: render, updateTeams: updateTeams };
 })();

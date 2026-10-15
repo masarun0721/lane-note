@@ -10,6 +10,9 @@ var LaneAuth = (function () {
   var REDIRECT_KEY = 'lanenote-login-redirect';
   function userKeys(uid) { return ['lanenote-rec-meets-' + uid, 'lanenote-rec-divov-' + uid, 'lanenote-migrated-' + uid, 'lanenote-rec-mode-' + uid]; }
   function cacheName(uid) { return 'lanenote-cache-' + uid; }
+  // v0.26.42（監査 C601）：大会準備のタブの一時保存（sessionStorage）。ログアウト・アカウントの切り替えでは、どのページでも消す
+  var MEET_SESSION = 'lanenote-meet-session';
+  function clearMeetSession() { try { sessionStorage.removeItem(MEET_SESSION); } catch (e) { } }
   // IndexedDB を消す。ほかのタブが開いたままなら少し待ち、それでも消えなければ失敗として返す（何度やり直しても安全）
   function eraseDatabase(name, waitMs) {
     return new Promise(function (ok, ng) {
@@ -33,6 +36,7 @@ var LaneAuth = (function () {
   async function signOutAndWipe(FB, uid, close) {
     var r = { signedOut: false, wiped: false, error: null };
     try { await FB.A.signOut(FB.auth); r.signedOut = true; } catch (e) { r.error = e; return r; }
+    clearMeetSession();   // v0.26.42 C601：端末の控えを消すのに失敗しても、大会準備の一時保存は先に消す
     try { await wipeUser(uid, close); r.wiped = true; } catch (e) { r.error = e; }
     return r;
   }
@@ -57,6 +61,6 @@ var LaneAuth = (function () {
   // v0.14 で redirect 中だった人のための後始末（フラグを消すだけ。redirect の結果待ちはしない）
   function redirectResult() { try { sessionStorage.removeItem(REDIRECT_KEY); } catch (e) { } return Promise.resolve(null); }
   function isGoogle(u) { return !!(u && (u.providerData || []).some(function (p) { return p && p.providerId === 'google.com'; })); }
-  return { eraseDatabase: eraseDatabase, wipeUser: wipeUser, signOutAndWipe: signOutAndWipe, signIn: signIn, redirectResult: redirectResult, errorText: errorText, userKeys: userKeys, cacheName: cacheName, isGoogle: isGoogle };
+  return { clearMeetSession: clearMeetSession, MEET_SESSION: MEET_SESSION, eraseDatabase: eraseDatabase, wipeUser: wipeUser, signOutAndWipe: signOutAndWipe, signIn: signIn, redirectResult: redirectResult, errorText: errorText, userKeys: userKeys, cacheName: cacheName, isGoogle: isGoogle };
 })();
 if (typeof module !== 'undefined') module.exports = LaneAuth;

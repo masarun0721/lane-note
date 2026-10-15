@@ -1167,6 +1167,7 @@
     var prev = USER ? USER.uid : null;
     authEpoch++; USER = u || null;
     if (prev !== (USER ? USER.uid : null)) resetView();
+    if (prev && prev !== (USER ? USER.uid : null) && window.LaneAuth && LaneAuth.clearMeetSession) LaneAuth.clearMeetSession();   // v0.26.42 C601：ログアウト・別のアカウントでは大会準備の一時保存も消す
     var sc0e = authEpoch;
     GUEST_N = 0; renderAuth(); renderGuest();
     if (USER) { try { await checkAdmin(scope()); } catch (e) { if (isAbort(e)) return; } }
