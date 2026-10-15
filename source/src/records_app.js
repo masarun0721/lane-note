@@ -1758,7 +1758,10 @@
      走者は ナンバー（同じ資料・同じ日の個人の記録）→ 名簿・記録の名前 → フリガナ の順に、こちらの選手に合わせる。顧問が見て、直して、チェックを付けたものだけ保存する */
   function relaysOf(b) {
     if (!b.relays || !b.relays.length || MODE.personal) return [];
-    var q = school(); return b.relays.filter(function (c) { return !q || R.matchRelayTeam(c.team, q); });
+    var q = school(); if (!q) return b.relays.slice();
+    // v0.26.48：中学の速報（所属が「地区・学校」の形）のリレーは、チーム名が「本郷」のように「中」なし。同じ資料の個人の所属がその形なら「〇〇中」として比べる
+    var cy = b._cyu != null ? b._cyu : (b._cyu = !!(b.all && b.all.recs.some(function (r) { return R.cyuTeam(r.team); })));
+    return b.relays.filter(function (c) { return R.matchRelayTeam(c.team, q) || (cy && /中$/.test(R.canonSchool(q)) && !/(中|高|校|学園|学院)$/.test(R.relayTeamBase(c.team)) && R.matchSchool(R.relayTeamBase(c.team) + '中', q)); });
   }
   function runnerMatch(run, team, b) {
     var base = R.relayTeamBase(team), sameTeam = function (r) { return r.team && (R.matchSchool(r.team, base) || R.matchSchool(base, r.team) || R.nameKey(r.team) === R.nameKey(base)); };
@@ -1777,7 +1780,7 @@
     list.forEach(function (c) {
       var k = b.relays.indexOf(c); if (b.rl[k]) return;
       var m = c.runners.slice(0, 4).map(function (r) { return runnerMatch(r, c.team, b); });
-      b.rl[k] = { on: !!R.markValue(c.mark) && c.runners.length === 4, legs: m.map(function (x) { return x.name; }), how: m.map(function (x) { return x.how; }) };
+      b.rl[k] = { on: !!R.markValue(c.mark) && c.runners.length === 4 || /^(DNS|DNF|DQ)$/.test(c.mark),   /* v0.26.48 記録なし（DNS・DNF・DQ）のチームも、記録なしの行として入れる */ legs: m.map(function (x) { return x.name; }), how: m.map(function (x) { return x.how; }) };
     });
     return list;
   }
@@ -1795,7 +1798,8 @@
     var out = [], errs = [];
     relaysOf(b).forEach(function (c) {
       var k = b.relays.indexOf(c), st = b.rl && b.rl[k]; if (!st || !st.on) return;
-      var res = R.relayRecord({ event: c.event, team: c.team, mark: c.mark, round: c.round, rank: c.rank === '' ? '' : String(c.rank), date: dayOf(b, c), meet: b.meta.name, legs: c.runners.length ? st.legs : [] });
+      var od = oorDest(b, c); if (od === null) return;   // v0.26.48 期間の外の日付
+      var res = R.relayRecord({ event: c.event, team: c.team, mark: c.mark, round: c.round, rank: c.rank === '' ? '' : String(c.rank), date: od ? od.date : dayOf(b, c), meet: od ? od.meet : b.meta.name, legs: c.runners.length ? st.legs : [] });
       if (!res.rec) { errs.push(c.team + '：' + res.errors.join('・')); return; }
       var r = res.rec; delete r.manual; r.heat = c.heat || ''; r.lane = c.lane || ''; r.comment = (c.comment || '').slice(0, 60); if (c.overall) r.overall = c.overall; out.push(r);
     });
@@ -1813,7 +1817,9 @@
   }
   function roundKind(s) { s = R.nk(String(s || '')).replace(/\s/g, ''); return /準決/.test(s) ? 'sf' : /予選|一次|1次|ラウンド1/.test(s) ? 'h' : /タイム|TR/i.test(s) ? 'tr' : /決勝/.test(s) ? 'f' : ''; }
   function sexOf(ev) { var n = R.normEvent(ev || ''); return /^男子/.test(n) ? 'm' : /^女子/.test(n) ? 'w' : ''; }
-  function dayKey(r) { return R.normEvent(r.event || '') + '|' + roundKind(r.round); }
+  // v0.26.48：男女（normEvent）に加えて、区分（「1年」「2・3年」「共通」など。種目名から外したものは ecat）も分ける。1年800m と 2年800m が別の日でも、それぞれの日付にする
+  function dayCat(r) { return r.ecat || R.eventCat(r.event || ''); }
+  function dayKey(r) { return R.normEvent(r.event || '') + '|' + dayCat(r) + '|' + roundKind(r.round); }
   // 大会予定（終了日が開始日より後）に合う大会。予定がなくても、資料に2つ以上の日付（年月日）があれば、その範囲（タイムテーブルは使わない）
   function dayPlanOf(b) {
     var d = b.meta && b.meta.date, nm = b.meta && b.meta.name; if (!/^\d{4}-\d{2}-\d{2}$/.test(d || '') || !nm || !b.all) return null;
@@ -1859,18 +1865,61 @@
     if (d.length === 1) return { date: d[0] };
     return { why: 'タイムテーブルの複数の日（' + d.map(mdOf).join('・') + '）にあります' };
   }
+  /* ---------- v0.26.48 大会予定の期間の外の日付の行（同じ資料を2つの予定で使う大会：「都大会（1・2日目）」と「（3・4日目）」など） ----------
+     資料に書かれた日付（年月日・月日）が、今の大会予定（開始日〜終了日）の外にある行。資料の日付が期間の中にもある資料のときだけ（資料の日付が作成日などのときは今までどおり）。
+     その行は、ふつうは保存しない。その日を含む大会予定があれば、そちらの名前で保存するのを選べる。今の大会名のまま保存するのも、選んだときだけ */
+  function planRange(b) {
+    var d = b.meta && b.meta.date, nm = b.meta && b.meta.name; if (!/^\d{4}-\d{2}-\d{2}$/.test(d || '') || !nm) return null;
+    var nn = planNorm(nm), best = null;
+    Object.keys(METS).sort().forEach(function (k) { var m = METS[k]; if (best || !m || !m.plan || !/^\d{4}-\d{2}-\d{2}$/.test(m.date || '') || planNorm(m.meet) !== nn) return; var e = /^\d{4}-\d{2}-\d{2}$/.test(m.end || '') && m.end > m.date ? m.end : m.date; if (d >= m.date && d <= e) best = { date: m.date, end: e, key: k }; });
+    return best;
+  }
+  function docDate(r, P) { var t = String(r && r.dday || ''); return /^(d|md):/.test(t) ? dayAbs(t, P) : ''; }
+  function oorCalc(b) {
+    b._oor = null; if (b.xl || !b.all) return null;
+    var P = planRange(b); if (!P) return null;
+    var items = batchRecs(b).concat(relaysOf(b)), inside = false, D = {};
+    items.forEach(function (r) { var x = docDate(r, P); if (!x) return; if (x >= P.date && x <= P.end) inside = true; else (D[x] = D[x] || []).push(r); });
+    if (!inside || !Object.keys(D).length) return null;
+    var out = { P: P, dates: {} }; b.oorPick = b.oorPick || {};
+    Object.keys(D).sort().forEach(function (x) {
+      // その日を含む大会予定。いくつかあれば、名前の始まりが今の大会名といちばん長く同じもの（「支部新人（1日目）」→「支部新人（2・3日目）」）。決められなければ出さない
+      var cands = [], nn = planNorm(b.meta.name), cp = function (a, z) { var i = 0; while (i < a.length && i < z.length && a[i] === z[i]) i++; return i; };
+      Object.keys(METS).sort().forEach(function (k) { var m = METS[k]; if (!m || !m.plan || !/^\d{4}-\d{2}-\d{2}$/.test(m.date || '') || k === P.key) return; var e = /^\d{4}-\d{2}-\d{2}$/.test(m.end || '') && m.end > m.date ? m.end : m.date; if (x >= m.date && x <= e) cands.push({ name: m.meet, key: k, s: cp(planNorm(m.meet), nn) }); });
+      cands.sort(function (p, q) { return q.s - p.s; });
+      var sug = cands.length === 1 || (cands.length > 1 && cands[0].s > 0 && cands[0].s > cands[1].s) ? { name: cands[0].name, key: cands[0].key } : null;
+      var pick = b.oorPick[x]; if (pick !== 'sug' && pick !== 'here') pick = 'skip'; if (pick === 'sug' && !sug) pick = 'skip';
+      out.dates[x] = { n: D[x].length, sug: sug, pick: pick, recs: D[x] };
+    });
+    return (b._oor = out);
+  }
+  function oorOf(b, r) { var c = b._oor; if (!c) return null; var x = docDate(r, c.P); return x && c.dates[x] ? { date: x, d: c.dates[x] } : null; }
+  // 保存のときの行き先：null＝保存しない／{ meet, date }
+  function oorDest(b, r) { var o = oorOf(b, r); if (!o) return false; if (o.d.pick === 'sug') return { meet: o.d.sug.name, date: o.date }; if (o.d.pick === 'here') return { meet: b.meta.name, date: o.date }; return null; }
+  function oorHtml(b) {
+    var c = b._oor; if (!c) return '';
+    var ks = Object.keys(c.dates), n = ks.reduce(function (a, x) { return a + c.dates[x].n; }, 0);
+    return '<div class="rb-oor"><p class="small ng"><b>⚠ 大会予定の期間（' + esc(c.P.date) + (c.P.end !== c.P.date ? '〜' + esc(c.P.end) : '') + '）の外の日付の記録が ' + n + '件あります。</b>同じ資料に別の日の結果も入っているようです。ふつうは保存しません。必要なら行き先を選んでください。</p>' +
+      '<div class="tblwrap"><table class="rbt"><tr><th>資料の日付</th><th>件数</th><th>保存のしかた</th></tr>' +
+      ks.map(function (x) { var d = c.dates[x]; return '<tr class="haswarn"><td>' + esc(x) + '</td><td class="rn">' + d.n + '</td><td><select data-oor="' + esc(x) + '">' +
+        '<option value="skip"' + (d.pick === 'skip' ? ' selected' : '') + '>保存しない</option>' +
+        (d.sug ? '<option value="sug"' + (d.pick === 'sug' ? ' selected' : '') + '>「' + esc(d.sug.name) + '」（大会予定）として保存</option>' : '') +
+        '<option value="here"' + (d.pick === 'here' ? ' selected' : '') + '>「' + esc(b.meta.name) + '」のまま保存（日付は ' + esc(x) + '）</option></select>' +
+        (d.sug ? '' : '<br><small class="muted">この日を含む大会予定が見つかりません</small>') + '</td></tr>'; }).join('') + '</table></div></div>';
+  }
   // 種目（＋男女・ラウンド）ごとの日付と、その出どころ（資料／タイムテーブル／手入力／要確認）
   function dayCalc(b) {
     b._day = null; if (b.xl || !b.all) return null;
+    oorCalc(b);   // v0.26.48 期間の外の日付の行は、日付の表に入れない
     var P = dayPlanOf(b); if (!P) return null;
     dayLoad(b, P);
     var inR = function (x) { return !!x && x >= P.date && x <= P.end; };
-    var items = batchRecs(b).concat(relaysOf(b)), docAll = {};
+    var items = batchRecs(b).concat(relaysOf(b)).filter(function (r) { return !oorOf(b, r); }), docAll = {};
     b.all.recs.concat(b.relays || []).forEach(function (r) { var x = dayAbs(r.dday, P); if (inR(x)) docAll[x] = 1; });
     var dk = Object.keys(docAll), docOk = dk.length > 1 || (dk.length === 1 && dk[0] !== P.date);   // 開始日だけの資料（表紙の日付など）は、種目の日付の手がかりにしない
     var G = {}, order = [];
     items.forEach(function (r) {
-      var k = dayKey(r); if (!G[k]) { G[k] = { k: k, ev: r.event, round: r.round || '', n: 0, docs: {}, nodoc: 0 }; order.push(k); }
+      var k = dayKey(r); if (!G[k]) { G[k] = { k: k, ev: r.event + (r.ecat ? '（' + r.ecat + '）' : ''), round: r.round || '', n: 0, docs: {}, nodoc: 0 }; order.push(k); }
       var g = G[k], x = docOk ? dayAbs(r.dday, P) : ''; g.n++; if (inR(x)) g.docs[x] = 1; else g.nodoc++;
     });
     order.forEach(function (k) {
@@ -1915,21 +1964,23 @@
     $('rbBatches').innerHTML = batches.map(function (b) {
       if (b.xl) return b.xl.multi && !b.xl.pick ? renderXlMulti(b) : renderXl(b);
       if (b.error) return '<div class="rb-batch"><h3>✖ ' + esc(b.src) + '</h3><p class="status ng">' + esc(b.error) + '</p><button class="btn sub" data-del="' + b.id + '" type="button">閉じる</button></div>';
-      var rs = batchRecs(b), ws = batchWarns(b), dc = dayCalc(b), du = dayUnsure(dc);
+      var rs = batchRecs(b), ws = batchWarns(b), dc = dayCalc(b), du = dayUnsure(dc), oc = b._oor;
+      if (oc) ws.push('大会予定の期間の外の日付の記録：' + Object.keys(oc.dates).map(function (x) { var d = oc.dates[x]; return x + '（' + d.n + '件' + (d.sug ? '・大会予定「' + d.sug.name + '」の日' : '') + '）'; }).join('、') + '。ふつうは保存しません（下の表で選べます）。');
       if (du) ws.push('日付要確認（複数日の大会）：' + du + '種目は日付を決められなかったため、' + b.meta.date + '（開始日）にしています。下の「複数日の大会」の表で直してください。');
       return '<div class="rb-batch" data-b="' + b.id + '"><h3>' + esc(b.kind) + '：' + esc(b.src) + '</h3>' +
         '<div class="rb-row"><label>大会名 <input type="text" data-f="name" value="' + esc(b.meta.name) + '" size="34"></label><label>日付 <input type="date" data-f="date" value="' + esc(b.meta.date) + '"></label></div>' +
         '<div class="rb-row xlw"><span class="small"><b>天気（任意）</b></span>' + weatherInputs(b.meta, 'data-f') + '</div>' +
         '<p class="small">読み取った記録：' + rs.length + '件' + (b.all.recs.length !== rs.length ? '（全体 ' + b.all.recs.length + '件のうち）' : '') + '</p>' +
         (ws.length ? '<ul class="rb-warn">' + ws.map(function (w) { return '<li>⚠ ' + esc(w) + '</li>'; }).join('') + '</ul>' : '') +
-        (b.sc && b.sc.pub ? '<p class="small rb-pubsrc">📊 ' + esc(LanePub.srcText(b.sc.pub)) + '</p>' : '') + looseHtml(b) + dayHtml(b) +
+        (b.sc && b.sc.pub ? '<p class="small rb-pubsrc">📊 ' + esc(LanePub.srcText(b.sc.pub)) + '</p>' : '') + looseHtml(b) + oorHtml(b) + dayHtml(b) +
         (!rs.length || ws.some(function (w) { return /見つかりませんでした|読み取れませんでした/.test(w); }) ? rescueHint(b) : '') +
         (rs.length ? '<div class="tblwrap"><table class="rbt">' + REC_HEAD + rs.map(function (r) { return recRow(r); }).join('') + '</table></div>' : '') + relayBatchHtml(b) +
         '<div class="rb-row" style="margin-top:8px"><button class="btn" data-save="' + b.id + '" type="button"' + (rs.length || relaysOf(b).length ? '' : ' disabled') + '>記録に保存</button><button class="btn sub" data-del="' + b.id + '" type="button">取り消す</button></div><div class="status" data-st="' + b.id + '"></div></div>';
     }).join('');
   }
   $('rbBatches').addEventListener('change', function (e) {
-    var dk = e.target.getAttribute('data-dayk'), df = e.target.getAttribute('data-f');
+    var dk = e.target.getAttribute('data-dayk'), df = e.target.getAttribute('data-f'), oo = e.target.getAttribute('data-oor');
+    if (oo != null) { var obx = e.target.closest('[data-b]'), ob = obx && batches.filter(function (x) { return x.id === +obx.getAttribute('data-b'); })[0]; if (!ob) return; ob.oorPick = ob.oorPick || {}; ob.oorPick[oo] = e.target.value; renderBatches(); return; }   // v0.26.48
     if (dk != null || df === 'name' || df === 'date') {   // v0.26.47 種目の日付を直した・大会名や日付を変えた → 表を作り直す
       var dbx = e.target.closest('[data-b]'), db = dbx && batches.filter(function (x) { return x.id === +dbx.getAttribute('data-b'); })[0]; if (!db || db.xl) return;
       if (dk != null) { db.dayEdit = db.dayEdit || {}; if (/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)) db.dayEdit[dk] = e.target.value; else delete db.dayEdit[dk]; }
@@ -1968,14 +2019,17 @@
     if (b.xl) return saveXl(b, st);
     if (!b.meta.name || !/^\d{4}-\d{2}-\d{2}$/.test(b.meta.date || '')) { st.className = 'status ng'; st.textContent = '✖ 大会名と日付を入れてから保存してください。'; return; }
     dayCalc(b);   // v0.26.47 複数日の大会：種目ごとの日付（単日の大会は今までどおり）
-    var sc = b.sc, rs = batchRecs(b).map(function (r, i) {
+    var sc = b.sc, oorSkip = 0, rs = batchRecs(b).map(function (r, i) {
       var o = Object.assign({}, r); delete o.dday; o.meet = b.meta.name; o.date = dayOf(b, r); o.src = b.src; o.order = i; o.savedAt = new Date().toISOString();
+      var od = oorDest(b, r); if (od === null) { oorSkip++; return null; } if (od) { o.meet = od.meet; o.date = od.date; }   // v0.26.48 期間の外の日付：選んだ行き先だけ
       o.id = R.recId(o.meet, o.date, o); return o;
-    });
+    }).filter(Boolean);
     var rr = relayRecsOf(b);   // v0.26.21：チェックを付けたリレー
     if (rr.errs.length) { st.className = 'status ng'; st.textContent = '✖ リレー：' + rr.errs.join(' / '); return; }
     rr.recs.forEach(function (r, i) { r.src = b.src; r.order = rs.length + i; r.savedAt = new Date().toISOString(); r.id = R.recId(r.meet, r.date, r); rs.push(r); });
     var mv = dayMoves(b, rs); if (mv.keep) rs = rs.filter(function (r, i) { return !mv.drop[i]; });
+    rs.forEach(function (r) { delete r.ecat; });   // v0.26.48 区分の控え（ecat）は保存しない
+    if (!rs.length && oorSkip && !mv.keep) { st.className = 'status ng'; st.textContent = '✖ 保存するものがありません（' + oorSkip + '件は大会予定の期間の外の日付なので保存しませんでした）。'; return; }
     if (!rs.length && !mv.keep) { st.className = 'status ng'; st.textContent = '✖ 保存するものがありません（リレーはチェックを付けてください）。'; return; }
     try {
       var res = rs.length ? await putMany(rs, sc) : { added: 0, dup: 0, review: 0, ids: [] };

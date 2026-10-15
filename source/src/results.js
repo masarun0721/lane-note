@@ -33,7 +33,7 @@ var ResultParser = (function () {
     var st = splitTags(s), t = st.s.trim(), pts = null, m;
     // v0.26.23：混成の各種目「55.02(598)」（得点）・「(0)DNS」。得点は備考に「598点」
     if ((m = t.match(/^\((\d+)\)\s*(DNS|DNF|DQ|NM|NR)$/i))) t = m[2];
-    else if ((m = t.match(/^(DQ|DNF|DNS)\s*[,，、]\s*([A-Za-z0-9\-]{1,8})$/))) { t = m[1]; st.tags.push(m[2]); }   // v0.26.25：「DQ,FS」（失格・理由）
+    else if ((m = t.match(/^(DQ|DNF|DNS)\s*[,，、]\s*([A-Za-z0-9\-]{1,8}(?:\s*[,，、]\s*[A-Za-z0-9\-]{1,8}){0,3})$/))) { t = m[1]; m[2].split(/\s*[,，、]\s*/).forEach(function (x) { st.tags.push(x); }); }   /* 精度テスト：「DQ,T1,T2」（理由が2つ以上）も失格に */   // v0.26.25：「DQ,FS」（失格・理由）
     else if ((m = t.match(/^(\d[\d:.m]*\d)\s*\((\d{1,4})\)$/))) { t = m[1]; pts = m[2]; }
     var r = cleanMark0(t); r.tags = st.tags.concat(pts != null ? [pts + '点'] : []); return r;
   }
@@ -52,20 +52,29 @@ var ResultParser = (function () {
   }
   function isMark(s) { var c = cleanMark(s).mark; return MARK.test(c) || STATUS.test(c); }
   function windNum(s) { if (s == null || s === '') return null; s = nk(s).replace('±', '').replace(/[()（）風:：\s]/g, ''); return WIND.test(s) || /^[+\-]?\d+\.\d$/.test(s) ? parseFloat(s) : null; }
+  /* v0.26.48 種目名の前の、種目そのものではない言葉（オープン種目・招待・選考会などの区分）。種目・距離・ハードルの高さは残す。
+     区分（中学・高校・学年・U16）は eventCat／divisionOf が元の種目名から見るので、ここで外しても区別は消えない */
+  var EV_PREFIX = /^(?:OP|オープン|(?:RisingStar|ライジングスター)(?:中学|高校|一般)?|(?:U\d{2})?(?:代表)?選考会?|招待|特別)(?=[^ァ-ヶa-z])/i;
   // 種目の正規化：表記ゆれ（全角・空白・区分名）を落として比べられる形に
-  function normEvent(s) {
+  function normEvent(s) { return normEventX(s, false); }
+  /* v0.26.48：保存の ID・同じ記録かの判定（identityParts）は、前の版と同じ形（前置きを外さない）のまま。取り込み直しで二重にしないため */
+  function normEventX(s, keep) {
     s = nk(s).replace(/\s+/g, '').replace(/[（(](選|予|決)[)）]/g, '');
     var g = /女/.test(s.replace(/男女/, '')) && !/男子/.test(s) ? '女子' : (/男/.test(s) ? '男子' : '');
     var d = s.replace(/^.*?(男子|女子|男|女)/, '').replace(/^(\d+・?\d*支部|小学|中学|高校|一般|共通|中学共通|高校・一般|高校一般|中学・高校|[1-6１-６]年|[中高][1-3]|U\d{2}|\d年)+/g, '').replace(/^[・]+/, '');
-    d = d.replace(/^(小学|中学|高校|一般|共通)+/, '').replace(/ｍ/g, 'm').replace(/ハードル/, 'H');
+    if (keep) d = d.replace(/^(小学|中学|高校|一般|共通)+/, '');
+    else { var d0; do { d0 = d; d = d.replace(/^(小学|中学|高校|一般|共通)+/, '').replace(EV_PREFIX, '').replace(/^(\d+・?\d*支部|[1-6]年|U\d{2})+/, ''); } while (d !== d0 && d); if (!d) d = d0; }   // v0.26.48：「OP」「Rising Star中学」「U16代表選考」などの前置きも外す
+    d = d.replace(/ｍ/g, 'm').replace(/ハードル/, 'H');
     return (g + d) || s;
   }
   // v0.4：種目の区分（学年別・共通・高校…）。normEvent は区分を落とすので、ランキング・PB は eventKey で分ける
-  function eventCat(ev) {
+  function eventCat(ev) { return eventCatX(ev, false); }
+  function eventCatX(ev, keep) {
     var s = nk(ev).replace(/\s+/g, '').replace(/[（(](選|予|決)[)）]/g, '');
     var m = s.match(/(?:中学?|高校?)?([1-3](?:[・~〜\-][1-3])?)年(?!生)/) || s.match(/(?:^|[^\d])[中高]([1-3])(?=[^\d]|$)/);
     if (/小学/.test(s)) return '小学';
     if (m) return m[1] + '年';
+    var u = !keep && s.match(/U(\d{2})(?!\d)/); if (u) return 'U' + u[1];   // v0.26.48 U16・U18 は別の区分
     if (/共通/.test(s)) return '共通';
     if (/一般/.test(s) && !/高校/.test(s)) return '一般';
     return '';
@@ -152,7 +161,8 @@ var ResultParser = (function () {
   /* v0.26.34.1 種目名の中の支部・学年「3支部1年 100m」「1年100m」「中2 100m」「中学1年男子100m」→ 学年（中／高があればつける）と種目「100m」 */
   function gradeFromEvent(ev) {
     var e = nk(String(ev || '')), g = '', lv = '', m, out = e.replace(/\d{1,2}\s*支部/g, ' ');
-    if ((m = out.match(/(中学校?|高等学校|高校)?\s*([1-6])\s*年生?/))) { g = m[2]; lv = m[1] ? (/^中/.test(m[1]) ? '中' : '高') : ''; out = out.replace(m[0], ' '); }
+    if ((m = out.match(/(中学校?|高等学校|高校)?\s*[1-6]\s*[・･~〜\-]\s*[1-6]\s*年生?/))) return { grade: '', event: ev, changed: false };   /* 精度テスト：「2・3年」は学年の範囲。学年にせず種目名もそのまま（前は「3年」だけ取って学年3・種目「2・」が残った） */
+    else if ((m = out.match(/(中学校?|高等学校|高校)?\s*([1-6])\s*年生?/))) { g = m[2]; lv = m[1] ? (/^中/.test(m[1]) ? '中' : '高') : ''; out = out.replace(m[0], ' '); }
     else if ((m = out.match(/(^|[^\u4e00-\u9fff])(中|高)([1-3])(?![\d年])/))) { g = m[3]; lv = m[2]; out = out.replace(m[0], m[1] + ' '); }
     if (out === e) return { grade: '', event: ev, changed: false };
     out = out.replace(/[\s\u3000]+/g, ' ').trim().replace(/(男子|女子|共通)\s+/g, '$1');
@@ -211,8 +221,12 @@ var ResultParser = (function () {
     do { prev = n; n = n.replace(CAT_RE, ''); } while (n !== prev && n);
     if (!n) n = normEvent(ev).replace(/^(男子|女子)/, '');
     n = n.replace(/[（(](予選|準決勝|決勝|タイムレース|TR|ﾀｲﾑﾚｰｽ)[)）]$/, '').replace(/ハードル/g, 'H').replace(/リレー$/, 'R').replace(/(\d)[xX]/g, '$1×').replace(/(×\d+m)$/, '$1R');
-    var spec = '', m = n.match(/[（(]\s*(\d+(?:\.\d+)?)\s*(m|cm|kg|g)\s*[)）]/i);
-    if (m) { spec = specNum(m[1], m[2].toLowerCase()); n = n.replace(m[0], ''); }
+    var spec = '', m = n.match(/[（(]\s*(\d+(?:\.\d+)?)\s*(m|cm|kg|g)\s*(?:[_／\/\-・,]\s*(\d+(?:\.\d+)?)\s*m)?\s*[)）]/i);
+    if (m) {
+      spec = specNum(m[1], m[2].toLowerCase()); n = n.replace(m[0], '');
+      // v0.26.48：「110mH(1.067m_9.14m)」の後ろはハードルの間隔。ふつうの間隔なら書かない（同じ種目にまとめる）。ちがう間隔なら区別して残す
+      if (m[3]) { var std = { '110mH': 9.14, '110mJH': 9.14, '100mH': 8.5, '400mH': 35, '300mH': 35, '80mH': 8 }[n]; if (std == null || Math.abs(+m[3] - std) > 0.001) spec += '_' + (+m[3]) + 'm'; }
+    }
     n = n.replace(/(投)げ?$/, '$1');
     return { name: n, spec: spec };
   }
@@ -253,6 +267,7 @@ var ResultParser = (function () {
      ・「東京 架空学園」「東京／架空学園」のように、区切りのある都道府県名を前から外す */
   function canonSchool(s) {
     var t = nk(String(s || '')).trim().replace(/^[(（]\s*私\s*[)）]|^(学校法人|私立)\s*/g, '').replace(/\s*[(（][^()（）]{1,6}[)）]$/, '');
+    t = t.replace(/^(\S)\s+(\S)(?=[\s・／/])/, function (m, x, y) { return PREF.test(x + y) ? x + y : m; });   // 精度テスト：「東　京<br>本郷中」→「東 京 本郷中」
     t = t.replace(new RegExp('^(' + PREF.source.replace(/^\^\(|\)\$?$/g, '') + ')[都道府県]?\\s*[\\s・／/]\\s*(?=\\S{2,})'), '');
     t = normSchool(t);
     t = t.replace(/大学?(附属|付属|附|付)/g, '大附').replace(/(中等教育学校)$/, '中等').replace(/(高等学校|高等部|高校)$/, '高').replace(/(中学校|中等部|中学)$/, '中');
@@ -266,6 +281,7 @@ var ResultParser = (function () {
     var parts = t.split(/[・･]/).filter(Boolean); if (parts.length < 2) return '';
     var last = parts[parts.length - 1]; if (/^\d+$/.test(last)) return '';
     if (/(中|高|校|学園|学院)$/.test(parts[0]) || PREF.test(parts[0])) return '';   // 「東京・架空学園」などはこれまでどおり
+    if (/^\d+$/.test(parts[0])) return '';   // 精度テスト：高体連の「3・本郷」（支部番号・学校名）は中体連の地区ではない
     return last;
   }
   function matchSchool(rec, q) {
@@ -357,7 +373,7 @@ var ResultParser = (function () {
         }
         var dh = /順位/.test(t) ? '' : dayHead(t); if (dh) events.push({ y: l.y - 0.01, type: 'day', v: dh });   // v0.26.47 日付の見出し
         var rm = t.replace(/\s/g, '').match(ROUND);
-        if (rm && t.length < 40 && !/順位/.test(t)) events.push({ y: l.y, type: 'round', v: nk(rm[1]).replace('タイムレ-ス', 'タイムレース') });
+        if (rm && t.length < 40 && !/順位/.test(t)) { var rw = l.w.filter(function (w) { return ROUND.test(w.n.replace(/\s/g, '')); })[0]; events.push({ y: l.y, type: 'round', x: rw ? rw.x : null, v: nk(rm[1]).replace('タイムレ-ス', 'タイムレース') }); }   // v0.26.48 2段組みのために、見出しの横の位置も
         l.w.forEach(function (w) {
           var hm = w.n.match(/^(\d+)組$/); if (hm) events.push({ y: l.y, type: 'heat', x: w.x, v: +hm[1] });
           var wm = w.n.match(/^[(（]?風[:：]?\s*([+\-±]?\d+\.\d)[)）]?$/); if (wm) events.push({ y: l.y, type: 'wind', x: w.x, v: wm[1] });
@@ -372,12 +388,19 @@ var ResultParser = (function () {
       hdrs.forEach(function (h, hi) {
         var yEnd = hi + 1 < hdrs.length ? hdrs[hi + 1].y - 1 : pg.height + 1;
         // この見出しより後に出た種目見出しが、この見出しより下・次の見出しより上にあれば、そこで切る
-        var before = events.filter(function (e) { return e.y <= h.y; });
-        before.forEach(function (e) { if (e.type === 'ev') { if (e.v !== ev) { ev = e.v; round = ''; } } if (e.type === 'round') round = e.v; if (e.type === 'day') day = e.v; });
+        var before = events.filter(function (e) { return e.y <= h.y; }), ev0 = ev, round0 = round;
+        var sideRound = function (e, c) { return h.cols.length > 1 && e.x != null && h.y - e.y < 30 && !(e.x >= c.x0 - 8 && e.x < c.x1); };   // v0.26.48 ほかの段のラウンド見出し
+        before.forEach(function (e) { if (e.type === 'ev') { if (e.v !== ev) { ev = e.v; round = ''; } } if (e.type === 'round' && !sideRound(e, h.cols[0])) round = e.v; if (e.type === 'day') day = e.v; });
         var evBreak = events.filter(function (e) { return e.type === 'ev' && e.y > h.y && e.y < yEnd; })[0];
         if (evBreak) yEnd = evBreak.y - 1;
         if (/リレー/.test(ev)) { info.skippedRelay++; return; }
         h.cols.forEach(function (c) {
+          /* v0.26.48 2段組み（左に組の結果・右に「タイムレース上位8位」など）：見出しのすぐ上にあるラウンドの見出しは、同じ段のものだけ使う */
+          var round = round0, ev1 = ev0;
+          before.forEach(function (e) {
+            if (e.type === 'ev') { if (e.v !== ev1) { ev1 = e.v; round = ''; } }
+            if (e.type === 'round' && !sideRound(e, c)) round = e.v;
+          });
           var hev = before.filter(function (e) { return e.type === 'heat' && e.x >= c.x0 - 8 && e.x < c.x1 && h.y - e.y < 30; }).pop();
           if (!hev) hev = before.filter(function (e) { return e.type === 'heat' && h.y - e.y < 30; }).pop();
           var wev = before.filter(function (e) { return e.type === 'wind' && e.x >= c.x0 - 8 && e.x < c.x1 && h.y - e.y < 30; }).pop();
@@ -404,7 +427,7 @@ var ResultParser = (function () {
             });
             var markZone0 = Math.max(c.team + 8, c.trialEnd || 0);
             var markZone1 = c.cmt != null ? c.cmt - 2 : c.x1;
-            var teamW = bw.filter(function (w) { return w.x >= c.team - 6 && w.x < (c.trialEnd ? c.trialEnd - 60 : c.mark + 30) && !isMark(w.n) && !WIND.test(w.n) && !isTag(w.n); });
+            var teamW = bw.filter(function (w) { return w.x >= c.team - 6 && w.x < (c.trialEnd ? c.trialEnd - 60 : c.mark + 30) && !isMark(w.n) && !WIND.test(w.n) && !isTag(w.n) && !/^[×✕\-－―]+$/.test(w.n); });   /* 精度テスト：試技の「×」が所属にくっつく（「本郷中××」） */
             var teamSame = teamW.filter(function (w) { return Math.abs(w.y - a.y) < 1.6; });
             var team = (teamSame.length ? teamSame : teamW).map(function (w) { return w.n; }).join('').replace(/\s/g, '');
             if (PREF.test(team)) team = '';
@@ -581,7 +604,7 @@ var ResultParser = (function () {
     return res;
   }
   function dedupe(recs) {
-    recs.forEach(function (r) { var x = fixRecord(r); if (x.changed) { r.team = x.team; r.grade = x.grade; r.event = x.event; } });   // v0.26.34.1 支部の番号・種目名の学年   // v0.26.34「本郷・3」→ 所属・学年
+    recs.forEach(function (r) { var x = fixRecord(r); if (x.changed) { if (x.event !== r.event && eventCat(r.event)) r.ecat = eventCat(r.event); r.team = x.team; r.grade = x.grade; r.event = x.event; } });   /* v0.26.48 ecat：種目名から外した区分（「1年」など）。複数日の大会の日付の表で別の種目にするため。保存しない */   // v0.26.34.1 支部の番号・種目名の学年   // v0.26.34「本郷・3」→ 所属・学年
     var seen = {}, out = [];
     // v0.6（監査F06）：所属（完全な形）・中学/高校・ナンバーもキーに入れる（別の学校の同じ名前・同じ記録の選手を1人にまとめない）
     // v0.7（再監査A03）：保存のID・保存時の重なり判定と同じ identityParts を使う
@@ -962,7 +985,7 @@ var ResultParser = (function () {
     return { recs: recs, bad: bad };
   }
   // v0.5 までのID（中学と高校がぶつかる）。保存済みの記録との重なりを調べるときだけ使う
-  function recIdLegacy(meetName, date, r) { return [nk(meetName).replace(/\s/g, ''), date, normEvent(r.event), r.round, r.heat, nameKey(r.name || r.kana), schoolBase(r.team), r.mark].join('|'); }
+  function recIdLegacy(meetName, date, r) { return [nk(meetName).replace(/\s/g, ''), date, normEventX(r.event, true), r.round, r.heat, nameKey(r.name || r.kana), schoolBase(r.team), r.mark].join('|'); }
   // v0.6（監査F06）：中学/高校の区分を足して、本郷中と本郷高の同じ名前・同じ記録を別のIDにする
   function recIdV6(meetName, date, r) { var d = rawDivisionOf(r); return recIdLegacy(meetName, date, r) + (d ? '|' + d : ''); }
   /* v0.7（再監査A03）：解析の重複判定・保存のID・再取込・旧IDの記録との照合で、同じ「同一性」を使う。
@@ -970,7 +993,7 @@ var ResultParser = (function () {
      区切りは JSON の配列にして、項目の中に「|」などがあってもぶつからないようにする */
   function str_(v) { return v == null ? '' : String(v); }
   function identityParts(r) {
-    return [normSchool(r.team || ''), rawDivisionOf(r), normEvent(r.event), eventCat(r.event), nk(str_(r.bib)).replace(/\s/g, ''), nk(str_(r.round)).replace(/\s/g, ''), nk(str_(r.heat)).replace(/\s/g, ''), nameKey(r.name || r.kana), nk(str_(r.mark)).replace(/\s/g, '')];
+    return [normSchool(r.team || ''), rawDivisionOf(r), normEventX(r.event, true), eventCatX(r.event, true), nk(str_(r.bib)).replace(/\s/g, ''), nk(str_(r.round)).replace(/\s/g, ''), nk(str_(r.heat)).replace(/\s/g, ''), nameKey(r.name || r.kana), nk(str_(r.mark)).replace(/\s/g, '')];
   }
   function identityKey(r) { return JSON.stringify(identityParts(r)); }
   function meetKey(meetName, date) { return [nk(str_(meetName)).replace(/\s/g, ''), str_(date)]; }
@@ -1069,10 +1092,11 @@ var ResultParser = (function () {
       var tl = lines(cs[cols.team]); if (!tl.length) return;
       var mk = cleanMark(txt(cs[cols.mark])), st = txt(cs[cols.mark]).match(/^(DNS|DNF|DQ|NM)\b/i), mark = st ? st[1].toUpperCase() : mk.mark;
       var cmt = cols.cmt >= 0 ? txt(cs[cols.cmt] || '') : '', rank = txt(cs[cols.rank] || '');
+      var cst = !mark && cmt.match(/^(DNS|DNF|DQ)\b[\s,，]*(.*)$/i); if (cst) { mark = cst[1].toUpperCase(); cmt = cst[2]; }   // v0.26.48：記録の欄が空で、コメントの欄に「DNS」（kanyu の速報）
       if (!mark && !/^\d+$/.test(rank)) return;
       var names = lines(cs[cols.team + 1]), kanas = lines(cs[cols.team + 2]), runners = [];
       names.forEach(function (l, k) { var r = l.match(/^\((\d)\)\s*(.*)$/); if (r && r[2]) runners[+r[1] - 1] = relayRunner(r[2], kanas[k] || '', ''); });
-      out.push({ event: ev, round: round, heat: heat, rank: /^\d+$/.test(rank) ? +rank : '', lane: cols.lane >= 0 && /^\d+$/.test(txt(cs[cols.lane] || '')) ? +txt(cs[cols.lane]) : '', team: tl[0].replace(/\s*[・･]\s*\d{1,2}$/, ''), mark: mark, comment: addTags(cmt.replace(/^\*/, ''), mk.tags), runners: runners.filter(Boolean), src: 'gold' });
+      out.push(Object.assign(date ? { dday: 'd:' + date } : {}, { event: ev, round: round, heat: heat, rank: /^\d+$/.test(rank) ? +rank : '', lane: cols.lane >= 0 && /^\d+$/.test(txt(cs[cols.lane] || '')) ? +txt(cs[cols.lane]) : '', team: tl[0].replace(/\s*[・･]\s*\d{1,2}$/, ''), mark: mark, comment: addTags(cmt.replace(/^\*/, ''), mk.tags), runners: runners.filter(Boolean), src: 'gold' }));
     });
     return out.length ? { cands: out, title: title, date: date } : null;
   }
@@ -1096,7 +1120,9 @@ var ResultParser = (function () {
       var runners = [];
       L.slice(2).forEach(function (l) { var r = l.match(/^\((\d)\)\s*(.*)$/); if (r && r[2]) runners[+r[1] - 1] = relayRunner(r[2], '', ''); });
       runners = runners.filter(Boolean);
-      out.push({ event: ev, round: round, heat: heat, rank: m[1] ? +m[1] : '', lane: '', team: L[1].replace(/\s*[・･]\s*\d{1,2}$/, ''), mark: m[2] || '', comment: addTags((m[3] || '').replace(/^\*/, ''), rtags), runners: runners, src: 'gold' });
+      // v0.26.48：中学の速報は「(1)」の番号なしで、チームの下に4人が上から順に並ぶ
+      if (!runners.length) { var plain = L.slice(2).filter(function (l) { return l && !/^\(?\d+\)?$/.test(l) && !isTag(l); }); if (plain.length >= 4 && plain.length <= 6) runners = plain.slice(0, 4).map(function (l) { return relayRunner(l, '', ''); }); }
+      out.push(Object.assign(date ? { dday: 'd:' + date } : {}, { event: ev, round: round, heat: heat, rank: m[1] ? +m[1] : '', lane: '', team: L[1].replace(/\s*[・･]\s*\d{1,2}$/, ''), mark: m[2] || '', comment: addTags((m[3] || '').replace(/^\*/, ''), rtags), runners: runners, src: 'gold' }));
     });
     return out.length ? { cands: out, title: title, date: date } : null;
   }

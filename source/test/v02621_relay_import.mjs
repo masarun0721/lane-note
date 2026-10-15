@@ -62,13 +62,14 @@ await check('候補：学校・クラブ名に合うチームだけ（架空中B
   assert.deepEqual(c, ['架空中B', '架空中D', '架空中E']); assert(!/見本第三中A|試験中|仮名中C/.test([...doc.querySelectorAll('.rl-cand')].map(x => x.textContent).join(''))); assert(!/結果の表/.test(t), t.slice(0, 300));
   assert(!doc.querySelector('[data-save]').disabled);
 });
-await check('走者：ナンバー（同じ日の個人の記録）→ 名前（空白の違い）→ 資料のまま。DQ は最初はチェックなし', () => {
+await check('走者：ナンバー（同じ日の個人の記録）→ 名前（空白の違い）→ 資料のまま。v0.26.48 から DQ（記録なし）も最初からチェックあり', () => {
   const v = [...doc.querySelectorAll('[data-rll^="0,"]')].map(x => x.value); assert.deepEqual(v, ['架空 花子', '見本 さくら', 'コールンストラ 未来', '試験　葵']);
   const how = [...doc.querySelectorAll('.rl-cand')][0].textContent; assert(/✔ナンバーで一致/.test(how) && /✔名前で一致/.test(how) && /資料のまま/.test(how), how);
-  const ch = [...doc.querySelectorAll('[data-rlc]')].map(x => x.checked); assert.deepEqual(ch, [true, false, true]);
+  const ch = [...doc.querySelectorAll('[data-rlc]')].map(x => x.checked); assert.deepEqual(ch, [true, true, true]);
 });
 await check('直してから保存 → 🏃リレーの記録に入る（チーム・記録・順位・組・レーン・走順）。チェックしていない DQ は入れない', async () => {
   const inp = doc.querySelector('[data-rll="0,0"]'); inp.value = '架空 はなこ'; inp.dispatchEvent(new w.Event('input', { bubbles: true }));
+  const dq = doc.querySelectorAll('[data-rlc]')[1]; dq.checked = false; dq.dispatchEvent(new w.Event('change', { bubbles: true }));   // v0.26.48：チェックを外した DQ は入れない
   doc.querySelector('[data-save]').click(); await delay(400);
   const rs = T.all().filter(r => R.isRelay(r.event)); assert.equal(rs.length, 2, JSON.stringify(rs));
   const b1 = rs.find(r => r.team === '架空中B'); assert.equal(b1.name, '架空中B リレー'); assert.equal(b1.mark, '52.78'); assert.equal(b1.rank, 1); assert.equal(b1.heat, 3); assert.equal(b1.lane, 6); assert.equal(b1.meet, '架空中学記録会'); assert.equal(b1.date, '2026-09-20'); assert.equal(b1.manual, undefined);
