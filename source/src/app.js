@@ -1906,11 +1906,15 @@
      sessionStorage はタブを閉じると消える。「最初から」・ログアウトでも消す。 */
   var SS_KEY = 'lanenote-meet-session', ssTimer = 0, ssRestoring = false;
   var SS_STATE = ['sl', 'tt', 'notes', 'slName', 'ttName', 'noteName', 'yokoName', 'dateCands', 'feeParsed', 'feeFrom', 'prices', 'priceSrc', 'make', 'teamCat', 'teams', 'allTeams', 'progCopies', 'docText', 'day', 'athSort'];
-  function ssClear() { clearTimeout(ssTimer); try { sessionStorage.removeItem(SS_KEY); } catch (e) { } }
+  function ssClear() { clearTimeout(ssTimer); SS_HELD = null; try { sessionStorage.removeItem(SS_KEY); } catch (e) { } }
+  // v0.26.44（監査 C701）：戻した画面の持ち主（uid・チーム・大会準備のキー・元の期限）。戻した画面を入力して保存し直すときも、これをそのまま使う
+  //   （PREP がないので作り直すと大会のキーが消え、次に戻すときのチームの確認が抜けるため）。「最初から」・ログアウト・アカウントの切り替え・大会準備を開いたときに消す
+  var SS_HELD = null;
   // v0.26.42（監査 C601）：一時保存の持ち主（アカウント・チーム・大会準備のキー）と期限。戻すときに今の利用者と照らし合わせる
   var SS_TTL = 24 * 36e5;
   function ssOwner() {
     var uid = prepUid(), now = Date.now(), exp = now + SS_TTL, p = PREP;
+    if (!p && SS_HELD && SS_HELD.uid === (uid || 'anon')) return { uid: SS_HELD.uid, team: SS_HELD.team, plan: SS_HELD.plan, exp: SS_HELD.exp };   // C701：元の期限のまま（24時間に伸ばさない）
     if (p && p.p) exp = Math.min(exp, prepExp('yoko', p.p));
     return { uid: uid || 'anon', team: p ? (p.owner.team || '') : (uid && typeof LanePlans !== 'undefined' && LanePlans.team ? LanePlans.team(uid) || '' : ''), plan: p ? p.key : '', exp: exp };
   }
@@ -1951,11 +1955,22 @@
       try { await withTimeout(FB.F.getDoc(prepPath(who, own.plan)), 10000); }
       catch (e) { if (/permission-denied/.test(String(e && e.code || ''))) { await prepPurge(who); return false; } }
       if (ep !== authEpoch || who.uid !== prepUid()) return false;
+    } else if (own.team) {
+      // v0.26.44（監査 C701）：チームのものなのに大会のキーがない一時保存も、確認なしでは戻さない。自分のメンバーの文書（本人は読める）で、今も使えるメンバーか（顧問、または期限内のマネージャー）を確かめる
+      if (!FB) { ssClear(); return false; }
+      var act = null;
+      try { var ms = await withTimeout(FB.F.getDoc(FB.F.doc(FB.fs, 'teams', own.team, 'members', who.uid)), 10000), md = ms.exists() ? ms.data() || {} : null; act = !!md && (md.role === 'coach' || md.role === 'manager' && ssTime(md.expiresAt) > Date.now()); }
+      catch (e) { if (/permission-denied/.test(String(e && e.code || ''))) act = false; }   // 通信できないだけ（act＝null）なら戻す（C506 と同じ区別）
+      if (ep !== authEpoch || who.uid !== prepUid()) return false;
+      if (act === false) { await prepPurge(who); return false; }
     }
     if (PREP || state.sl || state.tt || state.notes || state.yokoName) return false;   // 待っているあいだに、もう読み込みを始めた
-    return ssApply(o);
+    var ok = ssApply(o);
+    if (ok) SS_HELD = { uid: own.uid, team: String(own.team || ''), plan: String(own.plan || ''), exp: +own.exp };   // C701
+    return ok;
   }
   // v0.26.42：戻した内容がどの大会のものかを帯に出す（戻した画面の大会名・日付。なければ読み込んだファイルの名前。どちらもなければ今までの文）
+  function ssTime(t) { return !t ? 0 : typeof t.toMillis === 'function' ? t.toMillis() : typeof t.seconds === 'number' ? t.seconds * 1000 : typeof t === 'number' ? t : Date.parse(t) || 0; }
   function ssNoteHtml() {
     var nm = String(($('meetName') || {}).value || '').trim().slice(0, 100), dt = String(($('meetDate') || {}).value || '').trim().slice(0, 60), what = '';
     if (nm) what = '<b>' + esc(nm) + '</b>' + (dt ? '（' + esc(dt) + '）' : '');
@@ -2211,6 +2226,7 @@
   }
   async function prepOpen(pl) {
     if (!pl || !pl.date || !pl.meet) return;
+    SS_HELD = null;   // v0.26.44 C701：大会準備を開いたら、その大会の持ち主で保存する
     var gen = ++prepGen;   // v0.26.40 C503：前の大会の保存・読み込みは、ここから先は使わない
     var who = await prepWho(), ep = authEpoch; if (who.uid !== prepUid() || gen !== prepGen) return;
     var p = PREP = { key: pl.date + '|' + pl.meet, p: pl, owner: who, epoch: ep, gen: gen, docs: {}, cloud: null, quiet: true };
@@ -2243,6 +2259,7 @@
             var chk = await prepRecheck(p); if (!prepLive(p)) return;
             if (chk.denied) { await prepPurge(who); resetScreen(); if (!prepLive(p)) return; try { prepBar(''); } catch (e2) { } prepDetach('この大会準備を開く権限がありません（チームから外れたか、期限が切れました）。この端末に残っていた控えも消しました。'); return; }
             if (chk.ok) {
+              p.cloud = chk.prep; cd = chk.docs;   // v0.26.44（監査 C702）：読み直した最新の印を、保存を消すときなど後の処理でも使う（残りの種類も最新の印で読む）
               var nc = chk.docs[k];
               if (nc && nc.n && !nc.here && !(nc.exp && nc.exp < today) && (nc.v || '') !== (c.v || '') && tries < 2) { tries++; c = nc; continue; }
               if (pd || !nc || (nc.v || '') !== (c.v || '')) { e = new Error('更新されました。再読み込みしてください'); e.code = 'prep-updated'; }
@@ -2273,20 +2290,42 @@
     var p = PREP; if (!p || !confirm('「' + p.p.meet + '」の大会準備の保存（この端末' + (p.owner.uid ? '・クラウド' : '') + '）を消します。今の画面の内容はそのままです。よろしいですか？')) return;
     if (p.owner.uid && FB && prepLive(p)) {
       // v0.26.43（監査 C602）：失敗を無視する片づけ（prepDelVer）は使わない。1かけらでも消せなければ、その種類の印は残して「一部未削除」と再試行を出す
-      var cd = p.cloud && p.cloud.docs || {}, left = {}, ng = 0, last = null;
+      // v0.26.44（監査 C702）：開いたときの p.cloud を信用せず、最新の親（大会の印）を読み直して、そこが指している版を消す。
+      //   印を外すときは、もう一度読んで版が同じ種類だけ外す（トランザクション）。消している間にほかの画面が保存し直したら、新しい版の印とかけらは残し、成功とは出さない
+      var ref = prepPath(p.owner, p.key), ds = await withTimeout(FB.F.getDoc(ref), 10000);
+      if (!prepLive(p)) return;
+      var cur = ds.exists() && ds.data().prep || null, cd = cur && cur.docs || {}, left = {}, ng = 0, last = null;
+      p.cloud = cur;
       for (var k in cd) {
         if (!cd[k] || !cd[k].n) continue;
         for (var i = 0; i < Math.min(+cd[k].n || 0, 10); i++) { try { await FB.F.deleteDoc(prepPath(p.owner, p.key, prepChunkId(k, cd[k].v || '', i))); } catch (e) { left[k] = cd[k]; ng++; last = e; } }
         if (!prepLive(p)) return;
       }
       if (!prepLive(p)) return;
+      var same = function (a, b) { return !!a && !!b && (a.v || '') === (b.v || '') && (+a.n || 0) === (+b.n || 0) && (a.at || '') === (b.at || '') && (a.url || '') === (b.url || ''); };
+      var unref = async function (get, upd) {
+        var s2 = await get(ref), now = s2.exists() && s2.data().prep || null, nd = now && now.docs || {}, args = [], keep = {}, changed = [];
+        Object.keys(nd).forEach(function (x) {
+          if (!left[x] && same(nd[x], cd[x])) args.push('prep.docs.' + x, FB.F.deleteField());
+          else { keep[x] = nd[x]; if (!same(nd[x], cd[x])) changed.push(x); }
+        });
+        if (now) { if (!Object.keys(keep).length) await upd(ref, 'prep', FB.F.deleteField()); else if (args.length) await upd.apply(null, [ref].concat(args)); }
+        return { keep: keep, changed: changed };
+      };
+      var res;
       try {
-        if (ng) { var args = []; for (var k2 in cd) if (!left[k2]) args.push('prep.docs.' + k2, FB.F.deleteField()); if (args.length) await FB.F.updateDoc.apply(null, [prepPath(p.owner, p.key)].concat(args)); }
-        else await FB.F.updateDoc(prepPath(p.owner, p.key), 'prep', FB.F.deleteField());
-      } catch (e) { if (!/not-found/.test(e.code || '')) throw e; }
-      p.cloud = ng ? { docs: left } : null;
+        res = FB.F.runTransaction ? await FB.F.runTransaction(FB.fs, function (tx) { return unref(function (r) { return tx.get(r); }, function () { tx.update.apply(tx, arguments); }); })
+          : await unref(function (r) { return FB.F.getDoc(r); }, function () { return FB.F.updateDoc.apply(null, arguments); });
+      } catch (e) { if (!/not-found/.test(e.code || '')) throw e; res = { keep: {}, changed: [] }; }
+      if (!prepLive(p)) return;
+      p.cloud = Object.keys(res.keep).length ? Object.assign({}, cur, { docs: res.keep }) : null;
+      var retry = ' <button type="button" class="btn sub small" data-preperase="1">もう一度消す</button>';
+      if (res.changed.length) {
+        prepBar('<span class="warn">⚠ <b>消し終わっていません</b>：消している間に、ほかの画面で' + res.changed.map(function (x) { return esc(PREP_LBL[x] || x); }).join('・') + 'が保存し直されました。新しい保存は残しています。</span>' + retry);
+        return;
+      }
       if (ng) {
-        prepBar('<span class="warn">⚠ <b>一部未削除</b>：クラウドの' + Object.keys(left).map(function (x) { return esc(PREP_LBL[x] || x); }).join('・') + 'のPDF（' + ng + 'かけら）を消せませんでした（' + esc(last && (last.code || last.message) || '') + '）。</span> <button type="button" class="btn sub small" data-preperase="1">もう一度消す</button>');
+        prepBar('<span class="warn">⚠ <b>一部未削除</b>：クラウドの' + Object.keys(left).map(function (x) { return esc(PREP_LBL[x] || x); }).join('・') + 'のPDF（' + ng + 'かけら）を消せませんでした（' + esc(last && (last.code || last.message) || '') + '）。</span>' + retry);
         return;
       }
     }
