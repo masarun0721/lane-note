@@ -13,7 +13,7 @@ import base64, hashlib, html as htmlmod, json, pathlib, re, sys
 ROOT = pathlib.Path(__file__).resolve().parent
 S = ROOT / 'src'
 SHARE_BASE = 'https://masarun0721.github.io/lane-note/'   # 共有リンク・QRの公開アドレス（file:// で開いたとき用）
-VERSION = 'v0.26.38'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
+VERSION = 'v0.26.38.1'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
 # 作成日は版番号から取れないので固定（ビルドした日で変わると、公開時の一致検査ができないため）
 BUILD_DATE = '2026年10月12日'
 REC_VERSION = 'v0.11.1'   # LANE LOG（records.html）だけの版
@@ -42,13 +42,18 @@ def logo_inline(p):
 
 
 def changelog_html():
-    """更新情報（src/changelog.json に古い順で1件ずつ足していく）→ 大会準備のページの上に、新しい順で出す"""
+    """v0.26.38.1 更新情報は guide.html の「📰 更新情報」の欄だけに出す（各ページの上の欄はやめた）。
+    src/changelog.json は古い順（新しい版は末尾に足す）。ここで新しい順にして、最新の10件を出し、それより前はたたむ。
+    v0.26.30〜v0.26.38 を先頭に足してしまい、最新が v0.26.29 のまま止まって見えたので、並びが日付順でなければビルドを止める"""
     items = json.loads(text('src/changelog.json'))
+    assert [x['date'] for x in items] == sorted(x['date'] for x in items), 'changelog.json は古い順（新しい版は末尾）に足してください'
+    items = list(reversed(items))
     e = htmlmod.escape
-    lis = ''.join('<li><div class="cl-h"><b>%s</b>%s</div><div class="cl-b">%s</div></li>' % (e(x['ver']), e(x['date'].replace('-', '/')), e(x['text'])) for x in reversed(items))
-    new = items[-1]
-    return ('<details class="changelog" id="changelog"><summary><b>📰 更新情報</b>　<span class="small muted">最新：%s（%s）</span><span class="cl-new">NEW</span></summary><ol>%s</ol></details>'
-            % (e(new['ver']), e(new['date'].replace('-', '/')), lis))
+    li = lambda x: '<li><div class="cl-h"><b>%s</b>%s</div><div class="cl-b">%s</div></li>' % (e(x['ver']), e(x['date'].replace('-', '/')), e(x['text']))
+    head, rest = items[:10], items[10:]
+    more = ('<details><summary>それより前の更新情報（%d件）</summary><ol>%s</ol></details>' % (len(rest), ''.join(map(li, rest)))) if rest else ''
+    return ('<section class="box g-card changelog" id="changelog"><h2><span class="no">📰</span>更新情報</h2><ol>%s</ol>%s</section>'
+            % (''.join(map(li, head)), more))
 
 
 MODEBTN, MODEPICK = _mp()
@@ -76,10 +81,10 @@ def build():
     chk = build_check()
     trial = build_try()
     # v0.26.10：全ページの見出しに「3分体験」「チーム」（チームは選手モードでは出さない）。チームの設定は team.html（記録のページと同じ部品で、チームの欄だけを出す）
-    html, rec, chk = [with_nav(x.replace('__TOPBAR__', topbar()), c) for x, c in ((html, 'index'), (rec, 'records'), (chk, 'check'))]
-    guide = with_nav(guide, 'guide').replace('__TOPBAR__', topbar()).replace('__FBSCRIPTS__', fb_scripts())
+    html, rec, chk = [with_nav(x.replace('__TOPBAR__', ''), c) for x, c in ((html, 'index'), (rec, 'records'), (chk, 'check'))]
+    guide = with_nav(guide, 'guide').replace('__TOPBAR__', '').replace('__CHANGELOG__', changelog_html()).replace('__FBSCRIPTS__', fb_scripts())
     # 3分体験は Firebase・中継を読み込まない（v0.26.6）。「不具合・要望を送る」は記録のページで開く（?fb=1）
-    trial = with_nav(trial, 'try').replace('__TOPBAR__', topbar()).replace('__FBSCRIPTS__', '')
+    trial = with_nav(trial, 'try').replace('__TOPBAR__', '').replace('__FBSCRIPTS__', '')
     trial = trial.replace('<button type="button" class="tb-btn fb-link" data-feedback="1" data-tb="feedback">🚨 不具合・要望を送る</button>', '<a href="records.html?fb=1" class="tb-btn fb-link" data-tb="feedback">🚨 不具合・要望を送る</a>', 1)
     assert 'records.html?fb=1' in trial
     trial = trial.replace('__MODEPICK__', MODEPICK).replace('__MODE__', (text('src/mode.js') + '\n' + text('src/plans.js')))
@@ -222,8 +227,6 @@ NAV_CSS = (
     '.pagenav.ln-nav.open{z-index:1001}.ln-nav .pn-sub>*{justify-content:flex-start;min-height:40px;font-size:14px}'
     '.ln-nav .pn-menu .cl-new{margin-left:2px}body.ln-player .ln-nav .pn-menu .cl-new{display:none}'
     'body.ln-player .ln-nav .pn-main,body.ln-player .ln-nav .tb-team,body.ln-player .ln-nav .tb-sched,body.ln-player .ln-nav [data-tb="changelog"]{display:none!important}'
-    '#lnTopbar{max-width:1100px;margin:8px auto 0;padding:0 10px}#lnTopbar .changelog:not([open]){display:none}'
-    '#lnTopbar .changelog summary{display:none}#lnTopbar .changelog{background:#fff;border:1px solid #c9d2e0;border-radius:10px;padding:8px 12px;margin:0}'
     '@media screen and (max-width:720px){.pagenav.ln-nav{gap:6px}.ln-nav .pn-main,.ln-nav .pn-menu{padding:3px 9px;font-size:13px}}'
     '@media print{.ln-nav{display:none!important}}'
     '</style>')
@@ -248,8 +251,7 @@ NAV_JS = ('<script>(function () { var n = document.currentScript.parentNode, m =
           ' m.addEventListener("click", function (e) { e.stopPropagation(); var o = n.classList.toggle("open"); m.setAttribute("aria-expanded", o); place(); setTimeout(function () { if (window.scrollX) window.scrollTo(0, window.scrollY); }, 0); });'
           ' document.addEventListener("click", function (e) { if (!n.contains(e.target)) close(); });'
           ' document.addEventListener("keydown", function (e) { if (e.key === "Escape" && n.classList.contains("open")) { close(); m.focus(); } });'
-          ' n.querySelector("[data-tb=changelog]").addEventListener("click", function () { var d = document.getElementById("changelog"); close(); if (!d) { location.href = "index.html#changelog"; return; } d.open = !d.open; if (d.open) d.scrollIntoView({ block: "start", behavior: "smooth" }); });'
-          ' if (location.hash === "#changelog") { var d0 = document.getElementById("changelog"); if (d0) d0.open = true; } })();</script>')
+          ' })();</script>')
 
 
 def hdrnav(cur=''):
@@ -259,18 +261,13 @@ def hdrnav(cur=''):
     h += ''.join('<a href="%s" class="pn-main%s" data-tb="%s"%s>%s</a>' % (href, ' on' if k == cur else '', k, ' aria-current="page"' if k == cur else '', label) for k, href, label in NAV_MAIN)
     # v0.26.36 大会予定は見出しに出す（tb-sched：選手モードでは出さない）
     h += '<a href="schedule.html" class="pn-main tb-sched%s" data-tb="schedule"%s>📅 大会予定</a>' % (' on' if cur == 'schedule' else '', ' aria-current="page"' if cur == 'schedule' else '')
-    h += '<button type="button" class="pn-b pn-menu" aria-expanded="false" aria-controls="lnNavSub">≡ メニュー<span class="cl-new" aria-label="更新情報に新しいお知らせ">NEW</span></button><div class="pn-sub" id="lnNavSub">'
-    h += '<button type="button" class="pn-b" data-tb="changelog">📰 更新情報<span class="cl-new">NEW</span></button>'
+    h += '<button type="button" class="pn-b pn-menu" aria-expanded="false" aria-controls="lnNavSub">≡ メニュー</button><div class="pn-sub" id="lnNavSub">'
+    h += '<a href="guide.html#changelog" class="tb-btn tb-guide tb-cl" data-tb="changelog">📰 更新情報</a>'   # v0.26.38.1 更新情報は guide.html の欄へ
     for k in ['team', 'manual', 'guide', 'try']:
         href, cls, label = {x[0]: x[1:] for x in NAV_SUB}[k]
         h += '<a href="%s" class="tb-btn tb-guide %s%s" data-tb="%s"%s>%s</a>' % (href, cls, ' on' if k == cur else '', k, ' aria-current="page"' if k == cur else '', label)
     h += '<button type="button" class="tb-btn fb-link" data-feedback="1" data-tb="feedback">🚨 不具合・要望を送る</button>' + MODEBTN + '</div>' + NAV_CSS + NAV_JS + '</nav>'
     return h
-
-
-def topbar(cur=''):
-    """更新情報の中身（ボタンはヘッダーの「📰 更新情報」。閉じているときは出さない）"""
-    return '<div class="topbar" id="lnTopbar">' + changelog_html() + '</div>'
 
 
 def with_nav(page, cur):

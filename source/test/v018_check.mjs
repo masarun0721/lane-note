@@ -102,7 +102,8 @@ await check('大会準備・記録：同じヘッダー（版の書き方・ナ�
   for (const P of [I, RC]) {
     assert.match(P, /<div class="hdr-ver" aria-label="バージョン"><span class="appver"><\/span>／記録 v\d+\.\d+\.\d+<\/div>/);
     assert.match(P, /<nav class=\"pagenav ln-nav\"[^>]*>.*📒 記録.*🏁 大会準備<\/a><a href=\"check.html\"[^>]*>✅ 照合<\/a>.*<\/nav>/);   // v0.26.22：はじめての人などもヘッダーのナビに入った（v02622_header_nav.mjs）
-    assert.match(P, /<div class="topbar" id="lnTopbar"><details class="changelog" id="changelog">.*<\/details><\/div>/); assert.match(P, /data-tb="manual">📖 マニュアル<\/a>.*data-tb="guide">🔰 はじめての人はこちら<\/a>.*data-tb="try">⏱ 3分体験<\/a><button type="button" class="tb-btn fb-link" data-feedback="1" data-tb="feedback">🚨 不具合・要望を送る<\/button>/);
+    assert(!P.includes('id="lnTopbar"') && !P.includes('id="changelog"') && !P.includes('class="cl-new"'));   // v0.26.38.1 各ページの上の更新情報（v0.26.29 で止まっていた）はやめ、guide.html#changelog へ
+    assert.match(P, /<a href="guide\.html#changelog"[^>]*data-tb="changelog">📰 更新情報<\/a>/); assert.match(P, /data-tb="manual">📖 マニュアル<\/a>.*data-tb="guide">🔰 はじめての人はこちら<\/a>.*data-tb="try">⏱ 3分体験<\/a><button type="button" class="tb-btn fb-link" data-feedback="1" data-tb="feedback">🚨 不具合・要望を送る<\/button>/);
     assert.match(P, /<p class="beta-line">⚠️ 試作版です。内容は元資料でも確認してください<\/p>/);
     assert.match(P, /guide\.html#data/); assert(!P.includes('beta-banner"') && !P.includes('id="dataPolicy"><summary>'));
   }

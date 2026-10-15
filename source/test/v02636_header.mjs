@@ -53,7 +53,7 @@ try {
     ok(s.row[s.row.length - 1] === 'menu' && s.row.join() === ROW.filter(x => s.row.includes(x)).join() && s.row.join() === ROW.slice(0, s.row.length - 1).concat('menu').join(), `${tag} 見出しは 記録・大会準備・照合・大会予定・≡ メニュー の順（${s.row.join()}）`);
     if (cw > 720) ok(folded.length === 0, `${tag} PCでは5つ全部が見出しに出る（${s.row.join()}）`);
     ok(s.inSub.join() === folded.concat(MENU).join(), `${tag} メニューの中は ${folded.length ? '入りきらない分＋' : ''}更新情報・チーム・マニュアル・はじめて・3分体験・不具合・モード（${s.inSub.join()}）`);
-    ok(s.badgeVis, `${tag} ≡ メニューに NEW`);
+    ok(!s.badgeVis, `${tag} ≡ メニューに NEW は出さない（v0.26.38.1）`);
     ok(!s.clip.length && !s.hit.length && !s.hscroll && !s.floats.length, `${tag} 切れ・利用回数との重なり・横ずれ・見出しに重なる浮いたものなし ${JSON.stringify([s.clip, s.hit, s.hscroll, s.floats])}`);
     ok(s.cur.length === 1 && s.cur[0] === k, `${tag} 今のページを強調 ${s.cur}`);
     await p.click('#lnNav .pn-menu'); await sl(150);
@@ -66,8 +66,12 @@ try {
   }
   // 更新情報：メニューの中のボタンで開く
   await p.setViewport({ width: 1280, height: 800 }); await p.goto(B + 'records.html', { waitUntil: 'domcontentloaded' }); await sl(300);
-  await p.click('#lnNav .pn-menu'); await sl(100); await p.click('[data-tb="changelog"]'); await sl(200);
-  ok(await p.evaluate(() => document.getElementById('changelog').open && !document.getElementById('lnNav').classList.contains('open')), '「📰 更新情報」で開き、メニューは閉じる');
+  // v0.26.38.1 各ページの上に更新情報の欄は無い。「📰 更新情報」は guide.html の更新情報の欄へ移り、新しい版が先頭
+  ok(await p.evaluate(() => !document.getElementById('changelog') && !document.getElementById('lnTopbar')), '記録のページの上に古い更新情報の欄が無い');
+  await p.click('#lnNav .pn-menu'); await sl(100);
+  await Promise.all([p.waitForNavigation({ waitUntil: 'domcontentloaded' }), p.click('[data-tb="changelog"]')]); await sl(200);
+  const cl = await p.evaluate(() => { const c = document.getElementById('changelog'), b = c && c.querySelector('li .cl-h b'), r = c && c.getBoundingClientRect(); return { path: location.pathname + location.hash, first: b && b.textContent, date: b && b.parentNode.textContent.replace(b.textContent, ''), inView: !!r && r.top < innerHeight && r.bottom > 0, ver: document.querySelector('.hdr-ver') && document.querySelector('.hdr-ver').textContent }; });
+  ok(cl.path === '/guide.html#changelog' && cl.inView && cl.first === cl.ver.trim() && cl.date === '2026/10/15', '「📰 更新情報」で guide.html の更新情報へ・先頭が今の版 ' + JSON.stringify(cl));
   // 選手モード：記録・大会準備・照合・大会予定・チーム・更新情報は出さない（≡ メニューとモードの切りかえは出す）
   await setMode(p, 'player');
   for (const [W, mob] of [[1280, false], [390, true]]) {

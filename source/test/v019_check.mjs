@@ -99,7 +99,7 @@ await check('照合：✅/⚠️/❓・表記ゆれ・別の種目／別の所�
 await check('ビルド結果：check.html・3ページのナビに「✅ 照合」・はじめての人に説明・sw.js が保存・版 v0.19', () => {
   const C = fs.readFileSync(path.join(OUT, 'check.html'), 'utf8'), I = fs.readFileSync(path.join(OUT, 'index.html'), 'utf8'), RC = fs.readFileSync(path.join(OUT, 'records.html'), 'utf8'), G = fs.readFileSync(path.join(OUT, 'guide.html'), 'utf8'), SW = fs.readFileSync(path.join(OUT, 'sw.js'), 'utf8');
   for (const P of [I, RC, C]) assert.match(P, /<nav class=\"pagenav ln-nav\"[^>]*>.*📒 記録.*🏁 大会準備<\/a><a href=\"check.html\"[^>]*>✅ 照合<\/a>.*<\/nav>/);
-  assert.match(C, /<a href="check.html" class="pn-main on" data-tb="check" aria-current="page">✅ 照合/); assert.match(C, /<p class="tagline">エントリー照合：/); assert.match(C, /class="topbar" id="lnTopbar"><details class="changelog"/); assert.match(C, /どこにも送らず/);
+  assert.match(C, /<a href="check.html" class="pn-main on" data-tb="check" aria-current="page">✅ 照合/); assert.match(C, /<p class="tagline">エントリー照合：/); assert(!C.includes('id="lnTopbar"') && !C.includes('id="changelog"')); assert.match(C, /<a href="guide\.html#changelog"[^>]*data-tb="changelog">📰 更新情報<\/a>/)   // v0.26.38.1 各ページの上の更新情報はやめた; assert.match(C, /どこにも送らず/);
   assert.ok(!/__[A-Z_]+__/.test(C.replace(/__check|__fitScale/g, '')), 'プレースホルダが残っていない');
   assert.match(G, /id="g10"/); assert.match(G, /表記ゆれで一致/); assert.match(G, /check\.html/);
   assert.match(SW, /\.\/check\.html/); assert.match(SW, /getPage\(CHECK\)/); assert.match(SW, /lanenote-page-v0\.(19|[2-9]\d)(\.\d+){0,2}-/);
