@@ -173,7 +173,7 @@ await check('説明・更新情報：時間の目安（5分くらい）と、出
   assert(/1年分（30大会ほど）で5分くらい/.test(src('records_app.js')));
   assert(/YB\.lim = 1080;/.test(src('records_app.js')), '中継の上限（1分1200回）より少なめ');
   assert(/const RATE = \{ limit: 1200, period: 60000 \}/.test(fs.readFileSync(path.join(here, '../../worker/worker.js'), 'utf8')));
-  const cl = JSON.parse(fs.readFileSync(path.join(here, '../src/changelog.json'), 'utf8')); assert.equal(cl[cl.length - 1].ver, 'v0.26.51'); assert.match(cl[cl.length - 1].text, /決勝や総合結果のページは読みません/);
+  const cl = JSON.parse(fs.readFileSync(path.join(here, '../src/changelog.json'), 'utf8')); const e51 = cl.find(x => x.ver === 'v0.26.51'); assert.ok(e51); assert.match(e51.text, /決勝や総合結果のページは読みません/);   // v0.26.52：あとの版が末尾に足されても見る
 });
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail) process.exit(1);

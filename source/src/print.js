@@ -22,10 +22,10 @@ var LanePrint = (function () {
     return v.toFixed(2);
   }
   // 目盛り付きのグラフ（上ほど良い・●公認 ○参考 赤＝ベスト・下の×＝記録なし）
-  function chart(e) {
+  function chart(e, o) {   // o：{ W, H }（v0.26.52 ふりかえりシートの小さいグラフ。ふだんは 640×128）
     var pts = e.allPoints || [], nms = e.noMarks || [], lower = e.lower !== false;
     if (pts.length < 2 && !nms.length) return '';
-    var W = 640, H = nms.length ? 150 : 128, L = 52, Rr = 16, T = 14, B = nms.length ? 50 : 28;
+    var W = o && o.W || 640, H = (o && o.H || 128) + (nms.length ? 22 : 0), L = 52, Rr = 16, T = 14, B = nms.length ? 50 : 28;
     var tl = pts.map(function (p, i) { return { k: 'm', i: i, date: p.date }; }).concat(nms.map(function (p, i) { return { k: 'x', i: i, date: p.date }; }));
     tl.sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : (a.k === b.k ? a.i - b.i : a.k === 'm' ? -1 : 1); });
     var xs = { m: [], x: [] }, n = tl.length, iw = W - L - Rr;
@@ -36,7 +36,7 @@ var LanePrint = (function () {
     var s = '<svg class="lp-svg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(e.eventLabel || '') + 'の記録の推移（上ほど良い）">';
     for (var k = 0; k <= 3; k++) { var v = lo + (hi - lo) * k / 3, yy = y(v); s += '<line x1="' + L + '" x2="' + (W - Rr) + '" y1="' + yy + '" y2="' + yy + '" class="lp-grid"/>' + (pts.length ? '<text x="' + (L - 6) + '" y="' + (yy + 3.5) + '" class="lp-ax" text-anchor="end">' + esc(fmtV(v, lower)) + '</text>' : ''); }
     s += '<line x1="' + L + '" x2="' + L + '" y1="' + T + '" y2="' + bot + '" class="lp-axl"/><line x1="' + L + '" x2="' + (W - Rr) + '" y1="' + bot + '" y2="' + bot + '" class="lp-axl"/>';
-    var step = Math.max(1, Math.ceil(n / 7)); tl.forEach(function (t, j) { if (j % step && j !== n - 1) return; var x = xs[t.k][t.i]; s += '<text x="' + x + '" y="' + (bot + 14) + '" class="lp-ax" text-anchor="middle">' + esc(String(t.date || '').slice(2).replace(/-/g, '/')) + '</text>'; });
+    var step = Math.max(1, Math.ceil(n / (W < 500 ? 4 : 7))); tl.forEach(function (t, j) { if (j % step && j !== n - 1) return; var x = xs[t.k][t.i]; s += '<text x="' + x + '" y="' + (bot + 14) + '" class="lp-ax" text-anchor="middle">' + esc(String(t.date || '').slice(2).replace(/-/g, '/')) + '</text>'; });
     var bi = -1; pts.forEach(function (p, i) { if (!p.ref && (bi < 0 || (lower ? p.v < pts[bi].v : p.v > pts[bi].v))) bi = i; });
     var off = pts.map(function (p, i) { return p.ref ? null : xs.m[i] + ',' + y(p.v); }).filter(Boolean);
     if (pts.length > 1) s += '<polyline points="' + pts.map(function (p, i) { return xs.m[i] + ',' + y(p.v); }).join(' ') + '" class="lp-lall"/>';
@@ -126,6 +126,6 @@ var LanePrint = (function () {
     var out = page('大会まとめ', o, body, band('MEET REPORT', o.meet || '大会まとめ', sub, o));
     return o.one ? out.replace('<section class="lp-page">', '<section class="lp-page lp-one" data-one="1">') + '<p class="lp-fitnote" id="lpFitNote" hidden>人数が多いため文字が小さくなっています</p>' : out;
   }
-  return { meetSheet: meetSheet, esc: esc, today: today, page: page, chart: chart, fmtV: fmtV, athleteSheet: athleteSheet, rankSheet: rankSheet };
+  return { meetSheet: meetSheet, esc: esc, today: today, page: page, band: band, chart: chart, fmtV: fmtV, athleteSheet: athleteSheet, rankSheet: rankSheet };
 })();
 if (typeof module !== 'undefined') module.exports = LanePrint;

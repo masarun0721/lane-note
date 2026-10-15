@@ -8,7 +8,7 @@
 var LaneAuth = (function () {
   'use strict';
   var REDIRECT_KEY = 'lanenote-login-redirect';
-  function userKeys(uid) { return ['lanenote-rec-meets-' + uid, 'lanenote-rec-divov-' + uid, 'lanenote-migrated-' + uid, 'lanenote-rec-mode-' + uid]; }
+  function userKeys(uid) { return ['lanenote-rec-meets-' + uid, 'lanenote-rec-divov-' + uid, 'lanenote-migrated-' + uid, 'lanenote-rec-mode-' + uid, 'lanenote-review-notes-' + uid]; }   // v0.26.52：ふりかえりシートの「先生から一言」
   function cacheName(uid) { return 'lanenote-cache-' + uid; }
   // v0.26.42（監査 C601）：大会準備のタブの一時保存（sessionStorage）。ログアウト・アカウントの切り替えでは、どのページでも消す
   var MEET_SESSION = 'lanenote-meet-session';

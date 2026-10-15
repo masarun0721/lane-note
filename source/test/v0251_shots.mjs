@@ -70,6 +70,8 @@ await both('use_meetsum', async vp => { const p = await open('records.html?demo=
   await p.evaluate(() => { const v = document.querySelector('[data-print="meet"][data-act="view"]'); if (v) v.click(); }); await sleep(900); return p; });
 // 4 選手に自分の記録（選手別の自己ベストとグラフ・個人ページを作る画面）
 await both('use_ath', async vp => { const p = await open('records.html?demo=1', 'coach', vp); await recs(p); await p.evaluate(() => { window.__t.setTab('ath'); const a = document.querySelector('#rbView [data-ath], #rbView button, #rbView a'); if (a) a.click(); document.getElementById('rbView').scrollIntoView(); }); await sleep(700); return p; });
+await both('use_review', async vp => { const p = await open('records.html?demo=1', 'coach', vp); await recs(p); await p.evaluate(() => { window.__t.setTab('ath'); document.querySelector('#rbView [data-print="rpick"][data-act="view"]').click(); }); await sleep(400);   // v0.26.52 ふりかえりシート
+  await p.evaluate(() => { const t = document.querySelector('#rbPrintBody textarea[data-rvnote]'); if (t) { t.value = '春から大きく伸びました。来年も楽しみです！'; t.dispatchEvent(new Event('input', { bubbles: true })); } document.querySelector('[data-rvmake]').click(); }); await sleep(900); return p; });
 await both('use_pp', async vp => { const p = await open('records.html?demo=1', 'coach', vp); await recs(p); await p.evaluate(() => document.getElementById('rbPPOpen').click()); await sleep(600); return p; });
 // 5 エントリー照合
 await both('use_check', async vp => { const p = await open('check.html', 'coach', vp); const D = JSON.parse(fs.readFileSync(path.join(ROOT, 'source/test/fixtures/manual_check_demo.json'), 'utf8'));

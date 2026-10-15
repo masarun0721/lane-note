@@ -1966,7 +1966,7 @@
     var meets = {}; mine.forEach(function (x) { meets[R.nk(x.meet || '').replace(/\s/g, '')] = 1; });   // 何日かある大会は1つに数える
     YB.saved = '<div class="yb-done status ok"><p>✅ <b>' + esc(YB.from) + '〜' + esc(YB.to) + ' の記録をまとめました</b>：今回 ' + tot + '件を保存' + (dup ? '（' + dup + '件は保存済みなので重ねませんでした）' : '') + '。この期間の記録は <b>' + Object.keys(meets).length + '大会・' + mine.length + '件・選手 ' + Object.keys(ppl).length + '人</b> です。</p>' +
       (bad.length ? '<p class="small ng">✖ ' + bad.map(esc).join('<br>✖ ') + '</p>' : '') +
-      '<div class="rb-row"><button type="button" class="btn" data-ybview="ath">👟 選手別（自己ベスト）を見る</button><button type="button" class="btn sub" data-ybview="rank">🏅 部内ランキング</button><button type="button" class="btn sub" data-ybview="meet">🏟 大会別</button></div></div>';
+      '<div class="rb-row"><button type="button" class="btn" data-ybreview="1">📝 ふりかえりシートを作る</button><button type="button" class="btn sub" data-ybview="ath">👟 選手別（自己ベスト）を見る</button><button type="button" class="btn sub" data-ybview="rank">🏅 部内ランキング</button><button type="button" class="btn sub" data-ybview="meet">🏟 大会別</button></div></div>';
     ybMsg('✔ 保存しました。', 'ok'); ybRender();
   }
   function ybMeta(b) {
@@ -1990,6 +1990,7 @@
       if ((a = t.getAttribute('data-ybman')) != null) { var r = YB.rows && YB.rows[+a]; if (!r) return; YB.manual = r.p.key; ybRender(); var dz = $('rbDrop'); if (dz && dz.scrollIntoView) dz.scrollIntoView({ block: 'center' }); status('rbStatus', '📎 「' + esc(r.p.meet) + '」（' + esc(r.p.date) + '）の資料を入れてください。PDF・Excel をここに入れるか、下の「URLから読み込む」で読み込みます。', ''); return; }
       if (t.getAttribute('data-ybmanx') != null) { YB.manual = ''; ybRender(); return; }
       if ((a = t.getAttribute('data-ybre')) != null) { var rr = YB.rows && YB.rows[+a]; if (rr) { rr.st = 'pick'; rr.sel = null; rr.go = false; rr.picked = false; ybRender(); } return; }
+      if (t.closest('[data-ybreview]')) { rvOpen(YB.from, YB.to); return; }   // v0.26.52 今年のふりかえりシート（まとめた期間のまま）
       if ((a = t.getAttribute('data-ybview'))) { var tb = document.querySelector('.tabs [data-v="' + a + '"]'); if (tb) tb.click(); var v = $('rbView'); if (v && v.scrollIntoView) v.scrollIntoView({ block: 'start' }); return; }
     });
     $('rbYear').addEventListener('change', function (e) {
@@ -2760,7 +2761,7 @@
     var sw = order.length > 1 ? '<div class="evsw" role="tablist" aria-label="種目の切り替え"><button type="button" data-athev=""' + (athSel.ev ? '' : ' class="on" aria-selected="true"') + '>すべて</button>' + order.map(function (e) { return '<button type="button" data-athev="' + esc(e.event) + '"' + (athSel.ev === e.event ? ' class="on" aria-selected="true"' : '') + '>' + esc(e.eventLabel) + '</button>'; }).join('') + '</div>' : '';
     var shown = order.length > 1 && !athSel.ev ? null : (athSel.ev ? [byKey[athSel.ev]] : order);
     var summary = shown ? '' : '<div class="card"><div class="card-h"><b>種目ごとの自己ベスト</b><span class="small muted">押すとグラフと記録</span></div><ul class="evsum">' + order.map(function (e) { var b = e.best || e.ref; return '<li><button type="button" class="evn" data-athev="' + esc(e.event) + '">' + esc(e.eventLabel) + '</button><b class="lmk">' + esc(b ? b.mark : '—') + (e.best ? '' : (b ? windTag(b) : '')) + '</b><span class="sub">' + (b ? (R.shownWind(b) ? '風' + esc(b.wind) + '・' : '') + esc(b.date) + ' ' + esc(b.meet) + ' ' + weatherTag(b.date + '|' + b.meet) : '') + '・' + e.count + '件</span></li>'; }).join('') + '</ul></div>';
-    back += ppBtns('ath', key, '個人表');
+    back += ppBtns('ath', key, '個人表') + ppBtns('review', key, 'ふりかえりシート');   // v0.26.52
     var roC = rosterCard(key, pf, ALL.filter(function (r) { return R.athleteKey(r) === key; }));
     return back + '<div class="card ath-h"><b class="nm">' + esc(pf.name) + '</b>' + '<button class="btn sub" type="button" data-pplink="' + esc(key) + '" style="float:right">📱 個人ページのリンク</button>' + (pf.kana ? '<span class="small muted">' + esc(pf.kana) + '</span>' : '') + '<div class="small muted">' + esc(((mineRows.filter(function (r) { return R.rawDivisionOf(r); }).sort(function (x, y) { return cmp(x.date, y.date); }).pop()) || pf).team) + (pf.grade ? '・' + esc(pf.grade) : '') + (R.divisionOf(pf) ? '・' + R.divLabel(R.divisionOf(pf)) : '') + '・' + pf.events.length + '種目・' + pf.count + '件</div></div>' + roC + sw + summary +
       (shown || []).map(function (e) {
@@ -2840,6 +2841,8 @@
     if (k === 'meet') nm = key.split('|').slice(1).join('|') + '_大会まとめ';
     else if (k === 'ath') { var pf = R.athleteProfile(ALL, key); nm = (pf && pf.name ? pf.name : '選手') + '_個人表'; }
     else if (k === 'pick') nm = (school() || '') + '_選択した個人表';
+    else if (k === 'review') { var pr = R.athleteProfile(ALL, key); nm = (pr && pr.name ? pr.name : '選手') + '_ふりかえり_' + LaneReview.periodLabel(RV.from, RV.to); }
+    else if (k === 'rpick') nm = (school() || '') + '_ふりかえりシート_' + LaneReview.periodLabel(RV.from, RV.to);
     else if (k.indexOf('hist') === 0) nm = (school() || '') + '_歴代記録';
     else nm = (school() || '') + '_部内ランキング';
     return nm.replace(/^_/, '') + '.pdf';
@@ -2866,15 +2869,50 @@
     return out;
   }
   function athSheets(keys) { var o = printMeta(); return keys.map(function (k) { return LanePrint.athleteSheet(R, ALL, k, o); }).join(''); }
+  /* v0.26.52 今年のふりかえりシート（選手1人＝A4 1枚）。期間はふだんは今の年度（4月〜翌3月）。「1年分の記録をまとめる」から開いたときはまとめた期間。
+     「先生から一言」はこの端末にだけ保存（LaneReview.noteSet）。会話・体調メモ・備考は入れない */
+  var RV = { from: '', to: '' };
+  function rvUid() { return USER ? USER.uid : null; }
+  function rvSeasons() { var o = {}; o[nowSeason()] = 1; ALL.forEach(function (r) { if (!r._del && !R.isRelay(r.event || '')) { var y = R.seasonOf(r.date); if (y != null) o[y] = 1; } }); return Object.keys(o).map(Number).sort(function (a, b) { return b - a; }); }
+  function rvSetSeason(y) { var g = LaneReview.seasonRange(y); RV.from = g[0]; RV.to = g[1]; }
+  function rvDefault(key) {
+    if (!RV.from || !RV.to) rvSetSeason(nowSeason());
+    if (key && !LaneReview.build(R, ALL, key, { from: RV.from, to: RV.to })) {   // その選手に今の期間の記録がなければ、記録のある最後の年度にする
+      var last = ALL.filter(function (r) { return !r._del && !R.isRelay(r.event || '') && R.athleteKey(r) === key; }).map(function (r) { return r.date; }).sort().pop();
+      if (last && R.seasonOf(last) != null) rvSetSeason(R.seasonOf(last));
+    }
+  }
+  function rvOpen(from, to) { if (from && to) { RV.from = from; RV.to = to; } startPrint('rpick', '', 'view'); }
+  function rvSheets(keys) {
+    var o = printMeta(), out = [];
+    keys.forEach(function (k) { var d = LaneReview.build(R, ALL, k, { from: RV.from, to: RV.to, nog: NOG }); if (d) out.push(LaneReview.sheet(R, d, { school: o.school, date: o.date, note: LaneReview.noteGet(rvUid(), k, RV.from, RV.to) })); });
+    return out.join('') || '<p class="lp-empty" style="background:#fff;padding:12px">この期間の記録がありません。</p>';
+  }
+  function rvPick() {
+    rvDefault('');
+    var ls = LaneReview.athletes(R, filtered(), RV.from, RV.to), c = filterCond(), ys = rvSeasons(), cur = '';
+    ys.forEach(function (y) { var g = LaneReview.seasonRange(y); if (g[0] === RV.from && g[1] === RV.to) cur = String(y); });
+    var act = { view: '👀 画面で見る', pdf: '📄 PDFを作る', print: '🖨 印刷する' }[PICK_ACT] || '👀 画面で見る', uid = rvUid();
+    openPrint('<div class="lp-pick rv-pick"><b>📝 ふりかえりシートを作る選手を選ぶ</b><p class="small muted">選手1人につきA4 1枚です。種目ごとのベスト・自己ベストの更新・記録の推移・出た大会・リレーと、「先生から一言」の枠が入ります。会話や体調メモは入りません。</p>' +
+      '<div class="rv-per"><label>期間 <select data-rvseason="1">' + ys.map(function (y) { return '<option value="' + y + '"' + (String(y) === cur ? ' selected' : '') + '>' + esc(R.seasonLabel(y)) + (y === nowSeason() ? '（今の年度）' : '') + '</option>'; }).join('') + '<option value=""' + (cur ? '' : ' selected') + '>期間を指定</option></select></label>' +
+      '<label>はじめ <input type="date" data-rvfrom="1" value="' + esc(RV.from) + '"></label><label>おわり <input type="date" data-rvto="1" value="' + esc(RV.to) + '"></label></div>' +
+      '<p class="small muted">' + (c ? 'いまの絞り込み（' + esc(c) + '）の' : '') + esc(LaneReview.periodLabel(RV.from, RV.to)) + 'に記録がある選手 ' + ls.length + '人</p>' +
+      (ls.length ? '<div class="lp-ops"><button class="btn sub" type="button" data-rvall="1">全員選択</button><button class="btn sub" type="button" data-rvnone="1">全解除</button><button class="btn" type="button" data-rvmake="1">' + act + '（<span id="rbRVn">' + ls.length + '</span>人）</button></div>' : '<p class="muted">この期間の記録がありません。期間を変えてください。</p>') +
+      '<ul>' + ls.map(function (b) { var nt = LaneReview.noteGet(uid, b.key, RV.from, RV.to);
+        return '<li><label><input type="checkbox" data-rvk="' + esc(b.key) + '" checked><b>' + esc(b.name) + '</b><span class="gr">' + esc(b.grade ? b.grade + (/年/.test(b.grade) ? '' : '年') : '') + ' ' + esc(b.team || '') + '・' + b.nMeets + '大会</span></label>' +
+          '<details class="rv-nd"' + (nt ? ' open' : '') + '><summary>✏️ 先生から一言を入れる' + (nt ? '（入力あり）' : '（空けておくと手書きの枠）') + '</summary><textarea data-rvnote="' + esc(b.key) + '" maxlength="' + LaneReview.NOTE_MAX + '" rows="3" placeholder="例：春から夏にかけて大きく伸びました。来年も楽しみです。">' + esc(nt) + '</textarea><small class="muted">この端末だけに保存します（どこにも送りません）。</small></details></li>'; }).join('') + '</ul></div>', true);
+  }
   function startPrint(kind, key, act) {
     act = act || 'view'; PICK_ACT = act; CUR_PRINT = { kind: kind, key: key || '' };
-    if (kind !== 'pick') { buildPrint(kind, key); if (act !== 'view') doPrint(act === 'pdf'); return; }
+    if (kind !== 'pick' && kind !== 'rpick') { buildPrint(kind, key); if (act !== 'view') doPrint(act === 'pdf'); return; }
     buildPrint(kind, key);
   }
   var PICK_ACT = 'view';
   function buildPrint(kind, key) {
     var rows = filtered();
     if (kind === 'ath') { openPrint(athSheets([key])); return; }
+    if (kind === 'review') { rvDefault(key); openPrint(rvSheets([key])); LaneReview.fitPages($('rbPrintBody')); return; }
+    if (kind === 'rpick') { rvPick(); return; }
     if (kind === 'meet') {   // v0.9.2：大会まとめ（いまの絞り込みのまま）
       var mr = rows.filter(function (r) { return r.date + '|' + r.meet === key; }), ks = {}; mr.forEach(function (r) { ks[R.athleteKey(r)] = 1; });
       var mp = key.split('|');
@@ -2908,6 +2946,31 @@
     var n = $('rbPPn'); if (n) n.textContent = Array.prototype.filter.call(boxes, function (b) { return b.checked; }).length;
   });
   $('rbPrintBody').addEventListener('change', function () { var n = $('rbPPn'); if (n) n.textContent = $('rbPrintBody').querySelectorAll('[data-ppk]:checked').length; });
+  // v0.26.52 ふりかえりシートの選手選び
+  $('rbPrintBody').addEventListener('click', function (e) {
+    var t = e.target, boxes = $('rbPrintBody').querySelectorAll('[data-rvk]');
+    if (t.closest('[data-rvall]') || t.closest('[data-rvnone]')) { var on = !!t.closest('[data-rvall]'); boxes.forEach(function (b) { b.checked = on; }); }
+    if (t.closest('[data-rvmake]')) {
+      var keys = []; boxes.forEach(function (b) { if (b.checked) keys.push(b.getAttribute('data-rvk')); });
+      if (!keys.length) { alert('選手を1人以上選んでください。'); return; }
+      CUR_PRINT = { kind: 'rpick', key: '' }; openPrint(rvSheets(keys)); LaneReview.fitPages($('rbPrintBody')); if (PICK_ACT !== 'view') doPrint(PICK_ACT === 'pdf'); return;
+    }
+    var n = $('rbRVn'); if (n) n.textContent = Array.prototype.filter.call(boxes, function (b) { return b.checked; }).length;
+  });
+  $('rbPrintBody').addEventListener('change', function (e) {
+    var t = e.target;
+    if (t.getAttribute('data-rvseason') != null) { if (t.value) { rvSetSeason(+t.value); rvPick(); } return; }
+    if (t.getAttribute('data-rvfrom') != null || t.getAttribute('data-rvto') != null) {
+      var f = $('rbPrintBody').querySelector('[data-rvfrom]').value, to = $('rbPrintBody').querySelector('[data-rvto]').value;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(f) && /^\d{4}-\d{2}-\d{2}$/.test(to) && f <= to) { RV.from = f; RV.to = to; rvPick(); }
+      return;
+    }
+    var n = $('rbRVn'); if (n) n.textContent = $('rbPrintBody').querySelectorAll('[data-rvk]:checked').length;
+  });
+  $('rbPrintBody').addEventListener('input', function (e) {
+    var t = e.target, k = t.getAttribute && t.getAttribute('data-rvnote'); if (k == null) return;
+    LaneReview.noteSet(rvUid(), k, RV.from, RV.to, t.value);
+  });
   function renderMeetList() {
     var m = {}; ALL.forEach(function (r) { var k = r.date + '|' + r.meet; m[k] = (m[k] || 0) + 1; });
     var ks = Object.keys(m).sort().reverse();
@@ -2937,7 +3000,7 @@
       var ord = {}; R.sortAthletes(bs).forEach(function (b) { if (!(b.key in ord)) ord[b.key] = Object.keys(ord).length; });
       bs.sort(function (a, b) { return ord[a.key] - ord[b.key] || cmp(a.eventLabel, b.eventLabel); });
       bs = sortRows(bs, view, defs);
-      html = '<div class="rb-row">' + ppBtns('pick', '', '個人表（選手を選ぶ）') + '</div><table class="rbt"><tr class="hd">' + th(view, 'name', '氏名') + th(view, 'team', '所属') + th(view, 'event', '種目') + th(view, 'best', '自己ベスト（公認）') + '<th>風</th>' + th(view, 'date', '日付') + '<th>大会</th><th>参考記録（追い風・風不明）</th>' + th(view, 'count', '記録数') + '</tr>' + bs.map(function (b) {
+      html = '<div class="rb-row">' + ppBtns('pick', '', '個人表（選手を選ぶ）') + ppBtns('rpick', '', 'ふりかえりシート（選手を選ぶ）') + '</div><table class="rbt"><tr class="hd">' + th(view, 'name', '氏名') + th(view, 'team', '所属') + th(view, 'event', '種目') + th(view, 'best', '自己ベスト（公認）') + '<th>風</th>' + th(view, 'date', '日付') + '<th>大会</th><th>参考記録（追い風・風不明）</th>' + th(view, 'count', '記録数') + '</tr>' + bs.map(function (b) {
         var r = b.best || {}, f = b.ref;
         return '<tr class="rc"><td class="c-name">' + athLink(b.key, b.name) + '</td><td class="c-team">' + esc(b.team) + '</td><td class="c-ev">' + esc(NOG && (b.best || b.ref) ? R.eventKeyLabel(b.best || b.ref, true) : b.eventLabel) + '</td><td class="rn c-mark"><b>' + esc(r.mark || '—') + '</b></td><td class="rn c-wind" data-l="風">' + esc(R.shownWind(r)) + '</td><td class="c-date">' + esc(r.date) + '</td><td class="c-meet">' + esc(r.meet) + '</td><td class="c-ref" data-l="参考">' + (f ? esc(f.mark) + windTag(f) + ' <small class="muted">' + esc(R.shownWind(f)) + ' ' + esc(f.date) + '</small>' : '') + '</td><td class="rn c-cnt" data-l="記録数">' + b.count + '</td></tr>';
       }).join('') + '</table>';
@@ -3039,7 +3102,7 @@
   $('rbWipeDevice').addEventListener('click', async function () {
     if (!confirm('このブラウザに残っている LANE NOTE の記録（ログインしていないときの記録' + (USER ? '・ログイン中の控え' : '') + '）と、天気・中学/高校の選択を消します。' + (USER ? 'クラウドの記録は消えません。' : '元に戻せません。') + '\n\nよろしいですか？')) return;
     authEpoch++; var errs = [];
-    try { localStorage.removeItem(metsKey(null)); localStorage.removeItem(ovKey(null)); localStorage.removeItem(modeKey(null)); } catch (e) { }
+    try { localStorage.removeItem(metsKey(null)); localStorage.removeItem(ovKey(null)); localStorage.removeItem(modeKey(null)); localStorage.removeItem('lanenote-review-notes'); } catch (e) { }
     await closeDb(LOCAL_DB);
     try { await LaneAuth.eraseDatabase(LOCAL_DB); } catch (e) { errs.push(e.message); }
     // v0.7（再監査A04）：ログイン中は「控えを置かない」状態にしてから消す。このあとの読み直しはクラウドから表示するだけで、端末には書かない
