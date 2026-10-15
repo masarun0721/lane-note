@@ -13,7 +13,7 @@ import base64, hashlib, html as htmlmod, json, pathlib, re, sys
 ROOT = pathlib.Path(__file__).resolve().parent
 S = ROOT / 'src'
 SHARE_BASE = 'https://masarun0721.github.io/lane-note/'   # 共有リンク・QRの公開アドレス（file:// で開いたとき用）
-VERSION = 'v0.26.44'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
+VERSION = 'v0.26.45'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
 # 作成日は版番号から取れないので固定（ビルドした日で変わると、公開時の一致検査ができないため）
 BUILD_DATE = '2026年10月12日'
 REC_VERSION = 'v0.11.1'   # LANE LOG（records.html）だけの版
@@ -223,6 +223,8 @@ NAV_CSS = (
     '.ln-nav .cl-new{background:#e4572e;color:#fff;border-radius:999px;font-size:10px;padding:0 6px;font-weight:800}'
     # v0.26.36 見出しは どの幅でも「記録・大会準備・照合・大会予定・≡ メニュー」だけ。ほかは全部メニューの中（JS で幅を測るのは、スマホで5つが入りきらないときだけ）
     '.pagenav.ln-nav{flex-wrap:nowrap;max-width:100%;min-width:0;box-sizing:border-box}header{overflow-x:clip}'
+    # v0.26.45 PC の広い画面でも、ボタンの列をロゴ・説明と同じ左端に（header>* と同じ最大幅 1180px・左右の auto 余白）
+    'header>.pagenav.ln-nav{max-width:min(100%,1180px);margin-left:auto;margin-right:auto}'
     '.ln-nav .pn-sub{display:none}.ln-nav.open .pn-sub{display:flex;flex-direction:column;align-items:stretch;gap:6px;position:fixed;z-index:1000;min-width:230px;max-width:calc(100vw - 16px);box-sizing:border-box;overflow:auto;background:rgba(15,22,40,.96);border:1px solid rgba(255,255,255,.35);border-radius:12px;padding:10px}'
     '.pagenav.ln-nav.open{z-index:1001}.ln-nav .pn-sub>*{justify-content:flex-start;min-height:40px;font-size:14px}'
     '.ln-nav .pn-menu .cl-new{margin-left:2px}body.ln-player .ln-nav .pn-menu .cl-new{display:none}'

@@ -49,6 +49,9 @@ try {
     await p.evaluate(() => { document.querySelectorAll('.mp-ov,.mode-pick').forEach(x => x.remove()); const c = document.querySelector('.hdr-meta>.use-count'); if (c) { c.hidden = false; c.innerHTML = '<span class="uc-from">2026.10.13-</span>' + '24816'.split('').map(d => '<span class="uc-d">' + d + '</span>').join(''); } window.__lnNavFit(); });
     await sl(80);
     let s = await state(p);
+    // v0.26.45 ロゴのマーク（絵の中の余白を除く）・説明・ボタンの列の左端がそろう
+    const al = await p.evaluate(() => { const sv = document.querySelector('header .logo svg'), sr = sv && sv.getBoundingClientRect(), t = document.querySelector('header .tagline'), b = [...document.querySelectorAll('#lnNav > a, #lnNav > button')].find(x => x.offsetWidth); return { icon: sr ? sr.left + 20 * sr.height / 240 : null, tag: t && t.offsetWidth ? t.getBoundingClientRect().left : null, nav: b ? b.getBoundingClientRect().left : null }; });
+    ok(al.icon != null && al.nav != null && Math.abs(al.icon - al.nav) < 1.5 && (al.tag == null || Math.abs(al.tag - al.nav) < 1.5), `${tag} ロゴ・説明・ボタンの左端がそろう ${JSON.stringify(al)}`);
     const folded = ROW.filter(x => !s.row.includes(x));
     ok(s.row[s.row.length - 1] === 'menu' && s.row.join() === ROW.filter(x => s.row.includes(x)).join() && s.row.join() === ROW.slice(0, s.row.length - 1).concat('menu').join(), `${tag} 見出しは 記録・大会準備・照合・大会予定・≡ メニュー の順（${s.row.join()}）`);
     if (cw > 720) ok(folded.length === 0, `${tag} PCでは5つ全部が見出しに出る（${s.row.join()}）`);

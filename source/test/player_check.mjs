@@ -13,7 +13,7 @@ const A=PL.athletes(rows);
 ok(A.length===5,'個人とリレーのメンバーから5人（重複なし）：'+A.map(a=>a.name).join(','));
 const a1=A.find(a=>a.bib==='101'),a5=A.find(a=>a.bib==='105');
 console.log('[2] 1人分の中身（ほかの選手を入れない）');
-const p=PL.payloadFor(rows,a1,{n:'第1回架空区大会',d:'2026年10月11日（日）',pl:'架空競技場',cp:'サブトラック'});
+const p=PL.payloadFor(rows,a1,{n:'第1回架空区大会',d:'2026年10月11日（日）',pl:'架空競技場',cp:'サブトラック',g:'2026-10-11T00:00:00.000Z'});
 const js=JSON.stringify(p);
 ok(p.k==='p'&&p.a.name==='見本 一郎'&&p.e.length===3,'見本さんは100m・走幅跳・リレーの3件');
 ok(!/架空 二郎|例 三郎|仮名 四郎|試 五郎|10[2-5]/.test(js),'ほかの選手の名前・ナンバー（リレーの仲間も）が入っていない');
