@@ -20,14 +20,17 @@ var LanePrepDel = (function () {
     }
     check();
     if (!cur) return { gone: true, keep: {}, changed: [], ng: 0, last: null, left: {}, data: null, op: '' };
+    // v0.26.47（監査 C901）：トランザクションの中でも、読む前・読んだ直後・書く前（やり直しのたびに）保存先を確かめる。読み取りを待つ間にチームを切り替えたら、親は書かない
     var settle = async function (get, set, upd, del) {
-      var s2 = await get(o.ref); if (!s2.exists()) return { gone: true, keep: {}, changed: [], data: null, op: '' };
+      check();
+      var s2 = await get(o.ref); check(); if (!s2.exists()) return { gone: true, keep: {}, changed: [], data: null, op: '' };
       var now = s2.data() || {}, nd = now.prep && now.prep.docs || {}, keep = {}, changed = [], drop = [];
       Object.keys(nd).forEach(function (x) {
         if (kinds.indexOf(x) >= 0 && !left[x] && same(nd[x], cd[x])) drop.push(x);
         else { keep[x] = nd[x]; if (target(x, nd[x]) && !left[x] && !same(nd[x], cd[x])) changed.push(x); }
       });
       var empty = !Object.keys(keep).length, r = empty && o.onEmpty ? o.onEmpty(now) : null, data;
+      check();
       if (r && r.del) { await del(o.ref); data = null; }
       else if (r && r.set) { await set(o.ref, r.set); data = r.set; }
       else {

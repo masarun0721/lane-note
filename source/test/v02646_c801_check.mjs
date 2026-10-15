@@ -11,7 +11,7 @@ const w = dom.window; w.confirm = () => true; w.alert = () => {}; w.scrollTo = (
 Object.assign(w, { TextEncoder, TextDecoder, Response, Blob, File }); w.fetch = () => Promise.reject(Error('network disabled')); w.indexedDB = new IDBFactory();
 for (const name of ['auth_common.js', 'results.js', 'roster.js', 'team.js', 'plans.js', 'urlload.js', 'pubmeets.js', 'prepdel.js']) w.eval(src(name));
 const tail = 'if (CLOUD_READY) initCloud(); else { renderAuth(); reload(); }';
-w.eval(src('records_app.js').replace(tail, 'window.__t={clearCloudSide:clearCloudSide,planDelete:planDelete,prepPurge:prepPurge,prepSweep:prepSweep,writeMeetDoc:writeMeetDoc,saveMeet:saveMeet,mets:function(){return METS;},scope:scope,login:function(f,u,t,m){FB=f;USER={uid:u};TEAM=t;METS=m;ALL=[];authEpoch++;}};AUTH_SEEN=true;renderAuth();reload();'));
+w.eval(src('records_app.js').replace(tail, 'window.__t={switchTeam:switchTeam,clearCloudSide:clearCloudSide,planDelete:planDelete,prepPurge:prepPurge,prepSweep:prepSweep,writeMeetDoc:writeMeetDoc,saveMeet:saveMeet,mets:function(){return METS;},scope:scope,login:function(f,u,t,m){FB=f;USER={uid:u};TEAM=t;METS=m;ALL=[];authEpoch++;}};AUTH_SEEN=true;renderAuth();reload();'));
 await delay(300);
 console.log('[v0.26.46] C801 記録・大会予定のページの削除も最新の版を確かめる');
 const K = '2026-10-24|架空新人大会', DEL = { __del: 1 };
@@ -113,10 +113,14 @@ await check('C602（維持）：予定を消すとき、かけらを消せなけ
   let err = null; try { await w.__t.planDelete(K); } catch (e) { err = e; }
   assert(err && err.code === 'prep-partial'); assert(t.store.has(t.base)); assert.equal(t.store.get(t.base).prep.docs.yoko.v, 'old80000');
 });
-await check('ログイン・チームが変わったら途中で止める（親も印も消さない）', async () => {
-  const t = fixture(false); login(t, false, { [K]: clone(t.before) });
-  t.setDeleteHook(async p => { if (p.includes('/pdf/')) w.eval('authEpoch++'); });
+// v0.26.47（監査 C901）：w.eval('authEpoch++') は IIFE の中の変数に届かず（ReferenceError → prep-partial）、切り替えを確かめていなかった。本物の switchTeam で切り替える
+await check('ログイン・チームが変わったら途中で止める（本物の switchTeam でチーム→自分だけ・親も印も書かない）', async () => {
+  const t = fixture(true); login(t, true, { [K]: clone(t.before) }); const sc0 = w.__t.scope();
+  let sc1 = null; t.setDeleteHook(async p => { if (!sc1 && p.includes('/pdf/')) { await w.__t.switchTeam(''); sc1 = w.__t.scope(); } });
   let err = null; try { await w.__t.planDelete(K); } catch (e) { err = e; }
-  assert(err, '中止になる'); assert(t.store.has(t.base), '親は残す'); assert(t.store.get(t.base).prep, '印も残す');
+  assert(sc1, '切り替えた'); assert.equal(sc1.uid, sc0.uid); assert.equal(sc1.team, null); assert(sc1.epoch > sc0.epoch, '保存先の世代が進んだ');
+  assert.equal(err && err.code, 'auth-context-changed', String(err && (err.code || err.message)));
+  assert(t.store.has(t.base), '親は残す'); assert.equal(t.store.get(t.base).prep.docs.yoko.v, 'old80000', '印も残す');
+  assert(!t.events.some(e => /^(tx-|set$|update$)/.test(e[0]) || (e[0] === 'delete' && e[1] === t.base)), '親への書き込みなし：' + JSON.stringify(t.events));
 });
 w.close(); console.log(JSON.stringify({ passed, failed })); if (failed) process.exitCode = 1;

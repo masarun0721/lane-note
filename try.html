@@ -664,7 +664,7 @@ body.fb-open{overflow:hidden}
 <body class="trypage">
 <header>
   <div class="hdr-meta">
-    <div class="hdr-ver" aria-label="バージョン">v0.26.46</div>
+    <div class="hdr-ver" aria-label="バージョン">v0.26.47</div>
     <div class="credit">Presented by Sakata</div>
     <div class="hdr-msg"><span class="hm-l">すべての陸上競技部顧問が、</span><span class="hm-l">少しでも楽になりますように。</span></div>
   </div>
@@ -2127,9 +2127,22 @@ var ResultParser = (function () {
       return c;
     }).filter(function (c) { return c.name != null && c.team != null && c.mark != null; });
   }
+  /* v0.26.47 複数日の大会：資料の中の「日付の見出し」（「2日目」「10月11日」「2026年10月11日」）。1つの日だけを指す短い行だけ（期間・更新日時などは使わない）。
+     戻り値 'n:2' / 'md:10/11' / 'd:2026-10-11' / ''（見出しではない） */
+  function dayHead(s) {
+    var t = nk(String(s || '')).replace(/\s+/g, '');
+    if (!t || t.length > 40 || /(更新|出力|印刷|作成|発表|現在|期間|締切|締め切り|申込|[〜～~]|まで)/.test(t)) return '';
+    var n = t.match(/(?:^|[(（【\[第])([1-9])日目/);
+    if (n) return 'n:' + n[1];
+    if (/[・、,]\d{1,2}日/.test(t)) return '';
+    var full = t.match(/(20\d\d)[年\/.-](\d{1,2})[月\/.-](\d{1,2})/g) || [], md = t.match(/(\d{1,2})月(\d{1,2})日/g) || [];
+    if (full.length === 1) { var f = full[0].match(/(20\d\d)[年\/.-](\d{1,2})[月\/.-](\d{1,2})/); return +f[2] >= 1 && +f[2] <= 12 && +f[3] >= 1 && +f[3] <= 31 ? 'd:' + f[1] + '-' + ('0' + f[2]).slice(-2) + '-' + ('0' + f[3]).slice(-2) : ''; }
+    if (!full.length && md.length === 1) { var m = md[0].match(/(\d{1,2})月(\d{1,2})日/); if (+m[1] >= 1 && +m[1] <= 12 && +m[2] >= 1 && +m[2] <= 31) return 'md:' + +m[1] + '/' + +m[2]; }
+    return '';
+  }
   function parsePdf(pages, opt) {
     opt = opt || {};
-    var recs = [], warns = [], info = { pages: pages.length, headers: 0, skippedRelay: 0 }, ev = '', round = '', evY = -1;
+    var recs = [], warns = [], info = { pages: pages.length, headers: 0, skippedRelay: 0 }, ev = '', round = '', evY = -1, day = '';
     pages.forEach(function (pg, pi) {
       var L = lines(toWords(pg.items)), cols = [];
       var heat = {}, wind = {};   // 列ごとの「組」「風」
@@ -2143,6 +2156,7 @@ var ResultParser = (function () {
         if (TITLE.test(t.replace(/\s/g, '')) && !/記録\s*[\d.]+|GR|大会記録|日本|東京高校記録|凡例/.test(t) && (big || li < 3) && t.length < 40) {
           events.push({ y: l.y, type: 'ev', v: t.replace(/^\s+|\s+$/g, '') });
         }
+        var dh = /順位/.test(t) ? '' : dayHead(t); if (dh) events.push({ y: l.y - 0.01, type: 'day', v: dh });   // v0.26.47 日付の見出し
         var rm = t.replace(/\s/g, '').match(ROUND);
         if (rm && t.length < 40 && !/順位/.test(t)) events.push({ y: l.y, type: 'round', v: nk(rm[1]).replace('タイムレ-ス', 'タイムレース') });
         l.w.forEach(function (w) {
@@ -2160,7 +2174,7 @@ var ResultParser = (function () {
         var yEnd = hi + 1 < hdrs.length ? hdrs[hi + 1].y - 1 : pg.height + 1;
         // この見出しより後に出た種目見出しが、この見出しより下・次の見出しより上にあれば、そこで切る
         var before = events.filter(function (e) { return e.y <= h.y; });
-        before.forEach(function (e) { if (e.type === 'ev') { if (e.v !== ev) { ev = e.v; round = ''; } } if (e.type === 'round') round = e.v; });
+        before.forEach(function (e) { if (e.type === 'ev') { if (e.v !== ev) { ev = e.v; round = ''; } } if (e.type === 'round') round = e.v; if (e.type === 'day') day = e.v; });
         var evBreak = events.filter(function (e) { return e.type === 'ev' && e.y > h.y && e.y < yEnd; })[0];
         if (evBreak) yEnd = evBreak.y - 1;
         if (/リレー/.test(ev)) { info.skippedRelay++; return; }
@@ -2210,6 +2224,7 @@ var ResultParser = (function () {
             var g = parseGrade(kanji || '');
             if (STATUS.test(mark) || !mark) w = null;
             var r = { event: nk(ev).replace(/\s+/g, ' ').trim(), round: round, heat: hev ? hev.v : '', rank: rank ? +rank.n : '', lane: lane ? +lane.n : '', bib: a.n, name: g.name || kanji, kana: kana, grade: g.grade, team: team, mark: mark, wind: w != null ? String(nk(w)).replace('±', '') : '', comment: cmt, page: pi + 1 };
+            if (day) r.dday = day;
             if (opt.school && !matchSchool(r.team, opt.school)) return;
             var probs = [];
             if (!r.name) probs.push('氏名');
@@ -2244,9 +2259,10 @@ var ResultParser = (function () {
   // stream: [{type:'text', v:'…'} | {type:'row', cells:['…',…], th:bool}]
   function parseCells(stream, opt) {
     opt = opt || {};
-    var recs = [], warns = [], ev = '', round = '', heat = '', wind = '', map = null, meet = { name: '', date: '' }, info = { headers: 0, skippedRelay: 0 };
+    var recs = [], warns = [], ev = '', round = '', heat = '', wind = '', map = null, meet = { name: '', date: '' }, info = { headers: 0, skippedRelay: 0 }, day = '';
     function title(s) {
       s = nk(s).replace(/\s+/g, ' ').trim(); if (!s) return;
+      var dh = dayHead(s); if (dh) day = dh;   // v0.26.47 日付の見出し（複数日の大会）
       if (!meet.name && /(大会|選手権|記録会|競技会)/.test(s) && s.length < 80 && !/(画面|一覧表)/.test(s)) meet.name = s.replace(/^(大会名|大会)[:：]\s*/, '');
       if (!meet.date) { var d = s.match(/(20\d\d)\s*[年\/.-]\s*(\d{1,2})\s*[月\/.-]\s*(\d{1,2})/); if (d && !/(更新|出力|印刷|作成)/.test(s)) meet.date = d[1] + '-' + ('0' + d[2]).slice(-2) + '-' + ('0' + d[3]).slice(-2); }
       var wm = s.match(/風\s*[:：]?\s*([+\-±]?\d+\.\d)/); if (wm && s.length < 30) wind = wm[1];
@@ -2293,6 +2309,7 @@ var ResultParser = (function () {
       // v0.26.26：東京都高体連（tokyokotairenrikujo.jp）の速報は所属の欄が「2<br>本郷」（上に支部の番号）。番号の行は所属にしない
       var team = String(get(map.team)).replace(/^\s*\d{1,2}[\s\u3000]+(?=\D)/, '').replace(/\s*\n\s*/g, ' ').trim();
       var hc = map.heat != null ? (get(map.heat).match(/\d+/) || [''])[0] : ''; var r = { event: ev, round: round, heat: hc ? +hc : heat, rank: /^\d+$/.test(get(map.rank)) ? +get(map.rank) : '', lane: /^\d+$/.test(get(map.lane)) ? +get(map.lane) : '', bib: get(map.bib), name: g.name.replace(/\s+/g, ' '), kana: kana, grade: g.grade || get(map.grade), team: team, mark: mark, wind: (w || '').replace('±', '').replace(/[()（）]/g, ''), comment: cmt };
+      if (day) r.dday = day;
       if (opt.school && !matchSchool(team, opt.school)) return;
       var probs = []; if (badMark) { probs.push('記録の形（「' + r.mark + '」）'); r.mark = ''; } else if (!r.mark) probs.push('記録'); if (!r.event) probs.push('種目'); if (r.mark && !STATUS.test(r.mark) && windApplies(r.event) && r.wind === '') probs.push('風');
       if (probs.length) warns.push((r.event || '種目不明') + ' ' + r.name + '：' + probs.join('・') + 'を読み取れませんでした');
@@ -2908,7 +2925,7 @@ var ResultParser = (function () {
     var s = ''; ws.forEach(function (w, i) { if (i) { var p = ws[i - 1], gap = w.x - (p.x + p.w); s += gap > Math.max(2, 0.45 * (w.h || 8)) ? ' ' : ''; } s += w.t; }); return s;
   }
   function parseRelayPdf(pages) {
-    var out = [], ev = '', round = '';
+    var out = [], ev = '', round = '', day = '';
     pages.forEach(function (pg, pi) {
       var L = lines(toWords(pg.items)), events = [];
       L.forEach(function (l) {
@@ -2916,6 +2933,7 @@ var ResultParser = (function () {
         if (/順位/.test(t) && /記録/.test(t) && /チーム/.test(t)) { var hc = relayHeaderCols(l, pg.width); if (hc.length) events.push({ y: l.y, type: 'hdr', cols: hc }); return; }
         var ts = t.replace(/\s/g, '');
         if (TITLE.test(ts) && t.length < 40 && !/順位/.test(t)) events.push({ y: l.y, type: 'ev', v: t.trim() });
+        var dh = /順位/.test(t) ? '' : dayHead(t); if (dh) events.push({ y: l.y - 0.01, type: 'day', v: dh });   // v0.26.47
         var rm = roundOf(ts); if (rm && t.length < 40 && !/順位/.test(t)) events.push({ y: l.y, type: 'round', v: rm });
         l.w.forEach(function (w) { var hm = w.n.match(/^(\d+)組$/); if (hm) events.push({ y: l.y, type: 'heat', x: w.x, v: +hm[1] }); });
       });
@@ -2924,7 +2942,7 @@ var ResultParser = (function () {
       hdrs.forEach(function (h, hi) {
         var yEnd = hi + 1 < hdrs.length ? hdrs[hi + 1].y - 1 : pg.height + 1;
         var before = events.filter(function (e) { return e.y <= h.y; });
-        before.forEach(function (e) { if (e.type === 'ev') { if (e.v !== ev) { ev = e.v; round = ''; } } if (e.type === 'round') round = e.v; });
+        before.forEach(function (e) { if (e.type === 'ev') { if (e.v !== ev) { ev = e.v; round = ''; } } if (e.type === 'round') round = e.v; if (e.type === 'day') day = e.v; });
         var evBreak = events.filter(function (e) { return (e.type === 'ev' || e.type === 'heat') && e.y > h.y + 2 && e.y < yEnd; });
         if (!isRelay(ev) && !relayEvent(ev)) return;
         h.cols.forEach(function (c) {
@@ -2960,7 +2978,7 @@ var ResultParser = (function () {
               return relayRunner(joinTight(kj), kn.map(function (w) { return w.t; }).join(' '), b.n);
             }).filter(function (r) { return r.name; });
             if (/^(DNS|DNF|DQ|NM|DSQ)\s*[:：]/.test(nk(joinTight(t.w)).replace(/\s+/g, ''))) return;   // v0.26.25：欄外の「DNS:欠場」などの説明はチームではない
-            out.push({ event: relayEvent(ev), round: round, heat: hev ? hev.v : '', rank: rank ? +rank.n : '', lane: lane ? +lane.n : '', team: nk(joinTight(t.w)).replace(/\s+/g, ''), mark: mark, comment: addTags(nk(cmt).trim(), rtg), runners: runners, page: pi + 1, src: 'pdf' });
+            out.push(Object.assign(day ? { dday: day } : {}, { event: relayEvent(ev), round: round, heat: hev ? hev.v : '', rank: rank ? +rank.n : '', lane: lane ? +lane.n : '', team: nk(joinTight(t.w)).replace(/\s+/g, ''), mark: mark, comment: addTags(nk(cmt).trim(), rtg), runners: runners, page: pi + 1, src: 'pdf' }));
           });
         });
       });
@@ -3200,7 +3218,7 @@ var ResultParser = (function () {
     out.sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
     return { rows: out, cal: cal, err: out.length ? '' : '予定（VEVENT）がありません' };
   }
-  return { parsePdf: parsePdf, parseCells: parseCells, goldMobileStream: goldMobileStream, parsePlain: parsePlain, textToStream: textToStream, normEvent: normEvent, markValue: markValue, windApplies: windApplies, windClass: windClass, windNum: windNum,
+  return { dayHead: dayHead, parsePdf: parsePdf, parseCells: parseCells, goldMobileStream: goldMobileStream, parsePlain: parsePlain, textToStream: textToStream, normEvent: normEvent, markValue: markValue, windApplies: windApplies, windClass: windClass, windNum: windNum,
     computeBests: computeBests, baseEvent: baseEvent, learnGenders: learnGenders, isRelay: isRelay, relayEvent: relayEvent, relayTeamBase: relayTeamBase, matchRelayTeam: matchRelayTeam, parseRelayGold: parseRelayGold, parseRelayPdf: parseRelayPdf, mergeRelays: mergeRelays, legsText: legsText, parseLegs: parseLegs, relayRecord: relayRecord, pbLookup: pbLookup, nameKey: nameKey, athleteKey: athleteKey, matchSchool: matchSchool, schoolLoose: schoolLoose, cleanMark: cleanMark, isTag: isTag, canonSchool: canonSchool, cyuTeam: cyuTeam, recId: recId, recIdLegacy: recIdLegacy, recIdV6: recIdV6, identityKey: identityKey, fullIdentity: fullIdentity, looseIdentity: looseIdentity, manualRecord: manualRecord, sanitizeRecord: sanitizeRecord, validDate: validDate, normManualWind: normManualWind, dedupe: dedupe, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
     guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText,
     eventCat: eventCat, divisionOf: divisionOf, divLabel: divLabel, eventKey: eventKey, eventKeyLabel: eventKeyLabel, shownWind: shownWind, hasMark: hasMark, sortAthletes: sortAthletes, kanaKey: kanaKey,
