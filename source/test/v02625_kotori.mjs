@@ -48,8 +48,8 @@ await check('呼べるのは LANE NOTE のアドレスだけ（masarun0721.githu
   assert.equal((await worker.fetch(req('https://example.org/a.pdf', 'https://lane-note.web.app'))).headers.get('access-control-allow-origin'), 'https://lane-note.web.app');
   assert.equal((await worker.fetch(req('https://example.org/a.pdf', 'https://evil.invalid'))).status, 403);
 });
-await check('回数制限：LIMITER がなくても IP ごとに1分600回まで（601回目は 429・別の IP は通る）', async () => {
-  for (let i = 0; i < 600; i++) assert.equal((await worker.fetch(req('https://example.org/a.pdf', OK, { 'CF-Connecting-IP': '203.0.113.5' }))).status, 200);
+await check('回数制限：LIMITER がなくても IP ごとに1分1200回まで（1201回目は 429・別の IP は通る）', async () => {
+  for (let i = 0; i < 1200; i++) assert.equal((await worker.fetch(req('https://example.org/a.pdf', OK, { 'CF-Connecting-IP': '203.0.113.5' }))).status, 200);
   assert.equal((await worker.fetch(req('https://example.org/a.pdf', OK, { 'CF-Connecting-IP': '203.0.113.5' }))).status, 429);
   assert.equal((await worker.fetch(req('https://example.org/a.pdf', OK, { 'CF-Connecting-IP': '203.0.113.6' }))).status, 200);
 });

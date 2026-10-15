@@ -2514,7 +2514,7 @@ if (typeof module !== 'undefined') module.exports = LaneAuth;
 
 </script>
 <script>
-var APP_VERSION = "v0.26.50";
+var APP_VERSION = "v0.26.51";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>
@@ -2736,6 +2736,78 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
     res.sort(function (a, b) { return a.r.url < b.r.url ? -1 : a.r.url > b.r.url ? 1 : 0; });
     return { results: res, failed: failed, requests: req, gold: gold, rest: rest };
   }
+  /* v0.26.51 速報ページ（gold）を、ラウンドの順に必要なページだけ取る（1年分の記録をまとめる）
+     ・一覧（kyougi*.html）を全部取り、種目ごとのラウンドを o.rounds(html, url) で読む
+     ・まず各種目の最初のラウンド（予選・ﾀｲﾑﾚｰｽ・1回目の決勝…）のページを全部取る。o.has(ページ) で、この学校の選手がいそうか見る
+     ・その種目の最初のラウンドに一度も出てこなければ、あとのラウンド（準決勝・決勝・総合結果）は取らない（出ていない選手は次のラウンドにもいない）
+     ・読めなかったページは「いそう」とみなす（あとのラウンドも取る）。一覧に種目がないページ・どの種目か分からないページは全部取る
+     ・取るページの選び方（同じフォルダ・結果のページ・とばす名前）は crawlMeet と同じ。いくつかを同時に取る（速さは o.fetch の側でそろえる）
+     ・o.get(url) は前に取ったページ（同じ画面のうちは読み直さない）、o.no(url) はこの学校がいないと分かっているページ（取らない）、o.put(url, r, いそうか) で控える
+     返すもの：{ results: [{r, label}]（この学校がいそうなページ、URLの順）, failed, requests, pages（取ったページの数・控えから使った数も含む）, skipped（とばしたページの数）, events } */
+  async function crawlRounds(page, o) {
+    o = o || {}; var conc = o.conc || 6, dir = dirOf(page.url), seen = {}, req = 0, failed = [], done = 0;
+    var within = function (l) { return l.kind === 'page' && l.url.indexOf(dir) === 0 && !SKIP_URL.test(l.url) && !SKIP_LAB.test(l.label); };
+    var abort = function () { if (o.signal && o.signal.aborted) { var e = new Error('中止しました'); e.name = 'AbortError'; throw e; } };
+    var get = async function (u) {
+      var c = o.get && o.get(u); if (c) return c;
+      abort(); req++; var r = await fetchUrl(u, { noRedirect: true, signal: o.signal, fetch: o.fetch }); return r;
+    };
+    var many = async function (list, each) {
+      var i = 0, ws = [];
+      var w = async function () { while (i < list.length) { var t = list[i++]; abort(); await each(t); } };
+      for (var k = 0; k < Math.min(conc, list.length); k++) ws.push(w()); await Promise.all(ws);
+    };
+    // 1) 一覧のページ（2段まで）と、結果のページのURL（出てきた順）
+    seen[page.url.replace(/#.*$/, '')] = 1;
+    var idx = [page], level = [page], res = [], lab = {};
+    for (var d = 0; level.length; d++) {
+      var nx = [];
+      level.forEach(function (pg) {
+        findLinks(pg.html, pg.url).filter(within).forEach(function (l) {
+          if (seen[l.url]) return;
+          if (GOLD_RES.test(l.url)) { seen[l.url] = 1; res.push(l.url); lab[l.url] = l.label; } else if (GOLD_IDX.test(l.url) && d < 2) { seen[l.url] = 1; nx.push(l); }
+        });
+      });
+      var got = [];
+      await many(nx, async function (l) {
+        try { var r = await get(l.url); if (r.kind === 'html') { got.push(r); o.put && o.put(l.url, r, true); } }
+        catch (e) { if (e && e.name === 'AbortError') throw e; failed.push({ label: l.label, error: e.message }); }
+        o.onProgress && o.onProgress({ done: ++done, total: done + nx.length - got.length, label: l.label, step: 'idx' });
+      });
+      got.sort(function (a, b) { return a.url < b.url ? -1 : a.url > b.url ? 1 : 0; });
+      idx = idx.concat(got); level = got;
+    }
+    var inRes = {}; res.forEach(function (u) { inRes[u] = 1; });
+    // 2) 種目ごとのラウンド
+    var evs = [], where = {};
+    idx.forEach(function (pg) { (o.rounds ? o.rounds(pg.html, pg.url) : []).forEach(function (ev) { evs.push(ev); }); });
+    evs.forEach(function (ev, ei) {
+      var rs = ev.rounds.map(function (r) { return { lab: r.lab, sogo: r.sogo, links: r.links.filter(function (u) { return inRes[u] && where[u] == null; }) }; }).filter(function (r) { return r.links.length; });
+      var f = -1; for (var k = 0; k < rs.length; k++) if (!rs[k].sogo) { f = k; break; }
+      rs.forEach(function (r, k) { r.links.forEach(function (u) { where[u] = { ev: ei, first: f < 0 || k === f }; }); });
+    });
+    var first = res.filter(function (u) { return !where[u] || where[u].first; }), later = res.filter(function (u) { return where[u] && !where[u].first; });
+    var hit = {}, keep = {}, total = first.length + later.length;
+    var one = async function (u) {
+      var pos = true, r = null;
+      if (o.no && o.no(u)) pos = false;
+      else {
+        try { r = await get(u); pos = r.kind === 'html' ? (o.has ? !!o.has(r) : true) : false; if (r.kind === 'html') o.put && o.put(u, r, pos); }
+        catch (e) { if (e && e.name === 'AbortError') throw e; failed.push({ label: lab[u] || u, error: e.message }); pos = true; r = null; }
+      }
+      if (pos && where[u]) hit[where[u].ev] = 1;
+      if (pos && r) keep[u] = r;
+      done++; o.onProgress && o.onProgress({ done: done, total: done + Math.max(0, total - doneRes()), label: lab[u] || '', step: 'res' });
+    };
+    var nRes = 0, doneRes = function () { return nRes; };
+    var wrap = async function (u) { await one(u); nRes++; };
+    // 3) 最初のラウンド → この学校がいた種目だけ、あとのラウンド
+    await many(first, wrap);
+    var go = later.filter(function (u) { return hit[where[u].ev]; }); total = first.length + go.length;
+    await many(go, wrap);
+    var out = Object.keys(keep).sort().map(function (u) { return { r: keep[u], label: lab[u] || '' }; });
+    return { results: out, failed: failed, requests: req, pages: idx.length + first.length + go.length, skipped: later.length - go.length, events: evs.length };
+  }
   function guessTarget(label, targets) {
     for (var i = 0; i < targets.length; i++) if (targets[i].re && targets[i].re.test(label)) return targets[i].k;
     return '';
@@ -2868,7 +2940,7 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
     }
     return { go: go, offer: offer, setTarget: function (k) { if (multi) $('Tgt').value = k; } };
   }
-  var api = { PROXY: PROXY, MAX: MAX, MSG: MSG, isUrlOnly: isUrlOnly, normUrl: normUrl, sniff: sniff, decodeHtml: decodeHtml, fetchUrl: fetchUrl, toFile: toFile, findLinks: findLinks, guessTarget: guessTarget, isMeetPage: isMeetPage, crawlMeet: crawlMeet, setPaused: setPaused, MAX_CRAWL: MAX_CRAWL, fileName: fileName, mount: mount };
+  var api = { PROXY: PROXY, MAX: MAX, MSG: MSG, isUrlOnly: isUrlOnly, normUrl: normUrl, sniff: sniff, decodeHtml: decodeHtml, fetchUrl: fetchUrl, toFile: toFile, findLinks: findLinks, guessTarget: guessTarget, isMeetPage: isMeetPage, crawlMeet: crawlMeet, crawlRounds: crawlRounds, setPaused: setPaused, MAX_CRAWL: MAX_CRAWL, fileName: fileName, mount: mount };
   if (typeof module === 'object' && module.exports) module.exports = api;
   root.LaneUrl = api;
 })(typeof window !== 'undefined' ? window : globalThis);

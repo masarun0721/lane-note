@@ -141,6 +141,40 @@ var LaneYear = (function () {
     var hit = res.cands.filter(function (e) { return branchOf(e) === top; });
     return hit.length === 1 ? hit[0].url : '';
   }
-  return { HUBS: HUBS, fyOf: fyOf, labelDays: labelDays, venuesOf: venuesOf, normName: normName, nameScore: nameScore, parseIndex: parseIndex, plansIn: plansIn, hubsFor: hubsFor, match: match, suggest: suggest, branchOf: branchOf, stripName: stripName };
+  /* v0.26.51 速報ページ（gold）の競技一覧（kyougiN.html）：種目ごとのラウンド（予選・決勝・ﾀｲﾑﾚｰｽ・総合結果…）と、その結果のページのURL
+     返すもの：[{ ev: '男子 ４００ｍ', rounds: [{ lab: '予選 7月25日', sogo: false, links: [URL, …] }, …] }]（ラウンドの名前の行のあとのリンクが、そのラウンドのページ） */
+  function goldRounds(html, base) {
+    var out = [], parts = String(html || '').split(/<a\s+name\s*=\s*["']?KY\d+["']?\s*>/i);
+    for (var i = 1; i < parts.length; i++) {
+      var p = parts[i], e = p.indexOf('</a>'), ev = { ev: txt(e < 0 ? '' : p.slice(0, e)), rounds: [] }, cur = null;
+      p.slice(e < 0 ? 0 : e + 4).split(/<br\s*\/?>|<hr[^>]*>/i).forEach(function (ln) {
+        var hs = [], m, re = /<a\s[^>]*href\s*=\s*["']?([^"'\s>]+)/gi;
+        while ((m = re.exec(ln))) { try { var u = new URL(ent(m[1]), base); u.hash = ''; if (/\/rel\d+\.html?$/i.test(u.pathname)) hs.push(u.href); } catch (er) { } }
+        if (hs.length) { if (!cur) { cur = { lab: '', sogo: false, links: [] }; ev.rounds.push(cur); } cur.links = cur.links.concat(hs); return; }
+        var t = txt(ln); if (!t || /^[(（]/.test(t) || /^結果$/.test(t)) return;
+        cur = { lab: t, sogo: /総合|上位/.test(t), links: [] }; ev.rounds.push(cur);
+      });
+      ev.rounds = ev.rounds.filter(function (r) { return r.links.length; });
+      if (ev.rounds.length) out.push(ev);
+    }
+    return out;
+  }
+  /* v0.26.51 結果のページに、この学校・クラブの選手がいそうか（いなければ、その種目の次のラウンドは読まない）
+     いそう＝ページの文字（空白を除く）に学校名の本体（「中・高・中学校…」を除いたもの）があるか、行ごとに学校名が合う（match：アプリの学校名の比べ方）。迷うものは「いそう」にする */
+  function pageHas(html, school, match) {
+    var q = nk(school).trim(); if (!q) return true;
+    var body = nk(ent(String(html || '').replace(/<(script|style)[\s\S]*?<\/\1>/gi, ' ').replace(/<br\s*\/?>|<\/?(td|th|tr|p|div|font|li)[^>]*>/gi, '\n').replace(/<[^>]*>/g, ' ')));
+    var flat = body.replace(/[\s\u3000]+/g, ''), core = q.replace(/[\s\u3000]+/g, '').replace(/^(都立|区立|市立|県立|国立|私立)/, '').replace(/(高等学校|中学校|高校|中学|高|中)$/, '');
+    if (core && flat.indexOf(core) >= 0) return true;
+    if (!match) return !core;
+    var ls = body.split('\n');
+    for (var i = 0; i < ls.length; i++) {
+      var l = ls[i].replace(/[\s\u3000]+/g, ' ').trim(); if (!l || l.length > 40) continue;
+      var v = [l, l.replace(/^\d+\s*[・･]\s*/, ''), l.replace(/\s*[A-ZＡ-Ｚ]$/, '')];
+      for (var k = 0; k < v.length; k++) { try { if (match(v[k])) return true; } catch (e) { return true; } }
+    }
+    return false;
+  }
+  return { goldRounds: goldRounds, pageHas: pageHas, HUBS: HUBS, fyOf: fyOf, labelDays: labelDays, venuesOf: venuesOf, normName: normName, nameScore: nameScore, parseIndex: parseIndex, plansIn: plansIn, hubsFor: hubsFor, match: match, suggest: suggest, branchOf: branchOf, stripName: stripName };
 })();
 if (typeof module !== 'undefined') module.exports = LaneYear;

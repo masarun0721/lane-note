@@ -19,7 +19,7 @@ const ALLOWED_ORIGINS = ["https://masarun0721.github.io", "https://lane-note.web
 const MAX_BYTES = 20 * 1024 * 1024; // 20MiB まで（実際の受信量）
 const TIMEOUT_MS = 20000;
 const MAX_REDIRECTS = 5;
-const RATE = { limit: 600, period: 60000 };   // LIMITER の束縛がないときの簡易な回数制限（IPごと・1分600回＝大会まとめ取り込みは通る。1つの実行環境の中だけで数える）
+const RATE = { limit: 1200, period: 60000 };   // LIMITER の束縛がないときの簡易な回数制限（IPごと・1分1200回＝1年分のまとめ取り込みも数分で通る（v0.26.51）。1つの実行環境の中だけで数える）
 
 function baseHeaders(origin) {
   return {

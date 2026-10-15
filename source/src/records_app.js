@@ -1728,6 +1728,12 @@
      ・読む：この端末が中継を通して1大会ずつ順に読み、今までの読み取り（大会名・日付は大会予定のもの・種目ごとの日付・期間の外の行・中学／高校）で確認画面に出す
      ・保存：「まとめて保存」を押したときだけ（確認つき）。もう取り込んである大会は、ふつうは読まない（読んでも同じ記録は重ねない） */
   var YB = { rows: null, busy: false, ctrl: null, cur: null, manual: '', cache: {}, hubs: [], note: '', saved: null, from: '', to: '' };
+  /* v0.26.51 速く読む
+     ・中継（Worker）の回数の上限は、1つの端末から1分に1200回（v0.26.51 で 600 → 1200）。少し余裕をもって1分に1080回まで（一定の間をあけて、いくつかを同時に取る）。
+       混んでいる（429）と言われたら、全部いったん待ってから、少し遅くして続ける（中継がまだ1分600回のままでも、遅くなるだけで取りこぼさない）
+     ・この画面で一度取ったページ（一覧・この学校の選手がいるページ）は、読み直すときに取りに行かない。この学校がいないと分かったページも取らない
+     ・速報ページは、各種目の最初のラウンドにこの学校の選手がいないとき、あとのラウンドのページを取らない（LaneUrl.crawlRounds） */
+  YB.lim = 1080; YB.par = 8; YB.pages = {}; YB.negs = {}; YB.pageSchool = ''; YB.gate = { next: 0, until: 0 }; YB.reqN = 0;
   function ybDivOf(r) { var g = R.nk(r.grade || '').trim(); if (/^中/.test(g)) return 'jh'; if (/^高/.test(g)) return 'hs'; if (R.cyuTeam(r.team)) return 'jh'; var t = R.canonSchool(r.team || ''); return /中$/.test(t) ? 'jh' : /高$/.test(t) ? 'hs' : ''; }
   // 中学と高校の大会予定で同じ資料を使うとき：その予定の区分の行だけ。区分の分からない行は、先に読む予定（ybUnk）だけ
   function ybKeep(b, d) { return !b.ybDiv || (d ? d === b.ybDiv : !!b.ybUnk); }
@@ -1763,7 +1769,7 @@
     else if (st === 'pick') h += '❓ <b>候補を確認</b> <small class="muted">（' + esc(r.why) + '）</small><div class="yb-c">' + r.cands.map(function (c, j) { return '<label><input type="radio" name="ybp' + i + '" data-ybpick="' + i + '" value="' + j + '"> ' + esc(c.name) + (c.url === r.sug ? ' <b class="yb-sug">おすすめ</b><small class="muted">（ほかの支部の大会と同じ支部）</small>' : '') + '<br>' + ybSrc(c) + '</label>'; }).join('') + '<label><input type="radio" name="ybp' + i + '" data-ybpick="' + i + '" value="-1"> どれでもない</label></div>' + add;
     else if (st === 'none') h += '✖ <b>見つからない</b> <small class="muted">（' + esc(r.why) + '）</small>' + add;
     else if (st === 'loading') h += '⏳ <b>読み込み中</b> <span class="yb-prog">' + esc(r.prog || '') + '</span>';
-    else if (st === 'ready') h += '📄 <b>読み取りました</b>（保存する記録 ' + r.n + '件・下の確認画面）' + (r.warn ? '<br><small class="warn">⚠ ' + esc(r.warn) + '</small>' : '');
+    else if (st === 'ready') h += '📄 <b>読み取りました</b>（保存する記録 <b class="yb-n">' + r.n + '件</b>' + (r.hi && r.hi.ppl ? '・選手 ' + r.hi.ppl + '人' : '') + '・下の確認画面）' + (r.hi && r.hi.pb ? '<br><span class="yb-pb">⭐ 自己ベスト更新 ' + r.hi.pb + '件</span> <small class="muted">' + esc(r.hi.ex.join('／') + (r.hi.pb > r.hi.ex.length ? ' ほか' : '')) + '</small>' : '') + (r.warn ? '<br><small class="warn">⚠ ' + esc(r.warn) + '</small>' : '');
     else if (st === 'empty') h += '— <b>この学校の記録がありません</b><small class="muted">（読み取りましたが、学校・クラブ名の選手が見つかりませんでした' + (r.bad && r.bad.length ? '：' + esc(r.bad[0]) : '') + '）</small>' + add;
     else if (st === 'err') h += '✖ <b>読み込めませんでした</b> <small class="ng">' + esc(r.err || '') + '</small>' + add;
     else if (st === 'saved') h += '✅ <b>取り込み済み（' + r.done + '件）</b>';
@@ -1787,14 +1793,51 @@
       (rows.length ? '<p class="small yb-sum1">見つかった ' + ((cnt.found || 0) + (cnt.done || 0)) + '・候補を確認 ' + (cnt.pick || 0) + '・見つからない ' + (cnt.none || 0) + (cnt.ready ? '・読み取り済み ' + cnt.ready : '') + (cnt.saved ? '・保存済み ' + cnt.saved : '') + '（全 ' + rows.length + '大会）</p><ul class="yb-list" id="ybList">' + rows.map(ybRowHtml).join('') + '</ul>' +
         '<div class="rb-row yb-acts"><button type="button" class="btn" id="ybRead"' + (n.go && !YB.busy ? '' : ' disabled') + '>📥 まとめて読み込む（' + n.go + '大会）</button>' +
         '<button type="button" class="btn" id="ybSave"' + (ready.length && !YB.busy ? '' : ' disabled') + '>💾 まとめて保存（' + ready.length + '大会・' + recN + '件）</button></div>' +
-        '<p class="small muted">大きな大会は、1つで数百ページあります。全部で十数分かかることがあります。読み込みの間は、この画面を開いたままにしてください（スマホは画面が消えないように）。読み込んだ記録は、保存する前に下の確認画面で1大会ずつ確かめられます。</p>' : '') +
+        '<p class="small muted">大きな大会は、1つで数百ページあります（この学校の選手が出ていない種目の決勝などは読みません）。1年分（30大会ほど）で5分くらいかかります（中継が混んでいるときは、もう少しかかります）。読み終わった大会から、記録の件数と自己ベストの更新が出ます。読み込みの間は、この画面を開いたままにしてください（スマホは画面が消えないように）。読み込んだ記録は、保存する前に下の確認画面で1大会ずつ確かめられます。</p>' : '') +
       (YB.saved ? YB.saved : '');
   }
   function ybMsg(t, c) { YB.note = t; var el = $('ybMsg'); if (el) { el.className = 'status' + (c ? ' ' + c : ''); el.textContent = t; } }
-  // 中継の回数制限（429）のときは少し待ってから（最大4回）
+  // 中継の回数の上限に合わせて間をあける（1分に YB.lim 回まで）。429 のときは全部いったん待って、少し遅くして続ける（最大5回）
+  function ybSleep(ms) { return new Promise(function (ok) { setTimeout(ok, Math.max(0, ms)); }); }
+  async function ybSlot() {
+    for (;;) {
+      var g = YB.gate, now = Date.now(), gap = 60000 / Math.max(1, YB.limNow || YB.lim);
+      if (now < g.until) { await ybSleep(g.until - now); continue; }
+      if (now >= g.next) { g.next = now + gap; return; }
+      var t = g.next; g.next += gap; await ybSleep(t - now); return;
+    }
+  }
   function ybFetch(u, o) {
-    var go = async function (k) { var r = await window.fetch(u, o); if (r && r.status === 429 && k < 4) { ybMsg('⏳ 中継が混んでいます。少し待ってから続けます…', 'busy'); await new Promise(function (ok) { setTimeout(ok, YB.wait429 == null ? 15000 * (k + 1) : YB.wait429); }); return go(k + 1); } return r; };
+    var go = async function (k) {
+      await ybSlot(); YB.reqN++;
+      var r = await window.fetch(u, o);
+      if (r && r.status === 429 && k < 5) {
+        var w = YB.wait429 == null ? 15000 * (k + 1) : YB.wait429;
+        if (Date.now() >= YB.gate.until) YB.limNow = Math.max(120, Math.floor((YB.limNow || YB.lim) * 0.8));   // 同時に返ってきた 429 で何回も下げない
+        YB.gate.until = Math.max(YB.gate.until, Date.now() + w);
+        ybMsg('⏳ 中継が混んでいます。' + Math.round(w / 1000) + '秒ほど待ってから、少しゆっくり続けます…', 'busy');
+        return go(k + 1);
+      }
+      return r;
+    };
     return go(0);
+  }
+  // この画面で取ったページを使い回す（学校名が変わったら、いる・いないの控えは捨てる）
+  function ybPagesFor() { var q = school() + '|' + (MODE.personal ? 1 : 0); if (YB.pageSchool !== q) { YB.pageSchool = q; YB.negs = {}; Object.keys(YB.pages).forEach(function (u) { if (!YB.pages[u].idx) delete YB.pages[u]; }); } }
+  async function ybGet(u, sig) {
+    var c = YB.pages[u]; if (c) return c.r;
+    var r = await LaneUrl.fetchUrl(u, { signal: sig, fetch: ybFetch }); YB.pages[u] = { r: r, idx: true }; return r;
+  }
+  // この学校・クラブの選手がいそうなページか（個人で使うとき・学校名がないとき・「みんなの結果」から読むときは、全部読む）
+  function ybHas(r) { var q = school(); if (!q || MODE.personal || (YB.cur0 && YB.cur0.sel && YB.cur0.sel.pub)) return true; return LaneYear.pageHas(r.html, q, function (t) { return R.matchSchool(t, q) || R.matchSchool(R.relayTeamBase(t), q); }); }
+  // 残り時間の目安：残りのページ数 ÷ 速さ（今までの速さ。上限の速さより速くはならない）
+  function ybEta() {
+    var E = YB.eta; if (!E) return '';
+    var avg = E.pgN ? E.pgSum / E.pgN : 150, left = Math.max(0, E.curTotal - E.curDone);
+    E.later.forEach(function (x) { left += x === 'pdf' ? 1 : avg; });
+    var req = YB.reqN - E.req0, sec = (Date.now() - E.t0) / 1000, cap = (YB.limNow || YB.lim) / 60, rate = req >= 30 && sec > 3 ? Math.min(cap, req / sec) : cap * 0.9;
+    var m = left / rate / 60;
+    return left < 1 ? '' : m < 1 ? 'あと1分たらず' : 'あと約' + Math.ceil(m) + '分';
   }
   async function ybFind() {
     if (YB.busy || typeof LaneYear === 'undefined' || !window.LaneUrl) return;
@@ -1805,7 +1848,7 @@
     try {
       for (var i = 0; i < hubs.length; i++) {
         ybMsg('🔎 結果の一覧を読んでいます…（' + (i + 1) + '／' + hubs.length + '）' + hubs[i].hub.label, 'busy');
-        try { var r = await LaneUrl.fetchUrl(hubs[i].url, { signal: YB.ctrl && YB.ctrl.signal, fetch: ybFetch }); check(sc); if (r.kind === 'html') ents = ents.concat(LaneYear.parseIndex(hubs[i].hub, r.html, r.url, hubs[i].fy)); }
+        try { ybPagesFor(); var r = await ybGet(hubs[i].url, YB.ctrl && YB.ctrl.signal); check(sc); if (r.kind === 'html') ents = ents.concat(LaneYear.parseIndex(hubs[i].hub, r.html, r.url, hubs[i].fy)); }
         catch (e) { if (isAbort(e) || e && e.name === 'AbortError') throw e; miss.push(hubs[i].hub.label + ' ' + hubs[i].fy + '年度：' + e.message); }
       }
       var api = resApi(), pubFrom = new Date(Date.parse(td + 'T00:00:00Z') - 31 * 864e5).toISOString().slice(0, 10), decided = [];
@@ -1827,22 +1870,41 @@
     } catch (e) { YB.busy = false; if (e && e.name === 'AbortError') ybMsg('やめました。', ''); else if (!isAbort(e)) ybMsg('✖ ' + (e && e.message || e), 'ng'); }
     ybRender();
   }
-  // 1つの大会の資料（速報ページなら結果のページを全部たどる。PDF はそのまま）。同じURLを2つの予定で使うときは、1回だけ読む
+  // 1つの大会の資料（速報ページなら、この学校の選手がいそうな結果のページを取る。PDF はそのまま）。同じURLを2つの予定で使うときは、1回だけ読む
   async function ybFiles(r, sc) {
     var u = r.sel.url; if (YB.cache[u]) return YB.cache[u];
-    var sig = YB.ctrl && YB.ctrl.signal, pg = await LaneUrl.fetchUrl(u, { signal: sig, fetch: ybFetch }); check(sc);
+    ybPagesFor(); YB.cur0 = r;
+    var sig = YB.ctrl && YB.ctrl.signal, pg = await ybGet(u, sig); check(sc);
     var files;
-    if (pg.kind === 'pdf') files = [LaneUrl.toFile(pg)];
+    if (pg.kind === 'pdf') { files = [LaneUrl.toFile(pg)]; r.pages = 1; }
     else if (LaneUrl.isMeetPage(pg, LaneUrl.findLinks(pg.html, pg.url))) {
-      var res = [], rest = null, fail = 0, k = 0;
-      do {
-        var out = await LaneUrl.crawlMeet(pg, { resume: rest, signal: sig, fetch: ybFetch, onProgress: function (p) { r.prog = p.done + '／約' + p.total + 'ページ'; var el = document.querySelector('#ybList [data-ybk="' + (window.CSS && CSS.escape ? CSS.escape(r.p.key) : r.p.key) + '"] .yb-prog'); if (el) el.textContent = r.prog; } });
-        check(sc); res = res.concat(out.results); fail = out.failed.length; rest = out.rest.length ? out.rest : null;
-      } while (rest && ++k < 3);
-      if (fail || rest) r.warn = (fail ? '読み込めなかった結果のページ ' + fail + '件' : '') + (rest ? (fail ? '・' : '') + '残り ' + rest.length + 'ページは読んでいません' : '') + '（あとで「📎 資料を入れる」から読み直せます）';
-      files = [pg].concat(res.map(function (x) { return x.r; })).map(LaneUrl.toFile);
-    } else files = [LaneUrl.toFile(pg)];
-    YB.cache[u] = files; return files;
+      var last = 0, sel = '#ybList [data-ybk="' + (window.CSS && CSS.escape ? CSS.escape(r.p.key) : r.p.key) + '"] .yb-prog';
+      var out = await LaneUrl.crawlRounds(pg, {
+        signal: sig, fetch: ybFetch, conc: YB.par, rounds: LaneYear.goldRounds, has: ybHas,
+        get: function (x) { var c = YB.pages[x]; return c ? c.r : null; },
+        no: function (x) { return !!YB.negs[x]; },
+        put: function (x, p, pos) { if (pos) YB.pages[x] = { r: p, idx: /kyougi\d*\.html?$/i.test(x) }; else YB.negs[x] = 1; },
+        onProgress: function (p) {
+          if (YB.eta) { YB.eta.curDone = p.done; YB.eta.curTotal = p.total; }
+          r.prog = p.done + '／約' + p.total + 'ページ'; var now = Date.now(); if (now - last < 400 && p.done < p.total) return; last = now;
+          var el = document.querySelector(sel); if (el) el.textContent = r.prog; var e = ybEta(); if (e) ybMsg(YB.lead + '　' + e, 'busy');
+        }
+      });
+      check(sc); r.pages = out.pages; r.skip = out.skipped;
+      if (out.failed.length) r.warn = '読み込めなかった結果のページ ' + out.failed.length + '件（あとで「📎 資料を入れる」から読み直せます）';
+      files = [pg].concat(out.results.map(function (x) { return x.r; })).map(LaneUrl.toFile);
+    } else { files = [LaneUrl.toFile(pg)]; r.pages = 1; }
+    YB.cur0 = null; YB.cache[u] = files; return files;
+  }
+  // 読み終わった大会のハイライト：選手の数と、自己ベストの更新（保存してある記録と、先に読んだ大会の記録とくらべる）
+  function ybHigh(r, seen) {
+    var rs = []; ybBatches(r).forEach(function (b) { if (b.error || b.xl) return; try { rs = rs.concat(saveList(b).rs); } catch (e) { } });
+    var ind = rs.filter(function (x) { return !R.isRelay(x.event || ''); }), ppl = {}; ind.forEach(function (x) { if (x.name) ppl[R.nameKey(x.name)] = 1; });
+    var ak = {}; ind.forEach(function (x) { ak[R.athleteKey(x)] = 1; });
+    var base = ALL.concat(seen).filter(function (x) { return ak[R.athleteKey(x)]; }), mine = {}; ind.forEach(function (x) { mine[x.id] = x; });
+    var fl = ind.length ? R.computeBests(base.concat(ind)).flags : {}, pb = ind.filter(function (x) { return fl[x.id] === 'PB'; });
+    seen.push.apply(seen, ind);
+    return { ppl: Object.keys(ppl).length, pb: pb.length, ex: pb.slice(0, 2).map(function (x) { return (x.name || '') + ' ' + R.eventKeyLabel(x) + ' ' + x.mark; }) };
   }
   async function ybRead() {
     if (YB.busy || !YB.rows) return;
@@ -1852,25 +1914,29 @@
     var dv = {}, first = {}; list.forEach(function (r) { var d = r.p.div === '中学' ? 'jh' : r.p.div === '高校' ? 'hs' : '-'; (dv[r.sel.url] = dv[r.sel.url] || {})[d] = 1; });
     YB.busy = true; YB.saved = null; YB.ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
     var lock = null; try { if (navigator.wakeLock && navigator.wakeLock.request) lock = await navigator.wakeLock.request('screen'); } catch (e) { }
-    ybRender(); var stopped = false;
+    ybRender(); var stopped = false, seen = [], tot = { m: 0, n: 0 };
+    YB.limNow = YB.lim; YB.eta = { t0: Date.now(), req0: YB.reqN, pgSum: 0, pgN: 0, curDone: 0, curTotal: 0, later: list.map(function (x) { return x.sel.kind === 'pdf' || /\.pdf(\?|$)/i.test(x.sel.url) ? 'pdf' : 'meet'; }) };
     for (var i = 0; i < list.length; i++) {
       var r = list[i], u = r.sel.url, d = dv[u];
       r.div = d.jh && d.hs ? (r.p.div === '中学' ? 'jh' : r.p.div === '高校' ? 'hs' : '') : ''; r.unk = !!r.div && !first[u]; first[u] = 1;
       batches = batches.filter(function (b) { return b.yb !== r.p.key; });   // 読み直すときは前の確認画面を消す
-      r.st = 'loading'; r.prog = ''; r.err = ''; r.warn = ''; r.read = true; ybMsg('📥 読み込み中…（' + (i + 1) + '／' + list.length + '大会）' + r.p.meet, 'busy'); ybRow(r);
+      r.st = 'loading'; r.prog = ''; r.err = ''; r.warn = ''; r.hi = null; r.read = true; YB.eta.later.shift(); YB.eta.curDone = YB.eta.curTotal = 0;
+      YB.lead = '📥 読み込み中…（' + (i + 1) + '／' + list.length + '大会）' + r.p.meet + (tot.m ? '　ここまで ' + tot.m + '大会・' + tot.n + '件' : '');
+      var eta = ybEta(); ybMsg(YB.lead + (eta ? '　' + eta : ''), 'busy'); ybRow(r);
       try {
         var files = await ybFiles(r, sc); check(sc);
         YB.cur = r; try { await handleFilesIn(files, sc); } finally { YB.cur = null; }
-        r.st = 'found';
+        r.st = 'found'; if (r.pages && r.sel.kind !== 'pdf') { YB.eta.pgSum += r.pages; YB.eta.pgN++; }
+        if (ybState(r) === 'ready') { try { r.hi = ybHigh(r, seen); } catch (e) { r.hi = null; } tot.m++; tot.n += r.n; }
       } catch (e) {
         if (isAbort(e)) { stopped = true; break; }
         if (e && e.name === 'AbortError') { r.st = 'found'; r.read = false; stopped = true; break; }
         r.st = 'err'; r.err = e && e.message || String(e);
       }
       if (!list.slice(i + 1).some(function (x) { return x.sel.url === u; })) delete YB.cache[u];   // 端末のメモリを空ける
-      ybRow(r);
+      ybRow(r); var sm = document.querySelector('#rbYear .yb-sum1'); if (sm) sm.textContent = '読み取り済み ' + tot.m + '大会・保存する記録 ' + tot.n + '件（読み込み中）';
     }
-    YB.cache = {}; YB.busy = false; try { if (lock) lock.release(); } catch (e) { }
+    YB.cache = {}; YB.busy = false; YB.eta = null; try { if (lock) lock.release(); } catch (e) { }
     renderBatches();
     var ok = YB.rows.filter(function (r) { return ybState(r) === 'ready'; });
     ybMsg(stopped ? 'やめました（そこまでに読み取った大会は、下の確認画面にあります）。' : '✔ 読み込みました：記録のあった大会 ' + ok.length + '・保存する記録 ' + ok.reduce(function (m, r) { return m + r.n; }, 0) + '件。下の確認画面で確かめてから「まとめて保存」を押してください。', stopped ? '' : 'ok');
