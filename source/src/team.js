@@ -209,6 +209,8 @@ var LaneTeam = (function () {
           if ((it.data === 'keep' || !it.data) && !cur) continue;   // ないものは確認も削除もしない
           var keep = it.data === 'keep', hid = newHid();
           var base = it.repair ? { id: rid } : keep ? shape(cur, !!cur._del) : it.data ? shape(it.data, false) : shape(cur, true);   // repair：壊れた記録の中身は写さず、文書IDだけの削除の印
+          // v0.26.40（監査 C511）：削除の印は、実際の文書ID（rid）から作る。中の id が文書IDと違う旧データは、文書IDだけの削除の印（repair）にする（元の中身は履歴の before に残る）
+          if (!keep && !it.data && (!base || docId(base.id) !== rid)) base = { id: rid };
           if (!base) { if (opt.strict) throw badRecErr(); res.skipped++; continue; }   // 形が正しくない記録は書かない（C404）
           var rec = Object.assign({}, base, { _by: uid, _at: F.serverTimestamp(), _st: role === 'coach' ? (it.st || 'ok') : 'pending', _h: hid });
           if (!keep && !it.data) rec._del = true;
@@ -235,7 +237,7 @@ var LaneTeam = (function () {
     // 最後にサーバーから読み直して、残っている数を返す（{ total, written, skipped, left }）
     async function delAll(t, role, progress) {
       ok(); var s = await srvDocs(col('teams', t, 'records')); ok(); var items = [];
-      s.forEach(function (x) { var v = x.data(); if (v && v._del) return; items.push({ rid: x.id, data: null, act: 'del', repair: !shape(v, true) }); });
+      s.forEach(function (x) { var v = x.data(); if (v && v._del) return; var sh = shape(v, true); items.push({ rid: x.id, data: null, act: 'del', repair: !sh || docId(sh.id) !== x.id }); });   // v0.26.40 C511：中の id と文書IDが違えば repair
       var total = items.length; if (progress) progress(0, total);
       var r = total ? await write(t, role, items, { progress: progress }) : { written: 0, skipped: 0 };
       ok(); var after = await srvDocs(col('teams', t, 'records')); ok(); var left = 0;

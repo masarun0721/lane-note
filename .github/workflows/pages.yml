@@ -35,7 +35,7 @@ jobs:
         working-directory: source/test
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Rules test on emulator
-        run: npx -y firebase-tools@14.12.0 emulators:exec --only firestore --project demo-lane-note --config firebase.json "node source/test/rules_check.mjs && node source/test/rules_team_check.mjs && node source/test/rules_safety_check.mjs && node source/test/rules_counter_e2e.mjs && node source/test/rules_prep_pdf_check.mjs && node source/test/rules_pubmeets_check.mjs && node source/test/rules_join_msg_check.mjs && node source/test/rules_clear_all_check.mjs && node source/test/rules_pubresults_check.mjs && node source/test/rules_astra5_check.mjs"
+        run: npx -y firebase-tools@14.12.0 emulators:exec --only firestore --project demo-lane-note --config firebase.json "node source/test/rules_check.mjs && node source/test/rules_team_check.mjs && node source/test/rules_safety_check.mjs && node source/test/rules_counter_e2e.mjs && node source/test/rules_prep_pdf_check.mjs && node source/test/rules_pubmeets_check.mjs && node source/test/rules_join_msg_check.mjs && node source/test/rules_clear_all_check.mjs && node source/test/rules_pubresults_check.mjs && node source/test/rules_astra5_check.mjs && node source/test/rules_astra5_stage2_check.mjs"
 
   deploy:
     needs: rules

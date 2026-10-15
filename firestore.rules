@@ -204,11 +204,15 @@ service cloud.firestore {
             || (memberOf(t).role == 'manager' && memberOf(t).expiresAt is timestamp && request.time < memberOf(t).expiresAt));
     }
     // v0.26.33 大会準備のPDFのかけら（チーム）
+    // v0.26.40（監査 C505）：かけらは版ごとに別のID（種類_版ID_番号。版IDは英小文字・数字8文字）。新しい版を全部書いて確かめてから、
+    //   大会の印（meets/{k} の prep.docs）を新しい版に切り替える。書いたかけらは書き換えない（create だけ）。古い形（種類_番号）は読む・消すだけ
     function validPdfChunk(c, d) {
-      return c.matches('^(yoko|sl|tt|note)_[0-9]{1,2}$')
-        && d.keys().hasOnly(['kind', 'i', 'n', 'data', 'name', 'size', 'exp', 'by'])
-        && d.keys().hasAll(['kind', 'i', 'n', 'data', 'name', 'size', 'exp', 'by'])
-        && d.kind in ['yoko', 'sl', 'tt', 'note'] && c == d.kind + '_' + string(d.i)
+      return c.matches('^(yoko|sl|tt|note)_[a-z0-9]{8}_[0-9]{1,2}$')
+        && d.keys().hasOnly(['kind', 'v', 'i', 'n', 'data', 'name', 'size', 'sha', 'exp', 'by'])
+        && d.keys().hasAll(['kind', 'v', 'i', 'n', 'data', 'name', 'size', 'sha', 'exp', 'by'])
+        && d.kind in ['yoko', 'sl', 'tt', 'note'] && d.v is string && d.v.matches('^[a-z0-9]{8}$')
+        && d.sha is string && (d.sha == '' || d.sha.matches('^[0-9a-f]{64}$'))
+        && c == d.kind + '_' + d.v + '_' + string(d.i)
         && d.i is int && d.n is int && d.i >= 0 && d.i < d.n && d.n <= 10
         && d.data is string && d.data.size() <= 900000
         && d.name is string && d.name.size() <= 200
@@ -489,7 +493,8 @@ service cloud.firestore {
       match /meets/{k}/pdf/{c} {
         allow get: if activeMember(t) && resource.data.exp > request.time;
         allow list: if false;
-        allow create, update: if activeMember(t) && validPdfChunk(c, request.resource.data);
+        allow create: if activeMember(t) && validPdfChunk(c, request.resource.data);
+        allow update: if false;
         allow delete: if activeMember(t);
       }
       // 設定：中学/高校の選択（divOverrides）はメンバー、それ以外は顧問だけ

@@ -77,21 +77,27 @@
     renderFeePrices();
   }
   // v0.26.33 読み込めたら、大会予定から開いた大会の分として保存する
+  //   v0.26.40（監査 C504・C507）：保存するのは「採用された読み込み」だけ（ファイル名が同じかどうかでは決めない）。
+  //   読み込みを始めたときの uid・認証の世代・大会準備の世代（prepGen）・処理ID（loadSeq）を固定し、await のあとと画面に出す前に確かめる
   async function handleFile(kind, file) {
-    await handleFile0(kind, file);
-    var nm = { sl: state.slName, tt: state.ttName, note: state.noteName, yoko: state.yokoName }[kind];
-    if (file && nm && nm === file.name) { try { await prepDocDone(kind, file); } catch (e) { console.error(e); } }
+    var r = await handleFile0(kind, file);
+    if (r && r.adopted && r.procId === loadSeq[kind] && ctxOk(r.ctx)) { try { await prepDocDone(kind, file, r); } catch (e) { console.error(e); } }
+    return r;
   }
+  function ctxNow() { return { uid: prepUid(), epoch: authEpoch, gen: prepGen }; }
+  function ctxOk(c) { return !!c && c.epoch === authEpoch && c.uid === prepUid() && c.gen === prepGen; }
   async function handleFile0(kind, file) {
-    if (!file) return;
-    var sid = SID[kind], tok = ++loadSeq[kind];
+    var res = { adopted: false, procId: 0, ctx: null };
+    if (!file) return res;
+    var sid = SID[kind], tok = ++loadSeq[kind], ctx = ctxNow(); res.procId = tok; res.ctx = ctx;
+    var live = function () { return tok === loadSeq[kind] && ctxOk(ctx); };
     var fname = file && file.name;
     var had = { sl: state.slName, tt: state.ttName, note: state.noteName, yoko: state.yokoName }[kind];
-    if (file.size > 50 * 1048576) { setStatus(sid, '✖ 「' + esc(file.name) + '」は大きすぎるので読みませんでした（50MBまで）', 'ng'); return; }   // v0.14（監査F09）
+    if (file.size > 50 * 1048576) { setStatus(sid, '✖ 「' + esc(file.name) + '」は大きすぎるので読みませんでした（50MBまで）', 'ng'); return res; }   // v0.14（監査F09）
     setStatus(sid, '読み取り中…「' + esc(file.name) + '」', 'busy');
     try {
-      var pages = await readPdf(file, function (p, n) { if (tok === loadSeq[kind]) setStatus(sid, '読み取り中…「' + esc(file.name) + '」 ' + p + '／' + n + 'ページ', 'busy'); });
-      if (tok !== loadSeq[kind]) return;   // もっと新しいファイルが入れられた
+      var pages = await readPdf(file, function (p, n) { if (live()) setStatus(sid, '読み取り中…「' + esc(file.name) + '」 ' + p + '／' + n + 'ページ', 'busy'); });
+      if (!live()) return res;   // もっと新しいファイルが入れられた・アカウントか大会が変わった（前の人・前の大会の結果は出さない）
       try { fillMeta(pages, fname); } catch (e) { }
       try { (state.docText = state.docText || {})[kind] = pagesText(pages); } catch (e) { }
       try { state.dateCands[kind] = MeetParser.findDates(pages, fname); updateDate(); } catch (e) { console.error(e); }
@@ -106,7 +112,7 @@
       if (kind === 'yoko') {
         var dd = MeetParser.pickDate(state.dateCands.yoko || [], new Date().getFullYear());
         setStatus(sid, '✔ 「' + esc(file.name) + '」 ' + [dd && !dd.fromName ? '日付 ' + dd.label : '日付 見つからず', Object.keys(state.feeParsed.cats).length ? '参加料 読み取り済み' : '参加料 見つからず'].join('・'), 'ok');
-        render(); return;
+        render(); res.adopted = true; return res;
       }
       if (kind === 'sl') {
         var sl = MeetParser.parseStartList(pages);
@@ -142,13 +148,16 @@
         setStatus(sid, '✔ 「' + esc(file.name) + '」 ' + tt.length + '件の種目：時刻あり ' + tOk + '／未確定 ' + (tt.length - tOk) +
           (tds.length > 1 ? '<br><span class="warn">⚠ 複数日（' + esc(tds.join('・')) + '）のタイムテーブルです。結果の上で「対象日」を選ぶまで、出場一覧は出しません。</span>' : ''), tOk === tt.length && tds.length < 2 ? 'ok' : 'ok warnst');
       }
+      res.adopted = live();
     } catch (e) {
-      if (tok !== loadSeq[kind]) return;
+      if (!live()) return res;
       console.error(e);
       if (had) clearKind(kind);   // 入れ替えに失敗 → 前のファイルのデータは使わない（古い大会のまま出力しない）
       setStatus(sid, '✖ ' + esc(e.message || e) + (had ? '<br><b>前に読み込んだ「' + esc(had) + '」のデータは使わないようにしました。</b>もう一度ファイルを入れてください。' : '') + ' <small>（同じファイルをもう一度選び直せます）</small>', 'ng');
     }
+    if (!live()) { res.adopted = false; return res; }
     updateTeams(); render();
+    return res;
   }
   var RULES = [
     { k: 'track', label: 'トラック', ids: ['cT0', 'cT1'], def: '空欄（読めませんでした）' },
@@ -1226,7 +1235,7 @@
     window.addEventListener('beforeprint', function () { refreshPrint(); if (document.body.classList.contains('print-rec')) { try { buildRecSheet(); } catch (e) { } } });
     $('meetDate').addEventListener('input', refreshPrint);
     $('meetName').addEventListener('input', refreshPrint);
-    if ($('planPick')) { $('planPick').addEventListener('change', function () { planPickApply(this.value); this.value = ''; }); planPickFill(); }
+    if ($('planPick')) { $('planPick').addEventListener('change', function () { var k = this.value; this.value = ''; planPickSwitch(k); }); planPickFill(); }
     $('feeInPrint').addEventListener('change', refreshPrint);
     if ($('dateAlt')) $('dateAlt').addEventListener('change', function () { $('meetDate').value = $('dateAlt').value; $('meetDate').dataset.manual = '1'; renderDateMark(); refreshPrint(); });
     $('btnReset').addEventListener('click', resetAll);
@@ -1434,6 +1443,15 @@
       planPickFill();
     } catch (e) { }
   }
+  // v0.26.40（監査 C503）：大会準備を開いているときに別の大会を選んだら、保存先も切り替える。
+  //   前の大会の保存・読み込みは止め（prepGen・loadSeq を進める）、画面を空にしてから、新しい大会の準備を開く。前の大会には書かない
+  function planPickSwitch(k) {
+    var p = PLANS.filter(function (x) { return x.date + '|' + x.meet === k; })[0]; if (!p) return;
+    var was = PREP; if (!was || was.key === k) { planPickApply(k); return; }
+    prepDetach(''); Object.keys(loadSeq).forEach(function (x) { loadSeq[x]++; }); resetScreen();
+    planPickApply(k);
+    prepOpen(p).catch(function (e) { console.error(e); });
+  }
   function planPickApply(k) {
     var p = PLANS.filter(function (x) { return x.date + '|' + x.meet === k; })[0]; if (!p) return;
     $('meetName').value = p.meet; $('meetName').dataset.auto = '';
@@ -1445,7 +1463,9 @@
   function onShareAuth(u) {
     var uid = u ? u.uid : null;
     if (uid === lastUid) return;
-    lastUid = uid; authEpoch++;
+    var prevUid = lastUid; lastUid = uid; authEpoch++;
+    Object.keys(loadSeq).forEach(function (k) { loadSeq[k]++; });   // v0.26.40（監査 C507）：読み込み途中のもの（前のアカウントで始めたもの）は画面に出さない
+    if (prevUid && prevUid !== uid) { try { resetScreen(); } catch (e) { } }   // ログアウト・別のアカウント：前の人の読み取り結果を消す
     if (PREP && PREP.owner.uid !== (uid || '')) prepDetach('アカウントが変わったので、「' + PREP.p.meet + '」への保存をやめました（前のアカウントの保存は出しません）。');   // A01
     PLANS = []; try { planPickFill(); } catch (e) { } if (uid) planPickCloud();
     clearAllShares(); shareShort = ''; PL.links = {}; PBS = { sc: null, look: null }; setTimeout(function () { loadPBs().catch(function () { }); }, 0);
@@ -1946,14 +1966,14 @@
      ・ログイン中はクラウドの大会の印（自分だけ／チーム）にも：URLから読んだ資料は URL だけ（中身は開くときに取り直す）。
        ファイルで入れた資料は 5MB までを meets/{大会}/pdf に分けて保存（チームはメンバーだけ）。4種類とも大会終了の1か月後に自動で消す
      ・A01：保存はアカウント（uid）とチームの組ごと。アカウントが変わったら保存をやめ、前の人の保存は出さない ===== */
-  var PREP = null, PREP_DB = 'lanenote-prep', PREP_IDX = 'lanenote.prep.idx.v1', PREP_CAP = 5 * 1048576, PREP_CH = 800000, prepTimer = 0;
+  var PREP = null, prepGen = 0, PREP_DB = 'lanenote-prep', PREP_IDX = 'lanenote.prep.idx.v1', PREP_CAP = 5 * 1048576, PREP_CH = 800000, prepTimer = 0;
   var PREP_KINDS = ['yoko', 'sl', 'tt', 'note'], PREP_LBL = { yoko: '要項', sl: 'スタートリスト', tt: 'タイムテーブル', note: '注意事項' };
   function prepKeep(kind) { return 30; }   // 大会終了の1か月後に自動で消えます（4種類とも）
   function prepExp(kind, p) { return Date.parse((p.end || p.date) + 'T00:00:00+09:00') + (prepKeep(kind) + 1) * 864e5; }
   function prepOwnerStr(o) { return (o.uid || '') + '|' + (o.team || ''); }
   function prepDocId(k) { return String(k).replace(/\//g, '∕'); }
   function prepUid() { return FB && FB.auth && FB.auth.currentUser ? FB.auth.currentUser.uid : ''; }
-  function prepLive(p) { p = p || PREP; return !!p && PREP === p && p.epoch === authEpoch && prepUid() === p.owner.uid; }
+  function prepLive(p) { p = p || PREP; return !!p && PREP === p && p.gen === prepGen && p.epoch === authEpoch && prepUid() === p.owner.uid; }   // v0.26.40 C503：大会準備の世代（prepGen）も
   function prepIdb() { return new Promise(function (ok, ng) { if (!window.indexedDB) return ng(new Error('IndexedDB が使えません')); var r = indexedDB.open(PREP_DB, 1); r.onupgradeneeded = function () { r.result.createObjectStore('snap', { keyPath: 'id' }); }; r.onsuccess = function () { ok(r.result); }; r.onerror = function () { ng(r.error); }; }); }
   async function prepDb(mode, fn) { var db = await prepIdb(); return new Promise(function (ok, ng) { var tx = db.transaction('snap', mode), q = fn(tx.objectStore('snap')), res; if (q) q.onsuccess = function () { res = q.result; }; tx.oncomplete = function () { db.close(); ok(res); }; tx.onerror = function () { db.close(); ng(tx.error); }; }); }
   function prepIdx(fn) { var o = {}; try { o = JSON.parse(localStorage.getItem(PREP_IDX) || '{}') || {}; } catch (e) { } fn(o); try { localStorage.setItem(PREP_IDX, JSON.stringify(o)); } catch (e) { } }
@@ -1976,7 +1996,7 @@
       (has ? ' <button type="button" class="btn sub small" id="prepErase">🗑 保存を消す</button>' : '') + '<br><small class="muted">' + prepWhere(PREP.owner) + '</small>';
     var b = $('prepErase'); if (b) b.onclick = function () { prepErase().catch(function (e) { prepBar('✖ 消せませんでした：' + esc(e.message)); }); };
   }
-  function prepDetach(msg) { PREP = null; clearTimeout(prepTimer); var pbx = $('pubBox'); if (pbx) pbx.remove(); var bar = $('prepBar'); if (bar) { if (msg) { bar.innerHTML = esc(msg); bar.hidden = false; } else bar.remove(); } if (!msg) { var pb = $('planBar'); if (pb) pb.remove(); try { if (/[?&]plan=/.test(location.search)) history.replaceState(null, '', selfPath()); } catch (e) { } } }
+  function prepDetach(msg) { PREP = null; prepGen++; clearTimeout(prepTimer); var pbx = $('pubBox'); if (pbx) pbx.remove(); var bar = $('prepBar'); if (bar) { if (msg) { bar.innerHTML = esc(msg); bar.hidden = false; } else bar.remove(); } if (!msg) { var pb = $('planBar'); if (pb) pb.remove(); try { if (/[?&]plan=/.test(location.search)) history.replaceState(null, '', selfPath()); } catch (e) { } } }
   function prepLocalSave(now) {
     if (!PREP || PREP.quiet || PREP.paused || !prepLive()) return;
     var p = PREP; clearTimeout(prepTimer);
@@ -2007,10 +2027,45 @@
     catch (e) { if (!/not-found/.test(e.code || '')) throw e; var o = { at: at, info: info, docs: {} }; if (d) o.docs[kind] = d; await F.setDoc(ref, { prep: o }, { merge: true }); }
     p.cloud = p.cloud || { docs: {} }; p.cloud.docs = p.cloud.docs || {}; if (d) p.cloud.docs[kind] = d; else delete p.cloud.docs[kind];
   }
-  async function prepDelChunks(p, kind, from, to) { for (var i = from; i < to; i++) { if (!prepLive(p)) return; try { await FB.F.deleteDoc(prepPath(p.owner, p.key, kind + '_' + i)); } catch (e) { } } }
-  async function prepDocDone(kind, file) {
+  /* v0.26.40（監査 C505）PDFのかけらは「版」ごとに別のIDで保存する（kind_版ID_番号）。
+   *   1) 新しい版のかけらを全部書く → 2) 読み直して数・大きさ・SHA-256 を確かめる → 3) 大会の印（prep.docs.kind）を1回の更新で新しい版に切り替える → 4) 古い版を消す
+   *   途中で失敗したら、新しい版のかけらを片づけ、古い版と大会の印はそのまま（別の端末は古い版か新しい完全な版のどちらかを読む）。画面には「クラウド未保存」と再試行を出す */
+  function prepChunkId(kind, v, i) { return v ? kind + '_' + v + '_' + i : kind + '_' + i; }   // v なし＝v0.26.39 までの古い保存（読むだけ）
+  function prepNewVer() { var A = 'abcdefghijklmnopqrstuvwxyz0123456789', b = new Uint8Array(8), o = ''; crypto.getRandomValues(b); for (var i = 0; i < 8; i++) o += A[b[i] % 36]; return o; }
+  async function prepSha(buf) { try { if (!(window.crypto && crypto.subtle)) return ''; var h = new Uint8Array(await crypto.subtle.digest('SHA-256', buf)), o = ''; for (var i = 0; i < h.length; i++) o += ('0' + h[i].toString(16)).slice(-2); return o; } catch (e) { return ''; } }
+  function prepBadErr(m) { var e = new Error(m || '保存したファイルが壊れているか、途中までしか保存されていません'); e.code = 'prep-bad'; return e; }
+  // 版 d（{ v, n, size, sha }）のかけらを全部読み、数・版・大きさ・ハッシュを確かめてからバイト列を返す（混ざった版は使わない）
+  async function prepReadChunks(o, key, kind, d) {
+    var parts = [];
+    for (var i = 0; i < d.n; i++) {
+      var s = await withTimeout(FB.F.getDoc(prepPath(o, key, prepChunkId(kind, d.v, i))), 20000);
+      if (!s.exists()) throw prepBadErr('保存したファイルが見つかりません（期限が過ぎたか、消されました）');
+      var x = s.data(); if (x.n !== d.n || x.i !== i || (d.v && x.v !== d.v)) throw prepBadErr();
+      parts.push(x.data);
+    }
+    var bytes = bytesOf(parts.join(''));
+    if (d.size && bytes.length !== d.size) throw prepBadErr();
+    if (d.sha) { var h = await prepSha(bytes); if (h && h !== d.sha) throw prepBadErr(); }
+    return bytes;
+  }
+  async function prepDelVer(p, kind, v, from, to) { for (var i = from; i < to; i++) { try { await FB.F.deleteDoc(prepPath(p.owner, p.key, prepChunkId(kind, v, i))); } catch (e) { } } }
+  async function prepDelChunks(p, kind, from, to) { return prepDelVer(p, kind, '', from, to); }
+  function prepUnsaved(p, kind, file, r, e) {
+    if (!prepLive(p)) return;
+    p.retry = p.retry || {}; p.retry[kind] = { file: file, procId: r && r.procId };
+    if (p.docs[kind]) { p.docs[kind].here = 1; prepLocalSave(true); }
+    prepBar('<span class="warn">⚠ <b>クラウド未保存</b>：' + esc(PREP_LBL[kind]) + '「' + esc(file && file.name || '') + '」をクラウドに保存できませんでした（' + esc(e && (e.code === 'prep-bad' ? '確かめたら中身が合いませんでした' : /permission/.test(e.code || '') ? '権限がありません' : '通信できませんでした') || '') + '）。この端末には控えてあります。前に保存した版はそのままです。</span> <button type="button" class="btn small" data-prepretry="' + kind + '">もう一度保存する</button>');
+  }
+  document.addEventListener('click', function (ev) {
+    var t = ev.target, k = t && t.dataset && t.dataset.prepretry, p = PREP; if (!k || !p || !p.retry || !p.retry[k]) return;
+    var x = p.retry[k]; delete p.retry[k];
+    if (x.procId !== loadSeq[k]) { prepBar('この資料は、そのあと入れ直されています。'); return; }
+    prepDocDone(k, x.file, { procId: x.procId }).catch(function (e) { prepUnsaved(p, k, x.file, { procId: x.procId }, e); });
+  });
+  async function prepDocDone(kind, file, r) {
     if (!PREP || PREP.quiet || !prepLive()) return;
-    PREP.paused = false; var p = PREP, o = p.owner, url = String(file.srcUrl || ''), d = { name: String(file.name || '').slice(0, 200), size: file.size || 0, at: new Date().toISOString(), exp: prepExp(kind, p.p) }, note = '';
+    var p = PREP, procId = r && r.procId != null ? r.procId : loadSeq[kind], cur = function () { return prepLive(p) && loadSeq[kind] === procId; };   // C504：採用された読み込みのままか
+    p.paused = false; var o = p.owner, url = String(file.srcUrl || ''), d = { name: String(file.name || '').slice(0, 200), size: file.size || 0, at: new Date().toISOString(), exp: prepExp(kind, p.p) }, note = '';
     if (url) d.url = url.slice(0, 1000);
     p.docs[kind] = d; prepLocalSave(true); prepBar();
     if (!o.uid || !FB) return;
@@ -2019,14 +2074,25 @@
     else if (file.size > PREP_CAP) { cd.here = 1; note = '「' + esc(d.name) + '」は5MBより大きいので、この端末にだけ保存しました。ほかのPCでも開けるようにするには「URLから読み込む」で入れてください。'; }
     else if (kind === 'sl' && !prepSlOk(o)) { cd.here = 1; note = 'スタートリストはこの端末にだけ保存しました。'; }
     else {
-      var b64 = b64Of(await file.arrayBuffer()), n = Math.ceil(b64.length / PREP_CH), exp = FB.F.Timestamp.fromMillis(d.exp);
+      var buf = await file.arrayBuffer(); if (!cur()) return;
+      var b64 = b64Of(buf), n = Math.ceil(b64.length / PREP_CH), exp = FB.F.Timestamp.fromMillis(d.exp), v = prepNewVer(), sha = await prepSha(buf); if (!cur()) return;
       prepBar('⏳ 「' + esc(d.name) + '」を保存しています…');
-      for (var i = 0; i < n; i++) { if (!prepLive(p)) return; await FB.F.setDoc(prepPath(o, p.key, kind + '_' + i), { kind: kind, i: i, n: n, data: b64.slice(i * PREP_CH, (i + 1) * PREP_CH), name: d.name, size: d.size, exp: exp, by: o.uid }); }
-      cd.n = n;
+      try {
+        for (var i = 0; i < n; i++) {
+          if (!cur()) { await prepDelVer(p, kind, v, 0, i); return; }
+          await FB.F.setDoc(prepPath(o, p.key, prepChunkId(kind, v, i)), { kind: kind, v: v, i: i, n: n, data: b64.slice(i * PREP_CH, (i + 1) * PREP_CH), name: d.name, size: d.size, sha: sha, exp: exp, by: o.uid });
+        }
+        await prepReadChunks(o, p.key, kind, { v: v, n: n, size: d.size, sha: sha });   // 書いたものを読み直して確かめる
+      } catch (e) { await prepDelVer(p, kind, v, 0, n); if (!cur()) return; prepUnsaved(p, kind, file, { procId: procId }, e); return; }
+      if (!cur()) { await prepDelVer(p, kind, v, 0, n); return; }
+      cd.n = n; cd.v = v; if (sha) cd.sha = sha;
     }
-    if (!prepLive(p)) return;
-    if (old && old.n) await prepDelChunks(p, kind, cd.n || 0, old.n);
-    await prepCloudDoc(p, kind, cd);
+    if (!cur()) return;
+    try { await prepCloudDoc(p, kind, cd); }   // ここで1回の更新で新しい版に切り替わる
+    catch (e) { if (cd.v) await prepDelVer(p, kind, cd.v, 0, cd.n); if (!cur()) return; prepUnsaved(p, kind, file, { procId: procId }, e); return; }
+    if (old && old.n && old.v !== cd.v) await prepDelVer(p, kind, old.v || '', 0, old.n);   // 切り替えたあとで、古い版を消す
+    if (!cur()) return;
+    if (p.retry) delete p.retry[kind];
     p.docs[kind] = Object.assign(d, cd.here ? { here: 1 } : {}); prepLocalSave(true); prepBar(note);
     if (kind === 'yoko' && url) await pubMaybe(p, d.url).catch(function (e) { pubMsg('✖ みんなの要項に登録できませんでした：' + esc(e.message)); });
   }
@@ -2096,23 +2162,30 @@
       file = LaneUrl.toFile(r);
     } else if (d.n) {
       setStatus(SID[kind], '⏳ 保存した「' + esc(d.name) + '」を読み込んでいます…', 'busy');
-      var parts = []; for (var i = 0; i < d.n; i++) { var s = await withTimeout(FB.F.getDoc(prepPath(p.owner, p.key, kind + '_' + i)), 20000); if (!s.exists()) throw new Error('保存したファイルが見つかりません（期限が過ぎたか、消されました）'); parts.push(s.data().data); }
+      var bytes = await prepReadChunks(p.owner, p.key, kind, d);   // v0.26.40 C505：版・数・大きさ・ハッシュを確かめる（混ざった版は使わない）
       if (!prepLive(p)) return;
-      file = new File([bytesOf(parts.join(''))], d.name || (kind + '.pdf'), { type: 'application/pdf' });
+      file = new File([bytes], d.name || (kind + '.pdf'), { type: 'application/pdf' });
     } else return;
     if (!prepLive(p)) return;
     await handleFile(kind, file);
   }
   async function prepOpen(pl) {
     if (!pl || !pl.date || !pl.meet) return;
-    var who = await prepWho(), ep = authEpoch; if (who.uid !== prepUid()) return;
-    var p = PREP = { key: pl.date + '|' + pl.meet, p: pl, owner: who, epoch: ep, docs: {}, cloud: null, quiet: true };
+    var gen = ++prepGen;   // v0.26.40 C503：前の大会の保存・読み込みは、ここから先は使わない
+    var who = await prepWho(), ep = authEpoch; if (who.uid !== prepUid() || gen !== prepGen) return;
+    var p = PREP = { key: pl.date + '|' + pl.meet, p: pl, owner: who, epoch: ep, gen: gen, docs: {}, cloud: null, quiet: true };
     var today = Date.now(), snap = null;
     try {   // この端末の控え：期限（大会の30日後）が過ぎたものは消す
       var all = await prepDb('readonly', function (st) { return st.getAll(); }) || [];
       for (var i = 0; i < all.length; i++) { var x = all[i]; if (x && x.end && Date.parse(x.end + 'T00:00:00+09:00') + 31 * 864e5 < today) { await prepDb('readwrite', function (st) { return st.delete(x.id); }); prepIdx(function (o) { if (o[x.owner]) delete o[x.owner][x.key]; }); } else if (x && x.id === prepOwnerStr(who) + '|' + p.key) snap = x; }
     } catch (e) { }
-    if (who.uid && FB) { try { var ds = await withTimeout(FB.F.getDoc(prepPath(who, p.key)), 10000); p.cloud = ds.exists() && ds.data().prep || null; } catch (e) { } }
+    if (who.uid && FB) {
+      try { var ds = await withTimeout(FB.F.getDoc(prepPath(who, p.key)), 10000); p.cloud = ds.exists() && ds.data().prep || null; }
+      catch (e) {
+        // v0.26.40（監査 C506）：権限がない（チームから外れた・期限切れ）ときは、端末の控えを出さずに消す。通信できないだけなら控えで続ける
+        if (/permission-denied/.test(String(e && e.code || ''))) { if (!prepLive(p)) return; await prepPurge(who); if (!prepLive(p)) return; try { prepBar(''); } catch (e) { } prepDetach('この大会準備を開く権限がありません（チームから外れたか、期限が切れました）。この端末に残っていた控えも消しました。'); return; }
+      }
+    }
     if (!prepLive(p)) return;
     if (snap && snap.snap && snap.owner === prepOwnerStr(who)) { ssApply(snap.snap); p.docs = snap.docs || {}; p.resumed = true; }
     var cd = p.cloud && p.cloud.docs || {}, ng = [];
@@ -2120,17 +2193,26 @@
       var k = PREP_KINDS[j], c = cd[k];
       if (!c || c.here || c.exp && c.exp < today) continue;
       if (p.docs[k] && (p.docs[k].at || '') >= (c.at || '')) continue;   // この端末の控えが新しい
-      try { await prepFetchKind(p, k, c); if (!prepLive(p)) return; p.docs[k] = c; p.resumed = true; } catch (e) { if (!prepLive(p)) return; ng.push(PREP_LBL[k] + '：' + e.message); setStatus(SID[k], '✖ 保存した' + PREP_LBL[k] + 'を読めませんでした：' + esc(e.message), 'ng'); }
+      try { await prepFetchKind(p, k, c); if (!prepLive(p)) return; p.docs[k] = c; p.resumed = true; } catch (e) {
+        if (!prepLive(p)) return;
+        if (/permission-denied/.test(String(e && e.code || ''))) { await prepPurge(who); resetScreen(); if (!prepLive(p)) return; try { prepBar(''); } catch (e) { } prepDetach('この大会準備を開く権限がありません（チームから外れたか、期限が切れました）。この端末に残っていた控えも消しました。'); return; }
+        ng.push(PREP_LBL[k] + '：' + e.message); setStatus(SID[k], '✖ 保存した' + PREP_LBL[k] + 'を読めませんでした：' + esc(e.message), 'ng'); }
     }
     p.quiet = false; prepLocalSave(true);
     prepBar(ng.length ? '<span class="warn">⚠ ' + esc(ng.join('／')) + '</span>' : '');
     await pubSuggest(p);
   }
+  // v0.26.40 C506：その持ち主（アカウント＋チーム）の、この端末の控えと準備の一覧を消す
+  async function prepPurge(o) {
+    var own = prepOwnerStr(o);
+    try { var all = await prepDb('readonly', function (st) { return st.getAll(); }) || []; for (var i = 0; i < all.length; i++) if (all[i] && all[i].owner === own) { var id = all[i].id; await prepDb('readwrite', function (st) { return st.delete(id); }); } } catch (e) { }
+    prepIdx(function (x) { delete x[own]; });
+  }
   async function prepErase() {
     var p = PREP; if (!p || !confirm('「' + p.p.meet + '」の大会準備の保存（この端末' + (p.owner.uid ? '・クラウド' : '') + '）を消します。今の画面の内容はそのままです。よろしいですか？')) return;
     if (p.owner.uid && FB && prepLive(p)) {
       var cd = p.cloud && p.cloud.docs || {};
-      for (var k in cd) if (cd[k] && cd[k].n) await prepDelChunks(p, k, 0, cd[k].n);
+      for (var k in cd) if (cd[k] && cd[k].n) await prepDelVer(p, k, cd[k].v || '', 0, cd[k].n);
       if (!prepLive(p)) return;
       try { await FB.F.updateDoc(prepPath(p.owner, p.key), 'prep', FB.F.deleteField()); } catch (e) { if (!/not-found/.test(e.code || '')) throw e; }
       p.cloud = null;
@@ -2143,6 +2225,11 @@
   function resetAll() {
     if (!confirm('読み込んだPDF・学校・クラブ名・設定・枚数をすべて消して、新しい大会を始めます。よろしいですか？' + (PREP ? '\n（大会予定の「' + PREP.p.meet + '」に保存した準備は消えません。消すときは上の「保存を消す」）' : ''))) return;
     prepDetach('');
+    resetScreen();
+    window.scrollTo(0, 0);
+  }
+  // v0.26.40 画面と読み取り結果を空にする（resetAll・大会の切り替え・アカウントの切り替えで共通）
+  function resetScreen() {
     ssClear(); var sn = $('ssNote'); if (sn) sn.hidden = true;
     state.docText = {};
     Object.keys(loadSeq).forEach(function (k) { loadSeq[k]++; });   // 読み込み途中のものも捨てる
@@ -2154,7 +2241,7 @@
     });
     Object.keys(SID).forEach(function (k) { setStatus(SID[k], INIT_STATUS[k] || '', ''); });
     $('teamList').dataset.q = ''; ruleState = {}; renderRuleMarks(); renderFeePrices(); renderDateMark(); updateTeams(); render();
-    window.scrollTo(0, 0);
+    var pp = $('planPicked'); if (pp) pp.hidden = true; PICKED = null;
   }
   window.__meetApp = { handleFile: handleFile, prep: function () { return PREP; }, pubSuggest: pubSuggest, prepOpen: prepOpen, setFB: function (f) { FB = f; }, pdfName: pdfName, openVenues: openVenues, ssSave: ssSave, ssRestore: ssRestore, ssClear: ssClear, resetAll: resetAll, openPersonal: openPersonal, openPlayers: openPlayers, openPlayer: openPlayer, encodePayload: encodePayload, decodePayload: decodePayload, payloadFromState: payloadFromState, openShare: openShare, refreshPrint: refreshPrint, tableData: tableData, feeData: feeData, totalText: totalText, safeCell: safeCell, state: state, handleFile: handleFile, render: render, updateTeams: updateTeams };
 })();

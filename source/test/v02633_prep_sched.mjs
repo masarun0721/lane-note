@@ -32,6 +32,13 @@ await check('期限（大会終了の1か月後）が過ぎたPDFだけ消す（
   assert.equal(await w.__t.prepPurge(K2, m, w.__t.scope(), true), true);
   assert.deepEqual([...store.keys()], ['teams/T1/meets/' + K2 + '/pdf/sl_0']); assert.deepEqual(Object.keys(m.prep.docs), ['sl']);
 });
+await check('v0.26.40 版ごとのIDのかけら（種類_版ID_番号）も、期限が過ぎたら消す', async () => {
+  for (const c of ['yoko_abcd1234_0', 'yoko_abcd1234_1', 'sl_0']) store.set('teams/T1/meets/' + K2 + '/pdf/' + c, {});
+  const m = { prep: { docs: { yoko: { n: 2, v: 'abcd1234', exp: Date.parse('2026-10-02T00:00:00+09:00') }, sl: { n: 1, exp: Date.parse('2026-11-30T00:00:00+09:00') } } } };
+  assert.equal(await w.__t.prepPurge(K2, m, w.__t.scope(), true), true);
+  assert.deepEqual([...store.keys()], ['teams/T1/meets/' + K2 + '/pdf/sl_0']);
+  store.clear();
+});
 await check('大会予定を消すと、その大会のPDFも消す（マネージャーも）', async () => {
   store.set('users/uB/meets/' + K1 + '/pdf/tt_0', {}); w.__t.login({ F, fs: {} }, 'uB', null);
   w.__t.mets()[K1].prep = { docs: { tt: { n: 1, exp: Date.now() + 1e9 } } };

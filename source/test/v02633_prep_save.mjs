@@ -42,6 +42,9 @@ const file = (w, f, name, extra) => { let b = fs.readFileSync(path.join(FIX, f))
 const bar = w => (w.document.getElementById('prepBar') || {}).textContent || '';
 const idbA = new IDBFactory(), idbB = new IDBFactory();
 const pdfKeys = () => [...store.keys()].filter(k => k.includes('/pdf/')).sort();
+// v0.26.40 C505：かけらは版ごとのID（種類_版ID_番号）。大会の印の v から探す
+const chunkOf = (k, i) => { const m = store.get('teams/T1/meets/' + K); const d = m && m.prep && m.prep.docs[k]; return d && d.v ? store.get('teams/T1/meets/' + K + '/pdf/' + k + '_' + d.v + '_' + i) : undefined; };
+const noChunk = k => !pdfKeys().some(x => x.startsWith('teams/T1/meets/' + K + '/pdf/' + k + '_'));
 const EXP = Date.parse('2026-10-25T00:00:00+09:00') + 31 * 864e5;
 let w1;
 await check('チームで開く：保存先の説明（チームで共有・大会終了の1か月後に自動で消えます）と、4種類の待ち', async () => {
@@ -51,7 +54,7 @@ await check('チームで開く：保存先の説明（チームで共有・大�
 });
 await check('ファイルで入れた要項：チームのクラウド（meets/{大会}/pdf）に保存・期限は大会終了の1か月後・大会の印に名前と数', async () => {
   await w1.__meetApp.handleFile('yoko', file(w1, 'f5_note_fee500.pdf', '架空要項.pdf')); await delay(200);
-  const c = store.get('teams/T1/meets/' + K + '/pdf/yoko_0'); assert(c, [...store.keys()].join(','));
+  const c = chunkOf('yoko', 0); assert(c, [...store.keys()].join(','));
   assert.deepEqual([c.kind, c.i, c.by, c.name, c.exp.ms], ['yoko', 0, 'uA', '架空要項.pdf', EXP]);
   const m = store.get('teams/T1/meets/' + K).prep; assert.equal(m.docs.yoko.n, 1); assert.equal(m.docs.yoko.exp, EXP); assert(!m.docs.yoko.url);
   assert(/要項 ✓/.test(bar(w1)));
@@ -59,17 +62,17 @@ await check('ファイルで入れた要項：チームのクラウド（meets/{
 await check('スタートリスト：最初の保存で「ほかの学校の選手名」「チームのメンバーだけ」「大会終了の1か月後に自動で消えます」を確かめる（2回目は聞かない）', async () => {
   await w1.__meetApp.handleFile('sl', file(w1, 'f3_sl_heats.pdf', '架空SL.pdf')); await delay(200);
   assert.equal(w1.__confirms.length, 1); const m = w1.__confirms[0]; assert(/ほかの学校の選手の名前/.test(m) && /チームのメンバー（顧問・マネージャー）だけ/.test(m) && /大会終了の1か月後に自動で消えます/.test(m), m);
-  assert(store.get('teams/T1/meets/' + K + '/pdf/sl_0'));
+  assert(chunkOf('sl', 0));
   await w1.__meetApp.handleFile('sl', file(w1, 'f3_sl_heats.pdf', '架空SL2.pdf')); await delay(200); assert.equal(w1.__confirms.length, 1);
 });
 await check('URLから読んだもの：URLだけ（中身は保存しない）', async () => {
   const f = file(w1, 'f3_tt_all.pdf', 'tt.pdf'); f.srcUrl = 'https://kaku.example/meet/tt.pdf';
   await w1.__meetApp.handleFile('tt', f); await delay(200);
-  assert(!store.get('teams/T1/meets/' + K + '/pdf/tt_0')); assert.equal(store.get('teams/T1/meets/' + K).prep.docs.tt.url, 'https://kaku.example/meet/tt.pdf');
+  assert(noChunk('tt')); assert.equal(store.get('teams/T1/meets/' + K).prep.docs.tt.url, 'https://kaku.example/meet/tt.pdf');
 });
 await check('5MBより大きいファイル：この端末だけ・「URLから読み込む」をすすめる', async () => {
   await w1.__meetApp.handleFile('note', file(w1, 'f6_note_track60.pdf', '大きい注意事項.pdf', 5.3 * 1048576)); await delay(300);
-  assert(!store.get('teams/T1/meets/' + K + '/pdf/note_0')); assert.equal(store.get('teams/T1/meets/' + K).prep.docs.note.here, 1);
+  assert(noChunk('note')); assert.equal(store.get('teams/T1/meets/' + K).prep.docs.note.here, 1);
   assert(/5MBより大きい/.test(bar(w1)) && /URLから読み込む/.test(bar(w1)));
 });
 await check('この端末にも控える（IndexedDB・アカウントとチームの組ごと）・大会予定のバッジ用の印（名前だけ）', async () => {

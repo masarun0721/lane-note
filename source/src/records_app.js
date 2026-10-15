@@ -345,7 +345,7 @@
     var docs = m.prep.docs, now = Date.now(), ch = false;
     for (var k in docs) {
       var d = docs[k]; if (!d || onlyExpired && !(d.exp && d.exp < now)) continue;
-      for (var i = 0; i < (d.n || 0); i++) { check(sc); try { await FB.F.deleteDoc(pdfRef(sc, key, k + '_' + i)); } catch (e) { if (isAbort(e)) throw e; } }
+      for (var i = 0; i < (d.n || 0); i++) { check(sc); try { await FB.F.deleteDoc(pdfRef(sc, key, d.v ? k + '_' + d.v + '_' + i : k + '_' + i));   /* v0.26.40 C505：版ごとのID（古い保存は種類_番号） */ } catch (e) { if (isAbort(e)) throw e; } }
       delete docs[k]; ch = true;
     }
     return ch;
