@@ -14,7 +14,7 @@ Object.assign(w, { TextEncoder, TextDecoder, Response, Blob, File }); w.fetch = 
 w.eval('Date.now = (function () { return function () { return Date.parse("2026-10-14T03:00:00Z"); }; })();');
 w.localStorage.setItem('lanenote-rec-meets', JSON.stringify({ [K1]: { key: K1, date: '2026-10-24', meet: '架空新人大会', plan: true }, [K2]: { key: K2, date: '2026-09-01', meet: '架空夏季記録会', plan: true } }));
 w.localStorage.setItem('lanenote.prep.idx.v1', JSON.stringify({ '|': { [K1]: { kinds: { yoko: 1 } } }, 'uX|': { [K1]: { kinds: { yoko: 1, sl: 1, tt: 1 } } } }));
-for (const s of ['auth_common.js', 'results.js', 'roster.js', 'team.js', 'plans.js', 'urlload.js']) w.eval(src(s));
+for (const s of ['auth_common.js', 'results.js', 'roster.js', 'team.js', 'plans.js', 'urlload.js', 'prepdel.js']) w.eval(src(s));
 w.eval(src('records_app.js').replace(tail, 'window.__t={planList:planList,mets:function(){return METS;},prepPurge:prepPurge,planDelete:planDelete,scope:scope,login:function(f,u,t){FB=f;USER={uid:u};TEAM=t;authEpoch++;}};AUTH_SEEN=true;renderAuth();reload();')); await delay(300);
 const li = k => w.document.querySelector('#lpHome li[data-lpk="' + k + '"]');
 await check('バッジ：この端末の印（同じアカウントのものだけ）→ 要項 ✓・スタートリスト 待ち・タイムテーブル 待ち（何もない大会は出さない）', () => {
@@ -24,25 +24,33 @@ await check('バッジ：クラウドの印（ほかのPCで入れたもの）�
   w.__t.mets()[K1].prep = { docs: { sl: { url: 'https://kaku.example/sl.pdf', at: 'x' } } }; w.__t.planList();
   assert(/スタートリスト ✓/.test(li(K1).querySelector('.lp-prep').textContent));
 });
-const store = new Map(), F = { doc: (fs_, ...a) => ({ path: a.join('/') }), deleteDoc: async r => { store.delete(r.path); }, setDoc: async (r, v) => { store.set(r.path, v); } };
+// v0.26.46（C801）：片づけはクラウドの最新の印（親の文書）を読み直して行うので、にせの Firestore に親の文書と読み取り・トランザクションを持たせる
+const store = new Map(), DEL = { __del: 1 }, cl = v => v == null ? v : JSON.parse(JSON.stringify(v));
+const setPath = (o, p, v) => { const a = p.split('.'); let x = o; for (let i = 0; i < a.length - 1; i++) x = x[a[i]] = x[a[i]] || {}; if (v === DEL) delete x[a[a.length - 1]]; else x[a[a.length - 1]] = cl(v); };
+const F = { doc: (fs_, ...a) => ({ path: a.join('/') }), deleteDoc: async r => { store.delete(r.path); }, setDoc: async (r, v) => { store.set(r.path, cl(v)); },
+  getDoc: async r => { const v = cl(store.get(r.path)); return { exists: () => v != null, data: () => cl(v) }; },
+  updateDoc: async (r, ...a) => { const o = store.get(r.path); for (let i = 0; i < a.length; i += 2) setPath(o, a[i], a[i + 1]); }, deleteField: () => DEL,
+  runTransaction: async (fs_, fn) => fn({ get: r => F.getDoc(r), set: (r, d) => { F.setDoc(r, d); }, update: (r, ...a) => { F.updateDoc(r, ...a); }, delete: r => { F.deleteDoc(r); } }) };
 await check('期限（大会終了の1か月後）が過ぎたPDFだけ消す（チーム）', async () => {
   w.__t.login({ F, fs: {} }, 'uA', { id: 'T1', role: 'manager' });
   for (const c of ['yoko_0', 'yoko_1', 'sl_0']) store.set('teams/T1/meets/' + K2 + '/pdf/' + c, {});
   const m = { prep: { docs: { yoko: { n: 2, exp: Date.parse('2026-10-02T00:00:00+09:00') }, sl: { n: 1, exp: Date.parse('2026-11-30T00:00:00+09:00') } } } };
+  store.set('teams/T1/meets/' + K2, cl(m));
   assert.equal(await w.__t.prepPurge(K2, m, w.__t.scope(), true), true);
-  assert.deepEqual([...store.keys()], ['teams/T1/meets/' + K2 + '/pdf/sl_0']); assert.deepEqual(Object.keys(m.prep.docs), ['sl']);
+  assert.deepEqual([...store.keys()].filter(k => k.includes('/pdf/')), ['teams/T1/meets/' + K2 + '/pdf/sl_0']); assert.deepEqual(Object.keys(store.get('teams/T1/meets/' + K2).prep.docs), ['sl']);
 });
 await check('v0.26.40 版ごとのIDのかけら（種類_版ID_番号）も、期限が過ぎたら消す', async () => {
   for (const c of ['yoko_abcd1234_0', 'yoko_abcd1234_1', 'sl_0']) store.set('teams/T1/meets/' + K2 + '/pdf/' + c, {});
   const m = { prep: { docs: { yoko: { n: 2, v: 'abcd1234', exp: Date.parse('2026-10-02T00:00:00+09:00') }, sl: { n: 1, exp: Date.parse('2026-11-30T00:00:00+09:00') } } } };
+  store.set('teams/T1/meets/' + K2, cl(m));
   assert.equal(await w.__t.prepPurge(K2, m, w.__t.scope(), true), true);
-  assert.deepEqual([...store.keys()], ['teams/T1/meets/' + K2 + '/pdf/sl_0']);
+  assert.deepEqual([...store.keys()].filter(k => k.includes('/pdf/')), ['teams/T1/meets/' + K2 + '/pdf/sl_0']);
   store.clear();
 });
 await check('大会予定を消すと、その大会のPDFも消す（マネージャーも）', async () => {
   store.set('users/uB/meets/' + K1 + '/pdf/tt_0', {}); w.__t.login({ F, fs: {} }, 'uB', null);
-  w.__t.mets()[K1].prep = { docs: { tt: { n: 1, exp: Date.now() + 1e9 } } };
-  await w.__t.planDelete(K1); assert(!store.has('users/uB/meets/' + K1 + '/pdf/tt_0')); assert(!w.__t.mets()[K1] || !w.__t.mets()[K1].prep);
+  w.__t.mets()[K1].prep = { docs: { tt: { n: 1, exp: Date.now() + 1e9 } } }; store.set('users/uB/meets/' + K1, cl(w.__t.mets()[K1]));
+  await w.__t.planDelete(K1); assert(!store.has('users/uB/meets/' + K1)); assert(!store.has('users/uB/meets/' + K1 + '/pdf/tt_0')); assert(!w.__t.mets()[K1] || !w.__t.mets()[K1].prep);
 });
 await check('大会の印の欄（PF）に prep：天気を直しても準備の保存は残る', () => { assert.match(src('records_app.js'), /'importedN', 'prep'\]/); assert.match(src('records_app.js'), /prep: m\.prep \|\| ''/); });
 console.log(`v02633_prep_sched: ${pass} ok / ${fail} NG`); process.exit(fail ? 1 : 0);

@@ -80,7 +80,7 @@ const tail = 'if (CLOUD_READY) initCloud(); else { renderAuth(); reload(); }';
 const rd = new JSDOM(rhtml, { url: 'https://masarun0721.github.io/lane-note/records.html', runScripts: 'outside-only', virtualConsole: new VirtualConsole() }); await delay();
 const rw = rd.window; rw.confirm = () => true; rw.alert = () => {}; rw.scrollTo = () => {}; rw.HTMLElement.prototype.scrollIntoView = function () {};
 Object.assign(rw, { TextEncoder, TextDecoder, Response, Blob, File }); rw.fetch = () => Promise.reject(new Error('no network')); rw.indexedDB = new IDBFactory();
-for (const s of ['auth_common.js', 'results.js', 'roster.js', 'team.js', 'plans.js', 'urlload.js', 'pubmeets.js']) rw.eval(src(s));
+for (const s of ['auth_common.js', 'results.js', 'roster.js', 'team.js', 'plans.js', 'urlload.js', 'pubmeets.js', 'prepdel.js']) rw.eval(src(s));
 rw.eval(src('records_app.js').replace(tail, 'window.__t={clearCloudSide:clearCloudSide,resSrc:resSrc,resBox:resBox,RES:function(){return RES;},scope:scope,login:function(f,u,t){FB=f;USER={uid:u};TEAM=t;authEpoch++;}};AUTH_SEEN=true;renderAuth();reload();')); await delay(300);
 await check('C508 再現：クラウドを全部消す（clearCloudSide）で、大会の文書の下のPDFのかけら（版つき・古い形）も消す', async () => {
   const store = new Map(), K = '2026-10-24|架空新人大会', base = 'users/uA/meets/' + K;
@@ -89,6 +89,7 @@ await check('C508 再現：クラウドを全部消す（clearCloudSide）で、
   store.set('users/uA/settings/divOverrides', { a: 1 });
   const F = { doc: (fs_, ...a) => ({ path: a.join('/') }), collection: (fs_, ...a) => ({ path: a.join('/') }),
     getDocsFromServer: async q => { const docs = [...store.entries()].filter(([k]) => k.startsWith(q.path + '/') && k.slice(q.path.length + 1).indexOf('/') < 0).map(([k, v]) => ({ id: k.slice(q.path.length + 1), data: () => v })); return { forEach: f => docs.forEach(f), docs }; },
+    getDoc: async r => { const v = store.get(r.path); return { exists: () => v != null, data: () => v == null ? v : JSON.parse(JSON.stringify(v)) }; },   // v0.26.46 C801：最新の印を読み直す
     deleteDoc: async r => { store.delete(r.path); }, writeBatch: () => { const ops = []; return { delete: r => ops.push(r.path), set: () => {}, commit: async () => ops.forEach(p => store.delete(p)) }; } };
   rw.__t.login({ F, fs: {} }, 'uA', null);
   await rw.__t.clearCloudSide(rw.__t.scope());
@@ -104,12 +105,15 @@ await check('C509 再現：みんなの結果の取り込みは、出典に実�
 });
 
 // ===== 大会準備（index.html）：C508 表現と、起動したときの端末の控えの整理 =====
-await check('C508：「自動で消えます」は使わない（公開するページ・アプリの文言）。期限後は使えなくなる・クラウドは順次削除・端末は次の起動で整理', () => {
+await check('C508・C802（v0.26.46）：「自動で消えます」「順次削除」は使わない（公開するページ・アプリの文言）。期限後はアプリで読めなくなる・クラウドの自動削除はしていない', () => {
   for (const f of ['index.html', 'records.html', 'guide.html', 'intro.html', 'schedule.html', 'team.html', 'check.html', 'try.html']) {
     const s = fs.readFileSync(path.join(ROOT, f), 'utf8').replace(/<section class="box g-card changelog" id="changelog">[\s\S]*?<\/section>/, '');   // 更新情報（過去の記録）はそのまま
-    assert(!/自動で消えます/.test(s.replace(/"text":\s*"[^"]*"/g, '')), f + ' に「自動で消えます」が残っている');
+    const body = s.replace(/"text":\s*"[^"]*"/g, '');
+    assert(!/自動で消えます/.test(body), f + ' に「自動で消えます」が残っている');
+    assert(!/順次削除/.test(body), f + ' に「順次削除」が残っている');   // v0.26.46 C802：TTL を使っていないので、自動の削除を約束しない
   }
-  const a = src('app.js'); assert.match(a, /大会終了の1か月後から使えなくなります/); assert.match(a, /クラウドのファイルは順次削除し、この端末の控えは次に起動したときに整理します/);
+  const a = src('app.js'); assert.match(a, /大会終了の1か月後から、保存したPDFはアプリで読めなくなります/); assert.match(a, /現在、クラウド上の自動削除は行っていません/); assert.match(a, /サーバーに残る場合があります/);
+  assert.match(src('template.html'), /現在、クラウド上の自動削除は行っていません/); assert.match(src('guide_template.html'), /現在、クラウド上の自動削除は行っていません/);
 });
 await check('C508：起動したとき、期限が過ぎた端末の控え（IndexedDB）と準備の一覧を整理する（期限内のものは残す）', async () => {
   const idb = new IDBFactory();

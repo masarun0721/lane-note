@@ -54,7 +54,7 @@ const tail = 'if (CLOUD_READY) initCloud(); else { renderAuth(); reload(); }';
 const rd = new JSDOM(rhtml, { url: 'https://masarun0721.github.io/lane-note/records.html', runScripts: 'outside-only', virtualConsole: new VirtualConsole() }); await delay();
 const rw = rd.window; rw.confirm = () => true; rw.alert = () => {}; rw.scrollTo = () => {}; rw.HTMLElement.prototype.scrollIntoView = function () {};
 Object.assign(rw, { TextEncoder, TextDecoder, Response, Blob, File }); rw.fetch = () => Promise.reject(new Error('no network')); rw.indexedDB = new IDBFactory();
-for (const s of ['auth_common.js', 'results.js', 'roster.js', 'team.js', 'plans.js', 'urlload.js', 'pubmeets.js']) rw.eval(src(s));
+for (const s of ['auth_common.js', 'results.js', 'roster.js', 'team.js', 'plans.js', 'urlload.js', 'pubmeets.js', 'prepdel.js']) rw.eval(src(s));
 rw.eval(src('records_app.js').replace(tail, 'window.__t={clearCloudSide:clearCloudSide,prepPurge:prepPurge,resSrc:resSrc,resBox:resBox,RES:function(){return RES;},scope:scope,login:function(f,u,t){FB=f;USER={uid:u};TEAM=t;authEpoch++;}};AUTH_SEEN=true;renderAuth();reload();')); await delay(300);
 function mkStore(failIds) {
   const store = new Map(), K = '2026-10-24|架空新人大会', K2 = '2026-11-08|架空B大会', base = 'users/uA/meets/' + K, base2 = 'users/uA/meets/' + K2;
@@ -65,6 +65,8 @@ function mkStore(failIds) {
   store.set('users/uA/settings/divOverrides', { a: 1 });
   const F = { doc: (fs_, ...a) => ({ path: a.join('/') }), collection: (fs_, ...a) => ({ path: a.join('/') }),
     getDocsFromServer: async q => { const docs = [...store.entries()].filter(([k]) => k.startsWith(q.path + '/') && k.slice(q.path.length + 1).indexOf('/') < 0).map(([k, v]) => ({ id: k.slice(q.path.length + 1), data: () => v })); return { forEach: f => docs.forEach(f), docs }; },
+    deleteField: () => '__DEL__', updateDoc: async (r, ...a) => { const o = store.get(r.path); for (let i = 0; i < a.length; i += 2) { const ks = a[i].split('.'); let x = o; for (let j = 0; j < ks.length - 1; j++) x = x[ks[j]]; if (a[i + 1] === '__DEL__') delete x[ks[ks.length - 1]]; else x[ks[ks.length - 1]] = a[i + 1]; } },
+    getDoc: async r => { const v = store.get(r.path); return { exists: () => v != null, data: () => v == null ? v : JSON.parse(JSON.stringify(v)) }; },   // v0.26.46 C801：最新の印を読み直す
     deleteDoc: async r => { if (failIds.fail && r.path.endsWith('/yoko_abcd1234_0')) throw Object.assign(new Error('injected delete failure'), { code: 'resource-exhausted' }); store.delete(r.path); }, writeBatch: () => { const ops = []; return { delete: r => ops.push(r.path), set: () => {}, commit: async () => ops.forEach(p => store.delete(p)) }; } };
   return { store, F, base, base2 };
 }
@@ -87,7 +89,8 @@ await check('C602: 大会予定から消す・期限切れの片づけ（prepPur
   const m = JSON.parse(JSON.stringify(store.get(base)));
   let err = null; try { await rw.__t.prepPurge('2026-10-24|架空新人大会', m, rw.__t.scope(), false); } catch (e) { err = e; }
   assert(err && err.code === 'prep-partial');
-  assert.equal(m.prep.docs.yoko.v, 'abcd1234', '消せなかった要項の印は残す'); assert(!m.prep.docs.sl, '消せた種類は外す');
+  const pd = store.get(base).prep.docs;   // v0.26.46：クラウドの最新の印で確かめる
+  assert.equal(pd.yoko.v, 'abcd1234', '消せなかった要項の印は残す'); assert(!pd.sl, '消せた種類は外す');
   assert(store.has(base + '/pdf/yoko_abcd1234_0'));
 });
 rw.close();console.log(JSON.stringify({passed:pass,failed:fail}));if(fail)process.exitCode=1;

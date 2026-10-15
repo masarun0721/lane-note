@@ -69,7 +69,7 @@ await check('直す：エントリーした日・振込締切・振り込んだ�
   assert(doc.querySelector('#lpHome .lp-pd'), 'カレンダーに振込の印がない');
 });
 await check('天気を直しても、進み具合は残る（saveMeet は大会予定の欄をまとめて残す）／予定を消すと進み具合も消える（記録は残す）', () => {
-  const js = src('records_app.js'); assert.match(js, /var prev = METS\[key\] \|\| \{\}; PF\.forEach/); assert.match(js, /if \(PF\.indexOf\(k\) < 0\) o\[k\] = m\[k\]/);
+  const js = src('records_app.js'); assert.match(js, /var prev = METS\[key\] \|\| \{\}; PF\.forEach/); assert.match(js, /if \(PF\.indexOf\(k\) < 0\) o\[k\] = [mx]\[k\]/);
   for (const k of ['entryAt', 'payAt', 'payDue', 'fee', 'memo', 'resultUrl', 'importedAt', 'importedN']) assert(new RegExp("var PF = \\[[^\\]]*'" + k + "'").test(js), k);
 });
 // 結果を取り込む：records.html?imp=日付|大会名

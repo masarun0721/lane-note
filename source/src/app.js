@@ -2009,11 +2009,11 @@
   /* ===== v0.26.33 大会ごとの準備の保存（大会予定の「📋 大会準備へ」から開いた大会だけ）
      ・この端末（IndexedDB）：読み取った結果をまるごと（スタートリストの選手名も）。大会の終わりの日から30日で消す
      ・ログイン中はクラウドの大会の印（自分だけ／チーム）にも：URLから読んだ資料は URL だけ（中身は開くときに取り直す）。
-       ファイルで入れた資料は 5MB までを meets/{大会}/pdf に分けて保存（チームはメンバーだけ）。4種類とも大会終了の1か月後から使えなくなる（v0.26.41：クラウドは TTL（pdf の exp）で順次削除、この端末の控えは起動したときに整理）
+       ファイルで入れた資料は 5MB までを meets/{大会}/pdf に分けて保存（チームはメンバーだけ）。4種類とも大会終了の1か月後から使えなくなる（v0.26.46：TTL は使っていない＝クラウドの自動削除はしない。期限後はルールで読めない。消すのは「保存を消す」・予定を消す・大会予定のページの片づけ。この端末の控えは起動したときに整理）
      ・A01：保存はアカウント（uid）とチームの組ごと。アカウントが変わったら保存をやめ、前の人の保存は出さない ===== */
   var PREP = null, prepGen = 0, PREP_DB = 'lanenote-prep', PREP_IDX = 'lanenote.prep.idx.v1', PREP_CAP = 5 * 1048576, PREP_CH = 800000, prepTimer = 0;
   var PREP_KINDS = ['yoko', 'sl', 'tt', 'note'], PREP_LBL = { yoko: '要項', sl: 'スタートリスト', tt: 'タイムテーブル', note: '注意事項' };
-  function prepKeep(kind) { return 30; }   // 大会終了の1か月後から使えなくなる（4種類とも。クラウドは TTL で順次削除・この端末は次の起動で整理）
+  function prepKeep(kind) { return 30; }   // 大会終了の1か月後から使えなくなる（4種類とも。クラウドの自動削除はしない（TTL なし）・この端末は次の起動で整理）
   function prepExp(kind, p) { return Date.parse((p.end || p.date) + 'T00:00:00+09:00') + (prepKeep(kind) + 1) * 864e5; }
   function prepOwnerStr(o) { return (o.uid || '') + '|' + (o.team || ''); }
   function prepDocId(k) { return String(k).replace(/\//g, '∕'); }
@@ -2029,7 +2029,7 @@
   }
   function prepWhere(o) {
     return !o.uid ? 'この端末にだけ保存します（ログインすると、ほかのPCでも続きを開けます）。<b>大会終了の1か月後から使えなくなります</b>（この端末の控えは、次に起動したときに整理します）。'
-      : (o.team ? '<b>チーム（顧問・マネージャー）で共有</b>します。' : '<b>あなたのクラウド（自分だけ）</b>にも保存します。') + 'ファイルで入れたPDFは5MBまでクラウドに、URLから読んだ資料はURLだけを保存し、開くときに取り直します。読み取った結果はこの端末にも控えます。<b>大会終了の1か月後から使えなくなります</b>（クラウドのファイルは順次削除し、この端末の控えは次に起動したときに整理します）。' + (o.team ? '顧問がURLで読んだ要項は、たずねたうえで「みんなの要項」（ほかの学校の先生も使える）にURLと大会の情報だけを登録します。' : '');
+      : (o.team ? '<b>チーム（顧問・マネージャー）で共有</b>します。' : '<b>あなたのクラウド（自分だけ）</b>にも保存します。') + 'ファイルで入れたPDFは5MBまでクラウドに、URLから読んだ資料はURLだけを保存し、開くときに取り直します。読み取った結果はこの端末にも控えます。<b>大会終了の1か月後から、保存したPDFはアプリで読めなくなります</b>。クラウドの自動削除はしていません（「🗑 保存を消す」で消せます。保存に失敗したデータなどがサーバーに残る場合があります）。' + (o.team ? '顧問がURLで読んだ要項は、たずねたうえで「みんなの要項」（ほかの学校の先生も使える）にURLと大会の情報だけを登録します。' : '');
   }
   function prepBar(msg) {
     var bar = $('prepBar'); if (!bar) { bar = document.createElement('div'); bar.id = 'prepBar'; bar.className = 'plan-bar prep-bar'; var pb = $('planBar'), mn = document.querySelector('main'); if (pb) pb.parentNode.insertBefore(bar, pb.nextSibling); else if (mn) mn.insertBefore(bar, mn.firstChild); else return; }
@@ -2057,7 +2057,7 @@
   function bytesOf(b64) { var s = atob(b64), u = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; }
   function prepSlOk(o) {
     var k = 'lanenote.prep.slok.' + prepOwnerStr(o); try { if (localStorage.getItem(k)) return true; } catch (e) { }
-    var ok = confirm('スタートリストには、ほかの学校の選手の名前も入っています。\n' + (o.team ? 'チームのメンバー（顧問・マネージャー）だけが見られる場所' : 'あなただけが見られる場所') + 'に保存します。大会終了の1か月後から使えなくなり、クラウドのファイルは順次削除します。保存しますか？\n（「キャンセル」なら、この端末にだけ保存します）');
+    var ok = confirm('スタートリストには、ほかの学校の選手の名前も入っています。\n' + (o.team ? 'チームのメンバー（顧問・マネージャー）だけが見られる場所' : 'あなただけが見られる場所') + 'に保存します。大会終了の1か月後から、保存したPDFはアプリで読めなくなります。現在、クラウド上の自動削除は行っていません（「保存を消す」などで削除できますが、保存に失敗したデータなどがサーバーに残る場合があります）。保存しますか？\n（「キャンセル」なら、この端末にだけ保存します）');
     if (ok) try { localStorage.setItem(k, '1'); } catch (e) { }
     return ok;
   }
@@ -2147,7 +2147,7 @@
   function pubApi(p) { return p && p.owner.uid && FB && typeof LanePub !== 'undefined' ? LanePub.make({ F: FB.F, fs: FB.fs, uid: p.owner.uid }) : null; }
   function pubBox() { var b = $('pubBox'); if (!b) { var bar = $('prepBar'); if (!bar) return null; b = document.createElement('div'); b.id = 'pubBox'; b.className = 'plan-bar pub-box'; bar.parentNode.insertBefore(b, bar.nextSibling); } b.hidden = false; return b; }
   function pubMsg(h) { var b = pubBox(); if (b) b.innerHTML = h; }
-  var PUB_ASK = 'この大会の要項のURLを「みんなの要項」に登録して、ほかの学校の先生も使えるようにしますか？\n登録するのは、大会名・日付・会場・要項のURL（公開ページ）と読み取った大会の情報（参加料・きまり）だけです。選手の名前やPDFの中身は登録しません。登録は大会終了の1か月後から出なくなり（読めなくなり）、サーバーから順次削除します。\n（聞くのは最初の1回だけです。「キャンセル」なら登録しません。あとで変えられます）';
+  var PUB_ASK = 'この大会の要項のURLを「みんなの要項」に登録して、ほかの学校の先生も使えるようにしますか？\n登録するのは、大会名・日付・会場・要項のURL（公開ページ）と読み取った大会の情報（参加料・きまり）だけです。選手の名前やPDFの中身は登録しません。登録は大会終了の1か月後から出なくなります（読めなくなります）。サーバーからの自動削除は行っていません（登録した本人はいつでも取り消せます）。\n（聞くのは最初の1回だけです。「キャンセル」なら登録しません。あとで変えられます）';
   async function pubMaybe(p, url) {
     var api = pubApi(p); if (!api || !p.owner.team || !prepLive(p)) return;
     if (p.pubFrom && p.pubFrom.url === url) return;   // みんなの要項から読んだもの
@@ -2292,33 +2292,15 @@
       // v0.26.43（監査 C602）：失敗を無視する片づけ（prepDelVer）は使わない。1かけらでも消せなければ、その種類の印は残して「一部未削除」と再試行を出す
       // v0.26.44（監査 C702）：開いたときの p.cloud を信用せず、最新の親（大会の印）を読み直して、そこが指している版を消す。
       //   印を外すときは、もう一度読んで版が同じ種類だけ外す（トランザクション）。消している間にほかの画面が保存し直したら、新しい版の印とかけらは残し、成功とは出さない
-      var ref = prepPath(p.owner, p.key), ds = await withTimeout(FB.F.getDoc(ref), 10000);
-      if (!prepLive(p)) return;
-      var cur = ds.exists() && ds.data().prep || null, cd = cur && cur.docs || {}, left = {}, ng = 0, last = null;
-      p.cloud = cur;
-      for (var k in cd) {
-        if (!cd[k] || !cd[k].n) continue;
-        for (var i = 0; i < Math.min(+cd[k].n || 0, 10); i++) { try { await FB.F.deleteDoc(prepPath(p.owner, p.key, prepChunkId(k, cd[k].v || '', i))); } catch (e) { left[k] = cd[k]; ng++; last = e; } }
-        if (!prepLive(p)) return;
-      }
-      if (!prepLive(p)) return;
-      var same = function (a, b) { return !!a && !!b && (a.v || '') === (b.v || '') && (+a.n || 0) === (+b.n || 0) && (a.at || '') === (b.at || '') && (a.url || '') === (b.url || ''); };
-      var unref = async function (get, upd) {
-        var s2 = await get(ref), now = s2.exists() && s2.data().prep || null, nd = now && now.docs || {}, args = [], keep = {}, changed = [];
-        Object.keys(nd).forEach(function (x) {
-          if (!left[x] && same(nd[x], cd[x])) args.push('prep.docs.' + x, FB.F.deleteField());
-          else { keep[x] = nd[x]; if (!same(nd[x], cd[x])) changed.push(x); }
-        });
-        if (now) { if (!Object.keys(keep).length) await upd(ref, 'prep', FB.F.deleteField()); else if (args.length) await upd.apply(null, [ref].concat(args)); }
-        return { keep: keep, changed: changed };
-      };
-      var res;
+      //   v0.26.46（監査 C801）：この手順は記録・大会予定のページと共通（LanePrepDel）
+      var res, ab = function () { if (!prepLive(p)) { var x = new Error('中止しました'); x.name = 'AbortError'; throw x; } };
       try {
-        res = FB.F.runTransaction ? await FB.F.runTransaction(FB.fs, function (tx) { return unref(function (r) { return tx.get(r); }, function () { tx.update.apply(tx, arguments); }); })
-          : await unref(function (r) { return FB.F.getDoc(r); }, function () { return FB.F.updateDoc.apply(null, arguments); });
-      } catch (e) { if (!/not-found/.test(e.code || '')) throw e; res = { keep: {}, changed: [] }; }
+        res = await LanePrepDel.erase({ F: FB.F, fs: FB.fs, ref: prepPath(p.owner, p.key), chunkRef: function (k, c) { return prepPath(p.owner, p.key, c); }, check: ab,
+          isAbort: function (e) { return !!e && e.name === 'AbortError'; }, read: function (r) { return withTimeout(FB.F.getDoc(r), 10000); } });
+      } catch (e) { if (!prepLive(p)) return; if (!/not-found/.test(e && e.code || '')) throw e; res = { keep: {}, changed: [], ng: 0, left: {}, cur: null }; }
       if (!prepLive(p)) return;
-      p.cloud = Object.keys(res.keep).length ? Object.assign({}, cur, { docs: res.keep }) : null;
+      var left = res.left || {}, ng = res.ng || 0, last = res.last;
+      p.cloud = Object.keys(res.keep).length ? Object.assign({}, res.cur && res.cur.prep, { docs: res.keep }) : null;
       var retry = ' <button type="button" class="btn sub small" data-preperase="1">もう一度消す</button>';
       if (res.changed.length) {
         prepBar('<span class="warn">⚠ <b>消し終わっていません</b>：消している間に、ほかの画面で' + res.changed.map(function (x) { return esc(PREP_LBL[x] || x); }).join('・') + 'が保存し直されました。新しい保存は残しています。</span>' + retry);

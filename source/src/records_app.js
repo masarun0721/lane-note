@@ -238,9 +238,9 @@
     // v0.26.28：大会予定（会場・終了日・区分）は、天気を直しても残す
     var prev = METS[key] || {}; PF.forEach(function (k) { var v = w[k] != null ? w[k] : prev[k]; if (v != null && v !== '') o[k] = v; });
     METS[key] = o;
-    if (sc.team) { await FB.F.setDoc(FB.F.doc(FB.fs, 'teams', sc.team.id, 'meets', docId(key)), o); check(sc); return; }
+    if (sc.team) { await putMeet(FB.F.doc(FB.fs, 'teams', sc.team.id, 'meets', docId(key)), key, o); check(sc); return; }
     if (!noCache(sc)) lsSet(metsKey(sc.uid), METS);
-    if (sc.uid) { await FB.F.setDoc(FB.F.doc(FB.fs, 'users', sc.uid, 'meets', docId(key)), o); check(sc); }
+    if (sc.uid) { await putMeet(FB.F.doc(FB.fs, 'users', sc.uid, 'meets', docId(key)), key, o); check(sc); if (!noCache(sc)) lsSet(metsKey(sc.uid), METS); }
   }
   /* ---------- v0.26.28 大会予定をまとめて追加（CSV・貼り付け）→ 大会の印（meets：天気と同じ場所）に 会場・終了日・区分・plan を入れる ---------- */
   var PLAN = null;
@@ -334,41 +334,64 @@
   async function writeMeetDoc(key, o, sc) {
     need(sc);
     if (o) METS[key] = o; else delete METS[key];
-    var ref = sc.team ? FB.F.doc(FB.fs, 'teams', sc.team.id, 'meets', docId(key)) : sc.uid ? FB.F.doc(FB.fs, 'users', sc.uid, 'meets', docId(key)) : null;
+    var ref = meetRef(sc, key);
     if (!sc.team && !noCache(sc)) lsSet(metsKey(sc.uid), METS);
-    if (ref) { if (o) await FB.F.setDoc(ref, o); else await FB.F.deleteDoc(ref); check(sc); }
+    if (ref) { if (o) await putMeet(ref, key, o); else await FB.F.deleteDoc(ref); check(sc); if (o && !sc.team && !noCache(sc)) lsSet(metsKey(sc.uid), METS); }
+  }
+  function meetRef(sc, key) { return sc.team ? FB.F.doc(FB.fs, 'teams', sc.team.id, 'meets', docId(key)) : sc.uid ? FB.F.doc(FB.fs, 'users', sc.uid, 'meets', docId(key)) : null; }
+  // v0.26.46（監査 C801）：大会の印を書くときは、大会準備の印（prep）を画面の控え（METS）から書かない。クラウドの今の prep をそのまま残す
+  //   （ほかの画面が新しいPDFを保存したあとに、古い METS で上書きして新しい版の場所を失わないように）。prep を変えるのは LanePrepDel だけ
+  async function putMeet(ref, key, o) {
+    if (!FB.F.runTransaction) { await FB.F.setDoc(ref, o); return o; }
+    var o2 = Object.assign({}, o); delete o2.prep;
+    await FB.F.runTransaction(FB.fs, async function (tx) { var s = await tx.get(ref), cur = s.exists() ? s.data() || {} : null; if (cur && cur.prep) o2.prep = cur.prep; else delete o2.prep; tx.set(ref, o2); });
+    if (METS[key] === o) METS[key] = o2;
+    return o2;
   }
   /* v0.26.33 大会準備のPDF（meets/{大会}/pdf）を消す：大会予定を消したとき・期限（大会終了の1か月後）が過ぎたとき */
   // v0.26.40 C505：かけらのIDは版ごと（種類_版ID_番号）。古い保存は種類_番号。n は10まで（ルールと同じ）
   function pdfChunkIds(k, d) { var out = []; if (!d || !/^(yoko|sl|tt|note)$/.test(k)) return out; var n = Math.min(+d.n || 0, 10), v = /^[a-z0-9]{8}$/.test(d.v || '') ? d.v : ''; for (var i = 0; i < n; i++) out.push(v ? k + '_' + v + '_' + i : k + '_' + i); return out; }
   function pdfRef(sc, key, c) { return sc.team ? FB.F.doc(FB.fs, 'teams', sc.team.id, 'meets', docId(key), 'pdf', c) : FB.F.doc(FB.fs, 'users', sc.uid, 'meets', docId(key), 'pdf', c); }
+  // v0.26.46（監査 C801）：大会準備のPDFを消す（予定を消す・期限切れの片づけ）。画面の控え（METS）ではなく、クラウドの最新の印を読み直して、
+  //   その版のかけらを消し、トランザクションで版が同じときだけ印を外す（LanePrepDel）。消したあとは METS もクラウドの内容にそろえる
+  async function prepClean(key, sc, onlyExpired, onEmpty) {
+    var now = Date.now();
+    var res = await LanePrepDel.erase({ F: FB.F, fs: FB.fs, ref: meetRef(sc, key), chunkRef: function (k, c) { return pdfRef(sc, key, c); },
+      only: onlyExpired ? function (k, d) { return d.exp && d.exp < now; } : null, check: function () { check(sc); }, isAbort: isAbort, onEmpty: onEmpty });
+    if (res.data) METS[key] = res.data; else if (res.op === 'del' || res.gone) delete METS[key];
+    if (!sc.team && !noCache(sc)) lsSet(metsKey(sc.uid), METS);
+    return res;
+  }
   async function prepPurge(key, m, sc, onlyExpired) {
     if (!sc.uid || !FB || !m || !m.prep || !m.prep.docs) return false;
-    var docs = m.prep.docs, now = Date.now(), ch = false, ng = 0, last = null;
-    for (var k in docs) {
-      var d = docs[k]; if (!d || onlyExpired && !(d.exp && d.exp < now)) continue;
-      // v0.26.43（監査 C602）：1かけらでも消せなければ、その種類の印（v・n＝かけらの場所）は残して、あとでやり直せるようにする
-      var ids = pdfChunkIds(k, d), bad = 0; for (var i = 0; i < ids.length; i++) { check(sc); try { await FB.F.deleteDoc(pdfRef(sc, key, ids[i])); } catch (e) { if (isAbort(e)) throw e; bad++; last = e; } }
-      if (bad) { ng += bad; continue; }
-      delete docs[k]; ch = true;
-    }
-    if (ng) throw prepPartialErr(ng, last);
-    return ch;
+    var res = await prepClean(key, sc, onlyExpired, null), e = LanePrepDel.incomplete(res);
+    if (e) throw e;
+    return res.op === 'upd' && !!res.cur && !!res.cur.prep;
   }
   // v0.26.43（監査 C602）：PDFのかけらの一部を消せなかった（成功とは言わない）。もう一度押すと、残りを消す
   function prepPartialErr(n, cause) { var e = new Error('一部未削除：大会準備のPDFのかけら ' + n + '件を消せませんでした（' + (cause && (cause.code || cause.message) || '不明') + '）。もう一度押すと、残りを消します'); e.code = 'prep-partial'; e.n = n; e.cause = cause; return e; }
   var SWEPT = -1;
   async function prepSweep(sc) {
     if (SWEPT === sc.epoch || !sc.uid || !document.body.classList.contains('sched-page')) return; SWEPT = sc.epoch;
-    var ks = Object.keys(METS);
-    for (var i = 0; i < ks.length; i++) { var m = METS[ks[i]]; try { if (await prepPurge(ks[i], m, sc, true)) { check(sc); m.updatedAt = new Date().toISOString(); await writeMeetDoc(ks[i], m, sc); } } catch (e) { if (isAbort(e)) return; } }
+    var ks = Object.keys(METS), now = Date.now();
+    for (var i = 0; i < ks.length; i++) {
+      var m = METS[ks[i]], d = m && m.prep && m.prep.docs || {};
+      if (!Object.keys(d).some(function (k) { return d[k] && d[k].exp && d[k].exp < now; })) continue;
+      try { await prepClean(ks[i], sc, true, null); } catch (e) { if (isAbort(e)) return; }   // 消せなかった・版が変わったものは、印を残して次の機会に（v0.26.46：METS で親を書き直さない）
+    }
   }
   async function planDelete(key) {
     var m = METS[key], sc = scope(); if (!m) return;
-    await prepPurge(key, m, sc, false);
-    var keep = m.weather || m.temp != null || m.humidity != null || ALL.some(function (r) { return r.date + '|' + r.meet === key; });
-    if (keep) { var o = {}; Object.keys(m).forEach(function (k) { if (PF.indexOf(k) < 0) o[k] = m[k]; }); o.updatedAt = new Date().toISOString(); await writeMeetDoc(key, o, sc); }
-    else await writeMeetDoc(key, null, sc);
+    var hasRec = ALL.some(function (r) { return r.date + '|' + r.meet === key; });
+    var strip = function (x) { var o = {}; Object.keys(x).forEach(function (k) { if (PF.indexOf(k) < 0) o[k] = x[k]; }); o.updatedAt = new Date().toISOString(); return o; };
+    if (!sc.uid || !FB) {   // ログインなし（この端末だけ）：クラウドの準備はない
+      if (hasRec || m.weather || m.temp != null || m.humidity != null) await writeMeetDoc(key, strip(m), sc); else await writeMeetDoc(key, null, sc);
+      return;
+    }
+    // v0.26.46（監査 C801）：最新の印の版を消し、印が全部外れたときだけ、親を消す（記録・天気があれば、クラウドの今の内容から予定の欄だけ外して残す）
+    var res = await prepClean(key, sc, false, function (now) { return hasRec || now.weather || now.temp != null || now.humidity != null ? { set: strip(now) } : { del: true }; });
+    var e = LanePrepDel.incomplete(res); if (e) throw e;
+    if (res.gone) { delete METS[key]; if (!sc.team && !noCache(sc)) lsSet(metsKey(sc.uid), METS); }
   }
   async function planEditSave(li) {
     var old = li.getAttribute('data-lpk'), v = {}, sc = scope(), st = $('lpStatus');
@@ -691,19 +714,23 @@
   // v0.14（監査F07）：クラウドに置いたものを全部消す（記録・天気・中学/高校の選択）
   async function clearCloudSide(sc) {
     check(sc); if (!sc.uid || sc.team) return;
-    var keys = [], chunks = []; (await serverDocs(colFor(sc.uid, 'meets'))).forEach(function (d) { keys.push(d.id); var v = d.data() || {}, docs = v.prep && v.prep.docs || {}; for (var k in docs) chunks = chunks.concat(pdfChunkIds(k, docs[k]).map(function (c) { return [d.id, c]; })); }); check(sc);
-    // v0.26.41（監査 C508）：大会準備のPDFのかけら（meets/{k}/pdf）も消す。親の文書を消しても下のかけらは残るため、先に消す（一覧は不可なので大会の印の v・n からIDを作る）
-    //   v0.26.43（監査 C602）：消せなかったかけらがある大会の文書（かけらの場所の印）は消さずに残し、最後に「一部未削除」を返す（成功とは表示しない）
-    var failed = {}, ng = 0, last = null;
-    for (var ci = 0; ci < chunks.length; ci++) { check(sc); try { await FB.F.deleteDoc(FB.F.doc(FB.fs, 'users', sc.uid, 'meets', chunks[ci][0], 'pdf', chunks[ci][1])); } catch (e) { if (isAbort(e)) throw e; failed[chunks[ci][0]] = 1; ng++; last = e; } }
+    // v0.26.46（監査 C801）：大会ごとに、最新の印を読み直してその版のかけらを消し、トランザクションで版が同じときだけ親を消す（LanePrepDel）。
+    //   消せなかった・消している間に版が変わった大会は、親（かけらの場所の印）を残して、最後に「未完了」を返す（成功とは表示しない）
+    var ids = []; (await serverDocs(colFor(sc.uid, 'meets'))).forEach(function (d) { ids.push(d.id); }); check(sc);
+    var bad = null;
+    for (var ci = 0; ci < ids.length; ci++) {
+      var id = ids[ci];
+      var res = await LanePrepDel.erase({ F: FB.F, fs: FB.fs, ref: FB.F.doc(FB.fs, 'users', sc.uid, 'meets', id), chunkRef: function (k, c) { return FB.F.doc(FB.fs, 'users', sc.uid, 'meets', id, 'pdf', c); },
+        check: function () { check(sc); }, isAbort: isAbort, onEmpty: function () { return { del: true }; } });
+      var ie = LanePrepDel.incomplete(res); if (ie && (!bad || ie.code === 'prep-changed')) bad = ie;
+    }
     check(sc);
     var b = FB.F.writeBatch(FB.fs);
-    keys.forEach(function (k) { if (!failed[k]) b.delete(FB.F.doc(FB.fs, 'users', sc.uid, 'meets', k)); });
     b.delete(FB.F.doc(FB.fs, 'users', sc.uid, 'settings', 'divOverrides'));
     b.delete(FB.F.doc(FB.fs, 'users', sc.uid, 'settings', 'roster'));   // v0.26.13：選手台帳も消す
     b.delete(FB.F.doc(FB.fs, 'users', sc.uid, 'settings', 'mode'));
     await b.commit(); check(sc);
-    if (ng) throw prepPartialErr(ng, last);   // 画面の控え（METS）はそのまま。reload で残った大会を読み直す
+    if (bad) throw bad;   // 画面の控え（METS）はそのまま。reload で残った大会を読み直す
     METS = {}; DIV_OV = {}; lsSet(metsKey(sc.uid), {}); lsSet(ovKey(sc.uid), {});
   }
 
@@ -2478,7 +2505,7 @@
       await fn(function (d, n) { last = [d, n]; status('rbDataStatus', '⏳ 消しています… ' + d + ' / ' + n + '件', ''); });
     } catch (e) {
       btn.disabled = false; if (isAbort(e) || sc.epoch !== authEpoch) return;
-      if (e && e.code === 'prep-partial') {   // v0.26.43（監査 C602）：一部未削除（成功とは出さない）＋再試行
+      if (e && (e.code === 'prep-partial' || e.code === 'prep-changed')) {   // v0.26.43（監査 C602）・v0.26.46（C801）：一部未削除・版が変わった（成功とは出さない）＋再試行
         status('rbDataStatus', '⚠ <b>一部未削除</b>：' + esc(e.message) + ' <button type="button" class="btn sub" id="rbClearRetry">もう一度消す</button>', 'ng');
         var rb = $('rbClearRetry'); if (rb) rb.addEventListener('click', function () { btn.click(); });
         try { await reload(sc); } catch (e2) { } return;
