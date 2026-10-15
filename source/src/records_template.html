@@ -310,6 +310,12 @@ tr.rc.editing td{background:#fff3ec!important}
 .lp-cal td.meet{background:#fff4e5}.lp-cal td.meet b{font-weight:bold;color:#a33a14}.lp-ev{display:block;font-size:10.5px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lp-dl{display:block;font-size:10px;color:#c0392b}
 .lp-pick{margin:6px 0;font-size:13px}.lp-pick select{max-width:100%}
 @media (max-width:520px){.lp-cal td{height:44px}.lp-ev{font-size:9.5px}}
+/* v0.26.50 1年分の記録をまとめる */
+body.sched-page #lpHome .lp-yb{margin:0 0 8px}
+.yb-box #ybBody{margin-top:8px}.yb-per{align-items:flex-end}.yb-q{display:inline-flex;gap:4px;flex-wrap:wrap}
+.yb-list{list-style:none;margin:8px 0;padding:0}.yb-r{border:1px solid var(--line,#ddd);border-radius:10px;padding:8px 10px;margin:6px 0;overflow-wrap:anywhere}.yb-r .yb-st{margin-top:4px;font-size:.92em}
+.yb-found,.yb-ready{border-left:4px solid #2a9d5c}.yb-done,.yb-saved{border-left:4px solid #8ab}.yb-pick{border-left:4px solid #e0a000}.yb-none,.yb-err,.yb-empty{border-left:4px solid #c55}.yb-loading{border-left:4px solid #48c}
+.yb-c label{display:block;margin:6px 0;padding:6px;border-radius:8px;background:rgba(0,0,0,.03)}.yb-sug{color:#2a7;font-size:.85em;margin-left:4px}.yb-acts{position:sticky;bottom:0;background:var(--bg,#fff);padding:6px 0;flex-wrap:wrap}
 /* v0.26.30 大会予定のページ（schedule.html＝記録のページと同じ部品に sched-page の印） */
 body:not(.sched-page) #lpHome,body:not(.sched-page) #spAdd,body:not(.sched-page) #spHead{display:none!important}
 body.sched-page #spLink{display:none!important}
@@ -374,6 +380,7 @@ __MODEPICK__
     <label>所属（任意） <input type="text" id="rbPTeam" placeholder="例：本郷中・〇〇AC" autocomplete="off" maxlength="60"></label>
     <button type="button" class="mode-link" id="rbToSchool">🏫 学校で使う方はこちら</button>
   </div>
+  <details class="rb-manual yb-box" id="rbYear"><summary><b>📚 1年分の記録をまとめる</b>（大会予定の大会の結果を、まとめてさがして取り込む）</summary><div id="ybBody"></div></details>
   <div class="drop" id="rbDrop" tabindex="0" role="button" aria-label="結果のファイルを選ぶ">
     <div class="big">📄 結果のPDF・保存したWebページ（HTML）・Excel（.xlsx/.xls/.csv）をここへ</div>
     <div class="small muted">複数まとめて入れられます（種目ごとにページが分かれた結果サイトは、ページを全部保存して一度に入れてください）</div>
