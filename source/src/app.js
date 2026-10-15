@@ -2202,7 +2202,7 @@
     } else if ((i = t.dataset.pubdel) != null && L[i] && api) {
       if (!confirm('「みんなの要項」から、あなたの登録を取り消しますか？')) return;
       api.remove(L[i]).then(function () { pubMsg('✔ 登録を取り消しました。'); }, function (e) { pubMsg('✖ 取り消せませんでした：' + esc(e.message)); });
-    } else if (t.dataset.pubpref != null && api) api.setPref(t.dataset.pubpref === '1').then(function () { pubMsg(t.dataset.pubpref === '1' ? '✔ これからは「みんなの要項」に登録します。' : '✔ これからは「みんなの要項」に登録しません（すでに登録したものは、そのままです）。記録のページの「🤝 学校をこえて分け合う」で戻せます。'); });
+    } else if (t.dataset.pubpref != null && api) api.setPref(t.dataset.pubpref === '1').then(function () { pubMsg(t.dataset.pubpref === '1' ? '✔ これからは「みんなの要項」に登録します。' : '✔ これからは「みんなの要項」に登録しません（すでに登録したものは、そのままです）。記録のページの「🤝 だれかが入れた大会は、もう入れなくてOK」で戻せます。'); });
   });
   async function prepFetchKind(p, kind, d) {
     var file = null;

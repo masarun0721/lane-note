@@ -1669,6 +1669,11 @@ var ResultParser = (function () {
   /* v0.26.48 種目名の前の、種目そのものではない言葉（オープン種目・招待・選考会などの区分）。種目・距離・ハードルの高さは残す。
      区分（中学・高校・学年・U16）は eventCat／divisionOf が元の種目名から見るので、ここで外しても区別は消えない */
   var EV_PREFIX = /^(?:OP|オープン|(?:RisingStar|ライジングスター)(?:中学|高校|一般)?|(?:U\d{2})?(?:代表)?選考会?|招待|特別)(?=[^ァ-ヶa-z])/i;
+  // v0.26.53 表に出す種目名：選手権のページの「(選) 200m」「男子(選) 100m」の (選)・(予)・(決) を外す（保存した種目名・ID はそのまま）
+  function eventShown(ev) { var t = String(ev || ''), u = t.replace(/\s*[（(]\s*(選|予|決)\s*[)）]\s*/g, ' ').replace(/\s{2,}/g, ' ').trim(); return u || t; }
+  /* v0.26.53 中体連の速報の「男子西部 100m」「男子西部共通 200m」「男子西部2. 1500m」：地区名（東部・西部…）は種目ではないので外す（2. は「2・3年」の切れ端）。
+     区分（共通・学年）は eventCat が元の種目名から見る。保存の ID（keep）は変えない */
+  var EV_AREA = /^(?:東|西|南|北|中)部(?:[1-6]\.)?(?=[^ァ-ヶa-z部])/i;
   // 種目の正規化：表記ゆれ（全角・空白・区分名）を落として比べられる形に
   function normEvent(s) { return normEventX(s, false); }
   /* v0.26.48：保存の ID・同じ記録かの判定（identityParts）は、前の版と同じ形（前置きを外さない）のまま。取り込み直しで二重にしないため */
@@ -1677,7 +1682,7 @@ var ResultParser = (function () {
     var g = /女/.test(s.replace(/男女/, '')) && !/男子/.test(s) ? '女子' : (/男/.test(s) ? '男子' : '');
     var d = s.replace(/^.*?(男子|女子|男|女)/, '').replace(/^(\d+・?\d*支部|小学|中学|高校|一般|共通|中学共通|高校・一般|高校一般|中学・高校|[1-6１-６]年|[中高][1-3]|U\d{2}|\d年)+/g, '').replace(/^[・]+/, '');
     if (keep) d = d.replace(/^(小学|中学|高校|一般|共通)+/, '');
-    else { var d0; do { d0 = d; d = d.replace(/^(小学|中学|高校|一般|共通)+/, '').replace(EV_PREFIX, '').replace(/^(\d+・?\d*支部|[1-6]年|U\d{2})+/, ''); } while (d !== d0 && d); if (!d) d = d0; }   // v0.26.48：「OP」「Rising Star中学」「U16代表選考」などの前置きも外す
+    else { var d0; do { d0 = d; d = d.replace(/^(小学|中学|高校|一般|共通)+/, '').replace(EV_PREFIX, '').replace(EV_AREA, '').replace(/^(\d+・?\d*支部|[1-6]年|U\d{2})+/, ''); } while (d !== d0 && d); if (!d) d = d0; }   // v0.26.48：「OP」「Rising Star中学」「U16代表選考」などの前置きも外す
     d = d.replace(/ｍ/g, 'm').replace(/ハードル/, 'H');
     return (g + d) || s;
   }
@@ -1821,6 +1826,9 @@ var ResultParser = (function () {
   function specNum(v, u) { v = +v; if (u === 'cm') v /= 100; if (u === 'g') v /= 1000; return v.toFixed(3) + (u === 'g' || u === 'kg' ? 'kg' : 'm'); }
   var SPEC_STD = { jh: { '男子110mH': '0.914m', '女子100mH': '0.762m', '男子砲丸投': '5.000kg', '女子砲丸投': '2.721kg', '男子円盤投': '1.500kg', '女子円盤投': '1.000kg' },
     hs: { '男子110mH': '1.067m', '女子100mH': '0.838m', '男子400mH': '0.914m', '女子400mH': '0.762m', '男子砲丸投': '6.000kg', '女子砲丸投': '4.000kg', '男子円盤投': '1.750kg', '女子円盤投': '1.000kg', '男子ハンマー投': '6.000kg', '女子ハンマー投': '4.000kg', '男子やり投': '0.800kg', '女子やり投': '0.600kg' } };
+  /* v0.26.53 中学・高校に関係なく高さが決まっている種目：110mJH（ジュニアハードル）は 0.991m、100mYH は 0.762m。
+     「110mJH」と「110mJH(0.991m)」を同じ種目にする（高さの違うものは今までどおり別） */
+  var SPEC_ANY = { '男子110mJH': '0.991m', '女子100mYH': '0.762m' };
   var G_HINT = {};   // 種目名に男女の無い記録：同じ選手のほかの記録から男女を補う（athleteKey → 男子/女子）
   function learnGenders(recs) { (recs || []).forEach(function (r) { var g = (normEvent(r && r.event || '').match(/^(男子|女子)/) || [])[1]; if (g) G_HINT[athleteKey(r)] = g; }); }
   function genderText(r) {
@@ -1845,7 +1853,7 @@ var ResultParser = (function () {
     return { name: n, spec: spec };
   }
   function eventKey(r) {
-    var d = divisionOf(r), g = genderText(r), b = baseEvent(r.event), spec = b.spec || (SPEC_STD[d] || {})[g + b.name] || '';
+    var d = divisionOf(r), g = genderText(r), b = baseEvent(r.event), spec = b.spec || (SPEC_STD[d] || {})[g + b.name] || SPEC_ANY[g + b.name] || '';
     return (d ? d + ':' : '') + g + b.name + (spec ? '(' + spec + ')' : '');
   }
   function eventKeyLabel(r, noGender) {
@@ -1897,6 +1905,27 @@ var ResultParser = (function () {
     if (/(中|高|校|学園|学院)$/.test(parts[0]) || PREF.test(parts[0])) return '';   // 「東京・架空学園」などはこれまでどおり
     if (/^\d+$/.test(parts[0])) return '';   // 精度テスト：高体連の「3・本郷」（支部番号・学校名）は中体連の地区ではない
     return last;
+  }
+  /* v0.26.53 画面・印刷に出す所属：元の速報の書き方（「3・本郷」支部番号、「東 京・本郷高」都道府県、「墨田・本郷」中体連の地区）の前置きを外す。
+     保存するデータ・記録のID・同じ選手の判定（schoolBase）は変えない（表示だけ。保存ずみの記録も読み込み直さずにそろう） */
+  function teamLabel(s) {
+    var t0 = nk(String(s || '')).trim(), t = t0; if (!t) return '';
+    var cy = cyuTeam(t); if (cy) return /(中|高|校|学園|学院|中等)$/.test(cy) ? cy : cy + '中';   // 中体連の「地区・学校」は中学（中学とわかる書き方に）
+    t = t.replace(/^(\S)\s+(\S)(?=\s*[・･／/])/, function (m, x, y) { return PREF.test(x + y) ? x + y : m; });
+    t = t.replace(new RegExp('^(' + PREF.source.replace(/^\^\(|\)\$?$/g, '') + ')[都道府県]?\\s*[・･／/]\\s*(?=\\S{2,})'), '');
+    t = t.replace(/^\d{1,2}\s*[・･]\s*(?=\S)/, '').replace(/^\d{1,2}\s+(?=\D)/, '');
+    t = t.replace(/([^\x00-\x7f])\s+(?=[^\x00-\x7f])/g, '$1');
+    return t || t0;
+  }
+  // 選手ひとりの所属の表示：いちばん新しい「〜中・〜高」などのついた書き方（無ければいちばん新しいもの）。同じ選手で表ごとに変わらないように
+  function teamOf(recs) {
+    var best = '', bd = '', any = '', ad = '';
+    (recs || []).forEach(function (r) {
+      var t = teamLabel(r && r.team), d = String(r && r.date || ''); if (!t) return;
+      if (!any || d >= ad) { any = t; ad = d; }
+      if (/(中|高|校|学園|学院|中等)$/.test(t) && (!best || d >= bd)) { best = t; bd = d; }
+    });
+    return best || any;
   }
   function matchSchool(rec, q) {
     var cy = cyuTeam(rec);
@@ -2258,7 +2287,14 @@ var ResultParser = (function () {
   // recs: 日付つきの記録。各記録に pb（'PB'更新／'初'）と、選手×種目のベストを返す
   function computeBests(recs) {
     var groups = {}; learnGenders(recs);
-    recs.forEach(function (r) { var k = athleteKey(r) + '|' + eventKey(r); (groups[k] = groups[k] || []).push(r); });
+    var byA = {}; recs.forEach(function (r) { var a = athleteKey(r), k = a + '|' + eventKey(r); (groups[k] = groups[k] || []).push(r); (byA[a] = byA[a] || []).push(r); });
+    /* v0.26.53 所属の表示を選手ごとに1つ。「本郷」だけの選手も、中学／高校がわかっていて、同じ表に「本郷中」「本郷高」の書き方があればそれにそろえる */
+    var seenT = {}; recs.forEach(function (r) { var t = teamLabel(r.team); if (t) seenT[t] = 1; });
+    var tms = {}, tm = function (r) {
+      var a = athleteKey(r); if (tms[a] != null) return tms[a];
+      var t = teamOf(byA[a]), d = divisionOf(r), x = d === 'jh' ? t + '中' : d === 'hs' ? t + '高' : '';
+      return (tms[a] = t && x && !/(中|高|校|学園|学院|中等)$/.test(t) && seenT[x] ? x : t);
+    };
     var bests = [], flags = {};
     Object.keys(groups).forEach(function (k) {
       var g = groups[k].slice().sort(function (a, b) { return (a.date || '').localeCompare(b.date || '') || (a.order || 0) - (b.order || 0); });
@@ -2272,7 +2308,7 @@ var ResultParser = (function () {
         } else if (better(bestAid)) bestAid = { r: r, mv: mv };
       });
       var any = g[0];
-      bests.push({ key: athleteKey(any), name: any.name || any.kana, kana: any.kana || '', grade: any.grade || '', team: any.team, div: divisionOf(any), event: eventKey(any), eventLabel: eventKeyLabel(any), best: best && best.r, ref: bestAid && (!best || (bestAid.mv.lower ? bestAid.mv.v < best.mv.v : bestAid.mv.v > best.mv.v)) ? bestAid.r : null, count: g.length });
+      bests.push({ key: athleteKey(any), name: any.name || any.kana, kana: any.kana || '', grade: any.grade || '', team: tm(any), div: divisionOf(any), event: eventKey(any), eventLabel: eventKeyLabel(any), best: best && best.r, ref: bestAid && (!best || (bestAid.mv.lower ? bestAid.mv.v < best.mv.v : bestAid.mv.v > best.mv.v)) ? bestAid.r : null, count: g.length });
     });
     return { bests: bests, flags: flags };
   }
@@ -2324,7 +2360,7 @@ var ResultParser = (function () {
         var gr = null; for (var i = g.length - 1; i >= 0 && gr == null; i--) gr = gradeNum(g[i].grade);
         if (opt.grade != null && gr !== opt.grade) return;
         g.forEach(function (r) { if (isOfficial(r)) { var mv = markValue(r.mark); if (isBetter(mv, best && best.mv)) best = { r: r, mv: mv }; } });
-        if (best) list.push({ key: k, label: eventKeyLabel(last), name: last.name || last.kana, team: last.team, grade: gr, best: best.r, mv: best.mv, count: g.length });
+        if (best) list.push({ key: k, label: eventKeyLabel(last), name: last.name || last.kana, team: teamOf(g), grade: gr, best: best.r, mv: best.mv, count: g.length });
       });
       list.sort(function (a, b) { return a.mv.lower ? a.mv.v - b.mv.v : b.mv.v - a.mv.v; });
       var prev = null; list.forEach(function (x, i) { x.rank = prev && prev.mv.v === x.mv.v ? prev.rank : i + 1; prev = x; });
@@ -2354,7 +2390,7 @@ var ResultParser = (function () {
       var any = g.map(function (r) { return markValue(r.mark); }).filter(Boolean)[0];
       return { event: b.event, eventLabel: b.eventLabel, best: b.best, ref: b.ref, count: b.count, recent: g.slice().reverse().slice(0, 5), points: pts, allPoints: all, noMarks: nm, lower: any ? any.lower : true };
     }).sort(function (a, b) { return a.event < b.event ? -1 : a.event > b.event ? 1 : 0; });
-    return { key: key, name: last.name || last.kana, kana: last.kana, team: last.team, grade: last.grade, events: events, count: mine.length };
+    return { key: key, name: last.name || last.kana, kana: last.kana, team: teamOf(mine), grade: last.grade, events: events, count: mine.length };
   }
 
   // 選手別の並び：フリガナがあれば五十音、なければ学年→氏名（日本語の照合順）
@@ -3078,7 +3114,7 @@ var ResultParser = (function () {
     return { rows: out, cal: cal, err: out.length ? '' : '予定（VEVENT）がありません' };
   }
   return { dayHead: dayHead, parsePdf: parsePdf, parseCells: parseCells, goldMobileStream: goldMobileStream, parsePlain: parsePlain, textToStream: textToStream, normEvent: normEvent, markValue: markValue, windApplies: windApplies, windClass: windClass, windNum: windNum,
-    computeBests: computeBests, baseEvent: baseEvent, learnGenders: learnGenders, isRelay: isRelay, relayEvent: relayEvent, relayMeta: relayMeta, relaySaveEvent: relaySaveEvent, relayTeamBase: relayTeamBase, matchRelayTeam: matchRelayTeam, parseRelayGold: parseRelayGold, parseRelayPdf: parseRelayPdf, mergeRelays: mergeRelays, legsText: legsText, parseLegs: parseLegs, relayRecord: relayRecord, pbLookup: pbLookup, nameKey: nameKey, athleteKey: athleteKey, matchSchool: matchSchool, schoolLoose: schoolLoose, cleanMark: cleanMark, isTag: isTag, canonSchool: canonSchool, cyuTeam: cyuTeam, recId: recId, recIdLegacy: recIdLegacy, recIdV6: recIdV6, identityKey: identityKey, fullIdentity: fullIdentity, looseIdentity: looseIdentity, manualRecord: manualRecord, sanitizeRecord: sanitizeRecord, validDate: validDate, normManualWind: normManualWind, dedupe: dedupe, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
+    computeBests: computeBests, baseEvent: baseEvent, learnGenders: learnGenders, isRelay: isRelay, relayEvent: relayEvent, relayMeta: relayMeta, relaySaveEvent: relaySaveEvent, relayTeamBase: relayTeamBase, matchRelayTeam: matchRelayTeam, parseRelayGold: parseRelayGold, parseRelayPdf: parseRelayPdf, mergeRelays: mergeRelays, legsText: legsText, parseLegs: parseLegs, relayRecord: relayRecord, pbLookup: pbLookup, nameKey: nameKey, athleteKey: athleteKey, matchSchool: matchSchool, schoolLoose: schoolLoose, cleanMark: cleanMark, isTag: isTag, canonSchool: canonSchool, cyuTeam: cyuTeam, eventShown: eventShown, teamLabel: teamLabel, teamOf: teamOf, recId: recId, recIdLegacy: recIdLegacy, recIdV6: recIdV6, identityKey: identityKey, fullIdentity: fullIdentity, looseIdentity: looseIdentity, manualRecord: manualRecord, sanitizeRecord: sanitizeRecord, validDate: validDate, normManualWind: normManualWind, dedupe: dedupe, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
     guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText,
     eventCat: eventCat, divisionOf: divisionOf, divLabel: divLabel, eventKey: eventKey, eventKeyLabel: eventKeyLabel, shownWind: shownWind, hasMark: hasMark, sortAthletes: sortAthletes, kanaKey: kanaKey,
     setGenderDefault: setGenderDefault, setDivisionHints: setDivisionHints, setMeetDivs: setMeetDivs, divSource: divSource, divisionWhy: divisionWhy, splitTeamGrade: splitTeamGrade, setPersonDivs: setPersonDivs, setRosterDivs: setRosterDivs, divConflicts: divConflicts, gradeFromEvent: gradeFromEvent, fixRecord: fixRecord, jhOnlyEvent: jhOnlyEvent, rawDivisionOf: rawDivisionOf, genderOf: genderOf, divGroup: divGroup, disciplineOrder: disciplineOrder, groupEvents: groupEvents, gendersIn: gendersIn, GROUPS: GROUPS,
@@ -3141,7 +3177,7 @@ if (typeof module !== 'undefined') module.exports = LaneRoster;
 
 </script>
 <script>
-var APP_VERSION = "v0.26.52", REC_VERSION = "v0.11.1";
+var APP_VERSION = "v0.26.53", REC_VERSION = "v0.11.1";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>
@@ -4000,7 +4036,7 @@ var LaneReview = (function () {
       if (!live(r) || R.isRelay(r.event || '') || !inP(r, from, to)) return;
       var k = R.athleteKey(r), x = by[k] || (by[k] = { key: k, name: '', kana: '', grade: '', team: '', n: 0, meets: {}, last: '' });
       x.n++; x.meets[R.nk(r.meet || '').replace(/\s/g, '')] = 1;
-      if (!x.last || r.date >= x.last) { x.last = r.date; x.name = r.name || r.kana || x.name; x.kana = r.kana || x.kana; x.team = r.team || x.team; if (r.grade) x.grade = r.grade; }
+      if (!x.last || r.date >= x.last) { x.last = r.date; x.name = r.name || r.kana || x.name; x.kana = r.kana || x.kana; x.team = R.teamLabel(r.team) || x.team; if (r.grade) x.grade = r.grade; }
       else if (!x.grade && r.grade) x.grade = r.grade;
     });
     return R.sortAthletes(Object.keys(by).map(function (k) { var x = by[k]; x.nMeets = Object.keys(x.meets).length; delete x.meets; return x; }));
@@ -4044,7 +4080,7 @@ var LaneReview = (function () {
     if (!per.length) return null;
     var pf = R.athleteProfile(per, key), pd = R.pbDetails(mine), last = per[per.length - 1], grade = '';
     for (var i = per.length - 1; i >= 0 && !grade; i--) grade = per[i].grade || '';
-    pf.grade = grade; pf.team = last.team || pf.team; pf.div = R.divisionOf(last);
+    pf.grade = grade; pf.team = R.teamOf(per) || pf.team; pf.div = R.divisionOf(last);   // v0.26.53 所属は前置きを外した書き方
     var byKey = {}; pf.events.forEach(function (e) { byKey[e.event] = e; });
     var order = [];
     R.groupEvents(Object.keys(byKey), per, opt.nog).forEach(function (g) { g.items.forEach(function (it) { var e = byKey[it.key]; if (e) { e.eventLabel = String(it.label).replace(/(^|\s)(中学|高校)\s+/, '$1').trim() || it.label; order.push(e); }  }); });
@@ -6851,7 +6887,7 @@ var LanePdf = (function () {
       try { await ap.remove(ed); resSuggest().catch(function () { }); } catch (x) { resMsg('✖ 取り消せませんでした：' + x.message, 'ng'); }
       return;
     }
-    if (t.hasAttribute('data-respref')) { var a2 = resApi(); if (a2) { try { await a2.setPref(false); if (PP.v) { PP.v.pubres = false; ppRender(); } t.closest('.res-box').innerHTML = '<small>これからは「みんなの結果」に登録しません（この記録のページの「🤝 学校をこえて分け合う」で戻せます）。</small>'; } catch (x) { } } }
+    if (t.hasAttribute('data-respref')) { var a2 = resApi(); if (a2) { try { await a2.setPref(false); if (PP.v) { PP.v.pubres = false; ppRender(); } t.closest('.res-box').innerHTML = '<small>これからは「みんなの結果」に登録しません（この記録のページの「🤝 だれかが入れた大会は、もう入れなくてOK」で戻せます）。</small>'; } catch (x) { } } }
   });
   // v0.26.38 設定：「みんなの要項／みんなの結果に登録するか聞く」（顧問だけ）。オン＝次の1回また聞く（設定を消す）・オフ＝登録しない
   var PP = { uid: '', v: null, busy: false };
@@ -6867,9 +6903,9 @@ var LanePdf = (function () {
         '<small>' + (on === false ? 'オフ：' + what + 'ても、登録しません。' : on === true ? 'オン（前に「登録する」と答えたので、今は聞かずに登録します。オフにすると止まります）' : 'オン：' + what + 'たとき、はじめの1回だけ聞きます。') + '</small></label>';
     };
     box.hidden = false;
-    box.innerHTML = '<details class="small"' + (PP.open ? ' open' : '') + ' data-ppd="1"><summary><b>🤝 学校をこえて分け合う</b>（顧問だけ・みんなの要項／みんなの結果）</summary>' +
+    box.innerHTML = '<details class="small"' + (PP.open ? ' open' : '') + ' data-ppd="1"><summary><b>🤝 だれかが入れた大会は、もう入れなくてOK</b>（みんなの要項／みんなの結果）</summary><p class="small muted">この設定は顧問だけが変えられます。</p>' +
       row('pub', 'みんなの要項', '大会予定から開いた大会で要項をURLから読み') + row('pubres', 'みんなの結果', '結果をURLから読んで保存し') +
-      '<p class="small muted">分け合うのは大会名・日付・会場・URL（要項は読み取った大会のきまりも）だけです。選手の名前や記録は送りません。すでに登録したものは、オフにしてもそのままです。</p><div class="status" id="ppMsg"></div></details>';
+      '<p class="small muted">だれか1人が要項や結果のURLを登録すると、同じ大会に出るほかの先生は、大会を選ぶだけで入れられます。登録されるのは大会名・日付・会場・URLだけで、選手の名前や記録は送りません。すでに登録したものは、オフにしてもそのままです。</p><div class="status" id="ppMsg"></div></details>';
   }
   document.addEventListener('toggle', function (e) { if (e.target && e.target.getAttribute && e.target.getAttribute('data-ppd')) PP.open = e.target.open; }, true);
   document.addEventListener('change', async function (e) {
@@ -7095,14 +7131,16 @@ var LanePdf = (function () {
     var sc = scope(), list = YB.rows.filter(function (r) { var s = ybState(r); return (s === 'found' || s === 'done') && r.go && r.sel; });
     if (!list.length) return;
     // 中学と高校の大会予定で同じ資料（同じURL）を使う大会：区分で行を分ける
-    var dv = {}, first = {}; list.forEach(function (r) { var d = r.p.div === '中学' ? 'jh' : r.p.div === '高校' ? 'hs' : '-'; (dv[r.sel.url] = dv[r.sel.url] || {})[d] = 1; });
+    /* v0.26.53：今回読まない予定（取り込み済み・読むのを外した予定）も入れて見る。片方だけ読んだとき、もう片方の区分の行まで別の大会名で入る（同じ行が2回）のを防ぐ。
+       区分の分からない行を入れる予定（ybUnk）は、読む・読んだ予定のうち表で先のもの。もう1つの予定に同じ行が保存ずみなら入れない（batchRecs） */
+    var dv = {}, first = {}; YB.rows.forEach(function (r) { if (!r.sel || !r.sel.url) return; var d = r.p.div === '中学' ? 'jh' : r.p.div === '高校' ? 'hs' : '-', u = r.sel.url, st = ybState(r); (dv[u] = dv[u] || {})[d] = 1; if (d !== '-' && !first[u] && (list.indexOf(r) >= 0 || r.done || /^(done|saved|ready|empty)$/.test(st))) first[u] = r.p.key; });
     YB.busy = true; YB.saved = null; YB.ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
     var lock = null; try { if (navigator.wakeLock && navigator.wakeLock.request) lock = await navigator.wakeLock.request('screen'); } catch (e) { }
     ybRender(); var stopped = false, seen = [], tot = { m: 0, n: 0 };
     YB.limNow = YB.lim; YB.eta = { t0: Date.now(), req0: YB.reqN, pgSum: 0, pgN: 0, curDone: 0, curTotal: 0, later: list.map(function (x) { return x.sel.kind === 'pdf' || /\.pdf(\?|$)/i.test(x.sel.url) ? 'pdf' : 'meet'; }) };
     for (var i = 0; i < list.length; i++) {
       var r = list[i], u = r.sel.url, d = dv[u];
-      r.div = d.jh && d.hs ? (r.p.div === '中学' ? 'jh' : r.p.div === '高校' ? 'hs' : '') : ''; r.unk = !!r.div && !first[u]; first[u] = 1;
+      r.div = d.jh && d.hs ? (r.p.div === '中学' ? 'jh' : r.p.div === '高校' ? 'hs' : '') : ''; r.unk = !!r.div && first[u] === r.p.key; r.peers = YB.rows.filter(function (x) { return x !== r && x.sel && x.sel.url === u; }).map(function (x) { return x.p.meet; });
       batches = batches.filter(function (b) { return b.yb !== r.p.key; });   // 読み直すときは前の確認画面を消す
       r.st = 'loading'; r.prog = ''; r.err = ''; r.warn = ''; r.hi = null; r.read = true; YB.eta.later.shift(); YB.eta.curDone = YB.eta.curTotal = 0;
       YB.lead = '📥 読み込み中…（' + (i + 1) + '／' + list.length + '大会）' + r.p.meet + (tot.m ? '　ここまで ' + tot.m + '大会・' + tot.n + '件' : '');
@@ -7159,7 +7197,7 @@ var LanePdf = (function () {
     if (!r) return;
     b.meta = b.meta || {}; b.meta.name = r.p.meet; b.meta.date = r.p.date; b.meta.typedName = b.meta.typedDate = true; delete b.meta.guessed;
     if (b.xl && b.xl.def) { b.xl.def.meet = r.p.meet; b.xl.def.date = r.p.date; }
-    b.yb = r.p.key; if (r.div && !man) { b.ybDiv = r.div; b.ybUnk = r.unk; }
+    b.yb = r.p.key; if (r.div && !man) { b.ybDiv = r.div; b.ybUnk = r.unk; } if (!man && r.peers && r.peers.length) b.ybPeers = r.peers;
     if (b.sc) b.sc = Object.assign({}, b.sc, { srcUrl: '' }, !man && r.sel && r.sel.pub ? { pub: r.sel.pub } : {});   // まとめての取り込みは「みんなの結果」に登録しない（1つずつ聞かない）。「みんなの結果」から読んだときは、今までと同じく学校名のゆるい一致は要確認
     if (man) { YB.manual = ''; r.st = 'found'; r.read = true; r.sel = r.sel || { name: '手で入れた資料', url: '', src: '' }; setTimeout(ybRender, 0); }
   }
@@ -7191,10 +7229,18 @@ var LanePdf = (function () {
     if (/[?&]year=1(?:&|$)/.test(location.search)) { $('rbYear').open = true; setTimeout(function () { var y = $('rbYear'); if (y && y.scrollIntoView) y.scrollIntoView({ block: 'start' }); }, 300); }
     $('rbYear').addEventListener('toggle', function () { if (this.open) ybRender(); });
   }
+  function ybPeerHave(b) {
+    if (b._ph && b._ph.all === ALL && b._ph.n === ALL.length) return b._ph.m;
+    var pm = {}, m = {}; b.ybPeers.forEach(function (x) { pm[R.nk(x).replace(/\s/g, '')] = 1; });
+    ALL.forEach(function (x) { if (pm[R.nk(x.meet || '').replace(/\s/g, '')]) m[R.identityKey(x)] = 1; });
+    b._ph = { all: ALL, n: ALL.length, m: m }; return m;
+  }
   function batchRecs(b) {
     if (!b.all) return [];
     var q = school(), rs = b.all.recs.filter(wantRec);
     if (b.ybDiv) rs = rs.filter(function (r) { return ybKeep(b, ybDivOf(r)); });   // v0.26.50 1年分：中学と高校の大会予定で同じ資料を使うとき
+    // v0.26.53：同じ資料を使うもう1つの大会予定の名前で、同じ行がもう保存されていれば入れない（大会名だけちがう二重を防ぐ）
+    if (b.ybPeers && b.ybPeers.length) { var hv = ybPeerHave(b); rs = rs.filter(function (r) { return !hv[R.identityKey(r)]; }); }
     // v0.26.38 みんなの結果から読んだとき：学校名がゆるく一致しただけの行（「本郷」→「本郷中」）は要確認。チェックを付けたときだけ入れる
     if (b.sc && b.sc.pub && q && !MODE.personal && !b.looseOk) rs = rs.filter(function (r) { return !R.schoolLoose(r.team, q); });
     return rs;
@@ -7674,7 +7720,7 @@ var LanePdf = (function () {
     box.querySelectorAll('button').forEach(function (b) { var on = b.getAttribute('data-sex') === SEX; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
   }
   $('rbSex').addEventListener('click', function (e) { var d = e.target.getAttribute('data-sex'); if (!d) return; SEX = d; try { localStorage.setItem(SEXKEY, d); } catch (x) { } rankOpt.ev = ''; histOpt.ev = ''; render(); });
-  function evName(r) { var t = r.event || ''; return NOG ? t.replace(/男子|女子/, '').replace(/^\s+/, '') : t; }   // 男子だけ（女子だけ）の学校では「男子」を出さない
+  function evName(r) { var t = R.eventShown(r.event); return NOG ? t.replace(/男子|女子/, '').replace(/^\s+/, '') : t; }   // 男子だけ（女子だけ）の学校では「男子」を出さない
   function renderReview() {
     var s = school(), mine = $('rbMine').checked, box = $('rbReview');
     var list = REVIEW.filter(function (x) { return !(mine && s) || R.matchSchool(x.team, s); });
@@ -7947,7 +7993,7 @@ var LanePdf = (function () {
     var summary = shown ? '' : '<div class="card"><div class="card-h"><b>種目ごとの自己ベスト</b><span class="small muted">押すとグラフと記録</span></div><ul class="evsum">' + order.map(function (e) { var b = e.best || e.ref; return '<li><button type="button" class="evn" data-athev="' + esc(e.event) + '">' + esc(e.eventLabel) + '</button><b class="lmk">' + esc(b ? b.mark : '—') + (e.best ? '' : (b ? windTag(b) : '')) + '</b><span class="sub">' + (b ? (R.shownWind(b) ? '風' + esc(b.wind) + '・' : '') + esc(b.date) + ' ' + esc(b.meet) + ' ' + weatherTag(b.date + '|' + b.meet) : '') + '・' + e.count + '件</span></li>'; }).join('') + '</ul></div>';
     back += ppBtns('ath', key, '個人表') + ppBtns('review', key, 'ふりかえりシート');   // v0.26.52
     var roC = rosterCard(key, pf, ALL.filter(function (r) { return R.athleteKey(r) === key; }));
-    return back + '<div class="card ath-h"><b class="nm">' + esc(pf.name) + '</b>' + '<button class="btn sub" type="button" data-pplink="' + esc(key) + '" style="float:right">📱 個人ページのリンク</button>' + (pf.kana ? '<span class="small muted">' + esc(pf.kana) + '</span>' : '') + '<div class="small muted">' + esc(((mineRows.filter(function (r) { return R.rawDivisionOf(r); }).sort(function (x, y) { return cmp(x.date, y.date); }).pop()) || pf).team) + (pf.grade ? '・' + esc(pf.grade) : '') + (R.divisionOf(pf) ? '・' + R.divLabel(R.divisionOf(pf)) : '') + '・' + pf.events.length + '種目・' + pf.count + '件</div></div>' + roC + sw + summary +
+    return back + '<div class="card ath-h"><b class="nm">' + esc(pf.name) + '</b>' + '<button class="btn sub" type="button" data-pplink="' + esc(key) + '" style="float:right">📱 個人ページのリンク</button>' + (pf.kana ? '<span class="small muted">' + esc(pf.kana) + '</span>' : '') + '<div class="small muted">' + esc(R.teamOf(mineRows) || pf.team || '') + (pf.grade ? '・' + esc(pf.grade) : '') + (R.divisionOf(pf) ? '・' + R.divLabel(R.divisionOf(pf)) : '') + '・' + pf.events.length + '種目・' + pf.count + '件</div></div>' + roC + sw + summary +
       (shown || []).map(function (e) {
         var b = e.best;
         return '<div class="card evc"><div class="card-h"><b>' + esc(e.eventLabel) + '</b><span class="small muted">' + e.count + '件</span></div>' +
@@ -8215,7 +8261,7 @@ var LanePdf = (function () {
             (meetEdit === key ? '<div class="rb-row wxedit">' + weatherInputs(mw, 'data-w') + '<button class="btn" type="button" data-wsave="' + esc(key) + '">保存</button></div>' : '') + '</td></tr>';
         }
         lastMeet = key;
-        return head + '<tr class="rc">' + (grouped ? '' : '<td class="c-date">' + esc(r.date) + '</td><td class="c-meet">' + esc(r.meet) + '</td>') + '<td class="c-ev">' + esc(evName(r)) + '</td><td class="c-round">' + esc(r.round) + '</td><td class="rn c-heat" data-l="組">' + esc(r.heat) + '</td><td class="c-name">' + athLink(R.athleteKey(r), r.name || r.kana) + '</td><td class="rn c-grade" data-l="学年">' + esc(r.grade) + '</td><td class="c-team">' + esc(r.team) + '</td><td class="rn c-mark"><b>' + esc(r.mark) + '</b>' + pbFlag(flags[r.id]) + windTag(r) + '</td><td class="rn c-wind" data-l="風">' + esc(R.shownWind(r)) + '</td><td class="rn c-rank" data-l="順位">' + esc(r.rank) + '</td><td class="c-cmt"><small>' + esc(r.comment) + '</small>' + (r.manual ? '<small class="muted">手入力</small>' : '') + '</td><td class="c-ops"><button type="button" data-edit="' + esc(r.id) + '" aria-label="この記録を直す">✏️ 直す</button><button type="button" class="rdel" data-delrec="' + esc(r.id) + '" aria-label="この記録を消す">🗑 消す</button></td></tr>';
+        return head + '<tr class="rc">' + (grouped ? '' : '<td class="c-date">' + esc(r.date) + '</td><td class="c-meet">' + esc(r.meet) + '</td>') + '<td class="c-ev">' + esc(evName(r)) + '</td><td class="c-round">' + esc(r.round) + '</td><td class="rn c-heat" data-l="組">' + esc(r.heat) + '</td><td class="c-name">' + athLink(R.athleteKey(r), r.name || r.kana) + '</td><td class="rn c-grade" data-l="学年">' + esc(r.grade) + '</td><td class="c-team">' + esc(R.teamLabel(r.team)) + '</td><td class="rn c-mark"><b>' + esc(r.mark) + '</b>' + pbFlag(flags[r.id]) + windTag(r) + '</td><td class="rn c-wind" data-l="風">' + esc(R.shownWind(r)) + '</td><td class="rn c-rank" data-l="順位">' + esc(r.rank) + '</td><td class="c-cmt"><small>' + esc(r.comment) + '</small>' + (r.manual ? '<small class="muted">手入力</small>' : '') + '</td><td class="c-ops"><button type="button" data-edit="' + esc(r.id) + '" aria-label="この記録を直す">✏️ 直す</button><button type="button" class="rdel" data-delrec="' + esc(r.id) + '" aria-label="この記録を消す">🗑 消す</button></td></tr>';
       }).join('') + '</table>';
     }
     v.innerHTML = html;
@@ -8327,7 +8373,7 @@ var LanePdf = (function () {
     var order = []; R.groupEvents(Object.keys(byKey), mine, NOG).forEach(function (g) { g.items.forEach(function (it) { byKey[it.key].eventLabel = it.label; order.push(byKey[it.key]); }); });
     var b4 = function (r) { return r ? [r.mark || '', R.shownWind(r), r.date || '', r.meet || ''] : null; };
     var last = mine.filter(function (r) { return R.rawDivisionOf(r); }).sort(function (x, y) { return cmp(x.date, y.date); }).pop() || pf;
-    return ppSc({ v: 1, k: 'pp', g: new Date().toISOString(), a: { name: pf.name || '', team: last.team || pf.team || '', grade: pf.grade || '' },
+    return ppSc({ v: 1, k: 'pp', g: new Date().toISOString(), a: { name: pf.name || '', team: R.teamOf(mine) || pf.team || '', grade: pf.grade || '' },
       e: order.slice(0, LanePersonal.MAX_EV).map(function (e) {
         return { l: e.eventLabel, lw: e.lower ? 1 : 0, n: e.count, b: b4(e.best), rf: b4(e.ref),
           p: e.allPoints.slice(-LanePersonal.MAX_P).map(function (p) { return [p.date, Math.round(p.v * 1000) / 1000, p.mark, p.wind || '', p.ref ? 1 : 0]; }),

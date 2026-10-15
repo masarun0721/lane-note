@@ -53,7 +53,7 @@ await check('種目の一覧：男女の書いていない記録があっても�
   const keys = [...new Set(rows.map(R.eventKey))], g = R.groupEvents(keys, rows, true);
   assert.deepEqual(g.map(x => x.group), ['中学', '高校']);
   const hsl = g[1].items.map(i => i.label); assert.equal(new Set(hsl).size, hsl.length, hsl.join(','));
-  assert(hsl.includes('高校 110mJH') && hsl.some(l => /110mH\(1\.067m\)/.test(l)), hsl.join(','));
+  assert(hsl.includes('高校 110mJH(0.991m)') && hsl.some(l => /110mH\(1\.067m\)/.test(l)), hsl.join(','));   // v0.26.53：110mJH は高さ（0.991m）つきの見出し（110mJH(0.991m) と同じ種目）
   assert.deepEqual(g[0].items.map(i => i.label), ['中学 100m']);
   R.setGenderDefault('');
 });

@@ -1667,7 +1667,7 @@
       try { await ap.remove(ed); resSuggest().catch(function () { }); } catch (x) { resMsg('✖ 取り消せませんでした：' + x.message, 'ng'); }
       return;
     }
-    if (t.hasAttribute('data-respref')) { var a2 = resApi(); if (a2) { try { await a2.setPref(false); if (PP.v) { PP.v.pubres = false; ppRender(); } t.closest('.res-box').innerHTML = '<small>これからは「みんなの結果」に登録しません（この記録のページの「🤝 学校をこえて分け合う」で戻せます）。</small>'; } catch (x) { } } }
+    if (t.hasAttribute('data-respref')) { var a2 = resApi(); if (a2) { try { await a2.setPref(false); if (PP.v) { PP.v.pubres = false; ppRender(); } t.closest('.res-box').innerHTML = '<small>これからは「みんなの結果」に登録しません（この記録のページの「🤝 だれかが入れた大会は、もう入れなくてOK」で戻せます）。</small>'; } catch (x) { } } }
   });
   // v0.26.38 設定：「みんなの要項／みんなの結果に登録するか聞く」（顧問だけ）。オン＝次の1回また聞く（設定を消す）・オフ＝登録しない
   var PP = { uid: '', v: null, busy: false };
@@ -1683,9 +1683,9 @@
         '<small>' + (on === false ? 'オフ：' + what + 'ても、登録しません。' : on === true ? 'オン（前に「登録する」と答えたので、今は聞かずに登録します。オフにすると止まります）' : 'オン：' + what + 'たとき、はじめの1回だけ聞きます。') + '</small></label>';
     };
     box.hidden = false;
-    box.innerHTML = '<details class="small"' + (PP.open ? ' open' : '') + ' data-ppd="1"><summary><b>🤝 学校をこえて分け合う</b>（顧問だけ・みんなの要項／みんなの結果）</summary>' +
+    box.innerHTML = '<details class="small"' + (PP.open ? ' open' : '') + ' data-ppd="1"><summary><b>🤝 だれかが入れた大会は、もう入れなくてOK</b>（みんなの要項／みんなの結果）</summary><p class="small muted">この設定は顧問だけが変えられます。</p>' +
       row('pub', 'みんなの要項', '大会予定から開いた大会で要項をURLから読み') + row('pubres', 'みんなの結果', '結果をURLから読んで保存し') +
-      '<p class="small muted">分け合うのは大会名・日付・会場・URL（要項は読み取った大会のきまりも）だけです。選手の名前や記録は送りません。すでに登録したものは、オフにしてもそのままです。</p><div class="status" id="ppMsg"></div></details>';
+      '<p class="small muted">だれか1人が要項や結果のURLを登録すると、同じ大会に出るほかの先生は、大会を選ぶだけで入れられます。登録されるのは大会名・日付・会場・URLだけで、選手の名前や記録は送りません。すでに登録したものは、オフにしてもそのままです。</p><div class="status" id="ppMsg"></div></details>';
   }
   document.addEventListener('toggle', function (e) { if (e.target && e.target.getAttribute && e.target.getAttribute('data-ppd')) PP.open = e.target.open; }, true);
   document.addEventListener('change', async function (e) {
@@ -1911,14 +1911,16 @@
     var sc = scope(), list = YB.rows.filter(function (r) { var s = ybState(r); return (s === 'found' || s === 'done') && r.go && r.sel; });
     if (!list.length) return;
     // 中学と高校の大会予定で同じ資料（同じURL）を使う大会：区分で行を分ける
-    var dv = {}, first = {}; list.forEach(function (r) { var d = r.p.div === '中学' ? 'jh' : r.p.div === '高校' ? 'hs' : '-'; (dv[r.sel.url] = dv[r.sel.url] || {})[d] = 1; });
+    /* v0.26.53：今回読まない予定（取り込み済み・読むのを外した予定）も入れて見る。片方だけ読んだとき、もう片方の区分の行まで別の大会名で入る（同じ行が2回）のを防ぐ。
+       区分の分からない行を入れる予定（ybUnk）は、読む・読んだ予定のうち表で先のもの。もう1つの予定に同じ行が保存ずみなら入れない（batchRecs） */
+    var dv = {}, first = {}; YB.rows.forEach(function (r) { if (!r.sel || !r.sel.url) return; var d = r.p.div === '中学' ? 'jh' : r.p.div === '高校' ? 'hs' : '-', u = r.sel.url, st = ybState(r); (dv[u] = dv[u] || {})[d] = 1; if (d !== '-' && !first[u] && (list.indexOf(r) >= 0 || r.done || /^(done|saved|ready|empty)$/.test(st))) first[u] = r.p.key; });
     YB.busy = true; YB.saved = null; YB.ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
     var lock = null; try { if (navigator.wakeLock && navigator.wakeLock.request) lock = await navigator.wakeLock.request('screen'); } catch (e) { }
     ybRender(); var stopped = false, seen = [], tot = { m: 0, n: 0 };
     YB.limNow = YB.lim; YB.eta = { t0: Date.now(), req0: YB.reqN, pgSum: 0, pgN: 0, curDone: 0, curTotal: 0, later: list.map(function (x) { return x.sel.kind === 'pdf' || /\.pdf(\?|$)/i.test(x.sel.url) ? 'pdf' : 'meet'; }) };
     for (var i = 0; i < list.length; i++) {
       var r = list[i], u = r.sel.url, d = dv[u];
-      r.div = d.jh && d.hs ? (r.p.div === '中学' ? 'jh' : r.p.div === '高校' ? 'hs' : '') : ''; r.unk = !!r.div && !first[u]; first[u] = 1;
+      r.div = d.jh && d.hs ? (r.p.div === '中学' ? 'jh' : r.p.div === '高校' ? 'hs' : '') : ''; r.unk = !!r.div && first[u] === r.p.key; r.peers = YB.rows.filter(function (x) { return x !== r && x.sel && x.sel.url === u; }).map(function (x) { return x.p.meet; });
       batches = batches.filter(function (b) { return b.yb !== r.p.key; });   // 読み直すときは前の確認画面を消す
       r.st = 'loading'; r.prog = ''; r.err = ''; r.warn = ''; r.hi = null; r.read = true; YB.eta.later.shift(); YB.eta.curDone = YB.eta.curTotal = 0;
       YB.lead = '📥 読み込み中…（' + (i + 1) + '／' + list.length + '大会）' + r.p.meet + (tot.m ? '　ここまで ' + tot.m + '大会・' + tot.n + '件' : '');
@@ -1975,7 +1977,7 @@
     if (!r) return;
     b.meta = b.meta || {}; b.meta.name = r.p.meet; b.meta.date = r.p.date; b.meta.typedName = b.meta.typedDate = true; delete b.meta.guessed;
     if (b.xl && b.xl.def) { b.xl.def.meet = r.p.meet; b.xl.def.date = r.p.date; }
-    b.yb = r.p.key; if (r.div && !man) { b.ybDiv = r.div; b.ybUnk = r.unk; }
+    b.yb = r.p.key; if (r.div && !man) { b.ybDiv = r.div; b.ybUnk = r.unk; } if (!man && r.peers && r.peers.length) b.ybPeers = r.peers;
     if (b.sc) b.sc = Object.assign({}, b.sc, { srcUrl: '' }, !man && r.sel && r.sel.pub ? { pub: r.sel.pub } : {});   // まとめての取り込みは「みんなの結果」に登録しない（1つずつ聞かない）。「みんなの結果」から読んだときは、今までと同じく学校名のゆるい一致は要確認
     if (man) { YB.manual = ''; r.st = 'found'; r.read = true; r.sel = r.sel || { name: '手で入れた資料', url: '', src: '' }; setTimeout(ybRender, 0); }
   }
@@ -2007,10 +2009,18 @@
     if (/[?&]year=1(?:&|$)/.test(location.search)) { $('rbYear').open = true; setTimeout(function () { var y = $('rbYear'); if (y && y.scrollIntoView) y.scrollIntoView({ block: 'start' }); }, 300); }
     $('rbYear').addEventListener('toggle', function () { if (this.open) ybRender(); });
   }
+  function ybPeerHave(b) {
+    if (b._ph && b._ph.all === ALL && b._ph.n === ALL.length) return b._ph.m;
+    var pm = {}, m = {}; b.ybPeers.forEach(function (x) { pm[R.nk(x).replace(/\s/g, '')] = 1; });
+    ALL.forEach(function (x) { if (pm[R.nk(x.meet || '').replace(/\s/g, '')]) m[R.identityKey(x)] = 1; });
+    b._ph = { all: ALL, n: ALL.length, m: m }; return m;
+  }
   function batchRecs(b) {
     if (!b.all) return [];
     var q = school(), rs = b.all.recs.filter(wantRec);
     if (b.ybDiv) rs = rs.filter(function (r) { return ybKeep(b, ybDivOf(r)); });   // v0.26.50 1年分：中学と高校の大会予定で同じ資料を使うとき
+    // v0.26.53：同じ資料を使うもう1つの大会予定の名前で、同じ行がもう保存されていれば入れない（大会名だけちがう二重を防ぐ）
+    if (b.ybPeers && b.ybPeers.length) { var hv = ybPeerHave(b); rs = rs.filter(function (r) { return !hv[R.identityKey(r)]; }); }
     // v0.26.38 みんなの結果から読んだとき：学校名がゆるく一致しただけの行（「本郷」→「本郷中」）は要確認。チェックを付けたときだけ入れる
     if (b.sc && b.sc.pub && q && !MODE.personal && !b.looseOk) rs = rs.filter(function (r) { return !R.schoolLoose(r.team, q); });
     return rs;
@@ -2490,7 +2500,7 @@
     box.querySelectorAll('button').forEach(function (b) { var on = b.getAttribute('data-sex') === SEX; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
   }
   $('rbSex').addEventListener('click', function (e) { var d = e.target.getAttribute('data-sex'); if (!d) return; SEX = d; try { localStorage.setItem(SEXKEY, d); } catch (x) { } rankOpt.ev = ''; histOpt.ev = ''; render(); });
-  function evName(r) { var t = r.event || ''; return NOG ? t.replace(/男子|女子/, '').replace(/^\s+/, '') : t; }   // 男子だけ（女子だけ）の学校では「男子」を出さない
+  function evName(r) { var t = R.eventShown(r.event); return NOG ? t.replace(/男子|女子/, '').replace(/^\s+/, '') : t; }   // 男子だけ（女子だけ）の学校では「男子」を出さない
   function renderReview() {
     var s = school(), mine = $('rbMine').checked, box = $('rbReview');
     var list = REVIEW.filter(function (x) { return !(mine && s) || R.matchSchool(x.team, s); });
@@ -2763,7 +2773,7 @@
     var summary = shown ? '' : '<div class="card"><div class="card-h"><b>種目ごとの自己ベスト</b><span class="small muted">押すとグラフと記録</span></div><ul class="evsum">' + order.map(function (e) { var b = e.best || e.ref; return '<li><button type="button" class="evn" data-athev="' + esc(e.event) + '">' + esc(e.eventLabel) + '</button><b class="lmk">' + esc(b ? b.mark : '—') + (e.best ? '' : (b ? windTag(b) : '')) + '</b><span class="sub">' + (b ? (R.shownWind(b) ? '風' + esc(b.wind) + '・' : '') + esc(b.date) + ' ' + esc(b.meet) + ' ' + weatherTag(b.date + '|' + b.meet) : '') + '・' + e.count + '件</span></li>'; }).join('') + '</ul></div>';
     back += ppBtns('ath', key, '個人表') + ppBtns('review', key, 'ふりかえりシート');   // v0.26.52
     var roC = rosterCard(key, pf, ALL.filter(function (r) { return R.athleteKey(r) === key; }));
-    return back + '<div class="card ath-h"><b class="nm">' + esc(pf.name) + '</b>' + '<button class="btn sub" type="button" data-pplink="' + esc(key) + '" style="float:right">📱 個人ページのリンク</button>' + (pf.kana ? '<span class="small muted">' + esc(pf.kana) + '</span>' : '') + '<div class="small muted">' + esc(((mineRows.filter(function (r) { return R.rawDivisionOf(r); }).sort(function (x, y) { return cmp(x.date, y.date); }).pop()) || pf).team) + (pf.grade ? '・' + esc(pf.grade) : '') + (R.divisionOf(pf) ? '・' + R.divLabel(R.divisionOf(pf)) : '') + '・' + pf.events.length + '種目・' + pf.count + '件</div></div>' + roC + sw + summary +
+    return back + '<div class="card ath-h"><b class="nm">' + esc(pf.name) + '</b>' + '<button class="btn sub" type="button" data-pplink="' + esc(key) + '" style="float:right">📱 個人ページのリンク</button>' + (pf.kana ? '<span class="small muted">' + esc(pf.kana) + '</span>' : '') + '<div class="small muted">' + esc(R.teamOf(mineRows) || pf.team || '') + (pf.grade ? '・' + esc(pf.grade) : '') + (R.divisionOf(pf) ? '・' + R.divLabel(R.divisionOf(pf)) : '') + '・' + pf.events.length + '種目・' + pf.count + '件</div></div>' + roC + sw + summary +
       (shown || []).map(function (e) {
         var b = e.best;
         return '<div class="card evc"><div class="card-h"><b>' + esc(e.eventLabel) + '</b><span class="small muted">' + e.count + '件</span></div>' +
@@ -3031,7 +3041,7 @@
             (meetEdit === key ? '<div class="rb-row wxedit">' + weatherInputs(mw, 'data-w') + '<button class="btn" type="button" data-wsave="' + esc(key) + '">保存</button></div>' : '') + '</td></tr>';
         }
         lastMeet = key;
-        return head + '<tr class="rc">' + (grouped ? '' : '<td class="c-date">' + esc(r.date) + '</td><td class="c-meet">' + esc(r.meet) + '</td>') + '<td class="c-ev">' + esc(evName(r)) + '</td><td class="c-round">' + esc(r.round) + '</td><td class="rn c-heat" data-l="組">' + esc(r.heat) + '</td><td class="c-name">' + athLink(R.athleteKey(r), r.name || r.kana) + '</td><td class="rn c-grade" data-l="学年">' + esc(r.grade) + '</td><td class="c-team">' + esc(r.team) + '</td><td class="rn c-mark"><b>' + esc(r.mark) + '</b>' + pbFlag(flags[r.id]) + windTag(r) + '</td><td class="rn c-wind" data-l="風">' + esc(R.shownWind(r)) + '</td><td class="rn c-rank" data-l="順位">' + esc(r.rank) + '</td><td class="c-cmt"><small>' + esc(r.comment) + '</small>' + (r.manual ? '<small class="muted">手入力</small>' : '') + '</td><td class="c-ops"><button type="button" data-edit="' + esc(r.id) + '" aria-label="この記録を直す">✏️ 直す</button><button type="button" class="rdel" data-delrec="' + esc(r.id) + '" aria-label="この記録を消す">🗑 消す</button></td></tr>';
+        return head + '<tr class="rc">' + (grouped ? '' : '<td class="c-date">' + esc(r.date) + '</td><td class="c-meet">' + esc(r.meet) + '</td>') + '<td class="c-ev">' + esc(evName(r)) + '</td><td class="c-round">' + esc(r.round) + '</td><td class="rn c-heat" data-l="組">' + esc(r.heat) + '</td><td class="c-name">' + athLink(R.athleteKey(r), r.name || r.kana) + '</td><td class="rn c-grade" data-l="学年">' + esc(r.grade) + '</td><td class="c-team">' + esc(R.teamLabel(r.team)) + '</td><td class="rn c-mark"><b>' + esc(r.mark) + '</b>' + pbFlag(flags[r.id]) + windTag(r) + '</td><td class="rn c-wind" data-l="風">' + esc(R.shownWind(r)) + '</td><td class="rn c-rank" data-l="順位">' + esc(r.rank) + '</td><td class="c-cmt"><small>' + esc(r.comment) + '</small>' + (r.manual ? '<small class="muted">手入力</small>' : '') + '</td><td class="c-ops"><button type="button" data-edit="' + esc(r.id) + '" aria-label="この記録を直す">✏️ 直す</button><button type="button" class="rdel" data-delrec="' + esc(r.id) + '" aria-label="この記録を消す">🗑 消す</button></td></tr>';
       }).join('') + '</table>';
     }
     v.innerHTML = html;
@@ -3143,7 +3153,7 @@
     var order = []; R.groupEvents(Object.keys(byKey), mine, NOG).forEach(function (g) { g.items.forEach(function (it) { byKey[it.key].eventLabel = it.label; order.push(byKey[it.key]); }); });
     var b4 = function (r) { return r ? [r.mark || '', R.shownWind(r), r.date || '', r.meet || ''] : null; };
     var last = mine.filter(function (r) { return R.rawDivisionOf(r); }).sort(function (x, y) { return cmp(x.date, y.date); }).pop() || pf;
-    return ppSc({ v: 1, k: 'pp', g: new Date().toISOString(), a: { name: pf.name || '', team: last.team || pf.team || '', grade: pf.grade || '' },
+    return ppSc({ v: 1, k: 'pp', g: new Date().toISOString(), a: { name: pf.name || '', team: R.teamOf(mine) || pf.team || '', grade: pf.grade || '' },
       e: order.slice(0, LanePersonal.MAX_EV).map(function (e) {
         return { l: e.eventLabel, lw: e.lower ? 1 : 0, n: e.count, b: b4(e.best), rf: b4(e.ref),
           p: e.allPoints.slice(-LanePersonal.MAX_P).map(function (p) { return [p.date, Math.round(p.v * 1000) / 1000, p.mark, p.wind || '', p.ref ? 1 : 0]; }),

@@ -27,7 +27,7 @@ var LaneReview = (function () {
       if (!live(r) || R.isRelay(r.event || '') || !inP(r, from, to)) return;
       var k = R.athleteKey(r), x = by[k] || (by[k] = { key: k, name: '', kana: '', grade: '', team: '', n: 0, meets: {}, last: '' });
       x.n++; x.meets[R.nk(r.meet || '').replace(/\s/g, '')] = 1;
-      if (!x.last || r.date >= x.last) { x.last = r.date; x.name = r.name || r.kana || x.name; x.kana = r.kana || x.kana; x.team = r.team || x.team; if (r.grade) x.grade = r.grade; }
+      if (!x.last || r.date >= x.last) { x.last = r.date; x.name = r.name || r.kana || x.name; x.kana = r.kana || x.kana; x.team = R.teamLabel(r.team) || x.team; if (r.grade) x.grade = r.grade; }
       else if (!x.grade && r.grade) x.grade = r.grade;
     });
     return R.sortAthletes(Object.keys(by).map(function (k) { var x = by[k]; x.nMeets = Object.keys(x.meets).length; delete x.meets; return x; }));
@@ -71,7 +71,7 @@ var LaneReview = (function () {
     if (!per.length) return null;
     var pf = R.athleteProfile(per, key), pd = R.pbDetails(mine), last = per[per.length - 1], grade = '';
     for (var i = per.length - 1; i >= 0 && !grade; i--) grade = per[i].grade || '';
-    pf.grade = grade; pf.team = last.team || pf.team; pf.div = R.divisionOf(last);
+    pf.grade = grade; pf.team = R.teamOf(per) || pf.team; pf.div = R.divisionOf(last);   // v0.26.53 所属は前置きを外した書き方
     var byKey = {}; pf.events.forEach(function (e) { byKey[e.event] = e; });
     var order = [];
     R.groupEvents(Object.keys(byKey), per, opt.nog).forEach(function (g) { g.items.forEach(function (it) { var e = byKey[it.key]; if (e) { e.eventLabel = String(it.label).replace(/(^|\s)(中学|高校)\s+/, '$1').trim() || it.label; order.push(e); }  }); });

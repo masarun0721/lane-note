@@ -186,6 +186,37 @@ await check('中学と高校の大会予定で同じ資料（同じ日・同じ�
     assert.deepEqual(mine(w), [['架空区民大会', '2026-09-06', '男子100m', '架空 一郎', '11.40'], ['架空区民大会', '2026-09-06', '男子走幅跳', '架空 三郎', '6.10'], ['架空区大会', '2026-09-06', '男子100m', '架空 四郎', '12.40'], ['架空区大会', '2026-09-06', '男子走幅跳', '架空 四郎', '5.80']].sort());
   } finally { w.close(); }
 });
+await check('v0.26.53 同じ資料の中学・高校の大会予定を片方ずつ読んで保存しても、ほかの区分の行が別の大会名で入らない（同じ行を2回保存しない）', async () => {
+  const M = Object.fromEntries([PL('2026-09-06', '架空区民大会', { div: '高校', venue: '夢の島' }), PL('2026-09-06', '架空区大会', { div: '中学', venue: '夢の島' })]);
+  const w = await page(M, '架空');
+  try {
+    $('ybFind').click(); await idle(w); assert.deepEqual(ybRows(w).map(x => x[1]), ['found', 'found']);
+    const iH = w.__t.yb().rows.findIndex(r => r.p.meet === '架空区民大会'), iC = 1 - iH;
+    const g0 = w.document.querySelector('input[data-ybgo="' + iH + '"]'); g0.checked = false; g0.dispatchEvent(new w.Event('change', { bubbles: true })); await delay();   // 1回目は中学の予定だけ
+    $('ybRead').click(); await idle(w); $('ybSave').click(); await idle(w, 15000);
+    assert.deepEqual(mine(w), [['架空区大会', '2026-09-06', '男子100m', '架空 四郎', '12.40'], ['架空区大会', '2026-09-06', '男子走幅跳', '架空 四郎', '5.80']].sort(), '中学の予定には中学の行だけ');
+    $('ybFind').click(); await idle(w); assert.deepEqual(ybRows(w).map(x => x[1]).sort(), ['done', 'found']);
+    const g1 = w.document.querySelector('input[data-ybgo="' + iC + '"]'); if (g1) { g1.checked = true; g1.dispatchEvent(new w.Event('change', { bubbles: true })); await delay(); }   // 中学の予定も「もう一度読む」
+    $('ybRead').click(); await idle(w); $('ybSave').click(); await idle(w, 15000);
+    assert.deepEqual(mine(w), [['架空区民大会', '2026-09-06', '男子100m', '架空 一郎', '11.40'], ['架空区民大会', '2026-09-06', '男子走幅跳', '架空 三郎', '6.10'], ['架空区大会', '2026-09-06', '男子100m', '架空 四郎', '12.40'], ['架空区大会', '2026-09-06', '男子走幅跳', '架空 四郎', '5.80']].sort());
+  } finally { w.close(); }
+});
+await check('v0.26.53 前の版で、同じ資料の高校の行が中学の予定の名前で保存されていたとき：高校の予定を読んでも、その行は入れなおさない', async () => {
+  const M = Object.fromEntries([PL('2026-09-06', '架空区民大会', { div: '高校', venue: '夢の島' }), PL('2026-09-06', '架空区大会', { div: '中学', venue: '夢の島' })]);
+  const w = await page(M, '架空');
+  try {
+    $('ybFind').click(); await idle(w);
+    const b = w.__t.yb().rows.find(r => r.p.meet === '架空区民大会');
+    // 前の版で入った二重（高校の行が「架空区大会」の名前で）。読み取った行と同じ形で作る
+    $('ybRead').click(); await idle(w);
+    const hsRow = w.__t.batches().find(x => x.yb === b.p.key).all.recs.find(r => r.name === '架空 一郎');
+    w.__t.batches().length = 0;
+    const old = Object.assign({}, hsRow, { meet: '架空区大会', date: '2026-09-06' }); old.id = R.recId(old.meet, old.date, old); await w.__t.put([old]); await delay(100);
+    $('ybFind').click(); await idle(w); $('ybRead').click(); await idle(w); $('ybSave').click(); await idle(w, 15000);
+    const m = mine(w); assert(!m.some(r => r[0] === '架空区民大会' && r[3] === '架空 一郎'), JSON.stringify(m));
+    assert(m.some(r => r[0] === '架空区民大会' && r[3] === '架空 三郎')); assert.equal(m.filter(r => r[3] === '架空 一郎').length, 1);
+  } finally { w.close(); }
+});
 await check('中学と高校が同じ種目に出る何日かの大会（学校名「架空」で両方入る）：種目の日付は中学・高校で別々に資料から決める', async () => {
   const w = await page(Object.fromEntries([PL('2026-07-18', '架空私立', { end: '2026-07-19', venue: '駒沢' })]), '架空');
   try {
