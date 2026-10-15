@@ -21,8 +21,14 @@ ok('最後に全部を断る', () => assert.match(body, /match \/\{document=\*\*
 // v0.26.35：みんなの要項（pubQuota・pubMeets）は監査待ち。監査済みの firestore.rules.final とはそれを除いて比べ、追加分は別のファイルと比べる
 const PUB_RE = / *\/\/ v0\.26\.35 みんなの要項 ここから[\s\S]*?\/\/ v0\.26\.35 みんなの要項 ここまで\n/;
 const BAN_NEW = "        // v0.26.35：外された本人は、自分の印だけ読める（参加できない理由を出すため。名前・日時は自分のもの）\n        allow get: if isCoach(t) || (signedIn() && uid == request.auth.uid);\n        allow list: if isCoach(t);\n";
-const rulesBase = rules.replace(PUB_RE, '').replace(BAN_NEW, '        allow get, list: if isCoach(t);\n');
+const RES_RE = / *\/\/ v0\.26\.38 みんなの結果 ここから[\s\S]*?\/\/ v0\.26\.38 みんなの結果 ここまで\n/;
+const RES_HEAD = /\/\/ ・v0\.26\.38 pubResults[^\n]*\n/;
+const rulesBase = rules.replace(RES_RE, '').replace(RES_HEAD, '').replace(PUB_RE, '').replace(BAN_NEW, '        allow get, list: if isCoach(t);\n');
 ok('v0.26.35 外された本人だけが自分の banned を読める（監査待ちの変更・1か所）', () => assert(rules.includes(BAN_NEW)));
+ok('v0.26.38 みんなの結果の追加分が、監査待ちの案（/workspace/astra_audit/firestore.rules.v0.26.38.pubresults）と同じ（比較元が無ければ SKIP）', () => {
+  const f = '/workspace/astra_audit/firestore.rules.v0.26.38.pubresults'; if (!fs.existsSync(f)) return SKIP;
+  const m = rules.match(RES_RE); assert(m, 'みんなの結果のルールがない'); assert.equal(m[0].replace(/\s+/g, ' ').trim(), fs.readFileSync(f, 'utf8').replace(/\s+/g, ' ').trim());
+});
 ok('v0.26.35 みんなの要項の追加分が、監査待ちの案（/workspace/astra_audit/firestore.rules.v0.26.35.pubmeets）と同じ（比較元が無ければ SKIP）', () => {
   const f = '/workspace/astra_audit/firestore.rules.v0.26.35.pubmeets'; if (!fs.existsSync(f)) return SKIP;
   const m = rules.match(PUB_RE); assert(m, 'みんなの要項のルールがない'); assert.equal(m[0].replace(/\s+/g, ' ').trim(), fs.readFileSync(f, 'utf8').replace(/\s+/g, ' ').trim());

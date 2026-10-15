@@ -829,6 +829,7 @@
     return '<div class="rb-row tm-mini">' + sel + '<span class="small">' + st + '</span> <a class="btn sub sm" href="team.html">👥 チームの設定を開く</a></div><div class="status" id="rbTeamStatus" aria-live="polite"></div>';
   }
   function renderTeam() {
+    ppRender().catch(function () { });   // v0.26.38 みんなの要項／みんなの結果のスイッチ（顧問だけ）
     var box = $('rbTeam'); if (!box) return;
     if (TEAM_PAGE) { var gate = $('tpGate'); if (gate) gate.hidden = !!(USER && CLOUD_READY); renderJoin(); }
     if (!USER || !CLOUD_READY) { box.hidden = true; box.innerHTML = ''; return; }
@@ -1449,6 +1450,7 @@
       '<div class="rb-row" style="margin-top:8px"><button class="btn" data-save="' + b.id + '" type="button"' + (res.recs.length && !miss.length ? '' : ' disabled') + '>記録に保存（' + res.recs.length + '件）</button><button class="btn sub" data-del="' + b.id + '" type="button">取り消す</button></div><div class="status" data-st="' + b.id + '"></div></div>';
   }
   $('rbBatches').addEventListener('change', function (e) {
+    var lo = e.target.getAttribute('data-loose'); if (lo != null) { var lb = batches.filter(function (x) { return x.id === +lo; })[0]; if (lb) { lb.looseOk = e.target.checked; renderBatches(); } return; }
     var box = e.target.closest('.xl[data-b]'); if (!box) return;
     var b = batches.filter(function (x) { return x.id === +box.getAttribute('data-b'); })[0]; if (!b || !b.xl) return;
     var t = e.target;
@@ -1474,7 +1476,7 @@
   // v0.20：URLから読み込む。押した時点の scope（A01）を持ち回り、ファイルを入れたときと同じ handleFiles に渡す
   function isUrlOnly(t) { return window.LaneUrl ? LaneUrl.isUrlOnly(t) : false; }
   var urlUi = window.LaneUrl && $('rbUrlLoad') ? LaneUrl.mount($('rbUrlLoad'), { id: 'ru', targets: [{ k: 'res', label: '結果' }], accept: ['pdf', 'html'], multiple: true,
-    begin: function () { return scope(); },
+    begin: function () { var sc = scope(), u = ($('ruUrl') || {}).value || ''; sc.srcUrl = u; if (RES.pick && (RES.pick.url === u || LaneUrl.normUrl(RES.pick.url) === u)) sc.pub = RES.pick; return sc; },
     onFiles: function (files, k, sc) { return handleFiles(files, sc); } }) : null;
   // v0.26.28 大会予定
   $('rpTemplate').addEventListener('click', function () {
@@ -1566,7 +1568,91 @@
     var m = METS[IMP.key] || {}, u = /^https?:\/\/\S+$/i.test(m.resultUrl || '') ? m.resultUrl : '';
     impBar('📥 <b>' + esc(IMP.meet) + '</b>（' + esc(IMP.date) + '）の結果を取り込みます。大会名と日付は入れてあります。' + (u ? '登録した速報・結果のURLを読み込んでいます。' : '下の「結果の資料」から、PDF・Excel・WebページのURLを入れてください。') + ' <a href="schedule.html">大会予定へ戻る</a>');
     if (u && urlUi) { urlUi.offer(u, 'res'); try { urlUi.go(); } catch (e) { } }
-    else { var d = $('rbUrlLoad') || $('rbFile'); if (d && d.scrollIntoView) d.scrollIntoView({ block: 'center' }); }
+    else { resSuggest().catch(function () { }); var d = $('rbUrlLoad') || $('rbFile'); if (d && d.scrollIntoView) d.scrollIntoView({ block: 'center' }); }
+  }
+  /* ---------- v0.26.38 みんなの結果：結果のURLと大会の情報だけを学校をこえて分け合う（pubResults）。
+     選手のデータは送らない。押したら、この端末が読み → 自分の学校の行だけ → 確認画面（自動では読まない）。登録は顧問だけ・1回だけ聞く ---------- */
+  var RES = { pick: null, done: {} };
+  function resMsg(t, c) { var el = $('resMsg'); if (el) { el.className = 'status' + (c ? ' ' + c : ''); el.textContent = t; } }
+  var RES_ASK = '「みんなの結果」に、この結果のURLを登録しますか？\n\n同じ大会に出たほかの学校の先生が、自分の学校の選手の記録だけを取り込めるようになります。\n登録するのは、大会名・日付・会場・結果のURL（公開ページ）だけです。選手の名前や記録は送りません。\n（あとから「これからは登録しない」にできます）';
+  function resApi() { if (!USER || !window.LanePub || !FB || !FB.F) return null; return LanePub.make({ F: FB.F, fs: FB.fs, uid: USER.uid, col: 'pubResults' }); }
+  function coachTeam() { if (TEAM && TEAM.role === 'coach') return TEAM.id; var t = (TEAMS || []).filter(function (x) { return x.role === 'coach'; })[0]; return t ? t.id : ''; }
+  function resPlan() { if (!IMP) return null; var k = Object.keys(METS).filter(function (x) { return planNorm(x) === planNorm(IMP.key) && METS[x].plan; })[0], m = k ? METS[k] : {}; return { date: IMP.date, end: m.end || IMP.date, meet: IMP.meet, venue: m.venue || '' }; }
+  function resBox(h) { var el = $('resBox'); if (!el) { el = document.createElement('div'); el.id = 'resBox'; el.className = 'res-box'; var ul = $('rbUrlLoad'); if (!ul || !ul.parentNode) return null; ul.parentNode.insertBefore(el, ul); } el.innerHTML = h; el.hidden = !h; return el; }
+  async function resSuggest() {
+    var api = resApi(), p = resPlan(); if (!api || !p) return;
+    var ep = authEpoch, ms = await api.search(p); if (ep !== authEpoch) return;
+    if (!ms.length) { resBox('<small class="muted">📊 みんなの結果：この大会の結果のURLは、まだだれも登録していません。</small>'); return; }
+    RES.list = ms;
+    resBox('<b>📊 みんなの結果</b>：ほかの先生が、この大会の結果のURLを登録しています。押すと、この端末がそのページを読み、<b>あなたの学校の選手の記録だけ</b>を確認画面に出します（まだ何も読み込んでいません）。' +
+      ms.slice(0, 3).map(function (e, i) {
+        return '<div class="res-c"><div class="small">' + esc(e.name) + '（' + esc(e.date) + (e.end && e.end !== e.date ? '〜' + esc(e.end) : '') + '）・' + { live: '速報のページ', gold: 'gold.jaic.org', pdf: '結果のPDF' }[e.kind] + '<br>' + esc(LanePub.srcText(e)) + '</div>' +
+          '<button type="button" class="btn" data-resuse="' + i + '">この結果を取り込む</button> <button type="button" class="btn sub small" data-resrep="' + i + '">⚠ 報告</button>' + (e.by === USER.uid ? ' <button type="button" class="btn sub small" data-resdel="' + i + '">登録を取り消す</button>' : '') + '</div>';
+      }).join('') + '<div class="status" id="resMsg"></div>');
+  }
+  document.addEventListener('click', async function (e) {
+    var t = e.target, i;
+    if ((i = t.getAttribute('data-resuse')) != null) {
+      var en = RES.list && RES.list[+i]; if (!en || !urlUi) return;
+      if (!school() && !MODE.personal) { resMsg('✖ 先に「学校・クラブ名」を入れてください（自分の学校の選手だけを取り込むため）。', 'ng'); var sb = $('rbSchool'); if (sb) sb.focus(); return; }
+      RES.pick = en; urlUi.offer(en.url, 'res'); try { await urlUi.go(); } catch (x) { }
+      resMsg('⏳ 読み込みました。下の確認画面で、自分の学校の選手か確かめてから「記録に保存」を押してください。'); return;
+    }
+    if ((i = t.getAttribute('data-resrep')) != null) {
+      var er = RES.list && RES.list[+i], api = resApi(), tm = coachTeam(); if (!er || !api) return;
+      if (!tm) { resMsg('✖ 報告できるのは、チームの顧問だけです。', 'ng'); return; }
+      if (!confirm('この結果のURLを「まちがい・リンク切れ・別の大会」として報告しますか？（3件の報告で、みんなに見えなくなります）')) return;
+      try { await api.report(er, tm); resMsg('✔ 報告しました。', 'ok'); resSuggest().catch(function () { }); } catch (x) { resMsg('✖ 報告できませんでした：' + x.message, 'ng'); }
+      return;
+    }
+    if ((i = t.getAttribute('data-resdel')) != null) {
+      var ed = RES.list && RES.list[+i], ap = resApi(); if (!ed || !ap || !confirm('「みんなの結果」から、この登録を取り消しますか？')) return;
+      try { await ap.remove(ed); resSuggest().catch(function () { }); } catch (x) { resMsg('✖ 取り消せませんでした：' + x.message, 'ng'); }
+      return;
+    }
+    if (t.hasAttribute('data-respref')) { var a2 = resApi(); if (a2) { try { await a2.setPref(false); if (PP.v) { PP.v.pubres = false; ppRender(); } t.closest('.res-box').innerHTML = '<small>これからは「みんなの結果」に登録しません（この記録のページの「🤝 学校をこえて分け合う」で戻せます）。</small>'; } catch (x) { } } }
+  });
+  // v0.26.38 設定：「みんなの要項／みんなの結果に登録するか聞く」（顧問だけ）。オン＝次の1回また聞く（設定を消す）・オフ＝登録しない
+  var PP = { uid: '', v: null, busy: false };
+  function ppApi(k) { if (!USER || !window.LanePub || !FB || !FB.F) return null; return LanePub.make({ F: FB.F, fs: FB.fs, uid: USER.uid, col: k === 'pubres' ? 'pubResults' : 'pubMeets' }); }
+  async function ppRender() {
+    var box = $('rbPubPref'); if (!box || !PP) return;
+    if (!USER || !CLOUD_READY || !coachTeam() || TEAM_PAGE || document.body.classList.contains('ln-player')) { box.hidden = true; box.innerHTML = ''; return; }
+    var uid = USER.uid;
+    if (PP.uid !== uid || !PP.v) { PP.uid = uid; PP.v = null; var a = ppApi('pub'), b = ppApi('pubres'), v = { pub: await a.pref(), pubres: await b.pref() }; if (!USER || USER.uid !== uid) return; PP.v = v; }
+    var row = function (k, name, what) {
+      var on = PP.v[k];
+      return '<label class="pp-sw"><input type="checkbox" data-pp="' + k + '"' + (on !== false ? ' checked' : '') + '> 「' + name + '」に登録するか聞く' +
+        '<small>' + (on === false ? 'オフ：' + what + 'ても、登録しません。' : on === true ? 'オン（前に「登録する」と答えたので、今は聞かずに登録します。オフにすると止まります）' : 'オン：' + what + 'たとき、はじめの1回だけ聞きます。') + '</small></label>';
+    };
+    box.hidden = false;
+    box.innerHTML = '<details class="small"' + (PP.open ? ' open' : '') + ' data-ppd="1"><summary><b>🤝 学校をこえて分け合う</b>（顧問だけ・みんなの要項／みんなの結果）</summary>' +
+      row('pub', 'みんなの要項', '大会予定から開いた大会で要項をURLから読み') + row('pubres', 'みんなの結果', '結果をURLから読んで保存し') +
+      '<p class="small muted">分け合うのは大会名・日付・会場・URL（要項は読み取った大会のきまりも）だけです。選手の名前や記録は送りません。すでに登録したものは、オフにしてもそのままです。</p><div class="status" id="ppMsg"></div></details>';
+  }
+  document.addEventListener('toggle', function (e) { if (e.target && e.target.getAttribute && e.target.getAttribute('data-ppd')) PP.open = e.target.open; }, true);
+  document.addEventListener('change', async function (e) {
+    var k = e.target.getAttribute && e.target.getAttribute('data-pp'); if (!k) return;
+    var api = ppApi(k), on = e.target.checked, msg = $('ppMsg'); if (!api || PP.busy) return; PP.busy = true;
+    try { if (on) await api.clearPref(); else await api.setPref(false); PP.v[k] = on ? null : false; await ppRender(); msg = $('ppMsg');
+      if (msg) { msg.className = 'status ok'; msg.textContent = '✔ ' + (k === 'pub' ? 'みんなの要項' : 'みんなの結果') + '：' + (on ? '次に読んだとき、もう一度聞きます。' : 'これからは登録しません。'); } }
+    catch (x) { e.target.checked = !on; if (msg) { msg.className = 'status ng'; msg.textContent = '✖ 変えられませんでした：' + x.message; } }
+    finally { PP.busy = false; }
+  });
+  // 結果を URL から読んで保存したあと：顧問にだけ、1回だけ「みんなの結果」に登録するか聞く
+  async function resMaybe(b, sc) {
+    var url = sc && sc.srcUrl || '', api = resApi(); if (!api || !url || sc.pub || RES.done[url] || sc.epoch !== authEpoch) return;
+    if (!LanePub.okUrl(url) || !b.meta || !/^\d{4}-\d{2}-\d{2}$/.test(b.meta.date || '') || !b.meta.name) return;
+    var tm = coachTeam(); if (!tm || !(await api.isCoach(tm))) return;
+    RES.done[url] = 1;
+    var p = IMP && planNorm(b.meta.date + '|' + b.meta.name) === planNorm(IMP.key) ? resPlan() : { date: b.meta.date, end: b.meta.date, meet: b.meta.name, venue: '' };
+    var on = await api.pref(); if (on === null) { on = confirm(RES_ASK); await api.setPref(on); if (PP.v) { PP.v.pubres = on; ppRender(); } }
+    if (!on || sc.epoch !== authEpoch) return;
+    var ms = await api.search(p), old = ms.filter(function (e) { return e.score >= 0.85; })[0] || null;
+    if (old && old.url === url) return;
+    if (old && !confirm('「みんなの結果」に、この大会のべつの結果のURL（' + old.host + '）が登録されています。あなたが読んだURLに差し替えますか？')) return;
+    try { await api.publish(p, url, null, tm, old); } catch (x) { resBox('<small class="ng">✖ 「みんなの結果」に登録できませんでした：' + esc(x.message) + '</small>'); return; }
+    resBox('📊 「みんなの結果」に' + (old ? '差し替えました' : '登録しました') + '（大会名・日付・会場・URLだけ）。 <button type="button" class="btn sub small" data-respref="0">これからは登録しない</button>');
   }
   async function impDone(b, sc) {
     if (!IMP || !IMP.kicked) return;
@@ -1578,8 +1664,18 @@
   }
   function batchRecs(b) {
     if (!b.all) return [];
-    var q = school();
-    return b.all.recs.filter(wantRec);
+    var q = school(), rs = b.all.recs.filter(wantRec);
+    // v0.26.38 みんなの結果から読んだとき：学校名がゆるく一致しただけの行（「本郷」→「本郷中」）は要確認。チェックを付けたときだけ入れる
+    if (b.sc && b.sc.pub && q && !MODE.personal && !b.looseOk) rs = rs.filter(function (r) { return !R.schoolLoose(r.team, q); });
+    return rs;
+  }
+  function looseRecs(b) { var q = school(); return b.all && b.sc && b.sc.pub && q && !MODE.personal ? b.all.recs.filter(function (r) { return wantRec(r) && R.schoolLoose(r.team, q); }) : []; }
+  function looseHtml(b) {
+    var L = looseRecs(b); if (!L.length) return '';
+    var teams = []; L.forEach(function (r) { if (teams.indexOf(r.team) < 0) teams.push(r.team); });
+    return '<div class="rb-loose"><b>⚠ 要確認：学校名がゆるく一致した ' + L.length + '件</b>（所属：' + esc(teams.slice(0, 5).join('、')) + (teams.length > 5 ? ' ほか' : '') + '）<br>' +
+      '<small>入れた学校名「' + esc(school()) + '」に中・高が無いため、同じ名前の別の学校かもしれません。自分の学校の選手なら、チェックを付けてください。</small><br>' +
+      '<label><input type="checkbox" data-loose="' + b.id + '"' + (b.looseOk ? ' checked' : '') + '> この ' + L.length + '件も記録に入れる</label></div>';
   }
   function batchWarns(b) {
     var q = school(), hasRl = !!(b.relays && b.relays.length), ws = b.all.warns.filter(function (w) { return !/：/.test(w) && !(hasRl && /結果の表|リレーの表/.test(w)); });
@@ -1658,6 +1754,7 @@
         '<div class="rb-row xlw"><span class="small"><b>天気（任意）</b></span>' + weatherInputs(b.meta, 'data-f') + '</div>' +
         '<p class="small">読み取った記録：' + rs.length + '件' + (b.all.recs.length !== rs.length ? '（全体 ' + b.all.recs.length + '件のうち）' : '') + '</p>' +
         (ws.length ? '<ul class="rb-warn">' + ws.map(function (w) { return '<li>⚠ ' + esc(w) + '</li>'; }).join('') + '</ul>' : '') +
+        (b.sc && b.sc.pub ? '<p class="small rb-pubsrc">📊 ' + esc(LanePub.srcText(b.sc.pub)) + '</p>' : '') + looseHtml(b) +
         (!rs.length || ws.some(function (w) { return /見つかりませんでした|読み取れませんでした/.test(w); }) ? rescueHint(b) : '') +
         (rs.length ? '<div class="tblwrap"><table class="rbt">' + REC_HEAD + rs.map(function (r) { return recRow(r); }).join('') + '</table></div>' : '') + relayBatchHtml(b) +
         '<div class="rb-row" style="margin-top:8px"><button class="btn" data-save="' + b.id + '" type="button"' + (rs.length || relaysOf(b).length ? '' : ' disabled') + '>記録に保存</button><button class="btn sub" data-del="' + b.id + '" type="button">取り消す</button></div><div class="status" data-st="' + b.id + '"></div></div>';
@@ -1715,7 +1812,7 @@
       var done = $('rbDone'); done.className = 'status ok rb-done';
       done.innerHTML = '✔ <b>' + esc(b.meta.name) + ' 完了（' + res.added + '件保存）</b>' + (res.dup ? '<br><small>' + res.dup + '件はすでに保存済みなので重ねませんでした</small>' : '') + (res.bad ? '<br><small class="ng">' + res.bad + '件は形が正しくない（長すぎるなど）ため保存しませんでした</small>' : '') +
         (res.review ? '<br><small class="ng">⚠ ' + res.review + '件は、前に保存した記録（ナンバーなし）と同じかもしれません。下の「要確認」で確かめてください。</small>' : '') + '<br><small>続けて次の大会の資料を入れられます。</small>' + (b.addedIds.length ? ' <button class="btn sub" type="button" data-undo="' + b.id + '">今の分を取り消す（' + b.addedIds.length + '件）</button>' : '');
-      await reload(sc); await impDone(b, sc);
+      await reload(sc); await impDone(b, sc); resMaybe(b, sc).catch(function () { });
     } catch (err) { if (isAbort(err)) return; st.className = 'status ng'; st.textContent = '✖ 保存できませんでした：' + err.message; }
   }
   function hasW(m) { return !!(m.weather || (m.temp !== undefined && m.temp !== '') || (m.humidity !== undefined && m.humidity !== '')); }
@@ -1734,7 +1831,7 @@
       DONE.push(b); batches = batches.filter(function (x) { return x !== b; }); renderBatches();
       var done = $('rbDone'); done.className = 'status ok rb-done';
       done.innerHTML = '✔ <b>' + esc(b.src) + ' 完了（' + res.added + '件保存・' + Object.keys(keys).length + '大会）</b>' + (res.dup ? '<br><small>' + res.dup + '件はすでに保存済みなので重ねませんでした</small>' : '') + (res.bad ? '<br><small class="ng">' + res.bad + '件は形が正しくない（長すぎるなど）ため保存しませんでした</small>' : '') + (b.xl.res.bad.length ? '<br><small>日付などが足りない ' + b.xl.res.bad.length + '行は入れていません</small>' : '') + (res.review ? '<br><small class="ng">⚠ ' + res.review + '件は前に保存した記録と同じかもしれません（下の「要確認」）</small>' : '') + (b.addedIds.length ? ' <button class="btn sub" type="button" data-undo="' + b.id + '">今の分を取り消す（' + b.addedIds.length + '件）</button>' : '');
-      await reload(sc); await impDone(b, sc);
+      await reload(sc); await impDone(b, sc); resMaybe(b, sc).catch(function () { });
     } catch (err) { if (isAbort(err)) return; st.className = 'status ng'; st.textContent = '✖ 保存できませんでした：' + err.message; }
   }
   $('rbBatches').addEventListener('click', onBatchClick); $('rbDone').addEventListener('click', onBatchClick);

@@ -1,6 +1,8 @@
 /* v0.26.35 みんなの要項（学校をこえて、公開されている大会要項のURLを分け合う）
  * ・pubMeets/{日付_名前のハッシュ}：大会名・日付・会場・要項のURL（公開ページ）と読み取った公開情報だけ。選手のデータ・PDFの中身は入れない
  * ・登録できるのは顧問だけ（pubQuota/{uid} にチームを書き、ルールで顧問か確かめる）。1日20件・30秒に1回まで
+ * ・v0.26.38 みんなの結果（pubResults）：同じ作りで、結果のURL（速報・gold.jaic.org・PDF）と大会の情報だけ。読み取った中身（選手・記録・学校名）は入れない。
+ *   自動では読み込まない（押したら、その先生の端末が読む→自分の学校の行だけ→確認画面）
  * ・報告3件で見えなくなる（hid）。公式のサイトで報告0件のときだけ自動で読み込み、ほかは「この要項を使う」の1クリック */
 var LanePub = (function () {
   var OFFICIAL = [/(^|\.)jaaf\.or\.jp$/, /(^|\.)kotorikkyo\.info$/, /\.lg\.jp$/, /\.ed\.jp$/, /\.go\.jp$/, /\.ac\.jp$/];
@@ -45,9 +47,14 @@ var LanePub = (function () {
     var j = ''; try { j = JSON.stringify({ rules: info && info.rules || {}, fees: info && info.fees || {} }); } catch (e) { }
     o.info = j.length <= 8000 ? j : '{}'; return o;
   }
+  // v0.26.38 結果のページの種類（gold.jaic.org／PDF／それ以外＝速報など）
+  function resKind(u) { var h = hostOf(u); return /(^|\.)gold\.jaic\.org$/.test(h) ? 'gold' : /\.pdf(\?|#|$)/i.test(String(u)) ? 'pdf' : 'live'; }
+  function entryRes(plan, url) {
+    return { name: nk(plan.meet).trim().slice(0, 100), key: normName(plan.meet), date: plan.date, end: isDay(plan.end) ? plan.end : plan.date, venue: nk(plan.venue || '').trim().slice(0, 60), url: String(url).slice(0, 1000), host: hostOf(url), kind: resKind(url) };
+  }
   function exp(plan) { return Date.parse((isDay(plan.end) ? plan.end : plan.date) + 'T00:00:00+09:00') + 31 * 864e5; }
   function make(o) {
-    var F = o.F, fs = o.fs, uid = o.uid;
+    var F = o.F, fs = o.fs, uid = o.uid, COL = o.col === 'pubResults' ? 'pubResults' : 'pubMeets', RES = COL === 'pubResults', PREF = RES ? 'pubres' : 'pub';
     function d() { return F.doc.apply(null, [fs].concat([].slice.call(arguments))); }
     function quota(b, team, q) {
       var now = Date.now(), day = Math.floor(now / 864e5), same = q && q.day === day, n = same ? (q.n || 0) + 1 : 1;
@@ -60,34 +67,35 @@ var LanePub = (function () {
     return {
       // 検索：その日の大会（隠れていないもの）
       search: async function (plan) {
-        var q = F.query(F.collection(fs, 'pubMeets'), F.where('date', '==', plan.date), F.where('hid', '==', false), F.limit(20)), s = await F.getDocs(q), out = [];
+        var q = F.query(F.collection(fs, COL), F.where('date', '==', plan.date), F.where('hid', '==', false), F.limit(20)), s = await F.getDocs(q), out = [];
         s.forEach(function (x) { out.push(plain(x.id, x.data())); }); return match(out, plan);
       },
-      get: async function (plan) { var id = docId(plan.date, plan.meet); try { var s = await F.getDoc(d('pubMeets', id)); return s.exists() ? plain(id, s.data()) : null; } catch (e) { return null; } },
+      get: async function (plan) { var id = docId(plan.date, plan.meet); try { var s = await F.getDoc(d(COL, id)); return s.exists() ? plain(id, s.data()) : null; } catch (e) { return null; } },
       isCoach: async function (team) { if (!team) return false; try { var s = await F.getDoc(d('teams', team, 'members', uid)); return s.exists() && s.data().role === 'coach'; } catch (e) { return false; } },
       // 登録・差し替え（old があれば差し替え）
       publish: async function (plan, url, info, team, old) {
         if (!okUrl(url)) throw new Error('公開ページ（https）のURLだけ登録できます');
-        var id = old ? old.id : docId(plan.date, plan.meet), e = entry(plan, url, info), b = F.writeBatch(fs);
+        var id = old ? old.id : docId(plan.date, plan.meet), e = RES ? entryRes(plan, url) : entry(plan, url, info), b = F.writeBatch(fs);
         quota(b, team, await myQuota());
-        var v = { url: e.url, host: e.host, info: e.info, by: uid, at: F.serverTimestamp() };
-        if (old) b.update(d('pubMeets', id), Object.assign(v, { ver: (old.ver || 1) + 1 }));   // 差し替え：大会名・日付・期限はそのまま
-        else b.set(d('pubMeets', id), Object.assign(e, v, { exp: F.Timestamp.fromMillis(exp(plan)), ver: 1, rep: 0, hid: false }));
+        var v = RES ? { url: e.url, host: e.host, kind: e.kind, by: uid, at: F.serverTimestamp() } : { url: e.url, host: e.host, info: e.info, by: uid, at: F.serverTimestamp() };
+        if (old) b.update(d(COL, id), Object.assign(v, { ver: (old.ver || 1) + 1 }));   // 差し替え：大会名・日付・期限はそのまま
+        else b.set(d(COL, id), Object.assign(e, v, { exp: F.Timestamp.fromMillis(exp(plan)), ver: 1, rep: 0, hid: false }));
         await b.commit(); return id;
       },
       // 報告（1人1回）。3件で隠れる
       report: async function (e, team) {
         var b = F.writeBatch(fs), rep = (e.rep || 0) + 1;
         quota(b, team, await myQuota());
-        b.set(d('pubMeets', e.id, 'reports', uid), { at: F.serverTimestamp() });
-        b.update(d('pubMeets', e.id), { rep: rep, hid: rep >= HIDE_AT });
+        b.set(d(COL, e.id, 'reports', uid), { at: F.serverTimestamp() });
+        b.update(d(COL, e.id), { rep: rep, hid: rep >= HIDE_AT });
         await b.commit(); return rep;
       },
-      remove: async function (e) { await F.deleteDoc(d('pubMeets', e.id)); },
-      pref: async function () { try { var s = await F.getDoc(d('users', uid, 'settings', 'pub')); return s.exists() ? !!s.data().on : null; } catch (e) { return null; } },
-      setPref: async function (on) { await F.setDoc(d('users', uid, 'settings', 'pub'), { on: !!on, at: new Date().toISOString() }); }
+      remove: async function (e) { await F.deleteDoc(d(COL, e.id)); },
+      pref: async function () { try { var s = await F.getDoc(d('users', uid, 'settings', PREF)); return s.exists() ? !!s.data().on : null; } catch (e) { return null; } },
+      clearPref: async function () { await F.deleteDoc(d('users', uid, 'settings', PREF)); },   // v0.26.38：「聞く」に戻す（次の1回だけまた聞く）
+      setPref: async function (on) { await F.setDoc(d('users', uid, 'settings', PREF), { on: !!on, at: new Date().toISOString() }); }
     };
   }
-  return { normName: normName, sim: sim, h8: h8, docId: docId, hostOf: hostOf, official: official, okUrl: okUrl, match: match, pickAuto: pickAuto, srcText: srcText, entry: entry, exp: exp, make: make, DAY_MAX: DAY_MAX, GAP_S: GAP_S, HIDE_AT: HIDE_AT };
+  return { normName: normName, sim: sim, h8: h8, docId: docId, hostOf: hostOf, official: official, okUrl: okUrl, match: match, pickAuto: pickAuto, srcText: srcText, entry: entry, entryRes: entryRes, resKind: resKind, exp: exp, make: make, DAY_MAX: DAY_MAX, GAP_S: GAP_S, HIDE_AT: HIDE_AT };
 })();
 if (typeof module !== 'undefined') module.exports = LanePub;

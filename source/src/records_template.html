@@ -69,6 +69,10 @@ body.personal-on .tabs button[data-v="rank"],body.personal-on .tabs button[data-
 .rb-batch h3{margin:0 0 6px;font-size:15px}
 .rb-warn{background:#fff8e1;border:1px solid #f3d27a;border-radius:8px;padding:6px 10px;font-size:12.5px;margin:6px 0;max-height:160px;overflow:auto}
 .rb-warn li{margin:0}
+.res-box{background:#eef6ff;border:1px solid #b9d6f5;border-radius:8px;padding:8px 10px;font-size:13px;margin:8px 0}
+.res-c{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:space-between;border-top:1px dashed #b9d6f5;padding-top:6px;margin-top:6px}
+.pp-sw{display:block;margin:6px 0}.pp-sw small{display:block;margin-left:1.6em;color:#666}
+.rb-loose{background:#fff3e0;border:1px solid #f0b46a;border-radius:8px;padding:6px 10px;font-size:13px;margin:6px 0}
 .tblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
 .rbt td,.rbt th{padding:4px 6px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
 .rbt th{position:static;top:auto;background:var(--navy);color:#fff;font-size:12.5px;font-weight:700}
@@ -436,6 +440,7 @@ __MODEPICK__
   <div class="rb-stats" id="rbStats"></div>
   <div class="rb-pp rb-row" id="rbPPBox"><button class="btn sub" type="button" id="rbPPOpen">📱 選手の個人ページを作る</button><span class="small muted">選手が自分の記録とグラフを見られるリンクです。<a href="guide.html#g3">くわしく</a></span></div>
   <div class="rb-pp rb-row" id="rbTalkBox"><button class="btn sub" type="button" id="rbTalkOpen">💬 選手とのやり取り</button><span class="small muted">使いたい先生だけ。はじめはオフです（Googleでログインが必要）。</span></div>
+  <div class="rb-pp" id="rbPubPref" hidden></div>
   <div class="tabbar"><div class="tabs" role="tablist">
     <button class="on" data-v="home" type="button">ホーム</button><button data-v="ath" type="button">選手別</button><button data-v="rank" type="button">部内ランキング</button><button data-v="meet" type="button">大会別</button><button data-v="hist" type="button">歴代記録</button><button data-v="all" type="button">全記録</button>
   </div></div>
