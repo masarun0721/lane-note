@@ -88,3 +88,44 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  # Firebase Hosting（https://lane-note.web.app ・プロジェクト lane-note）。
+  # 秘密 FIREBASE_SERVICE_ACCOUNT_LANE_NOTE が無いときは失敗させず飛ばす。
+  # GitHub Pages はこのジョブでは切り替えない（本体のまま。リダイレクトは別ブランチ）。
+  firebase:
+    needs: [rules, deploy]
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Check Firebase secret
+        id: fb
+        env:
+          FIREBASE_SERVICE_ACCOUNT_LANE_NOTE: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_LANE_NOTE }}
+        run: |
+          if [ -n "$FIREBASE_SERVICE_ACCOUNT_LANE_NOTE" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            echo "FIREBASE_SERVICE_ACCOUNT_LANE_NOTE is unset. Skipping Firebase Hosting deploy."
+          fi
+
+      - name: Checkout
+        if: steps.fb.outputs.deploy == 'true'
+        uses: actions/checkout@v4
+
+      - name: Build from source
+        if: steps.fb.outputs.deploy == 'true'
+        run: python3 source/build.py --out _site
+
+      - name: Deploy to Firebase Hosting
+        if: steps.fb.outputs.deploy == 'true'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_LANE_NOTE }}
+          projectId: lane-note
+          channelId: live
+          firebaseToolsVersion: '14.12.0'
