@@ -169,9 +169,10 @@ try {
     const pages = await loadPages(f); assert.equal(pages.length, 4, 'ページ数 ' + pages.length);
     pages.forEach((pg, i) => { assert.ok(Math.abs(pg.width - 595.3) < 2 && Math.abs(pg.height - 841.9) < 2, 'A4'); });
     const txt = pages.map(pg => pg.items.map(i => i.str).join('').normalize('NFKC').replace(/\s/g, ''));   // 漢字が康煕部首（⼀ など）で出ることがあるので NFKC
-    assert.ok(txt.some(t => /LANENOTE.ふりかえり/.test(t) && /架空一郎/.test(t) && /先生から一言/.test(t) && /春から大きく伸びました/.test(t)));
-    assert.ok(txt.some(t => /試験三郎/.test(t) && /16出場した大会/.test(t) && /先生から一言/.test(t) && /架空区秋季大会/.test(t)), '大会が多い選手も1枚（最後の大会と一言の枠が同じページ）');
-    assert.ok(txt.every(t => !/体調|寝不足/.test(t))); assert.ok(txt.every(t => /LANENOTE.ふりかえり/.test(t) && /今年のふりかえり/.test(t) && /先生から一言/.test(t)), 'どのページにも帯と一言の枠（はみ出しのページが無い）');
+    const seen = () => txt.map(t => t.slice(0, 160)).join(' ‖ ');
+    assert.ok(txt.some(t => /LANENOTE.ふりかえり/.test(t) && /架空一郎/.test(t) && /先生から一言/.test(t) && /春から大きく伸びました/.test(t)), seen());
+    assert.ok(txt.some(t => /試験三郎/.test(t) && /16出場した大会/.test(t) && /先生から一言/.test(t) && /架空区秋季大会/.test(t)), '大会が多い選手も1枚（最後の大会と一言の枠が同じページ） ' + seen());
+    assert.ok(txt.every(t => !/体調|寝不足/.test(t))); assert.ok(txt.every(t => /LANENOTE.ふりかえり/.test(t) && /今年のふりかえり/.test(t) && /先生から一言/.test(t)), 'どのページにも帯と一言の枠（はみ出しのページが無い） ' + seen());
   });
   await check('選手のページから1人分（今の年度）', async () => {
     await q.evaluate(() => document.getElementById('rbPrintClose').click()); await sl(200);
