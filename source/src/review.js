@@ -1,5 +1,5 @@
 /* v0.26.52 今年のふりかえりシート（選手1人＝A4 1枚）。1年分の記録をまとめたあとに、選手・保護者へ配る紙を作る。
-   ・中身：名前・学年・学校、期間の中の種目ごとのベスト（公認と参考を分ける・風）、それより前の自己ベストとの比較（前の記録が無ければ「初めての記録」と書くだけで、数字は作らない）、
+   ・中身：名前・学年・学校、期間の中の種目ごとのベスト（公認と参考を分ける・風）、それより前の自己ベストとの比較＝今シーズンの伸び（前の記録が無ければ「今シーズンからの記録」と書くだけで、数字は作らない）、
      自己ベスト更新の印、主な種目の推移グラフ、出た大会と記録・順位、リレー（走順に名前がある記録だけ）、大会数・自己ベスト更新の回数、「先生から一言」の枠。
    ・入れないもの：選手とのやり取り（会話）・体調メモ・記録の備考。HTML の文字列を作るだけの関数（画面・印刷・PDF作成は記録ページの仕組みを使う） */
 var LaneReview = (function () {
@@ -107,12 +107,13 @@ var LaneReview = (function () {
   function vsCell(R, e) {
     if (!e.best) return e.ref ? '<span class="rv-muted">公認の記録はまだありません</span>' : '<span class="rv-muted">記録なし</span>';
     var lower = (R.markValue(e.best.mark) || {}).lower;
-    if (e.prev) {
-      if (e.diff > 0) return '<span class="rv-up">自己ベスト更新 ' + esc(R.fmtImprovement(e.diff, lower).replace(/秒$/, '') + (lower ? '秒' : 'm')) + '</span><small>前の自己ベスト ' + esc(e.prev.mark) + '（' + esc(sd(e.prev.date)) + '）</small>';
-      if (e.diff === 0) return '<span class="rv-eq">自己ベストと同じ記録</span><small>前の自己ベスト ' + esc(e.prev.mark) + '</small>';
-      return '<span>自己ベストまで あと ' + esc(gap(-e.diff, lower)) + '</span><small>自己ベスト ' + esc(e.prev.mark) + '（' + esc(sd(e.prev.date)) + '）</small>';
+    if (e.prev) {   // v0.26.55 「今シーズンの伸び」：去年まで（期間より前）の公認ベスト → 伸び。数字は前と同じ計算
+      var was = '去年まで ' + esc(e.prev.mark);
+      if (e.diff > 0) return '<span class="rv-up">' + was + ' → ' + esc(gap(e.diff, lower)) + 'アップ</span><small>自己ベスト更新（前は ' + esc(sd(e.prev.date)) + '）</small>';
+      if (e.diff === 0) return '<span class="rv-eq">' + was + '　自己ベストと同じ記録</span>';
+      return '<span>' + was + '　自己ベストまで あと ' + esc(gap(-e.diff, lower)) + '</span><small>（' + esc(sd(e.prev.date)) + '）</small>';
     }
-    return '<span class="rv-new">' + (e.before ? 'この期間がはじめての公認記録' : 'この期間がはじめての記録') + '</span>';
+    return '<span class="rv-new">' + (e.before ? '今シーズンからの公認記録' : '今シーズンからの記録') + '</span>';
   }
   /* シートの HTML（印刷用の lp-page）。meta：{ school, date（出力日）, note（先生から一言・空なら手書きの枠）, chart（LanePrint.chart）, band, page } */
   function sheet(R, d, meta) {
@@ -124,7 +125,7 @@ var LaneReview = (function () {
     var chips = [d.team, d.div ? R.divLabel(d.div) : '', d.grade ? d.grade + (/年/.test(d.grade) ? '' : '年') : '', per].filter(Boolean).map(function (x) { return '<i>' + esc(x) + '</i>'; }).join('');
     var h = '<div class="rv-title"><b>' + esc(per) + '　今年のふりかえり</b><span>' + esc(sd(d.from)) + '〜' + esc(sd(d.to)) + ' の大会の記録から</span></div>';
     h += '<div class="rv-kpis"><div class="rv-kpi"><b>' + c.meets + '</b><span>出場した大会</span></div><div class="rv-kpi"><b>' + c.recs + '</b><span>記録の数</span></div><div class="rv-kpi rv-kpb"><b>' + c.pb + '</b><span>自己ベスト更新</span></div><div class="rv-kpi"><b>' + c.events + '</b><span>種目</span></div></div>';
-    h += '<div class="lp-h2">種目ごとのベスト（この期間）</div><table class="rv-t rv-best"><thead><tr><th>種目</th><th class="rv-r">ベスト</th><th>日付・大会</th><th>これまでとくらべて</th></tr></thead><tbody>' + d.events.map(function (e) {
+    h += '<div class="lp-h2">種目ごとのベスト（この期間）</div><table class="rv-t rv-best"><thead><tr><th>種目</th><th class="rv-r">ベスト</th><th>日付・大会</th><th>今シーズンの伸び</th></tr></thead><tbody>' + d.events.map(function (e) {
       var b = e.best, f = e.ref, bad = '';
       if (e.pbN) bad += '<span class="rv-bdg rv-bpb">自己ベスト更新' + (e.pbN > 1 ? ' ×' + e.pbN : '') + '</span>';
       if (e.first && !e.prev) bad += '<span class="rv-bdg rv-bfs">初記録</span>';

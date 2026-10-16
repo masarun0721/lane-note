@@ -34,24 +34,33 @@ await check('期間のベスト：公認と参考（追い風2.0m超）を分け
   assert.match(s, /11\.55<\/b><span class="rv-bdg rv-ref">参考<\/span><small>風\+2\.8<\/small>/);
   assert.doesNotMatch(s, /12\.02|24\.10<\/b>/);   // 前の年度の記録はベストの欄に出さない
 });
-await check('これまでとの比較：前の年度までの公認ベストより良ければ「自己ベスト更新 −0.17秒」・距離は「+0.09m」', () => {
+await check('今シーズンの伸び：前の年度までの公認ベストより良ければ「去年まで 11.86 → 0.17秒アップ」・距離は「去年まで 1m75 → 0.09mアップ」', () => {
   const s = V.sheet(R, B1(), {});
-  assert.match(s, /自己ベスト更新 −0\.17秒<\/span><small>前の自己ベスト 11\.86（2025\.09\.20）/);
-  assert.match(s, /自己ベスト更新 −0\.32秒/);
+  assert.match(s, /<th>今シーズンの伸び<\/th>/); assert.doesNotMatch(s, /これまでとくらべて/);
+  assert.match(s, /去年まで 11\.86 → 0\.17秒アップ<\/span><small>自己ベスト更新（前は 2025\.09\.20）/);
+  assert.match(s, /→ 0\.32秒アップ/); assert.doesNotMatch(s, /アップ[^<]*[−+]|[−+]0\.\d+秒アップ/);
   const t = V.sheet(R, V.build(R, ALL, key('試験 三郎'), { from: F, to: T }), {});
-  assert.match(t, /自己ベスト更新 \+0\.09m<\/span><small>前の自己ベスト 1m75/);
+  assert.match(t, /去年まで 1m75 → 0\.09mアップ<\/span>/);
 });
-await check('前の記録が無いときは数字を作らない（「この期間がはじめての記録」）・PB更新と初記録の印・回数', () => {
+await check('前の記録が無いときは数字を作らない（「今シーズンからの記録」）・PB更新と初記録の印・回数', () => {
   const d = V.build(R, ALL, key('見本 二郎'), { from: F, to: T }), s = V.sheet(R, d, {});
   assert.equal(d.events.every(e => !e.prev && e.diff == null), true);
-  assert.match(s, /この期間がはじめての記録/); assert.doesNotMatch(s, /前の自己ベスト|あと /);
+  assert.match(s, /今シーズンからの記録/); assert.doesNotMatch(s, /この期間がはじめて|初めての記録|去年まで|アップ<|あと /);
   assert.equal(d.counts.pb, 2); assert.match(s, /rv-kpb"><b>2<\/b><span>自己ベスト更新/);
   assert.match(s, /自己ベスト更新 ×2<\/span>/); assert.match(s, /rv-bfs">初記録/);
 });
 await check('期間のベストが前の自己ベストに届かないとき：「自己ベストまで あと …」（マイナスの印は付けない）', () => {
   const recs = [{ name: '例題 太郎', team: '架空第一高', event: '男子100m', mark: '11.80', wind: '+0.5', date: '2026-03-01', meet: '前の大会' }, { name: '例題 太郎', team: '架空第一高', event: '男子100m', mark: '11.95', wind: '+0.5', date: '2026-05-01', meet: '今の大会' }].map(r => (r.id = R.recId(r.meet, r.date, r), r));
   const s = V.sheet(R, V.build(R, recs, R.athleteKey(recs[0]), { from: F, to: T }), {});
-  assert.match(s, /自己ベストまで あと 0\.15秒/); assert.doesNotMatch(s, /自己ベスト更新 /);
+  assert.match(s, /去年まで 11\.80　自己ベストまで あと 0\.15秒/); assert.doesNotMatch(s, /自己ベスト更新 |アップ</);
+});
+await check('今シーズンの伸び：前の自己ベストと同じなら「去年まで 11.80　自己ベストと同じ記録」・公認の前の記録が無ければ「今シーズンからの公認記録」（数字は作らない）', () => {
+  const recs = [{ name: '例題 太郎', team: '架空第一高', event: '男子100m', mark: '11.80', wind: '+0.5', date: '2026-03-01', meet: '前の大会' }, { name: '例題 太郎', team: '架空第一高', event: '男子100m', mark: '11.80', wind: '+0.5', date: '2026-05-01', meet: '今の大会' }];
+  const s = V.sheet(R, V.build(R, recs, R.athleteKey(recs[0]), { from: F, to: T }), {});
+  assert.match(s, /rv-eq">去年まで 11\.80　自己ベストと同じ記録<\/span>/); assert.doesNotMatch(s, /アップ</);
+  const r2 = [{ name: '例題 太郎', team: '架空第一高', event: '男子100m', mark: '11.70', wind: '+3.1', date: '2026-03-01', meet: '前の大会' }, { name: '例題 太郎', team: '架空第一高', event: '男子100m', mark: '11.90', wind: '+0.5', date: '2026-05-01', meet: '今の大会' }];
+  const s2 = V.sheet(R, V.build(R, r2, R.athleteKey(r2[0]), { from: F, to: T }), {});
+  assert.match(s2, /rv-new">今シーズンからの公認記録<\/span>/); assert.doesNotMatch(s2, /去年まで|アップ</);
 });
 await check('出場した大会：何日かある大会は1行（5/3〜5/4）・ラウンド・組と着・PBの印・DNSは灰色', () => {
   const d = B1(), s = V.sheet(R, d, {});

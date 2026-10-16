@@ -73,6 +73,26 @@ body.personal-on .tabs button[data-v="rank"],body.personal-on .tabs button[data-
 .res-c{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:space-between;border-top:1px dashed #b9d6f5;padding-top:6px;margin-top:6px}
 .pp-sw{display:block;margin:6px 0}.pp-sw small{display:block;margin-left:1.6em;color:#666}
 .rb-loose{background:#fff3e0;border:1px solid #f0b46a;border-radius:8px;padding:6px 10px;font-size:13px;margin:6px 0}
+.rb-sus{background:#fff8e6;border:1px solid #f0c36a;border-radius:8px;padding:6px 10px;font-size:13px;margin:6px 0}
+/* v0.26.55 🔍 怪しい記録チェック（説明は「?」の中。あとで共通の部品に置きかえやすいよう details 1つ） */
+.sus-card{margin:8px 0;padding:10px 12px}
+.sus-card .card-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sus-n{font-weight:700;color:#b45309}
+.sus-help{display:inline-block;position:relative}
+.sus-help>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;border:1px solid #9aa8bd;color:#334;font-weight:700;font-size:13px}
+.sus-help>summary::-webkit-details-marker{display:none}
+.sus-help[open]>p{margin:6px 0;max-width:36em}
+.sus-card .card-h [data-sus="close"]{margin-left:auto}
+.sus-h{margin:12px 0 4px;font-size:14px}.sus-h small{margin-left:6px;background:#eef2f8;border-radius:10px;padding:0 7px;font-weight:700}
+.sus-list{list-style:none;margin:0;padding:0}
+.sus-it{border:1px solid #e3e8f0;border-radius:8px;padding:6px 8px;margin:6px 0;background:#fff}
+.rb-sus .sus-it.sus-ex{opacity:.6;background:#f6f6f6}
+.sus-why{color:#7a4b00;margin-bottom:4px}
+.sus-t{border-collapse:collapse;width:100%;margin-bottom:4px}.sus-t td{padding:3px 6px;border-top:1px solid #eef1f6;font-size:13px;vertical-align:middle}
+.sus-t .sus-mk,.sus-t .sus-op{text-align:right;white-space:nowrap}
+.sus-tag{display:inline-block;border-radius:4px;padding:0 5px;font-size:11px;font-weight:700;background:#fde68a;color:#7a4b00}
+.sus-tag.sus-dup{background:#fecaca;color:#7f1d1d}
+@media (max-width:600px){.sus-t,.sus-t tbody,.sus-t tr,.sus-t td{display:block;width:auto}.sus-t tr{border-top:1px solid #eef1f6;padding:3px 0}.sus-t td{border:0;padding:1px 4px;display:inline-block}.sus-t .sus-op{display:block;text-align:left}}
 .tblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
 .rbt td,.rbt th{padding:4px 6px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
 .rbt th{position:static;top:auto;background:var(--navy);color:#fff;font-size:12.5px;font-weight:700}
@@ -478,6 +498,8 @@ __MODEPICK__
   <div class="divsw sexsw" role="radiogroup" aria-label="男子・女子の切り替え" id="rbSex" hidden><button type="button" data-sex="m">男子</button><button type="button" data-sex="f">女子</button></div>
   <div id="rbReview"></div>
   <div class="rb-stats" id="rbStats"></div>
+  <div class="rb-pp rb-row" id="rbSusBox"><button class="btn sub" type="button" id="rbSusOpen" aria-controls="rbSus" aria-expanded="false">🔍 怪しい記録チェック</button></div>
+  <div class="card sus-card" id="rbSus" hidden></div>
   <div class="rb-pp rb-row" id="rbPPBox"><button class="btn sub" type="button" id="rbPPOpen">📱 選手の個人ページを作る</button><span class="small muted">選手が自分の記録とグラフを見られるリンクです。<a href="guide.html#g3">くわしく</a></span></div>
   <div class="rb-pp rb-row" id="rbTalkBox"><button class="btn sub" type="button" id="rbTalkOpen">💬 選手とのやり取り</button><span class="small muted">使いたい先生だけ。はじめはオフです（Googleでログインが必要）。</span></div>
   <div class="rb-pp" id="rbPubPref" hidden></div>

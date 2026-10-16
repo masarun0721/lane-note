@@ -161,7 +161,7 @@ await check('まとめて読む → 確認画面（大会名・日付は大会�
       ['架空区春季', '2026-05-03', '男子400m', '架空 一郎', '52.00'], ['架空区春季', '2026-05-04', '男子800m', '架空 四郎', '2:10.00']].sort());
     assert(w.__t.all().some(r => r.meet === '別の記録会'));
     assert.equal(w.__t.mets()['2026-04-03|支部春季'].importedN, 3); assert(w.__t.mets()['2026-05-03|架空区春季'].importedAt);
-    assert.match($('ybBody').querySelector('.yb-done.status').textContent, /今回 5件を保存/); assert.match($('ybBody').querySelector('.yb-done.status').textContent, /3大会・6件・選手 4人/);
+    assert.match($('ybBody').querySelector('.yb-done.status').textContent, /今回 5件を保存/); assert.match($('ybBody').querySelector('.yb-done.status').textContent, /2大会・5件・選手 3人/);   // v0.26.55 はじめの期間は今年度（4/1〜）：3/1 の「別の記録会」は期間の外
     assert.deepEqual(ybRows(w).map(x => x[1]).slice(0, 2), ['saved', 'saved']);
     // 選手別を見るボタン
     w.document.querySelector('[data-ybview="ath"]').click(); await delay(); assert(w.document.querySelector('.tabs [data-v="ath"]').classList.contains('on'));
