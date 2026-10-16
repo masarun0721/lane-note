@@ -1951,6 +1951,10 @@ var ResultParser = (function () {
     var t = nk(String(mark)).trim();
     return /^(\d{1,2}:\d{2}|\d{1,3})\.\d$/.test(t) ? t + '0' : mark;
   }
+  /* v0.26.62 跳躍・投てきの記録は画面・印刷で「m」を付けて見せる（「5.80」→「5.80m」）。「5m80」「5.80m」・記号（NM など）はそのまま。
+     表示だけ（保存した記録・ID・書き出しは変えない） */
+  function distMark(mark) { if (mark == null) return mark; var t = nk(String(mark)).trim(); return /^\d{1,2}\.\d{1,2}$/.test(t) ? t + 'm' : mark; }
+  function showMark(mark, ev) { return ev != null && isFieldEvent(ev) ? distMark(mark) : mark; }
   // 画面・印刷に出すための記録（保存した記録は書きかえない。そろえたときだけ写しを返す）
   function viewRecord(r) { if (!r || r.mark == null) return r; var m = padTime(r.mark, r.event); return m === r.mark ? r : Object.assign({}, r, { mark: m }); }
   function recValue(r) { return r ? markValue(r.mark, r.event) : null; }   // v0.26.57 記録1件の値（種目で時間か距離かを決める）
@@ -2416,7 +2420,7 @@ var ResultParser = (function () {
     var m = Math.floor(c / 6000), ss = Math.floor(c % 6000 / 100), cc = c % 100;
     return sg + m + '分' + (ss < 10 ? '0' : '') + ss + '秒' + (cc < 10 ? '0' : '') + cc;
   }
-  function fmtImprovement(d, lower) { if (d == null) return ''; return (lower ? '−' + fmtSecDiff(d) : '+' + d.toFixed(2)); }
+  function fmtImprovement(d, lower) { if (d == null) return ''; return (lower ? '−' + fmtSecDiff(d) : '+' + d.toFixed(2) + 'm'); }   // v0.26.62 距離は「+0.20m」
   // 各記録の PB 情報：{ flag:'PB'|'初', prev: 直前の公認ベストの記録, diff: 改善幅 }
   function pbDetails(recs) {
     var groups = {}, out = {};
@@ -3205,7 +3209,7 @@ var ResultParser = (function () {
   }
   return { dayHead: dayHead, parsePdf: parsePdf, parseCells: parseCells, goldMobileStream: goldMobileStream, parsePlain: parsePlain, textToStream: textToStream, normEvent: normEvent, markValue: markValue, recValue: recValue, padTime: padTime, viewRecord: viewRecord, windApplies: windApplies, windClass: windClass, windNum: windNum,
     computeBests: computeBests, baseEvent: baseEvent, learnGenders: learnGenders, isRelay: isRelay, relayEvent: relayEvent, relayMeta: relayMeta, relaySaveEvent: relaySaveEvent, relayTeamBase: relayTeamBase, matchRelayTeam: matchRelayTeam, parseRelayGold: parseRelayGold, parseRelayPdf: parseRelayPdf, mergeRelays: mergeRelays, legsText: legsText, parseLegs: parseLegs, relayRecord: relayRecord, pbLookup: pbLookup, nameKey: nameKey, athleteKey: athleteKey, matchSchool: matchSchool, schoolLoose: schoolLoose, cleanMark: cleanMark, isTag: isTag, canonSchool: canonSchool, cyuTeam: cyuTeam, eventShown: eventShown, teamLabel: teamLabel, teamOf: teamOf, recId: recId, recIdLegacy: recIdLegacy, recIdV6: recIdV6, identityKey: identityKey, fullIdentity: fullIdentity, looseIdentity: looseIdentity, manualRecord: manualRecord, sanitizeRecord: sanitizeRecord, validDate: validDate, normManualWind: normManualWind, dedupe: dedupe, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
-    guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, fmtSecDiff: fmtSecDiff, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText,
+    guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, fmtSecDiff: fmtSecDiff, showMark: showMark, distMark: distMark, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText,
     eventCat: eventCat, divisionOf: divisionOf, divLabel: divLabel, eventKey: eventKey, eventKeyLabel: eventKeyLabel, shownWind: shownWind, hasMark: hasMark, sortAthletes: sortAthletes, kanaKey: kanaKey,
     setGenderDefault: setGenderDefault, setDivisionHints: setDivisionHints, setMeetDivs: setMeetDivs, divSource: divSource, divisionWhy: divisionWhy, splitTeamGrade: splitTeamGrade, setPersonDivs: setPersonDivs, setRosterDivs: setRosterDivs, divConflicts: divConflicts, gradeFromEvent: gradeFromEvent, fixRecord: fixRecord, jhOnlyEvent: jhOnlyEvent, rawDivisionOf: rawDivisionOf, genderOf: genderOf, divGroup: divGroup, disciplineOrder: disciplineOrder, groupEvents: groupEvents, gendersIn: gendersIn, GROUPS: GROUPS,
     personKey: personKey, inferDivisions: inferDivisions, mapHeaders: mapHeaders, findHeaderRow: findHeaderRow, parseDateCell: parseDateCell, normImportMark: normImportMark, dupCheck: dupCheck, parseMeetPlan: parseMeetPlan, parseIcs: parseIcs, icsBytesToText: icsBytesToText, guessDiv: guessDiv, meetClass: meetClass, splitVenue: splitVenue, meetNorm: meetNorm, planKey: planKey, PLAN_TEMPLATE: PLAN_TEMPLATE, sheetEvent: sheetEvent, sheetBlocks: sheetBlocks, importBlock: importBlock, importWorkbook: importWorkbook, importRows: importRows, splitTable: splitTable, isTable: isTable, FIELD_LABELS: FIELD_LABELS, isFieldEvent: isFieldEvent };
@@ -3267,7 +3271,7 @@ if (typeof module !== 'undefined') module.exports = LaneRoster;
 
 </script>
 <script>
-var APP_VERSION = "v0.26.61", REC_VERSION = "v0.11.1";
+var APP_VERSION = "v0.26.62", REC_VERSION = "v0.11.1";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>
@@ -3379,7 +3383,7 @@ var LanePersonal = (function () {
       (nms.length ? '<line x1="4" x2="' + (W - 4) + '" y1="' + (H - B + 1) + '" y2="' + (H - B + 1) + '" stroke="#d6dbe5" stroke-width="0.8"/>' : '') +
       (xy.length > 1 ? '<polyline fill="none" stroke="#9aa8c0" stroke-width="1.2" stroke-dasharray="3 3" points="' + xy.map(function (q) { return q.join(','); }).join(' ') + '"/>' : '') +
       (off.length > 1 ? '<polyline fill="none" stroke="#1f3a68" stroke-width="2" points="' + off.map(function (q) { return q.join(','); }).join(' ') + '"/>' : '') +
-      xy.map(function (q, i) { var p = pts[i], t = '<title>' + esc(p.date + ' ' + p.mark + (p.wind ? '（風' + p.wind + '）' : '') + (p.ref ? '・参考' : '')) + '</title>';
+      xy.map(function (q, i) { var p = pts[i], t = '<title>' + esc(p.date + ' ' + (lower ? p.mark : dm(p.mark)) + (p.wind ? '（風' + p.wind + '）' : '') + (p.ref ? '・参考' : '')) + '</title>';
         return p.ref ? '<circle cx="' + q[0] + '" cy="' + q[1] + '" r="3.6" fill="#fff" stroke="#8a96ad" stroke-width="1.6">' + t + '</circle><text x="' + Math.min(W - 12, Math.max(12, q[0])) + '" y="' + Math.max(8, q[1] - 6) + '" font-size="8" fill="#8a96ad" text-anchor="middle">参考</text>'
           : '<circle cx="' + q[0] + '" cy="' + q[1] + '" r="' + (i === bi ? 4.5 : 3) + '" fill="' + (i === bi ? '#e4572e' : '#1f3a68') + '">' + t + '</circle>'; }).join('') +
       nms.map(function (p, i) { var x = xs.x[i], d = 3.4;
@@ -3394,6 +3398,9 @@ var LanePersonal = (function () {
   function S(v, n) { if (v == null) return ''; if (typeof v !== 'string' && typeof v !== 'number') throw new Error('リンクの中身の形が違います'); return String(v).slice(0, n || 80); }
   function arr(a, max) { if (a == null) return []; if (!Array.isArray(a)) throw new Error('リンクの中身の形が違います'); return a.slice(0, max); }
   function row(a, n) { if (a == null) return null; if (!Array.isArray(a)) throw new Error('リンクの中身の形が違います'); var o = []; for (var i = 0; i < n; i++) o.push(S(a[i], 80)); return o; }
+  // v0.26.62 跳躍・投てき（lw＝0：大きいほど良い）の「5.80」は「5.80m」で見せる（リンクの中身は変えない。得点は小数が無いのでそのまま）
+  function dm(m) { var t = String(m == null ? '' : m).trim(); return /^\d{1,2}\.\d{1,2}$/.test(t) ? t + 'm' : m; }
+  function pm(e, m) { return e && !e.lw ? dm(m) : m; }
   function sanitize(o) {
     if (!o || o.v !== 1 || o.k !== 'pp' || !o.a || typeof o.a !== 'object') throw new Error('リンクの中身を読めませんでした');
     return { v: 1, k: 'pp', g: S(o.g, 40), a: { name: S(o.a.name, 60), team: S(o.a.team, 80), grade: S(o.a.grade, 10) },
@@ -3425,25 +3432,25 @@ var LanePersonal = (function () {
     if (o.sc && o.sc.length && typeof LanePlans !== 'undefined') { var sch = LanePlans.scHtml(o.sc); if (sch) h += '<div class="pp-card pp-sc"><div class="pp-h">📅 これからの大会</div>' + sch + '</div>'; }
     if (!o.e.length) return box.innerHTML = h + '<p class="muted">まだ記録がありません。</p>' + condSection(o, opts), bindAll(o, box, opts);
     h += '<div class="pp-card"><div class="pp-h">🏅 自己ベスト</div><ul class="pp-pbs">' + o.e.map(function (e) { var b = e.b || e.rf;
-      return '<li><button type="button" class="pp-ev" data-ppev="' + esc(e.l) + '">' + esc(e.l) + '</button><b>' + esc(b ? b[0] : '—') + (e.b ? '' : b ? '<span class="ref">参考</span>' : '') + '</b><small>' + esc(b ? [b[1] ? '風' + b[1] : '', b[2], b[3]].filter(Boolean).join('・') : '') + '</small></li>'; }).join('') + '</ul></div>';
+      return '<li><button type="button" class="pp-ev" data-ppev="' + esc(e.l) + '">' + esc(e.l) + '</button><b>' + esc(b ? pm(e, b[0]) : '—') + (e.b ? '' : b ? '<span class="ref">参考</span>' : '') + '</b><small>' + esc(b ? [b[1] ? '風' + b[1] : '', b[2], b[3]].filter(Boolean).join('・') : '') + '</small></li>'; }).join('') + '</ul></div>';
     if (o.e.length > 1) h += '<div class="evsw pp-sw"><button type="button" data-ppev=""' + (VIEW.ev ? '' : ' class="on"') + '>すべて</button>' + o.e.map(function (e) { return '<button type="button" data-ppev="' + esc(e.l) + '"' + (VIEW.ev === e.l ? ' class="on"' : '') + '>' + esc(e.l) + '</button>'; }).join('') + '</div>';
     h += shown.map(function (e) {
       var hasRef = e.p.some(function (p) { return p.ref; });
       return '<div class="pp-card"><div class="pp-h">' + esc(e.l) + ' <small>' + e.n + '件</small></div>' +
-        (e.b ? '<div class="pp-best"><small>自己ベスト（公認）</small><b>' + esc(e.b[0]) + '</b><small>' + esc([e.b[1] ? '風' + e.b[1] : '', e.b[2], e.b[3]].filter(Boolean).join('・')) + '</small></div>' : '') +
-        (e.rf ? '<div class="small">参考 ' + esc(e.rf[0]) + ' <span class="muted">' + esc([e.rf[1] ? '風' + e.rf[1] : '', e.rf[2]].filter(Boolean).join(' ')) + '</span></div>' : '') +
+        (e.b ? '<div class="pp-best"><small>自己ベスト（公認）</small><b>' + esc(pm(e, e.b[0])) + '</b><small>' + esc([e.b[1] ? '風' + e.b[1] : '', e.b[2], e.b[3]].filter(Boolean).join('・')) + '</small></div>' : '') +
+        (e.rf ? '<div class="small">参考 ' + esc(pm(e, e.rf[0])) + ' <span class="muted">' + esc([e.rf[1] ? '風' + e.rf[1] : '', e.rf[2]].filter(Boolean).join(' ')) + '</span></div>' : '') +
         '<div class="sparkbox chartbox">' + spark(e.p, !!e.lw, VIEW.official, e.x, VIEW.nm) + '<span class="chartopt"><span class="muted">推移（上ほど良い）●公認 <b style="color:#e4572e">●</b>ベスト</span>' +
         (hasRef ? '<label><input type="checkbox" data-ppofficial="1"' + (VIEW.official ? ' checked' : '') + '> 公認だけ</label>' : '') +
         (e.x.length ? '<label><input type="checkbox" data-ppnm="1"' + (VIEW.nm ? ' checked' : '') + '> DNS・失格なども表示</label>' : '') + '</span></div>' +
         '<div class="pp-sh">最近の記録</div><ul class="recent">' + e.r.map(function (r) { var dk = dayKey(r[0]);
-          return '<li><span class="d">' + esc(r[0]) + '</span><b>' + esc(r[1]) + '</b>' + (r[5] === 'PB' ? '<span class="pb">PB</span>' : r[5] === '初' ? '<span class="pb first">初</span>' : '') + '<span class="m">' + esc([r[2] ? '風' + r[2] : '', r[3], r[4]].filter(Boolean).join('・')) + '</span>' + (cond[dk] ? '<span class="m">' + condBadge(cond[dk]) + '</span>' : '') + '</li>'; }).join('') + '</ul></div>';
+          return '<li><span class="d">' + esc(r[0]) + '</span><b>' + esc(pm(e, r[1])) + '</b>' + (r[5] === 'PB' ? '<span class="pb">PB</span>' : r[5] === '初' ? '<span class="pb first">初</span>' : '') + '<span class="m">' + esc([r[2] ? '風' + r[2] : '', r[3], r[4]].filter(Boolean).join('・')) + '</span>' + (cond[dk] ? '<span class="m">' + condBadge(cond[dk]) + '</span>' : '') + '</li>'; }).join('') + '</ul></div>';
     }).join('');
     box.innerHTML = h + condSection(o, opts);
     bindAll(o, box, opts);
   }
   function resultsOn(o, d) {
     var out = [];
-    o.e.forEach(function (e) { e.r.forEach(function (r) { if (dayKey(r[0]) === d) out.push(e.l + ' ' + r[1]); }); e.x.forEach(function (x) { if (dayKey(x.date) === d) out.push(e.l + ' ' + x.mark); }); });
+    o.e.forEach(function (e) { e.r.forEach(function (r) { if (dayKey(r[0]) === d) out.push(e.l + ' ' + pm(e, r[1])); }); e.x.forEach(function (x) { if (dayKey(x.date) === d) out.push(e.l + ' ' + x.mark); }); });
     return out.filter(function (v, i, a) { return a.indexOf(v) === i; });
   }
   function condSection(o, opts) {
@@ -3989,6 +3996,8 @@ var LanePrint = (function () {
     return v.toFixed(2);
   }
   // 目盛り付きのグラフ（上ほど良い・●公認 ○参考 赤＝ベスト・下の×＝記録なし）
+  function smk(R, r) { return r ? (R.showMark ? R.showMark(r.mark, r.event) : r.mark) : ''; }   // v0.26.62 跳躍・投てきは「5.80m」（表示だけ）
+  function dm(m) { var t = String(m == null ? '' : m).trim(); return /^\d{1,2}\.\d{1,2}$/.test(t) ? t + 'm' : m; }   // グラフのPBの字（距離の種目だけで使う）
   function chart(e, o) {   // o：{ W, H }（v0.26.52 ふりかえりシートの小さいグラフ。ふだんは 640×128）
     var pts = e.allPoints || [], nms = e.noMarks || [], lower = e.lower !== false;
     if (pts.length < 2 && !nms.length) return '';
@@ -4010,7 +4019,7 @@ var LanePrint = (function () {
     if (off.length > 1) s += '<polyline points="' + off.join(' ') + '" class="lp-loff"/>';
     pts.forEach(function (p, i) {
       var x = xs.m[i], yy = y(p.v);
-      s += i === bi ? '<circle cx="' + x + '" cy="' + yy + '" r="6" class="lp-pbdot"/><text x="' + x + '" y="' + (yy - 10) + '" class="lp-pblab" text-anchor="middle">PB ' + esc(p.mark) + '</text>' : '<circle cx="' + x + '" cy="' + yy + '" r="4" class="' + (p.ref ? 'lp-refdot' : 'lp-dot') + '"/>';
+      s += i === bi ? '<circle cx="' + x + '" cy="' + yy + '" r="6" class="lp-pbdot"/><text x="' + x + '" y="' + (yy - 10) + '" class="lp-pblab" text-anchor="middle">PB ' + esc(lower ? p.mark : dm(p.mark)) + '</text>' : '<circle cx="' + x + '" cy="' + yy + '" r="4" class="' + (p.ref ? 'lp-refdot' : 'lp-dot') + '"/>';
     });
     if (nms.length) { var yx = H - 13; s += '<line x1="' + L + '" x2="' + (W - Rr) + '" y1="' + (H - 24) + '" y2="' + (H - 24) + '" class="lp-grid"/>'; nms.forEach(function (p, i) { var x = xs.x[i]; s += '<text x="' + x + '" y="' + yx + '" class="lp-x" text-anchor="middle">×</text><text x="' + x + '" y="' + (yx + 10) + '" class="lp-xl" text-anchor="middle">' + esc(p.mark) + '</text>'; }); }
     return s + '</svg>';
@@ -4027,17 +4036,17 @@ var LanePrint = (function () {
     var sub = chips.map(function (c) { return '<i>' + esc(c) + '</i>'; }).join('');
     var cards = '<div class="lp-cards">' + order.map(function (e) {
       var b = e.best || e.ref || {}, off = !!e.best, w = wind(R, b);
-      return '<div class="lp-card' + (b.mark ? '' : ' lp-none') + '"><div class="lp-cev">' + esc(e.eventLabel) + '</div><div class="lp-cmk">' + esc(b.mark || '—') + (w ? '<span class="lp-cw">' + w + '</span>' : '') + '</div>' +
+      return '<div class="lp-card' + (b.mark ? '' : ' lp-none') + '"><div class="lp-cev">' + esc(e.eventLabel) + '</div><div class="lp-cmk">' + esc(smk(R, b) || '—') + (w ? '<span class="lp-cw">' + w + '</span>' : '') + '</div>' +
         (b.mark ? '<span class="lp-badge ' + (off ? 'lp-ok' : 'lp-ref') + '">' + (off ? '公認' : '参考') + '</span>' : '') +
         '<div class="lp-cmeta">' + (b.date ? sd(b.date) : '') + (b.meet ? '<br>' + esc(b.meet) : '') + '</div><div class="lp-ccount">' + e.count + '件</div></div>';
     }).join('') + '</div>';
     var evs = order.map(function (e) {
       var rs = mine.filter(function (r) { return R.eventKey(r) === e.event; }).sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
       var c = chart(e), b = e.best || e.ref;
-      return '<div class="lp-ev"><div class="lp-h3"><span>' + esc(e.eventLabel) + '</span>' + (b ? '<em>PB ' + esc(b.mark) + '</em>' : '') + '</div>' + (c ? '<div class="lp-chart">' + c + '</div>' : '') +
+      return '<div class="lp-ev"><div class="lp-h3"><span>' + esc(e.eventLabel) + '</span>' + (b ? '<em>PB ' + esc(smk(R, b)) + '</em>' : '') + '</div>' + (c ? '<div class="lp-chart">' + c + '</div>' : '') +
         '<table class="lp-t"><thead><tr><th>日付</th><th>大会</th><th>ラウンド</th><th class="lp-r">記録</th><th class="lp-r">風</th><th class="lp-r">順位</th></tr></thead><tbody>' + rs.map(function (r) {
           var pb = e.best && e.best.id === r.id, nm = !hasNum(r.mark);
-          return '<tr' + (pb ? ' class="lp-pb"' : nm ? ' class="lp-nm"' : '') + '><td class="lp-num">' + sd(r.date) + '</td><td>' + esc(r.meet) + '</td><td>' + esc(r.round || '') + '</td><td class="lp-mk lp-r">' + esc(r.mark) + (pb ? '<span class="lp-tag">PB</span>' : '') + '</td><td class="lp-num lp-r">' + wind(R, r) + '</td><td class="lp-num lp-r">' + esc(r.rank || '') + '</td></tr>';
+          return '<tr' + (pb ? ' class="lp-pb"' : nm ? ' class="lp-nm"' : '') + '><td class="lp-num">' + sd(r.date) + '</td><td>' + esc(r.meet) + '</td><td>' + esc(r.round || '') + '</td><td class="lp-mk lp-r">' + esc(smk(R, r)) + (pb ? '<span class="lp-tag">PB</span>' : '') + '</td><td class="lp-num lp-r">' + wind(R, r) + '</td><td class="lp-num lp-r">' + esc(r.rank || '') + '</td></tr>';
         }).join('') + '</tbody></table></div>';
     }).join('');
     return page('個人表', o, '<div class="lp-h2">種目ごとの自己ベスト</div>' + cards + '<div class="lp-h2">記録の一覧</div>' + evs, band('個人表', pf.name, sub, o, pf.kana));
@@ -4047,7 +4056,7 @@ var LanePrint = (function () {
     var title = kind === 'hist' ? '歴代記録' : '部内ランキング';
     var body = evs.map(function (ev) {
       return '<div class="lp-ev"><div class="lp-h3"><span>' + esc(label(ev)) + '</span><em>' + (data[ev] || []).length + '人</em></div><table class="lp-t lp-rk"><thead><tr><th class="lp-r">順位</th><th>氏名</th><th>' + (kind === 'hist' ? '年度' : '学年') + '</th><th class="lp-r">記録</th><th class="lp-r">風</th><th>日付</th><th>大会</th></tr></thead><tbody>' + (data[ev] || []).map(function (x) {
-        return '<tr' + (x.rank <= 3 ? ' class="lp-top lp-top' + x.rank + '"' : '') + '><td class="lp-r"><span class="lp-rn">' + x.rank + '</span></td><td class="lp-nmn">' + esc(x.name) + '</td><td>' + esc(kind === 'hist' ? R.seasonLabel(x.season) : x.grade ? x.grade + '年' : '') + '</td><td class="lp-mk lp-r">' + esc(x.best.mark) + '</td><td class="lp-num lp-r">' + wind(R, x.best) + '</td><td class="lp-num">' + sd(x.best.date) + '</td><td>' + esc(x.best.meet) + '</td></tr>';
+        return '<tr' + (x.rank <= 3 ? ' class="lp-top lp-top' + x.rank + '"' : '') + '><td class="lp-r"><span class="lp-rn">' + x.rank + '</span></td><td class="lp-nmn">' + esc(x.name) + '</td><td>' + esc(kind === 'hist' ? R.seasonLabel(x.season) : x.grade ? x.grade + '年' : '') + '</td><td class="lp-mk lp-r">' + esc(smk(R, x.best)) + '</td><td class="lp-num lp-r">' + wind(R, x.best) + '</td><td class="lp-num">' + sd(x.best.date) + '</td><td>' + esc(x.best.meet) + '</td></tr>';
       }).join('') + '</tbody></table></div>';
     }).join('');
     return page(title, o, body, band(kind === 'hist' ? 'HISTORY' : 'RANKING', title, o.cond ? '<i class="lp-cond">' + esc(o.cond) + '</i>' : '', o));
@@ -4065,7 +4074,7 @@ var LanePrint = (function () {
     var evs = []; recs.forEach(function (r) { var k = R.eventKey(r); if (evs.indexOf(k) < 0) evs.push(k); });
     var body = '<div class="lp-sum"><div class="lp-kpi"><b>' + Object.keys(names).length + '</b><span>出場人数</span></div><div class="lp-kpi"><b>' + recs.length + '</b><span>記録数</span></div><div class="lp-kpi lp-kpb"><b>' + nPB + '</b><span>PB更新</span></div><div class="lp-kpi"><b>' + nFirst + '</b><span>初記録</span></div></div>';
     // v0.9.4：PB更新の一覧は通常のみ（1枚モードは表のPB印で足りる）
-    if (hl.length && !o.one) body += '<div class="lp-hl"><div class="lp-h3"><span>🔥 PB更新</span><em>' + hl.length + '件</em></div><ul>' + hl.map(function (h) { return '<li><b>' + esc(h.r.name) + '</b> ' + esc(R.eventKeyLabel(h.r, o.nog)) + ' <span class="lp-mk">' + esc(h.r.mark) + '</span>' + (h.p.diff != null ? ' <span class="lp-up">' + esc(R.fmtImprovement(h.p.diff, h.p.lower)) + '</span>' : '') + (h.p.prev ? ' <small>（前のPB ' + esc(h.p.prev.mark) + '）</small>' : '') + '</li>'; }).join('') + '</ul></div>';
+    if (hl.length && !o.one) body += '<div class="lp-hl"><div class="lp-h3"><span>🔥 PB更新</span><em>' + hl.length + '件</em></div><ul>' + hl.map(function (h) { return '<li><b>' + esc(h.r.name) + '</b> ' + esc(R.eventKeyLabel(h.r, o.nog)) + ' <span class="lp-mk">' + esc(smk(R, h.r)) + '</span>' + (h.p.diff != null ? ' <span class="lp-up">' + esc(R.fmtImprovement(h.p.diff, h.p.lower)) + '</span>' : '') + (h.p.prev ? ' <small>（前のPB ' + esc(smk(R, h.p.prev)) + '）</small>' : '') + '</li>'; }).join('') + '</ul></div>';
     if (!recs.length) body += '<p class="lp-empty">この条件の記録はありません。</p>';
     // v0.9.5：種目ごとの枠（紺の見出し＋氏名・学年・記録・風・順位の小さな表）を2段で流す。PBは記録の横に「PB −0.21」、初記録は「初」
     function bdg(p) {
@@ -4081,7 +4090,7 @@ var LanePrint = (function () {
           var rs = recs.filter(function (r) { return R.eventKey(r) === it.key; }).sort(function (a, b) { var va = R.markValue(a.mark, a.event), vb = R.markValue(b.mark, b.event); if (!va !== !vb) return va ? -1 : 1; if (va && vb && va.v !== vb.v) return va.lower ? va.v - vb.v : vb.v - va.v; return (a.order || 0) - (b.order || 0); });
           body += '<div class="lp-box"><div class="lp-boxh"><span>' + esc(it.label) + '</span><em>' + rs.length + '人</em></div><table class="lp-bt"><thead><tr><th>氏名</th><th class="lp-c">学年</th><th class="lp-r">記録</th><th class="lp-r">風</th><th class="lp-c">順位</th></tr></thead><tbody>' + rs.map(function (r) {
             var p = pbd[r.id], mv = R.markValue(r.mark, r.event);
-            return '<tr class="' + (!mv ? 'lp-nm' : p && p.flag === 'PB' ? 'lp-pb' : '') + '"><td class="lp-nmn">' + esc(r.name) + '</td><td class="lp-c">' + esc(r.grade ? r.grade + '年' : '') + '</td><td class="lp-r lp-mkc"><b class="lp-mk">' + esc(r.mark) + '</b>' + (mv ? bdg(p) : '') + '</td><td class="lp-num lp-r">' + wind(R, r) + '</td><td class="lp-num lp-c">' + esc(r.rank) + '</td></tr>';
+            return '<tr class="' + (!mv ? 'lp-nm' : p && p.flag === 'PB' ? 'lp-pb' : '') + '"><td class="lp-nmn">' + esc(r.name) + '</td><td class="lp-c">' + esc(r.grade ? r.grade + '年' : '') + '</td><td class="lp-r lp-mkc"><b class="lp-mk">' + esc(smk(R, r)) + '</b>' + (mv ? bdg(p) : '') + '</td><td class="lp-num lp-r">' + wind(R, r) + '</td><td class="lp-num lp-c">' + esc(r.rank) + '</td></tr>';
           }).join('') + '</tbody></table></div>';
         });
         body += '</div>';
@@ -4207,7 +4216,7 @@ var LaneReview = (function () {
     if (!e.best) return e.ref ? '<span class="rv-muted">公認の記録はまだありません</span>' : '<span class="rv-muted">記録なし</span>';
     var lower = (R.markValue(e.best.mark, e.best.event) || {}).lower;
     if (e.prev) {   // v0.26.55 「今シーズンの伸び」→ v0.26.56「昨年度からの伸び」：昨年度まで（期間より前）の公認ベスト → 伸び。数字は前と同じ計算
-      var was = '昨年度まで ' + esc(e.prev.mark);
+      var was = '昨年度まで ' + esc(R.showMark(e.prev.mark, e.prev.event));
       if (e.diff > 0) return '<span class="rv-up">' + was + ' → ' + esc(gap(R, e.diff, lower)) + 'アップ</span><small>自己ベスト更新（前は ' + esc(sd(e.prev.date)) + '）</small>';
       if (e.diff === 0) return '<span class="rv-eq">' + was + '　自己ベストと同じ記録</span>';
       return '<span>' + was + '　自己ベストまで あと ' + esc(gap(R, -e.diff, lower)) + '</span><small>（' + esc(sd(e.prev.date)) + '）</small>';
@@ -4228,8 +4237,8 @@ var LaneReview = (function () {
       var b = e.best, f = e.ref, bad = '';
       if (e.pbN) bad += '<span class="rv-bdg rv-bpb">自己ベスト更新' + (e.pbN > 1 ? ' ×' + e.pbN : '') + '</span>';
       if (e.first && !e.prev) bad += '<span class="rv-bdg rv-bfs">初記録</span>';
-      var mk = b ? '<b class="rv-mk">' + esc(b.mark) + '</b><span class="rv-bdg rv-ok">公認</span>' + (windTxt(R, b) ? '<small>' + esc(windTxt(R, b)) + '</small>' : '') : f ? '' : '<b class="rv-mk rv-muted">—</b>';
-      var rf = f ? '<div class="rv-refl"><b class="rv-mk' + (b ? ' rv-mk2' : '') + '">' + esc(f.mark) + '</b><span class="rv-bdg rv-ref">参考</span><small>' + esc(windTxt(R, f) || '風不明') + '</small></div>' : '';
+      var mk = b ? '<b class="rv-mk">' + esc(R.showMark(b.mark, b.event)) + '</b><span class="rv-bdg rv-ok">公認</span>' + (windTxt(R, b) ? '<small>' + esc(windTxt(R, b)) + '</small>' : '') : f ? '' : '<b class="rv-mk rv-muted">—</b>';
+      var rf = f ? '<div class="rv-refl"><b class="rv-mk' + (b ? ' rv-mk2' : '') + '">' + esc(R.showMark(f.mark, f.event)) + '</b><span class="rv-bdg rv-ref">参考</span><small>' + esc(windTxt(R, f) || '風不明') + '</small></div>' : '';
       var src = b || f;
       return '<tr><td class="rv-ev"><b>' + esc(e.eventLabel) + '</b><small>' + e.n + '回</small>' + (bad ? '<div>' + bad + '</div>' : '') + '</td><td class="rv-r">' + mk + rf + '</td><td class="rv-src">' + (src ? esc(sd(src.date)) + '<br>' + esc(src.meet || '') : '') + '</td><td class="rv-vs">' + vsCell(R, e) + '</td></tr>';
     }).join('') + '</tbody></table>';
@@ -4242,7 +4251,7 @@ var LaneReview = (function () {
       var ds = m.dates.slice().sort(); var dl = ds.length > 1 ? md(ds[0]) + '〜' + md(ds[ds.length - 1]) : md(ds[0]);
       return '<tr><td class="rv-d">' + esc(dl) + '</td><td class="rv-mt">' + esc(m.meet) + '</td><td class="rv-its">' + m.items.map(function (x) {
         var r = x.r, rk = r.rank !== '' && r.rank != null && x.has ? (r.heat && /予選|準決/.test(r.round || '') ? r.heat + '組' + r.rank + '着' : r.rank + '位') : '';
-        return '<span class="rv-it' + (x.has ? '' : ' rv-nm') + '"><em>' + esc(x.label) + (r.round ? '・' + esc(r.round) : '') + '</em> <b>' + esc(r.mark) + '</b>' + (windTxt(R, r) ? '<small>（' + esc(windTxt(R, r)) + '）</small>' : '') + (rk ? ' <small>' + esc(rk) + '</small>' : '') +
+        return '<span class="rv-it' + (x.has ? '' : ' rv-nm') + '"><em>' + esc(x.label) + (r.round ? '・' + esc(r.round) : '') + '</em> <b>' + esc(R.showMark(r.mark, r.event)) + '</b>' + (windTxt(R, r) ? '<small>（' + esc(windTxt(R, r)) + '）</small>' : '') + (rk ? ' <small>' + esc(rk) + '</small>' : '') +
           (x.has && x.pb === 'PB' ? '<span class="rv-bdg rv-bpb">PB</span>' : x.has && x.pb === '初' ? '<span class="rv-bdg rv-bfs">初</span>' : '') + '</span>';
       }).join('') + '</td></tr>';
     }).join('') + '</tbody></table>';
@@ -5965,7 +5974,7 @@ var LanePdf = (function () {
       '<label class="small">新しい所属 <input type="text" data-ro-in="to" maxlength="60" placeholder="例：架空南高" style="width:9em"></label><button type="button" class="btn sub sm" data-ro="move" data-aid="' + esc(e.aid) + '">所属を変える</button>' +
       (e.status === 'active' ? '<button type="button" class="btn sub sm" data-ro="grad" data-aid="' + esc(e.aid) + '">卒業にする</button>' : '<button type="button" class="btn sub sm" data-ro="back" data-aid="' + esc(e.aid) + '">在籍に戻す</button>') + '</div>';
     if (cand.length) h += '<div class="ro-cand"><p class="small"><b>同じ名前で、台帳に入っていない記録</b>があります。<b>同じ人か確かめてから</b>入れてください（名前だけで自動的にまとめることはしません）。</p><ul>' + cand.map(function (c) { return '<li>' + esc(c.name) + ' <span class="small muted">' + esc(c.teams.join('・')) + '・' + c.n + '件（' + esc(c.first) + '〜' + esc(c.last) + '）</span>' + (can ? ' <button type="button" class="btn sm" data-ro="link" data-aid="' + esc(e.aid) + '" data-key="' + esc(c.key) + '">同じ人なので入れる</button>' : '') + '</li>'; }).join('') + '</ul></div>';
-    if (can && mine.length > 1) h += '<details class="ro-split"><summary class="small"><b>別の人の記録が混ざっているとき</b>（分ける）</summary><ul class="small">' + mine.slice().sort(function (a, b) { return cmp(a.date, b.date); }).map(function (r) { return '<li><label><input type="checkbox" data-ro-split="' + esc(r.id) + '"> ' + esc(r.date) + ' ' + esc(r.meet) + ' ' + esc(r.event) + ' ' + esc(r.mark) + ' ' + esc(r.team) + '</label></li>'; }).join('') + '</ul><button type="button" class="btn sub sm" data-ro="split" data-aid="' + esc(e.aid) + '">選んだ記録を別の人（新しいID）に分ける</button></details>';
+    if (can && mine.length > 1) h += '<details class="ro-split"><summary class="small"><b>別の人の記録が混ざっているとき</b>（分ける）</summary><ul class="small">' + mine.slice().sort(function (a, b) { return cmp(a.date, b.date); }).map(function (r) { return '<li><label><input type="checkbox" data-ro-split="' + esc(r.id) + '"> ' + esc(r.date) + ' ' + esc(r.meet) + ' ' + esc(r.event) + ' ' + esc(smk(r)) + ' ' + esc(r.team) + '</label></li>'; }).join('') + '</ul><button type="button" class="btn sub sm" data-ro="split" data-aid="' + esc(e.aid) + '">選んだ記録を別の人（新しいID）に分ける</button></details>';
     return h + '</div>';
   }
   function rosterHome() {
@@ -6930,7 +6939,7 @@ var LanePdf = (function () {
     var meets = {}; pick.recs.forEach(function (r) { meets[r.date + '|' + r.meet] = 1; });
     var nRel = q ? pick.relays.length : 0, total = pick.recs.length + nRel, N = pick.n;
     var flag = pick.items.filter(function (it) { return it.st; }), fresh = pick.items.filter(function (it) { return !it.st; });
-    var row = function (it) { var r = it.p || it.r; return '<tr class="xd-' + (it.st || 'new') + '"><td><input type="checkbox" data-xrec="' + it.r._k + '"' + (it.on ? ' checked' : '') + '></td><td>' + (it.st === 'dup' ? '<b class="muted">入力済み</b>' : it.st === 'maybe' ? '<b class="ng">重複かも</b>' : '新しい') + (it.why ? '<br><small class="muted">' + esc(it.why) + '</small>' : '') + '</td><td>' + esc(r.date) + '</td><td>' + esc(r.meet) + '</td><td>' + esc(r.event) + '</td><td>' + esc(r.name) + '</td><td>' + esc(it.r.grade || '') + '</td><td>' + esc(r.mark) + '</td><td>' + esc(it.r.wind || '') + '</td></tr>'; };
+    var row = function (it) { var r = it.p || it.r; return '<tr class="xd-' + (it.st || 'new') + '"><td><input type="checkbox" data-xrec="' + it.r._k + '"' + (it.on ? ' checked' : '') + '></td><td>' + (it.st === 'dup' ? '<b class="muted">入力済み</b>' : it.st === 'maybe' ? '<b class="ng">重複かも</b>' : '新しい') + (it.why ? '<br><small class="muted">' + esc(it.why) + '</small>' : '') + '</td><td>' + esc(r.date) + '</td><td>' + esc(r.meet) + '</td><td>' + esc(r.event) + '</td><td>' + esc(r.name) + '</td><td>' + esc(it.r.grade || '') + '</td><td>' + esc(smk(r)) + '</td><td>' + esc(it.r.wind || '') + '</td></tr>'; };
     return '<div class="rb-batch xl xlm" data-b="' + b.id + '"><h3>📊 Excel：' + esc(b.src) + '</h3>' +
       '<p class="small">シートごと（シート名＝種目）に記録を分けたExcelとして読みました。<b>取り込まないシートはチェックを外してください。</b>種目の列が無いときはシート名（1枚に表が並ぶシートは、表の左のセル）を種目にしています。読み違いがあるシートは「列を選ぶ」で直せます。</p>' +
       '<div class="tblwrap"><table class="rbt xlsheets"><tr><th>シート</th><th>種目</th><th>記録</th><th>リレー</th><th>読めない行</th><th></th></tr>' + rows + '</table></div>' +
@@ -6991,7 +7000,7 @@ var LanePdf = (function () {
       '<div class="rb-row xlw"><span class="small"><b>天気（任意）</b>：この取り込みの大会すべてに付けます</span>' + weatherInputs(b.meta, 'data-f') + '</div>' +
       '<p class="small">取り込める記録：<b>' + res.recs.length + '件</b>（' + Object.keys(meets).length + '大会）' + (x.rescue && x.all != null && x.all !== res.recs.length ? '　<span class="muted">表全体 ' + x.all + '件のうち「' + esc(school()) + '」の選手だけ</span>' : '') + (res.bad.length ? '　<span class="ng">取り込めない行：' + res.bad.length + '件</span>' : '') + '</p>' +
       (res.bad.length ? '<ul class="rb-warn">' + res.bad.slice(0, 30).map(function (r) { return '<li>⚠ ' + r.row + '行目 ' + esc(r.name || '') + ' ' + esc(r.event || '') + '：' + esc(r.warn) + (/日付/.test(r.warn) ? 'が無いか読めません（日付は必須です）' : 'が足りません') + '</li>'; }).join('') + (res.bad.length > 30 ? '<li>ほか ' + (res.bad.length - 30) + '行</li>' : '') + '</ul>' : '') +
-      (res.recs.length ? '<div class="tblwrap"><table class="rbt"><tr><th>日付</th><th>大会</th><th>種目</th><th>氏名</th><th>学年</th><th>所属</th><th>記録</th><th>風</th><th>順位</th></tr>' + res.recs.slice(0, 30).map(function (r) { return '<tr><td>' + esc(r.date) + '</td><td>' + esc(r.meet) + '</td><td>' + esc(r.event) + '</td><td>' + esc(r.name) + (r.kana ? '<br><small class="muted">' + esc(r.kana) + '</small>' : '') + '</td><td>' + esc(r.grade) + '</td><td>' + esc(r.team) + '</td><td class="rn"><b>' + esc(r.mark) + '</b></td><td class="rn">' + esc(R.shownWind(r)) + '</td><td class="rn">' + esc(r.rank) + '</td></tr>'; }).join('') + '</table></div>' + (res.recs.length > 30 ? '<p class="small muted">ほか ' + (res.recs.length - 30) + '件（保存すると全部入ります）</p>' : '') : '') +
+      (res.recs.length ? '<div class="tblwrap"><table class="rbt"><tr><th>日付</th><th>大会</th><th>種目</th><th>氏名</th><th>学年</th><th>所属</th><th>記録</th><th>風</th><th>順位</th></tr>' + res.recs.slice(0, 30).map(function (r) { return '<tr><td>' + esc(r.date) + '</td><td>' + esc(r.meet) + '</td><td>' + esc(r.event) + '</td><td>' + esc(r.name) + (r.kana ? '<br><small class="muted">' + esc(r.kana) + '</small>' : '') + '</td><td>' + esc(r.grade) + '</td><td>' + esc(r.team) + '</td><td class="rn"><b>' + esc(smk(r)) + '</b></td><td class="rn">' + esc(R.shownWind(r)) + '</td><td class="rn">' + esc(r.rank) + '</td></tr>'; }).join('') + '</table></div>' + (res.recs.length > 30 ? '<p class="small muted">ほか ' + (res.recs.length - 30) + '件（保存すると全部入ります）</p>' : '') : '') +
       '<div class="rb-row" style="margin-top:8px"><button class="btn" data-save="' + b.id + '" type="button"' + (res.recs.length && !miss.length ? '' : ' disabled') + '>記録に保存（' + res.recs.length + '件）</button><button class="btn sub" data-del="' + b.id + '" type="button">取り消す</button></div><div class="status" data-st="' + b.id + '"></div></div>';
   }
   $('rbBatches').addEventListener('change', function (e) {
@@ -7544,7 +7553,7 @@ var LanePdf = (function () {
     return ws;
   }
   function recRow(r, extra) {
-    return '<tr' + (r.warn ? ' class="haswarn"' : '') + '><td>' + esc(r.event) + '</td><td>' + esc(r.round) + '</td><td class="rn">' + esc(r.heat) + '</td><td>' + esc(r.name) + (r.kana ? '<br><small class="muted">' + esc(r.kana) + '</small>' : '') + '</td><td class="rn">' + esc(r.grade) + '</td><td>' + esc(r.team) + '</td><td class="rn"><b>' + esc(r.mark) + '</b>' + (extra || '') + '</td><td class="rn">' + esc(R.shownWind(r)) + '</td><td class="rn">' + esc(r.rank) + (r.overall ? '<br><small class="muted">総合' + esc(r.overall) + '</small>' : '') + '</td><td><small>' + esc(r.comment) + '</small></td></tr>';
+    return '<tr' + (r.warn ? ' class="haswarn"' : '') + '><td>' + esc(r.event) + '</td><td>' + esc(r.round) + '</td><td class="rn">' + esc(r.heat) + '</td><td>' + esc(r.name) + (r.kana ? '<br><small class="muted">' + esc(r.kana) + '</small>' : '') + '</td><td class="rn">' + esc(r.grade) + '</td><td>' + esc(r.team) + '</td><td class="rn"><b>' + esc(smk(r)) + '</b>' + (extra || '') + '</td><td class="rn">' + esc(R.shownWind(r)) + '</td><td class="rn">' + esc(r.rank) + (r.overall ? '<br><small class="muted">総合' + esc(r.overall) + '</small>' : '') + '</td><td><small>' + esc(r.comment) + '</small></td></tr>';
   }
   var REC_HEAD = '<tr><th>種目</th><th>ラウンド</th><th>組</th><th>氏名</th><th>学年</th><th>所属</th><th>記録</th><th>風</th><th>順位</th><th>備考</th></tr>';
   // v0.26.7 救済の案内：貼り付けた表は「列を選ぶ」へ。PDF・Webページは、表の部分をコピーして貼り付けてもらう
@@ -7982,13 +7991,13 @@ var LanePdf = (function () {
         o.id = R.recId(o.meet, o.date, o);
         if (o.id !== old.id && ALL.some(function (x) { return x.id === o.id; })) { manualStatus('✖ 直したあとの内容と同じ記録が、すでにあります。', 'ng'); return; }
         await replaceRecord(old.id, o, sc);
-        manualStatus('✔ 直しました：' + esc(o.name) + '・' + esc(o.event) + '・<b>' + esc(o.mark) + '</b>', 'ok');
+        manualStatus('✔ 直しました：' + esc(o.name) + '・' + esc(o.event) + '・<b>' + esc(smk(o)) + '</b>', 'ok');
         manualReset(true);
       } else {
         r.src = '手入力'; r.manual = true; r.order = 0; r.savedAt = now; r.id = R.recId(r.meet, r.date, r);
         var put = await putMany([r], sc);
         if (!put.added) { manualStatus('ⓘ 同じ記録がすでに保存されているので、重ねませんでした。', ''); return; }
-        manualStatus('✔ 保存しました：' + esc(r.name) + '・' + esc(r.event) + '・<b>' + esc(r.mark) + '</b>（' + esc(r.meet) + '）<br><small>続けて次の記録を入れられます（日付と大会名はそのままです）。</small>', 'ok');
+        manualStatus('✔ 保存しました：' + esc(r.name) + '・' + esc(r.event) + '・<b>' + esc(smk(r)) + '</b>（' + esc(r.meet) + '）<br><small>続けて次の記録を入れられます（日付と大会名はそのままです）。</small>', 'ok');
         manualReset(true);
       }
       await reload(sc);
@@ -8028,7 +8037,7 @@ var LanePdf = (function () {
       var its = L.filter(function (x) { return x.type === t; }); if (!its.length) return;
       h += '<h4 class="sus-h">' + esc(LB[t]) + '<small>' + its.length + '</small></h4>' + (t === 'dup' ? susClusterHtml(its, del) : '') + '<ul class="sus-list">' + its.slice(0, 200).map(function (it) {
         return '<li class="sus-it sus-' + t + '"><div class="sus-why small">' + esc(it.why) + '</div><table class="sus-t">' + it.recs.map(function (r) {
-          return '<tr><td class="sus-nm"><b>' + esc(r.name || r.kana || r.team || '') + '</b></td><td class="sus-dt">' + esc(r.date || '') + '</td><td class="sus-mt">' + esc(r.meet || '') + '</td><td class="sus-ev">' + esc(evName(r)) + (r.round ? '<small> ' + esc(r.round) + '</small>' : '') + '</td><td class="sus-mk"><b>' + esc(r.mark || '—') + '</b></td>' +
+          return '<tr><td class="sus-nm"><b>' + esc(r.name || r.kana || r.team || '') + '</b></td><td class="sus-dt">' + esc(r.date || '') + '</td><td class="sus-mt">' + esc(r.meet || '') + '</td><td class="sus-ev">' + esc(evName(r)) + (r.round ? '<small> ' + esc(r.round) + '</small>' : '') + '</td><td class="sus-mk"><b>' + esc(smk(r) || '—') + '</b></td>' +
             '<td class="sus-op">' + (del ? '<button type="button" class="btn sub small danger-t" data-susdel="' + esc(r.id) + '">🗑 消す</button>' : '') + '</td></tr>';
         }).join('') + '</table><button type="button" class="btn sub small" data-susok="' + esc(it.sig) + '">✔ 問題ない</button></li>';
       }).join('') + (its.length > 200 ? '<li class="small muted">ほか ' + (its.length - 200) + '件</li>' : '') + '</ul>';
@@ -8075,7 +8084,7 @@ var LanePdf = (function () {
     var r = ALL.filter(function (x) { return x.id === dl; })[0]; if (!r) return;
     if (!confirm('この記録を1件消します。\n\n' + r.date + ' ' + r.meet + '\n' + (r.name || '') + '　' + (r.event || '') + '　' + (r.mark || '') + '\n\nよろしいですか？（このあとすぐなら「元に戻す」で戻せます）')) return;
     sc = scope(); var copy = Object.assign({}, r);
-    try { await delIds([dl], sc); check(sc); SUS.undo = [copy]; SUS.msg = '✔ ' + esc(r.name || '') + ' の ' + esc(r.event || '') + '（' + esc(r.mark || '') + '）を消しました。'; SUS.cls = 'ok'; await reload(sc); }
+    try { await delIds([dl], sc); check(sc); SUS.undo = [copy]; SUS.msg = '✔ ' + esc(r.name || '') + ' の ' + esc(r.event || '') + '（' + esc(smk(r) || '') + '）を消しました。'; SUS.cls = 'ok'; await reload(sc); }
     catch (x) { if (isAbort(x)) return; SUS.msg = '✖ 消せませんでした：' + esc(x.message); SUS.cls = 'ng'; }
     susRender();
   }
@@ -8128,15 +8137,15 @@ var LanePdf = (function () {
       ' <span class="sus-help" data-xp="">二重（保存ずみや、この中にもう1つ同じ行がある）は、はじめから入れません。ほかは入れて、印だけ付けます。値は直しません。チェックで変えられます。</span>' +
       '<ul class="sus-list">' + order.map(function (id) {
         var xs = by[id], r = xs[0].rec;
-        return '<li class="sus-it' + (ex[id] ? ' sus-ex' : '') + '"><label><input type="checkbox" data-susx="' + esc(id) + '"' + (ex[id] ? ' checked' : '') + '> 入れない</label> <b>' + esc(r.name || r.kana || r.team || '') + '</b> ' + esc(r.date || '') + ' ' + esc(evName(r)) + (r.round ? ' ' + esc(r.round) : '') + ' <b>' + esc(r.mark || '—') + '</b>' +
-          xs.map(function (x) { return '<div class="small"><span class="sus-tag sus-' + x.type + '">' + esc(LB[x.type]) + '</span> ' + esc(x.why) + (x.other.length ? '：' + x.other.slice(0, 3).map(function (o) { return esc((o.date || '') + ' ' + (o.meet || '') + ' ' + (o.mark || '—')); }).join('、') : '') + '</div>'; }).join('') + '</li>';
+        return '<li class="sus-it' + (ex[id] ? ' sus-ex' : '') + '"><label><input type="checkbox" data-susx="' + esc(id) + '"' + (ex[id] ? ' checked' : '') + '> 入れない</label> <b>' + esc(r.name || r.kana || r.team || '') + '</b> ' + esc(r.date || '') + ' ' + esc(evName(r)) + (r.round ? ' ' + esc(r.round) : '') + ' <b>' + esc(smk(r) || '—') + '</b>' +
+          xs.map(function (x) { return '<div class="small"><span class="sus-tag sus-' + x.type + '">' + esc(LB[x.type]) + '</span> ' + esc(x.why) + (x.other.length ? '：' + x.other.slice(0, 3).map(function (o) { return esc((o.date || '') + ' ' + (o.meet || '') + ' ' + (smk(o) || '—')); }).join('、') : '') + '</div>'; }).join('') + '</li>';
       }).join('') + '</ul></div>';
   }
   async function deleteOne(id) {
     var r = ALL.filter(function (x) { return x.id === id; })[0]; if (!r) return;
     if (!confirm('この記録を1件消します。元に戻せません。\n\n' + r.date + ' ' + r.meet + '\n' + (r.name || '') + '　' + (r.event || '') + '　' + (r.mark || '') + '\n\nよろしいですか？')) return;
     var sc = scope();
-    try { await delIds([id], sc); if (EDIT_ID === id) manualReset(); status('rbDataStatus', '✔ ' + esc(r.name) + ' の ' + esc(r.event) + '（' + esc(r.mark) + '）を消しました。', 'ok'); manualStatus('', ''); await reload(sc); }
+    try { await delIds([id], sc); if (EDIT_ID === id) manualReset(); status('rbDataStatus', '✔ ' + esc(r.name) + ' の ' + esc(r.event) + '（' + esc(smk(r)) + '）を消しました。', 'ok'); manualStatus('', ''); await reload(sc); }
     catch (x) { if (isAbort(x)) return; status('rbDataStatus', '✖ 消せませんでした：' + esc(x.message), 'ng'); }
   }
   $('rmDelete').addEventListener('click', function () { if (EDIT_ID) deleteOne(EDIT_ID); });
@@ -8161,13 +8170,13 @@ var LanePdf = (function () {
     var chosen = Object.keys(DIV_OV).filter(function (k) { return ALL.some(function (r) { return R.personKey(r) === k; }); });
     var dups = ALL.filter(function (r) { return r.dupOf; });
     var dupHtml = dups.length ? '<details class="card review" open><summary><span class="rv">要確認</span> <b>前の記録と同じかもしれない記録 ' + dups.length + '件</b></summary><p class="small muted">前に保存した記録にナンバーが無いなどで、同じ記録か別の選手か決められなかったので、消さずに入れました。</p><ul class="rvlist">' +
-      dups.map(function (r) { var o = ALL.filter(function (x) { return x.id === r.dupOf; })[0]; return '<li><div><b>' + esc(r.name) + '</b> ' + esc(r.event) + ' <b>' + esc(r.mark) + '</b>' + (r.bib ? '（No.' + esc(r.bib) + '）' : '') + '<br><small class="muted">' + esc(r.date + ' ' + r.meet) + (o ? '／前の記録：' + esc(o.name + ' ' + o.mark) + (o.bib ? '（No.' + esc(o.bib) + '）' : '（ナンバーなし）') : '') + '</small></div><span class="rvbtn"><button type="button" class="btn sub" data-dupkeep="' + esc(r.id) + '">別の記録（両方残す）</button><button type="button" class="btn sub danger-t" data-dupdrop="' + esc(r.id) + '">同じ記録（こちらを消す）</button></span></li>'; }).join('') + '</ul></details>' : '';
+      dups.map(function (r) { var o = ALL.filter(function (x) { return x.id === r.dupOf; })[0]; return '<li><div><b>' + esc(r.name) + '</b> ' + esc(r.event) + ' <b>' + esc(smk(r)) + '</b>' + (r.bib ? '（No.' + esc(r.bib) + '）' : '') + '<br><small class="muted">' + esc(r.date + ' ' + r.meet) + (o ? '／前の記録：' + esc(o.name + ' ' + smk(o)) + (o.bib ? '（No.' + esc(o.bib) + '）' : '（ナンバーなし）') : '') + '</small></div><span class="rvbtn"><button type="button" class="btn sub" data-dupkeep="' + esc(r.id) + '">別の記録（両方残す）</button><button type="button" class="btn sub danger-t" data-dupdrop="' + esc(r.id) + '">同じ記録（こちらを消す）</button></span></li>'; }).join('') + '</ul></details>' : '';
     // v0.26.34 所属に学年・番号がくっついた記録（「本郷・3」）を直す
     // v0.26.35 中学になっているが高校のしるしがある選手（高校生が「中3年」と出る）。先生が確かめて直す
     var dcs = R.divConflicts(ALL); DCS = dcs;
     if (dcs.length) {
       dupHtml = '<details class="card review" open id="dcFix"><summary><span class="rv">要確認</span> <b>中学になっているが、高校かもしれない選手 ' + dcs.length + '人</b></summary><p class="small muted">学年に「中」が入っている・大会の区分などで中学になっている記録ですが、ほかに高校のしるしがあります。確かめて選んでください。「高校にする」と、この選手は高校になり、その記録の学年の「中」を外します（学年の数字は高校の記録から数えます）。</p><ul class="rvlist">' +
-        dcs.map(function (c, i) { return '<li><div><b>' + esc(c.name) + '</b> <small class="muted">' + esc(c.team) + '</small><br><small>' + c.recs.map(function (x) { return esc(x.r.date + ' ' + x.r.event + ' ' + x.r.mark + '（学年 ' + (x.r.grade || '空') + ' → 高' + (x.to || '?') + '）'); }).join('<br>') + '</small><br><small class="muted">高校のしるし：' + esc(c.why.join('／')) + '</small></div><span class="rvbtn"><button type="button" class="btn" data-dcfix="' + i + '">高校にする</button><button type="button" class="btn sub" data-divpick="jh" data-person="' + esc(c.key) + '">中学のまま</button></span></li>'; }).join('') + '</ul></details>' + dupHtml;
+        dcs.map(function (c, i) { return '<li><div><b>' + esc(c.name) + '</b> <small class="muted">' + esc(c.team) + '</small><br><small>' + c.recs.map(function (x) { return esc(x.r.date + ' ' + x.r.event + ' ' + smk(x.r) + '（学年 ' + (x.r.grade || '空') + ' → 高' + (x.to || '?') + '）'); }).join('<br>') + '</small><br><small class="muted">高校のしるし：' + esc(c.why.join('／')) + '</small></div><span class="rvbtn"><button type="button" class="btn" data-dcfix="' + i + '">高校にする</button><button type="button" class="btn sub" data-divpick="jh" data-person="' + esc(c.key) + '">中学のまま</button></span></li>'; }).join('') + '</ul></details>' + dupHtml;
     }
     // v0.26.35 選手の中学／高校を手で決める
     var pk = {}; ALL.forEach(function (r) { var k = R.personKey(r); if (!pk[k]) pk[k] = r.name + '（' + (r.team || '') + '）'; });
@@ -8386,13 +8395,14 @@ var LanePdf = (function () {
       (nms.length ? '<line x1="4" x2="' + (W - 4) + '" y1="' + (H - B + 1) + '" y2="' + (H - B + 1) + '" stroke="#d6dbe5" stroke-width="0.8"/>' : '') +
       (xy.length > 1 ? '<polyline fill="none" stroke="#9aa8c0" stroke-width="1.2" stroke-dasharray="3 3" points="' + xy.map(function (q) { return q.join(','); }).join(' ') + '"/>' : '') +
       (off.length > 1 ? '<polyline fill="none" stroke="#1f3a68" stroke-width="2" points="' + off.map(function (q) { return q.join(','); }).join(' ') + '"/>' : '') +
-      xy.map(function (q, i) { var p = pts[i], t = '<title>' + esc(p.date + ' ' + p.mark + (p.wind ? '（風' + p.wind + '）' : '') + (p.ref ? '・参考' : '')) + '</title>';
+      xy.map(function (q, i) { var p = pts[i], t = '<title>' + esc(p.date + ' ' + (lower ? p.mark : R.distMark(p.mark)) + (p.wind ? '（風' + p.wind + '）' : '') + (p.ref ? '・参考' : '')) + '</title>';
         return p.ref ? '<circle cx="' + q[0] + '" cy="' + q[1] + '" r="3.6" fill="#fff" stroke="#8a96ad" stroke-width="1.6">' + t + '</circle><text x="' + Math.min(W - 12, Math.max(12, q[0])) + '" y="' + Math.max(8, q[1] - 6) + '" font-size="8" fill="#8a96ad" text-anchor="middle">参考</text>'
           : '<circle cx="' + q[0] + '" cy="' + q[1] + '" r="' + (i === bi ? 4.5 : 3) + '" fill="' + (i === bi ? '#e4572e' : '#1f3a68') + '">' + t + '</circle>'; }).join('') +
       nms.map(function (p, i) { var x = xs.x[i], d = 3.4;
         return '<g class="nmx" data-nm="' + esc(p.mark) + '"><title>' + esc(p.date + ' ' + p.meet + (p.round ? '・' + p.round : '') + '：' + p.mark) + '</title><path d="M' + (x - d) + ' ' + (yx - d) + 'L' + (x + d) + ' ' + (yx + d) + 'M' + (x + d) + ' ' + (yx - d) + 'L' + (x - d) + ' ' + (yx + d) + '" stroke="#c0392b" stroke-width="1.8" stroke-linecap="round"/>' +
           '<text x="' + Math.min(W - 10, Math.max(10, x)) + '" y="' + (yx - 5) + '" font-size="7" fill="#c0392b" text-anchor="middle">' + esc(p.mark.slice(0, 4)) + '</text></g>'; }).join('') + '</svg>';
   }
+  function smk(r) { return r ? R.showMark(r.mark, r.event) : ''; }   // v0.26.62 画面に出す記録（跳躍・投てきは「5.80m」。保存した記録は変えない）
   function pbFlag(f) { return f === 'PB' ? '<span class="pb">PB</span>' : f === '初' ? '<span class="pb first">初</span>' : ''; }
   function renderHome(rows) {
     if (!rows.length) return '<div class="card empty"><b>まだ記録がありません</b><p>上の「1 学校・クラブ名と結果の資料」で、大会の結果PDFや保存したWebページを入れて「記録に保存」を押すと、ここに最近の大会の自己ベストやシーズンの記録がまとまって出ます。</p><button class="btn" type="button" onclick="document.getElementById(\'rbDrop\').scrollIntoView({behavior:\'smooth\'})">結果の資料を入れる</button></div>' + relayHome();
@@ -8407,7 +8417,7 @@ var LanePdf = (function () {
       pbs.sort(function (a, b) { return cmp(R.nk(a.name), R.nk(b.name)) || cmp(R.normEvent(a.event), R.normEvent(b.event)); });
       h += '<div class="card meetcard" role="link" tabindex="0" data-gomeet="' + esc(k) + '" aria-label="' + esc(list[0].meet + '（' + list[0].date + '）を大会別で見る') + '"><div class="card-h"><span class="tag">' + (i ? 'その前の大会' : '最新の大会') + '</span><b>' + esc(list[0].meet) + '</b><span class="small muted">' + esc(list[0].date) + '・' + list.length + '件</span><span class="mc-go">この大会を見る →</span></div>' +
         '<p class="small">自己ベスト更新 <b class="big-n">' + pbs.length + '</b>件' + (firsts.length ? '　初記録 ' + firsts.length + '件' : '') + '</p>' +
-        (pbs.length ? '<ul class="pblist">' + pbs.map(function (r) { var p = pd[r.id]; return '<li>' + athLink(R.athleteKey(r), r.name || r.kana) + '<span class="ev">' + esc(evName(r)) + '</span><span class="lmk"><b>' + esc(r.mark) + '</b><span class="pb">PB</span></span><span class="prev">前のベスト ' + esc(p.prev.mark) + '<b class="up">' + esc(R.fmtImprovement(p.diff, p.lower)) + '</b></span></li>'; }).join('') + '</ul>' : '<p class="small muted">この大会では自己ベストの更新はありませんでした。</p>') + '</div>';
+        (pbs.length ? '<ul class="pblist">' + pbs.map(function (r) { var p = pd[r.id]; return '<li>' + athLink(R.athleteKey(r), r.name || r.kana) + '<span class="ev">' + esc(evName(r)) + '</span><span class="lmk"><b>' + esc(smk(r)) + '</b><span class="pb">PB</span></span><span class="prev">前のベスト ' + esc(smk(p.prev)) + '<b class="up">' + esc(R.fmtImprovement(p.diff, p.lower)) + '</b></span></li>'; }).join('') + '</ul>' : '<p class="small muted">この大会では自己ベストの更新はありませんでした。</p>') + '</div>';
     });
     return h + relayHome() + rosterHome();   // v0.26.11・v0.26.12
   }
@@ -8425,18 +8435,18 @@ var LanePdf = (function () {
     if (athSel.ev && !byKey[athSel.ev]) athSel.ev = '';
     var sw = order.length > 1 ? '<div class="evsw" role="tablist" aria-label="種目の切り替え"><button type="button" data-athev=""' + (athSel.ev ? '' : ' class="on" aria-selected="true"') + '>すべて</button>' + order.map(function (e) { return '<button type="button" data-athev="' + esc(e.event) + '"' + (athSel.ev === e.event ? ' class="on" aria-selected="true"' : '') + '>' + esc(e.eventLabel) + '</button>'; }).join('') + '</div>' : '';
     var shown = order.length > 1 && !athSel.ev ? null : (athSel.ev ? [byKey[athSel.ev]] : order);
-    var summary = shown ? '' : '<div class="card"><div class="card-h"><b>種目ごとの自己ベスト</b><span class="small muted">押すとグラフと記録</span></div><ul class="evsum">' + order.map(function (e) { var b = e.best || e.ref; return '<li><button type="button" class="evn" data-athev="' + esc(e.event) + '">' + esc(e.eventLabel) + '</button><b class="lmk">' + esc(b ? b.mark : '—') + (e.best ? '' : (b ? windTag(b) : '')) + '</b><span class="sub">' + (b ? (R.shownWind(b) ? '風' + esc(b.wind) + '・' : '') + esc(b.date) + ' ' + esc(b.meet) + ' ' + weatherTag(b.date + '|' + b.meet) : '') + '・' + e.count + '件</span></li>'; }).join('') + '</ul></div>';
+    var summary = shown ? '' : '<div class="card"><div class="card-h"><b>種目ごとの自己ベスト</b><span class="small muted">押すとグラフと記録</span></div><ul class="evsum">' + order.map(function (e) { var b = e.best || e.ref; return '<li><button type="button" class="evn" data-athev="' + esc(e.event) + '">' + esc(e.eventLabel) + '</button><b class="lmk">' + esc(b ? smk(b) : '—') + (e.best ? '' : (b ? windTag(b) : '')) + '</b><span class="sub">' + (b ? (R.shownWind(b) ? '風' + esc(b.wind) + '・' : '') + esc(b.date) + ' ' + esc(b.meet) + ' ' + weatherTag(b.date + '|' + b.meet) : '') + '・' + e.count + '件</span></li>'; }).join('') + '</ul></div>';
     back += ppBtns('ath', key, '個人表') + ppBtns('review', key, 'ふりかえりシート');   // v0.26.52
     var roC = rosterCard(key, pf, ALL.filter(function (r) { return R.athleteKey(r) === key; }));
     return back + '<div class="card ath-h"><b class="nm">' + esc(pf.name) + '</b>' + '<button class="btn sub" type="button" data-pplink="' + esc(key) + '" style="float:right">📱 個人ページのリンク</button>' + (pf.kana ? '<span class="small muted">' + esc(pf.kana) + '</span>' : '') + '<div class="small muted">' + esc(R.teamOf(mineRows) || pf.team || '') + (pf.grade ? '・' + esc(pf.grade) : '') + (R.divisionOf(pf) ? '・' + R.divLabel(R.divisionOf(pf)) : '') + '・' + pf.events.length + '種目・' + pf.count + '件</div></div>' + roC + sw + summary +
       (shown || []).map(function (e) {
         var b = e.best;
         return '<div class="card evc"><div class="card-h"><b>' + esc(e.eventLabel) + '</b><span class="small muted">' + e.count + '件</span></div>' +
-          '<div class="evbest"><span class="small muted">自己ベスト（公認）</span><b class="bigmk">' + esc(b ? b.mark : '—') + '</b>' + (b ? '<span class="small muted">' + (R.shownWind(b) ? '風' + esc(b.wind) + '・' : '') + esc(b.date) + ' ' + esc(b.meet) + ' ' + weatherTag(b.date + '|' + b.meet) + '</span>' : '') + '</div>' +
-          (e.ref ? '<div class="small">参考 ' + esc(e.ref.mark) + windTag(e.ref) + ' <span class="muted">' + esc(e.ref.wind) + ' ' + esc(e.ref.date) + '</span></div>' : '') +
+          '<div class="evbest"><span class="small muted">自己ベスト（公認）</span><b class="bigmk">' + esc(b ? smk(b) : '—') + '</b>' + (b ? '<span class="small muted">' + (R.shownWind(b) ? '風' + esc(b.wind) + '・' : '') + esc(b.date) + ' ' + esc(b.meet) + ' ' + weatherTag(b.date + '|' + b.meet) + '</span>' : '') + '</div>' +
+          (e.ref ? '<div class="small">参考 ' + esc(smk(e.ref)) + windTag(e.ref) + ' <span class="muted">' + esc(e.ref.wind) + ' ' + esc(e.ref.date) + '</span></div>' : '') +
           '<div class="sparkbox chartbox">' + spark(e.allPoints, e.lower, chartOfficial, e.noMarks, chartNm) + (e.allPoints.length > 1 || (e.noMarks || []).length ? '<span class="chartopt"><span class="muted">推移（上ほど良い）●公認 <b style="color:#e4572e">●</b>ベスト </span>' + (e.allPoints.some(function (p) { return p.ref; }) ? '<span class="lg-ref"><svg width="10" height="10" aria-hidden="true"><circle cx="5" cy="5" r="3.5" fill="#fff" stroke="#8a96ad" stroke-width="1.5"/></svg>参考（追い風・風不明）</span>' : '') + (e.allPoints.some(function (p) { return p.ref; }) ? '<label><input type="checkbox" data-official="1"' + (chartOfficial ? ' checked' : '') + '> 公認だけ</label>' : '') + ((e.noMarks || []).length ? '<span class="lg-nm"><b style="color:#c0392b">×</b>記録なし（' + esc(e.noMarks.map(function (p) { return p.mark; }).filter(function (v, i, a) { return a.indexOf(v) === i; }).join('・')) + '）</span><label><input type="checkbox" data-shownm="1"' + (chartNm ? ' checked' : '') + '> DNS・失格なども表示</label>' : '') + '</span>' : '') +
           (chartNm && (e.noMarks || []).length ? '<ul class="nmlist small muted">' + e.noMarks.map(function (p) { return '<li>× ' + esc(p.date) + ' ' + esc(p.meet) + (p.round ? '・' + esc(p.round) : '') + '：<b>' + esc(p.mark) + '</b></li>'; }).join('') + '</ul>' : '') + '</div>' +
-          '<ul class="recent">' + e.recent.map(function (r) { return '<li><span class="d">' + esc(r.date) + '</span><b>' + esc(r.mark) + '</b>' + pbFlag(pd[r.id] && pd[r.id].flag) + windTag(r) + '<span class="m">' + (R.shownWind(r) ? '風' + esc(r.wind) + '・' : '') + esc(r.meet) + (r.round ? '・' + esc(r.round) : '') + ' ' + weatherTag(r.date + '|' + r.meet) + '</span></li>'; }).join('') + '</ul></div>';
+          '<ul class="recent">' + e.recent.map(function (r) { return '<li><span class="d">' + esc(r.date) + '</span><b>' + esc(smk(r)) + '</b>' + pbFlag(pd[r.id] && pd[r.id].flag) + windTag(r) + '<span class="m">' + (R.shownWind(r) ? '風' + esc(r.wind) + '・' : '') + esc(r.meet) + (r.round ? '・' + esc(r.round) : '') + ' ' + weatherTag(r.date + '|' + r.meet) + '</span></li>'; }).join('') + '</ul></div>';
       }).join('');
   }
   // v0.8：個人で使うときのホーム＝自分の種目ごとの自己ベスト
@@ -8449,7 +8459,7 @@ var LanePdf = (function () {
     var grp = R.groupEvents(cb.bests.map(function (b) { return b.event; }).filter(function (v, i, a) { return a.indexOf(v) === i; }), mine, NOG), order = [];
     grp.forEach(function (g) { g.items.forEach(function (it) { cb.bests.filter(function (b) { return b.event === it.key; }).forEach(function (b) { b.eventLabel = it.label; order.push(b); }); }); });
     return '<div class="card pmhome"><div class="card-h"><span class="tag">個人</span><b>' + esc(MODE.name) + ' さんの自己ベスト</b><span class="small muted">' + esc(MODE.team || last.team || '') + '・' + mine.length + '件</span></div><ul class="evsum">' +
-      order.map(function (b) { var x = b.best || b.ref; return '<li>' + athLink(b.key, b.eventLabel) + '<b class="lmk">' + esc(x ? x.mark : '—') + (b.best ? '' : x ? windTag(x) : '') + '</b><span class="sub small muted">' + (x ? (R.shownWind(x) ? '風' + esc(x.wind) + '・' : '') + esc(x.date) + ' ' + esc(x.meet) : '') + '・' + b.count + '件</span></li>'; }).join('') + '</ul>' +
+      order.map(function (b) { var x = b.best || b.ref; return '<li>' + athLink(b.key, b.eventLabel) + '<b class="lmk">' + esc(x ? smk(x) : '—') + (b.best ? '' : x ? windTag(x) : '') + '</b><span class="sub small muted">' + (x ? (R.shownWind(x) ? '風' + esc(x.wind) + '・' : '') + esc(x.date) + ' ' + esc(x.meet) : '') + '・' + b.count + '件</span></li>'; }).join('') + '</ul>' +
       '<p class="small muted">種目名を押すと、推移グラフと記録が出ます。最新：' + esc(last.date + ' ' + last.meet) + '</p></div>';
   }
   function renderRank(rows) {
@@ -8461,7 +8471,7 @@ var LanePdf = (function () {
     if (!evs.length) return ctl + '<p class="muted small">この条件の公認記録がありません。期間や学年を変えてみてください。</p>';
     return ctl + [rankOpt.ev].map(function (ev) {
       return '<div class="card"><div class="card-h"><b>' + esc(evLabel(rows, ev)) + '</b><span class="small muted">' + rk[ev].length + '人</span></div><ol class="rank">' + rk[ev].map(function (x) {
-        return '<li><span class="no n' + x.rank + '">' + x.rank + '</span>' + athLink(x.key, x.name) + '<span class="gr" title="' + esc(R.divisionWhy(x.best) ? '中学／高校：' + R.divisionWhy(x.best) : '') + '">' + (x.grade ? (R.divisionOf(x.best) === 'jh' ? '中' : R.divisionOf(x.best) === 'hs' ? '高' : '') + x.grade + '年' : '') + '</span><b class="lmk">' + esc(x.best.mark) + '</b><span class="sub">' + (R.shownWind(x.best) ? '風' + esc(x.best.wind) + '・' : '') + esc(x.best.date) + '</span></li>';
+        return '<li><span class="no n' + x.rank + '">' + x.rank + '</span>' + athLink(x.key, x.name) + '<span class="gr" title="' + esc(R.divisionWhy(x.best) ? '中学／高校：' + R.divisionWhy(x.best) : '') + '">' + (x.grade ? (R.divisionOf(x.best) === 'jh' ? '中' : R.divisionOf(x.best) === 'hs' ? '高' : '') + x.grade + '年' : '') + '</span><b class="lmk">' + esc(smk(x.best)) + '</b><span class="sub">' + (R.shownWind(x.best) ? '風' + esc(x.best.wind) + '・' : '') + esc(x.best.date) + '</span></li>';
       }).join('') + '</ol></div>';
     }).join('');
   }
@@ -8471,7 +8481,7 @@ var LanePdf = (function () {
     if (evs.indexOf(histOpt.ev) < 0) histOpt.ev = evs[0];
     return '<div class="rb-row ropt">' + evSelect('hopt', evs, histOpt.ev, rows) + ppBtns('hist', '', 'この種目') + ppBtns('hist-all', '', '全種目') + '</div><p class="small muted">卒業生も含めた歴代の上位10人（ひとり1記録・公認のみ）です。</p>' + [histOpt.ev].map(function (ev) {
       return '<div class="card"><div class="card-h"><b>' + esc(evLabel(rows, ev)) + '</b><span class="small muted">歴代 ' + at[ev].length + '人</span></div><ol class="rank">' + at[ev].map(function (x) {
-        return '<li><span class="no n' + x.rank + '">' + x.rank + '</span>' + athLink(x.key, x.name) + '<span class="gr">' + esc(R.seasonLabel(x.season)) + '</span><b class="lmk">' + esc(x.best.mark) + '</b><span class="sub">' + (R.shownWind(x.best) ? '風' + esc(x.best.wind) + '・' : '') + esc(x.best.date) + ' ' + esc(x.best.meet) + '</span></li>';
+        return '<li><span class="no n' + x.rank + '">' + x.rank + '</span>' + athLink(x.key, x.name) + '<span class="gr">' + esc(R.seasonLabel(x.season)) + '</span><b class="lmk">' + esc(smk(x.best)) + '</b><span class="sub">' + (R.shownWind(x.best) ? '風' + esc(x.best.wind) + '・' : '') + esc(x.best.date) + ' ' + esc(x.best.meet) + '</span></li>';
       }).join('') + '</ol></div>';
     }).join('');
   }
@@ -8667,7 +8677,7 @@ var LanePdf = (function () {
       bs = sortRows(bs, view, defs);
       html = '<div class="rb-row">' + ppBtns('pick', '', '個人表（選手を選ぶ）') + ppBtns('rpick', '', 'ふりかえりシート（選手を選ぶ）') + '</div><table class="rbt"><tr class="hd">' + th(view, 'name', '氏名') + th(view, 'team', '所属') + th(view, 'event', '種目') + th(view, 'best', '自己ベスト（公認）') + '<th>風</th>' + th(view, 'date', '日付') + '<th>大会</th><th>参考記録（追い風・風不明）</th>' + th(view, 'count', '記録数') + '</tr>' + bs.map(function (b) {
         var r = b.best || {}, f = b.ref;
-        return '<tr class="rc"><td class="c-name">' + athLink(b.key, b.name) + '</td><td class="c-team">' + esc(b.team) + '</td><td class="c-ev">' + esc(NOG && (b.best || b.ref) ? R.eventKeyLabel(b.best || b.ref, true) : b.eventLabel) + '</td><td class="rn c-mark"><b>' + esc(r.mark || '—') + '</b></td><td class="rn c-wind" data-l="風">' + esc(R.shownWind(r)) + '</td><td class="c-date">' + esc(r.date) + '</td><td class="c-meet">' + esc(r.meet) + '</td><td class="c-ref" data-l="参考">' + (f ? esc(f.mark) + windTag(f) + ' <small class="muted">' + esc(R.shownWind(f)) + ' ' + esc(f.date) + '</small>' : '') + '</td><td class="rn c-cnt" data-l="記録数">' + b.count + '</td></tr>';
+        return '<tr class="rc"><td class="c-name">' + athLink(b.key, b.name) + '</td><td class="c-team">' + esc(b.team) + '</td><td class="c-ev">' + esc(NOG && (b.best || b.ref) ? R.eventKeyLabel(b.best || b.ref, true) : b.eventLabel) + '</td><td class="rn c-mark"><b>' + esc(smk(r) || '—') + '</b></td><td class="rn c-wind" data-l="風">' + esc(R.shownWind(r)) + '</td><td class="c-date">' + esc(r.date) + '</td><td class="c-meet">' + esc(r.meet) + '</td><td class="c-ref" data-l="参考">' + (f ? esc(smk(f)) + windTag(f) + ' <small class="muted">' + esc(R.shownWind(f)) + ' ' + esc(f.date) + '</small>' : '') + '</td><td class="rn c-cnt" data-l="記録数">' + b.count + '</td></tr>';
       }).join('') + '</table>';
     } else {
       var rs = rows.slice().sort(function (a, b) { return cmp(b.date, a.date) || cmp(a.meet, b.meet) || cmp(R.normEvent(a.event), R.normEvent(b.event)) || cmp(a.order || 0, b.order || 0); });
@@ -8696,7 +8706,7 @@ var LanePdf = (function () {
             (meetEdit === key ? '<div class="rb-row wxedit">' + weatherInputs(mw, 'data-w') + '<button class="btn" type="button" data-wsave="' + esc(key) + '">保存</button></div>' : '') + '</td></tr>';
         }
         lastMeet = key;
-        return head + '<tr class="rc">' + (grouped ? '' : '<td class="c-date">' + esc(r.date) + '</td><td class="c-meet">' + esc(r.meet) + '</td>') + '<td class="c-ev">' + esc(evName(r)) + '</td><td class="c-round">' + esc(r.round) + '</td><td class="rn c-heat" data-l="組">' + esc(r.heat) + '</td><td class="c-name">' + athLink(R.athleteKey(r), r.name || r.kana) + '</td><td class="rn c-grade" data-l="学年">' + esc(r.grade) + '</td><td class="c-team">' + esc(R.teamLabel(r.team)) + '</td><td class="rn c-mark"><b>' + esc(r.mark) + '</b>' + pbFlag(flags[r.id]) + windTag(r) + '</td><td class="rn c-wind" data-l="風">' + esc(R.shownWind(r)) + '</td><td class="rn c-rank" data-l="順位">' + esc(r.rank) + '</td><td class="c-cmt"><small>' + esc(r.comment) + '</small>' + (r.manual ? '<small class="muted">手入力</small>' : '') + '</td><td class="c-ops"><button type="button" data-edit="' + esc(r.id) + '" aria-label="この記録を直す">✏️ 直す</button><button type="button" class="rdel" data-delrec="' + esc(r.id) + '" aria-label="この記録を消す">🗑 消す</button></td></tr>';
+        return head + '<tr class="rc">' + (grouped ? '' : '<td class="c-date">' + esc(r.date) + '</td><td class="c-meet">' + esc(r.meet) + '</td>') + '<td class="c-ev">' + esc(evName(r)) + '</td><td class="c-round">' + esc(r.round) + '</td><td class="rn c-heat" data-l="組">' + esc(r.heat) + '</td><td class="c-name">' + athLink(R.athleteKey(r), r.name || r.kana) + '</td><td class="rn c-grade" data-l="学年">' + esc(r.grade) + '</td><td class="c-team">' + esc(R.teamLabel(r.team)) + '</td><td class="rn c-mark"><b>' + esc(smk(r)) + '</b>' + pbFlag(flags[r.id]) + windTag(r) + '</td><td class="rn c-wind" data-l="風">' + esc(R.shownWind(r)) + '</td><td class="rn c-rank" data-l="順位">' + esc(r.rank) + '</td><td class="c-cmt"><small>' + esc(r.comment) + '</small>' + (r.manual ? '<small class="muted">手入力</small>' : '') + '</td><td class="c-ops"><button type="button" data-edit="' + esc(r.id) + '" aria-label="この記録を直す">✏️ 直す</button><button type="button" class="rdel" data-delrec="' + esc(r.id) + '" aria-label="この記録を消す">🗑 消す</button></td></tr>';
       }).join('') + '</table>';
     }
     v.innerHTML = html;

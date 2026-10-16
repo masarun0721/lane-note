@@ -82,7 +82,7 @@ var LanePersonal = (function () {
       (nms.length ? '<line x1="4" x2="' + (W - 4) + '" y1="' + (H - B + 1) + '" y2="' + (H - B + 1) + '" stroke="#d6dbe5" stroke-width="0.8"/>' : '') +
       (xy.length > 1 ? '<polyline fill="none" stroke="#9aa8c0" stroke-width="1.2" stroke-dasharray="3 3" points="' + xy.map(function (q) { return q.join(','); }).join(' ') + '"/>' : '') +
       (off.length > 1 ? '<polyline fill="none" stroke="#1f3a68" stroke-width="2" points="' + off.map(function (q) { return q.join(','); }).join(' ') + '"/>' : '') +
-      xy.map(function (q, i) { var p = pts[i], t = '<title>' + esc(p.date + ' ' + p.mark + (p.wind ? '（風' + p.wind + '）' : '') + (p.ref ? '・参考' : '')) + '</title>';
+      xy.map(function (q, i) { var p = pts[i], t = '<title>' + esc(p.date + ' ' + (lower ? p.mark : dm(p.mark)) + (p.wind ? '（風' + p.wind + '）' : '') + (p.ref ? '・参考' : '')) + '</title>';
         return p.ref ? '<circle cx="' + q[0] + '" cy="' + q[1] + '" r="3.6" fill="#fff" stroke="#8a96ad" stroke-width="1.6">' + t + '</circle><text x="' + Math.min(W - 12, Math.max(12, q[0])) + '" y="' + Math.max(8, q[1] - 6) + '" font-size="8" fill="#8a96ad" text-anchor="middle">参考</text>'
           : '<circle cx="' + q[0] + '" cy="' + q[1] + '" r="' + (i === bi ? 4.5 : 3) + '" fill="' + (i === bi ? '#e4572e' : '#1f3a68') + '">' + t + '</circle>'; }).join('') +
       nms.map(function (p, i) { var x = xs.x[i], d = 3.4;
@@ -97,6 +97,9 @@ var LanePersonal = (function () {
   function S(v, n) { if (v == null) return ''; if (typeof v !== 'string' && typeof v !== 'number') throw new Error('リンクの中身の形が違います'); return String(v).slice(0, n || 80); }
   function arr(a, max) { if (a == null) return []; if (!Array.isArray(a)) throw new Error('リンクの中身の形が違います'); return a.slice(0, max); }
   function row(a, n) { if (a == null) return null; if (!Array.isArray(a)) throw new Error('リンクの中身の形が違います'); var o = []; for (var i = 0; i < n; i++) o.push(S(a[i], 80)); return o; }
+  // v0.26.62 跳躍・投てき（lw＝0：大きいほど良い）の「5.80」は「5.80m」で見せる（リンクの中身は変えない。得点は小数が無いのでそのまま）
+  function dm(m) { var t = String(m == null ? '' : m).trim(); return /^\d{1,2}\.\d{1,2}$/.test(t) ? t + 'm' : m; }
+  function pm(e, m) { return e && !e.lw ? dm(m) : m; }
   function sanitize(o) {
     if (!o || o.v !== 1 || o.k !== 'pp' || !o.a || typeof o.a !== 'object') throw new Error('リンクの中身を読めませんでした');
     return { v: 1, k: 'pp', g: S(o.g, 40), a: { name: S(o.a.name, 60), team: S(o.a.team, 80), grade: S(o.a.grade, 10) },
@@ -128,25 +131,25 @@ var LanePersonal = (function () {
     if (o.sc && o.sc.length && typeof LanePlans !== 'undefined') { var sch = LanePlans.scHtml(o.sc); if (sch) h += '<div class="pp-card pp-sc"><div class="pp-h">📅 これからの大会</div>' + sch + '</div>'; }
     if (!o.e.length) return box.innerHTML = h + '<p class="muted">まだ記録がありません。</p>' + condSection(o, opts), bindAll(o, box, opts);
     h += '<div class="pp-card"><div class="pp-h">🏅 自己ベスト</div><ul class="pp-pbs">' + o.e.map(function (e) { var b = e.b || e.rf;
-      return '<li><button type="button" class="pp-ev" data-ppev="' + esc(e.l) + '">' + esc(e.l) + '</button><b>' + esc(b ? b[0] : '—') + (e.b ? '' : b ? '<span class="ref">参考</span>' : '') + '</b><small>' + esc(b ? [b[1] ? '風' + b[1] : '', b[2], b[3]].filter(Boolean).join('・') : '') + '</small></li>'; }).join('') + '</ul></div>';
+      return '<li><button type="button" class="pp-ev" data-ppev="' + esc(e.l) + '">' + esc(e.l) + '</button><b>' + esc(b ? pm(e, b[0]) : '—') + (e.b ? '' : b ? '<span class="ref">参考</span>' : '') + '</b><small>' + esc(b ? [b[1] ? '風' + b[1] : '', b[2], b[3]].filter(Boolean).join('・') : '') + '</small></li>'; }).join('') + '</ul></div>';
     if (o.e.length > 1) h += '<div class="evsw pp-sw"><button type="button" data-ppev=""' + (VIEW.ev ? '' : ' class="on"') + '>すべて</button>' + o.e.map(function (e) { return '<button type="button" data-ppev="' + esc(e.l) + '"' + (VIEW.ev === e.l ? ' class="on"' : '') + '>' + esc(e.l) + '</button>'; }).join('') + '</div>';
     h += shown.map(function (e) {
       var hasRef = e.p.some(function (p) { return p.ref; });
       return '<div class="pp-card"><div class="pp-h">' + esc(e.l) + ' <small>' + e.n + '件</small></div>' +
-        (e.b ? '<div class="pp-best"><small>自己ベスト（公認）</small><b>' + esc(e.b[0]) + '</b><small>' + esc([e.b[1] ? '風' + e.b[1] : '', e.b[2], e.b[3]].filter(Boolean).join('・')) + '</small></div>' : '') +
-        (e.rf ? '<div class="small">参考 ' + esc(e.rf[0]) + ' <span class="muted">' + esc([e.rf[1] ? '風' + e.rf[1] : '', e.rf[2]].filter(Boolean).join(' ')) + '</span></div>' : '') +
+        (e.b ? '<div class="pp-best"><small>自己ベスト（公認）</small><b>' + esc(pm(e, e.b[0])) + '</b><small>' + esc([e.b[1] ? '風' + e.b[1] : '', e.b[2], e.b[3]].filter(Boolean).join('・')) + '</small></div>' : '') +
+        (e.rf ? '<div class="small">参考 ' + esc(pm(e, e.rf[0])) + ' <span class="muted">' + esc([e.rf[1] ? '風' + e.rf[1] : '', e.rf[2]].filter(Boolean).join(' ')) + '</span></div>' : '') +
         '<div class="sparkbox chartbox">' + spark(e.p, !!e.lw, VIEW.official, e.x, VIEW.nm) + '<span class="chartopt"><span class="muted">推移（上ほど良い）●公認 <b style="color:#e4572e">●</b>ベスト</span>' +
         (hasRef ? '<label><input type="checkbox" data-ppofficial="1"' + (VIEW.official ? ' checked' : '') + '> 公認だけ</label>' : '') +
         (e.x.length ? '<label><input type="checkbox" data-ppnm="1"' + (VIEW.nm ? ' checked' : '') + '> DNS・失格なども表示</label>' : '') + '</span></div>' +
         '<div class="pp-sh">最近の記録</div><ul class="recent">' + e.r.map(function (r) { var dk = dayKey(r[0]);
-          return '<li><span class="d">' + esc(r[0]) + '</span><b>' + esc(r[1]) + '</b>' + (r[5] === 'PB' ? '<span class="pb">PB</span>' : r[5] === '初' ? '<span class="pb first">初</span>' : '') + '<span class="m">' + esc([r[2] ? '風' + r[2] : '', r[3], r[4]].filter(Boolean).join('・')) + '</span>' + (cond[dk] ? '<span class="m">' + condBadge(cond[dk]) + '</span>' : '') + '</li>'; }).join('') + '</ul></div>';
+          return '<li><span class="d">' + esc(r[0]) + '</span><b>' + esc(pm(e, r[1])) + '</b>' + (r[5] === 'PB' ? '<span class="pb">PB</span>' : r[5] === '初' ? '<span class="pb first">初</span>' : '') + '<span class="m">' + esc([r[2] ? '風' + r[2] : '', r[3], r[4]].filter(Boolean).join('・')) + '</span>' + (cond[dk] ? '<span class="m">' + condBadge(cond[dk]) + '</span>' : '') + '</li>'; }).join('') + '</ul></div>';
     }).join('');
     box.innerHTML = h + condSection(o, opts);
     bindAll(o, box, opts);
   }
   function resultsOn(o, d) {
     var out = [];
-    o.e.forEach(function (e) { e.r.forEach(function (r) { if (dayKey(r[0]) === d) out.push(e.l + ' ' + r[1]); }); e.x.forEach(function (x) { if (dayKey(x.date) === d) out.push(e.l + ' ' + x.mark); }); });
+    o.e.forEach(function (e) { e.r.forEach(function (r) { if (dayKey(r[0]) === d) out.push(e.l + ' ' + pm(e, r[1])); }); e.x.forEach(function (x) { if (dayKey(x.date) === d) out.push(e.l + ' ' + x.mark); }); });
     return out.filter(function (v, i, a) { return a.indexOf(v) === i; });
   }
   function condSection(o, opts) {

@@ -40,7 +40,7 @@ await check('自己ベスト・PB・初・ランキング・歴代・選手の�
 await check('ふりかえりシート：走幅跳の「5.80」→「6.00」は「0.20mアップ」（「あと 0.20秒」にならない）。グラフは大きいほど上', () => {
   const all = [rec({ mark: '5.80', date: '2025-09-01', meet: '去年の大会' }), rec({ mark: '6.00', date: '2026-06-01' }), rec({ event: '男子100m', mark: '12.1', date: '2025-09-01', meet: '去年の大会' }), rec({ event: '男子100m', mark: '12.05', date: '2026-06-01' })];
   const g = V.seasonRange(2026), d = V.build(R, all, R.athleteKey(all[0]), { from: g[0], to: g[1] }), s = V.sheet(R, d, {});
-  assert.match(s, /昨年度まで 5\.80 → 0\.20mアップ/); assert.doesNotMatch(s, /あと 0\.20秒/);
+  assert.match(s, /昨年度まで 5\.80m → 0\.20mアップ/); assert.doesNotMatch(s, /あと 0\.20秒/);
   assert.match(s, /昨年度まで 12\.1 → 0\.05秒アップ/);
   assert.equal(d.events.find(e => /走幅跳/.test(e.event)).lower, false);
 });

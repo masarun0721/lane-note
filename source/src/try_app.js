@@ -71,7 +71,7 @@
       '<table class="tr-tbl" id="trOut"><tr><th>選手</th><th>種目</th><th>自己ベスト</th><th>出した大会</th><th>推移（古い→新しい）</th></tr>' +
       b.map(function (x) {
         var best = x.best || x.ref || {}, hist = mine.filter(function (r) { return R.nameKey(r.name) === R.nameKey(x.name) && r.event === best.event; }).sort(function (p, q) { return p.date < q.date ? -1 : 1; });
-        return '<tr><td>' + esc(x.name) + '(' + esc(x.grade) + ')</td><td>' + esc(String(x.eventLabel || best.event).replace(/\s+/g, ' ').trim()) + '</td><td><b>' + esc(best.mark) + '</b>' + (best.wind ? ' <span class="small">(' + esc(best.wind) + ')</span>' : '') + '</td><td class="small">' + esc(best.meet) + '<br>' + esc(best.date) + '</td><td>' + spark(hist) + ' <span class="small">' + hist.map(function (r) { return esc(r.mark); }).join(' → ') + '</span></td></tr>';
+        return '<tr><td>' + esc(x.name) + '(' + esc(x.grade) + ')</td><td>' + esc(String(x.eventLabel || best.event).replace(/\s+/g, ' ').trim()) + '</td><td><b>' + esc(R.showMark ? R.showMark(best.mark, best.event) : best.mark) + '</b>' + (best.wind ? ' <span class="small">(' + esc(best.wind) + ')</span>' : '') + '</td><td class="small">' + esc(best.meet) + '<br>' + esc(best.date) + '</td><td>' + spark(hist) + ' <span class="small">' + hist.map(function (r) { return esc(r.mark); }).join(' → ') + '</span></td></tr>';
       }).join('') + '</table><p class="small muted">本物のページでは、ログインするとクラウドに保存でき、選手ごとの個人ページ（専用リンク）も作れます。</p>' + finish('records.html', '📒 自分の記録で使ってみる（記録へ）'), 3);
     return true;
   }

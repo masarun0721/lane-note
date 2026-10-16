@@ -271,6 +271,10 @@ var ResultParser = (function () {
     var t = nk(String(mark)).trim();
     return /^(\d{1,2}:\d{2}|\d{1,3})\.\d$/.test(t) ? t + '0' : mark;
   }
+  /* v0.26.62 跳躍・投てきの記録は画面・印刷で「m」を付けて見せる（「5.80」→「5.80m」）。「5m80」「5.80m」・記号（NM など）はそのまま。
+     表示だけ（保存した記録・ID・書き出しは変えない） */
+  function distMark(mark) { if (mark == null) return mark; var t = nk(String(mark)).trim(); return /^\d{1,2}\.\d{1,2}$/.test(t) ? t + 'm' : mark; }
+  function showMark(mark, ev) { return ev != null && isFieldEvent(ev) ? distMark(mark) : mark; }
   // 画面・印刷に出すための記録（保存した記録は書きかえない。そろえたときだけ写しを返す）
   function viewRecord(r) { if (!r || r.mark == null) return r; var m = padTime(r.mark, r.event); return m === r.mark ? r : Object.assign({}, r, { mark: m }); }
   function recValue(r) { return r ? markValue(r.mark, r.event) : null; }   // v0.26.57 記録1件の値（種目で時間か距離かを決める）
@@ -736,7 +740,7 @@ var ResultParser = (function () {
     var m = Math.floor(c / 6000), ss = Math.floor(c % 6000 / 100), cc = c % 100;
     return sg + m + '分' + (ss < 10 ? '0' : '') + ss + '秒' + (cc < 10 ? '0' : '') + cc;
   }
-  function fmtImprovement(d, lower) { if (d == null) return ''; return (lower ? '−' + fmtSecDiff(d) : '+' + d.toFixed(2)); }
+  function fmtImprovement(d, lower) { if (d == null) return ''; return (lower ? '−' + fmtSecDiff(d) : '+' + d.toFixed(2) + 'm'); }   // v0.26.62 距離は「+0.20m」
   // 各記録の PB 情報：{ flag:'PB'|'初', prev: 直前の公認ベストの記録, diff: 改善幅 }
   function pbDetails(recs) {
     var groups = {}, out = {};
@@ -1525,7 +1529,7 @@ var ResultParser = (function () {
   }
   return { dayHead: dayHead, parsePdf: parsePdf, parseCells: parseCells, goldMobileStream: goldMobileStream, parsePlain: parsePlain, textToStream: textToStream, normEvent: normEvent, markValue: markValue, recValue: recValue, padTime: padTime, viewRecord: viewRecord, windApplies: windApplies, windClass: windClass, windNum: windNum,
     computeBests: computeBests, baseEvent: baseEvent, learnGenders: learnGenders, isRelay: isRelay, relayEvent: relayEvent, relayMeta: relayMeta, relaySaveEvent: relaySaveEvent, relayTeamBase: relayTeamBase, matchRelayTeam: matchRelayTeam, parseRelayGold: parseRelayGold, parseRelayPdf: parseRelayPdf, mergeRelays: mergeRelays, legsText: legsText, parseLegs: parseLegs, relayRecord: relayRecord, pbLookup: pbLookup, nameKey: nameKey, athleteKey: athleteKey, matchSchool: matchSchool, schoolLoose: schoolLoose, cleanMark: cleanMark, isTag: isTag, canonSchool: canonSchool, cyuTeam: cyuTeam, eventShown: eventShown, teamLabel: teamLabel, teamOf: teamOf, recId: recId, recIdLegacy: recIdLegacy, recIdV6: recIdV6, identityKey: identityKey, fullIdentity: fullIdentity, looseIdentity: looseIdentity, manualRecord: manualRecord, sanitizeRecord: sanitizeRecord, validDate: validDate, normManualWind: normManualWind, dedupe: dedupe, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
-    guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, fmtSecDiff: fmtSecDiff, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText,
+    guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, fmtSecDiff: fmtSecDiff, showMark: showMark, distMark: distMark, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText,
     eventCat: eventCat, divisionOf: divisionOf, divLabel: divLabel, eventKey: eventKey, eventKeyLabel: eventKeyLabel, shownWind: shownWind, hasMark: hasMark, sortAthletes: sortAthletes, kanaKey: kanaKey,
     setGenderDefault: setGenderDefault, setDivisionHints: setDivisionHints, setMeetDivs: setMeetDivs, divSource: divSource, divisionWhy: divisionWhy, splitTeamGrade: splitTeamGrade, setPersonDivs: setPersonDivs, setRosterDivs: setRosterDivs, divConflicts: divConflicts, gradeFromEvent: gradeFromEvent, fixRecord: fixRecord, jhOnlyEvent: jhOnlyEvent, rawDivisionOf: rawDivisionOf, genderOf: genderOf, divGroup: divGroup, disciplineOrder: disciplineOrder, groupEvents: groupEvents, gendersIn: gendersIn, GROUPS: GROUPS,
     personKey: personKey, inferDivisions: inferDivisions, mapHeaders: mapHeaders, findHeaderRow: findHeaderRow, parseDateCell: parseDateCell, normImportMark: normImportMark, dupCheck: dupCheck, parseMeetPlan: parseMeetPlan, parseIcs: parseIcs, icsBytesToText: icsBytesToText, guessDiv: guessDiv, meetClass: meetClass, splitVenue: splitVenue, meetNorm: meetNorm, planKey: planKey, PLAN_TEMPLATE: PLAN_TEMPLATE, sheetEvent: sheetEvent, sheetBlocks: sheetBlocks, importBlock: importBlock, importWorkbook: importWorkbook, importRows: importRows, splitTable: splitTable, isTable: isTable, FIELD_LABELS: FIELD_LABELS, isFieldEvent: isFieldEvent };

@@ -22,6 +22,8 @@ var LanePrint = (function () {
     return v.toFixed(2);
   }
   // 目盛り付きのグラフ（上ほど良い・●公認 ○参考 赤＝ベスト・下の×＝記録なし）
+  function smk(R, r) { return r ? (R.showMark ? R.showMark(r.mark, r.event) : r.mark) : ''; }   // v0.26.62 跳躍・投てきは「5.80m」（表示だけ）
+  function dm(m) { var t = String(m == null ? '' : m).trim(); return /^\d{1,2}\.\d{1,2}$/.test(t) ? t + 'm' : m; }   // グラフのPBの字（距離の種目だけで使う）
   function chart(e, o) {   // o：{ W, H }（v0.26.52 ふりかえりシートの小さいグラフ。ふだんは 640×128）
     var pts = e.allPoints || [], nms = e.noMarks || [], lower = e.lower !== false;
     if (pts.length < 2 && !nms.length) return '';
@@ -43,7 +45,7 @@ var LanePrint = (function () {
     if (off.length > 1) s += '<polyline points="' + off.join(' ') + '" class="lp-loff"/>';
     pts.forEach(function (p, i) {
       var x = xs.m[i], yy = y(p.v);
-      s += i === bi ? '<circle cx="' + x + '" cy="' + yy + '" r="6" class="lp-pbdot"/><text x="' + x + '" y="' + (yy - 10) + '" class="lp-pblab" text-anchor="middle">PB ' + esc(p.mark) + '</text>' : '<circle cx="' + x + '" cy="' + yy + '" r="4" class="' + (p.ref ? 'lp-refdot' : 'lp-dot') + '"/>';
+      s += i === bi ? '<circle cx="' + x + '" cy="' + yy + '" r="6" class="lp-pbdot"/><text x="' + x + '" y="' + (yy - 10) + '" class="lp-pblab" text-anchor="middle">PB ' + esc(lower ? p.mark : dm(p.mark)) + '</text>' : '<circle cx="' + x + '" cy="' + yy + '" r="4" class="' + (p.ref ? 'lp-refdot' : 'lp-dot') + '"/>';
     });
     if (nms.length) { var yx = H - 13; s += '<line x1="' + L + '" x2="' + (W - Rr) + '" y1="' + (H - 24) + '" y2="' + (H - 24) + '" class="lp-grid"/>'; nms.forEach(function (p, i) { var x = xs.x[i]; s += '<text x="' + x + '" y="' + yx + '" class="lp-x" text-anchor="middle">×</text><text x="' + x + '" y="' + (yx + 10) + '" class="lp-xl" text-anchor="middle">' + esc(p.mark) + '</text>'; }); }
     return s + '</svg>';
@@ -60,17 +62,17 @@ var LanePrint = (function () {
     var sub = chips.map(function (c) { return '<i>' + esc(c) + '</i>'; }).join('');
     var cards = '<div class="lp-cards">' + order.map(function (e) {
       var b = e.best || e.ref || {}, off = !!e.best, w = wind(R, b);
-      return '<div class="lp-card' + (b.mark ? '' : ' lp-none') + '"><div class="lp-cev">' + esc(e.eventLabel) + '</div><div class="lp-cmk">' + esc(b.mark || '—') + (w ? '<span class="lp-cw">' + w + '</span>' : '') + '</div>' +
+      return '<div class="lp-card' + (b.mark ? '' : ' lp-none') + '"><div class="lp-cev">' + esc(e.eventLabel) + '</div><div class="lp-cmk">' + esc(smk(R, b) || '—') + (w ? '<span class="lp-cw">' + w + '</span>' : '') + '</div>' +
         (b.mark ? '<span class="lp-badge ' + (off ? 'lp-ok' : 'lp-ref') + '">' + (off ? '公認' : '参考') + '</span>' : '') +
         '<div class="lp-cmeta">' + (b.date ? sd(b.date) : '') + (b.meet ? '<br>' + esc(b.meet) : '') + '</div><div class="lp-ccount">' + e.count + '件</div></div>';
     }).join('') + '</div>';
     var evs = order.map(function (e) {
       var rs = mine.filter(function (r) { return R.eventKey(r) === e.event; }).sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
       var c = chart(e), b = e.best || e.ref;
-      return '<div class="lp-ev"><div class="lp-h3"><span>' + esc(e.eventLabel) + '</span>' + (b ? '<em>PB ' + esc(b.mark) + '</em>' : '') + '</div>' + (c ? '<div class="lp-chart">' + c + '</div>' : '') +
+      return '<div class="lp-ev"><div class="lp-h3"><span>' + esc(e.eventLabel) + '</span>' + (b ? '<em>PB ' + esc(smk(R, b)) + '</em>' : '') + '</div>' + (c ? '<div class="lp-chart">' + c + '</div>' : '') +
         '<table class="lp-t"><thead><tr><th>日付</th><th>大会</th><th>ラウンド</th><th class="lp-r">記録</th><th class="lp-r">風</th><th class="lp-r">順位</th></tr></thead><tbody>' + rs.map(function (r) {
           var pb = e.best && e.best.id === r.id, nm = !hasNum(r.mark);
-          return '<tr' + (pb ? ' class="lp-pb"' : nm ? ' class="lp-nm"' : '') + '><td class="lp-num">' + sd(r.date) + '</td><td>' + esc(r.meet) + '</td><td>' + esc(r.round || '') + '</td><td class="lp-mk lp-r">' + esc(r.mark) + (pb ? '<span class="lp-tag">PB</span>' : '') + '</td><td class="lp-num lp-r">' + wind(R, r) + '</td><td class="lp-num lp-r">' + esc(r.rank || '') + '</td></tr>';
+          return '<tr' + (pb ? ' class="lp-pb"' : nm ? ' class="lp-nm"' : '') + '><td class="lp-num">' + sd(r.date) + '</td><td>' + esc(r.meet) + '</td><td>' + esc(r.round || '') + '</td><td class="lp-mk lp-r">' + esc(smk(R, r)) + (pb ? '<span class="lp-tag">PB</span>' : '') + '</td><td class="lp-num lp-r">' + wind(R, r) + '</td><td class="lp-num lp-r">' + esc(r.rank || '') + '</td></tr>';
         }).join('') + '</tbody></table></div>';
     }).join('');
     return page('個人表', o, '<div class="lp-h2">種目ごとの自己ベスト</div>' + cards + '<div class="lp-h2">記録の一覧</div>' + evs, band('個人表', pf.name, sub, o, pf.kana));
@@ -80,7 +82,7 @@ var LanePrint = (function () {
     var title = kind === 'hist' ? '歴代記録' : '部内ランキング';
     var body = evs.map(function (ev) {
       return '<div class="lp-ev"><div class="lp-h3"><span>' + esc(label(ev)) + '</span><em>' + (data[ev] || []).length + '人</em></div><table class="lp-t lp-rk"><thead><tr><th class="lp-r">順位</th><th>氏名</th><th>' + (kind === 'hist' ? '年度' : '学年') + '</th><th class="lp-r">記録</th><th class="lp-r">風</th><th>日付</th><th>大会</th></tr></thead><tbody>' + (data[ev] || []).map(function (x) {
-        return '<tr' + (x.rank <= 3 ? ' class="lp-top lp-top' + x.rank + '"' : '') + '><td class="lp-r"><span class="lp-rn">' + x.rank + '</span></td><td class="lp-nmn">' + esc(x.name) + '</td><td>' + esc(kind === 'hist' ? R.seasonLabel(x.season) : x.grade ? x.grade + '年' : '') + '</td><td class="lp-mk lp-r">' + esc(x.best.mark) + '</td><td class="lp-num lp-r">' + wind(R, x.best) + '</td><td class="lp-num">' + sd(x.best.date) + '</td><td>' + esc(x.best.meet) + '</td></tr>';
+        return '<tr' + (x.rank <= 3 ? ' class="lp-top lp-top' + x.rank + '"' : '') + '><td class="lp-r"><span class="lp-rn">' + x.rank + '</span></td><td class="lp-nmn">' + esc(x.name) + '</td><td>' + esc(kind === 'hist' ? R.seasonLabel(x.season) : x.grade ? x.grade + '年' : '') + '</td><td class="lp-mk lp-r">' + esc(smk(R, x.best)) + '</td><td class="lp-num lp-r">' + wind(R, x.best) + '</td><td class="lp-num">' + sd(x.best.date) + '</td><td>' + esc(x.best.meet) + '</td></tr>';
       }).join('') + '</tbody></table></div>';
     }).join('');
     return page(title, o, body, band(kind === 'hist' ? 'HISTORY' : 'RANKING', title, o.cond ? '<i class="lp-cond">' + esc(o.cond) + '</i>' : '', o));
@@ -98,7 +100,7 @@ var LanePrint = (function () {
     var evs = []; recs.forEach(function (r) { var k = R.eventKey(r); if (evs.indexOf(k) < 0) evs.push(k); });
     var body = '<div class="lp-sum"><div class="lp-kpi"><b>' + Object.keys(names).length + '</b><span>出場人数</span></div><div class="lp-kpi"><b>' + recs.length + '</b><span>記録数</span></div><div class="lp-kpi lp-kpb"><b>' + nPB + '</b><span>PB更新</span></div><div class="lp-kpi"><b>' + nFirst + '</b><span>初記録</span></div></div>';
     // v0.9.4：PB更新の一覧は通常のみ（1枚モードは表のPB印で足りる）
-    if (hl.length && !o.one) body += '<div class="lp-hl"><div class="lp-h3"><span>🔥 PB更新</span><em>' + hl.length + '件</em></div><ul>' + hl.map(function (h) { return '<li><b>' + esc(h.r.name) + '</b> ' + esc(R.eventKeyLabel(h.r, o.nog)) + ' <span class="lp-mk">' + esc(h.r.mark) + '</span>' + (h.p.diff != null ? ' <span class="lp-up">' + esc(R.fmtImprovement(h.p.diff, h.p.lower)) + '</span>' : '') + (h.p.prev ? ' <small>（前のPB ' + esc(h.p.prev.mark) + '）</small>' : '') + '</li>'; }).join('') + '</ul></div>';
+    if (hl.length && !o.one) body += '<div class="lp-hl"><div class="lp-h3"><span>🔥 PB更新</span><em>' + hl.length + '件</em></div><ul>' + hl.map(function (h) { return '<li><b>' + esc(h.r.name) + '</b> ' + esc(R.eventKeyLabel(h.r, o.nog)) + ' <span class="lp-mk">' + esc(smk(R, h.r)) + '</span>' + (h.p.diff != null ? ' <span class="lp-up">' + esc(R.fmtImprovement(h.p.diff, h.p.lower)) + '</span>' : '') + (h.p.prev ? ' <small>（前のPB ' + esc(smk(R, h.p.prev)) + '）</small>' : '') + '</li>'; }).join('') + '</ul></div>';
     if (!recs.length) body += '<p class="lp-empty">この条件の記録はありません。</p>';
     // v0.9.5：種目ごとの枠（紺の見出し＋氏名・学年・記録・風・順位の小さな表）を2段で流す。PBは記録の横に「PB −0.21」、初記録は「初」
     function bdg(p) {
@@ -114,7 +116,7 @@ var LanePrint = (function () {
           var rs = recs.filter(function (r) { return R.eventKey(r) === it.key; }).sort(function (a, b) { var va = R.markValue(a.mark, a.event), vb = R.markValue(b.mark, b.event); if (!va !== !vb) return va ? -1 : 1; if (va && vb && va.v !== vb.v) return va.lower ? va.v - vb.v : vb.v - va.v; return (a.order || 0) - (b.order || 0); });
           body += '<div class="lp-box"><div class="lp-boxh"><span>' + esc(it.label) + '</span><em>' + rs.length + '人</em></div><table class="lp-bt"><thead><tr><th>氏名</th><th class="lp-c">学年</th><th class="lp-r">記録</th><th class="lp-r">風</th><th class="lp-c">順位</th></tr></thead><tbody>' + rs.map(function (r) {
             var p = pbd[r.id], mv = R.markValue(r.mark, r.event);
-            return '<tr class="' + (!mv ? 'lp-nm' : p && p.flag === 'PB' ? 'lp-pb' : '') + '"><td class="lp-nmn">' + esc(r.name) + '</td><td class="lp-c">' + esc(r.grade ? r.grade + '年' : '') + '</td><td class="lp-r lp-mkc"><b class="lp-mk">' + esc(r.mark) + '</b>' + (mv ? bdg(p) : '') + '</td><td class="lp-num lp-r">' + wind(R, r) + '</td><td class="lp-num lp-c">' + esc(r.rank) + '</td></tr>';
+            return '<tr class="' + (!mv ? 'lp-nm' : p && p.flag === 'PB' ? 'lp-pb' : '') + '"><td class="lp-nmn">' + esc(r.name) + '</td><td class="lp-c">' + esc(r.grade ? r.grade + '年' : '') + '</td><td class="lp-r lp-mkc"><b class="lp-mk">' + esc(smk(R, r)) + '</b>' + (mv ? bdg(p) : '') + '</td><td class="lp-num lp-r">' + wind(R, r) + '</td><td class="lp-num lp-c">' + esc(r.rank) + '</td></tr>';
           }).join('') + '</tbody></table></div>';
         });
         body += '</div>';

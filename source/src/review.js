@@ -108,7 +108,7 @@ var LaneReview = (function () {
     if (!e.best) return e.ref ? '<span class="rv-muted">公認の記録はまだありません</span>' : '<span class="rv-muted">記録なし</span>';
     var lower = (R.markValue(e.best.mark, e.best.event) || {}).lower;
     if (e.prev) {   // v0.26.55 「今シーズンの伸び」→ v0.26.56「昨年度からの伸び」：昨年度まで（期間より前）の公認ベスト → 伸び。数字は前と同じ計算
-      var was = '昨年度まで ' + esc(e.prev.mark);
+      var was = '昨年度まで ' + esc(R.showMark(e.prev.mark, e.prev.event));
       if (e.diff > 0) return '<span class="rv-up">' + was + ' → ' + esc(gap(R, e.diff, lower)) + 'アップ</span><small>自己ベスト更新（前は ' + esc(sd(e.prev.date)) + '）</small>';
       if (e.diff === 0) return '<span class="rv-eq">' + was + '　自己ベストと同じ記録</span>';
       return '<span>' + was + '　自己ベストまで あと ' + esc(gap(R, -e.diff, lower)) + '</span><small>（' + esc(sd(e.prev.date)) + '）</small>';
@@ -129,8 +129,8 @@ var LaneReview = (function () {
       var b = e.best, f = e.ref, bad = '';
       if (e.pbN) bad += '<span class="rv-bdg rv-bpb">自己ベスト更新' + (e.pbN > 1 ? ' ×' + e.pbN : '') + '</span>';
       if (e.first && !e.prev) bad += '<span class="rv-bdg rv-bfs">初記録</span>';
-      var mk = b ? '<b class="rv-mk">' + esc(b.mark) + '</b><span class="rv-bdg rv-ok">公認</span>' + (windTxt(R, b) ? '<small>' + esc(windTxt(R, b)) + '</small>' : '') : f ? '' : '<b class="rv-mk rv-muted">—</b>';
-      var rf = f ? '<div class="rv-refl"><b class="rv-mk' + (b ? ' rv-mk2' : '') + '">' + esc(f.mark) + '</b><span class="rv-bdg rv-ref">参考</span><small>' + esc(windTxt(R, f) || '風不明') + '</small></div>' : '';
+      var mk = b ? '<b class="rv-mk">' + esc(R.showMark(b.mark, b.event)) + '</b><span class="rv-bdg rv-ok">公認</span>' + (windTxt(R, b) ? '<small>' + esc(windTxt(R, b)) + '</small>' : '') : f ? '' : '<b class="rv-mk rv-muted">—</b>';
+      var rf = f ? '<div class="rv-refl"><b class="rv-mk' + (b ? ' rv-mk2' : '') + '">' + esc(R.showMark(f.mark, f.event)) + '</b><span class="rv-bdg rv-ref">参考</span><small>' + esc(windTxt(R, f) || '風不明') + '</small></div>' : '';
       var src = b || f;
       return '<tr><td class="rv-ev"><b>' + esc(e.eventLabel) + '</b><small>' + e.n + '回</small>' + (bad ? '<div>' + bad + '</div>' : '') + '</td><td class="rv-r">' + mk + rf + '</td><td class="rv-src">' + (src ? esc(sd(src.date)) + '<br>' + esc(src.meet || '') : '') + '</td><td class="rv-vs">' + vsCell(R, e) + '</td></tr>';
     }).join('') + '</tbody></table>';
@@ -143,7 +143,7 @@ var LaneReview = (function () {
       var ds = m.dates.slice().sort(); var dl = ds.length > 1 ? md(ds[0]) + '〜' + md(ds[ds.length - 1]) : md(ds[0]);
       return '<tr><td class="rv-d">' + esc(dl) + '</td><td class="rv-mt">' + esc(m.meet) + '</td><td class="rv-its">' + m.items.map(function (x) {
         var r = x.r, rk = r.rank !== '' && r.rank != null && x.has ? (r.heat && /予選|準決/.test(r.round || '') ? r.heat + '組' + r.rank + '着' : r.rank + '位') : '';
-        return '<span class="rv-it' + (x.has ? '' : ' rv-nm') + '"><em>' + esc(x.label) + (r.round ? '・' + esc(r.round) : '') + '</em> <b>' + esc(r.mark) + '</b>' + (windTxt(R, r) ? '<small>（' + esc(windTxt(R, r)) + '）</small>' : '') + (rk ? ' <small>' + esc(rk) + '</small>' : '') +
+        return '<span class="rv-it' + (x.has ? '' : ' rv-nm') + '"><em>' + esc(x.label) + (r.round ? '・' + esc(r.round) : '') + '</em> <b>' + esc(R.showMark(r.mark, r.event)) + '</b>' + (windTxt(R, r) ? '<small>（' + esc(windTxt(R, r)) + '）</small>' : '') + (rk ? ' <small>' + esc(rk) + '</small>' : '') +
           (x.has && x.pb === 'PB' ? '<span class="rv-bdg rv-bpb">PB</span>' : x.has && x.pb === '初' ? '<span class="rv-bdg rv-bfs">初</span>' : '') + '</span>';
       }).join('') + '</td></tr>';
     }).join('') + '</tbody></table>';
