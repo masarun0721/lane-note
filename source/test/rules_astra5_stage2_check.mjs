@@ -20,8 +20,9 @@ console.log('[v0.26.40] C511 削除の印は実際の文書IDから');
 try {
   await env.clearFirestore();
   const alice = T('alice', '架空顧問'); const t = await alice.createTeam('架空中学陸上部');
-  const born = await alice.codes(t); const mcode = await alice.regen(t, 'manager', born.manager.mexp);   // v0.26.63 はじめのコードは承認あり。マネージャーとしての削除は承認なしのコードで入る
-  await T('bob', '架空マネ').join(mcode);
+  // v0.26.63：はじめのコードは「承認あり」。ここでは入ったマネージャーで試すので、「詳しい設定」で承認を外したコードに作り直す
+  await alice.regen(t, 'coach', null, {}); await alice.regen(t, 'manager', null, {});
+  const codes = await alice.codes(t); await T('bob', '架空マネ').join(codes.manager.code);
   // 古いデータ：文書ID legacy の中の id が different（Astra の再現）。ふつうの記録もまぜる
   await seed(t, [['legacy', 'different'], ['ok1', 'ok1'], ['legacy2', 'other2']]);
   await test('顧問の「全部消す」：中の id が違う記録があっても止まらず、全部に削除の印（left 0）', async () => {

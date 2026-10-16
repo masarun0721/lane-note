@@ -18,6 +18,7 @@ rules_version = '2';
 //   マネージャーが書いた記録は必ず「未確認」（_st:'pending'）。「確認済み」（'ok'）にできるのは顧問だけ。
 //   チームの持ち主（ownerUid）を変えられるのは持ち主だけで、渡す相手はチームの顧問だけ。
 // ・v0.26.38 pubResults/{id}：みんなの結果（結果のURLと大会の情報だけ。選手のデータは入れない）。作りはみんなの要項（pubMeets）と同じ
+// ・v0.26.64 teams の一覧（list）：管理者（admins/{uid}）だけ。チーム名を見るため（文書は v・name・ownerUid・createdAt だけ。中の members・records・codes は読めない）
 // ・v0.26.33 teams/{T}/meets/{k}/pdf/{c}：大会準備のPDF（4種類）をチームで共有。ファイルで入れたものだけ・メンバーだけ・大会終了の1か月後まで読める・5MBまで・一覧不可
 // ・v0.26.11 記録に aid（選手台帳のID・A＋10文字）と legs（リレーの走順・300文字まで）を追加
 // ・v0.26.9 安全面：
@@ -384,7 +385,9 @@ service cloud.firestore {
     // v0.26 teams ここから
     match /teams/{t} {
       allow get: if validTeamId(t) && activeMember(t);
-      allow list: if false;
+      // v0.26.64 管理者（admins/{uid} がある人。admins は Firebase コンソールでだけ作る）だけ、チームの一覧を読める（admin.html でチーム名だけを出す）。
+      //   チームの文書は v・name・ownerUid・createdAt だけ（下の create／update で決めている）。members・records・codes などの中は今まで通り読めない
+      allow list: if isAdmin();
       // 作るときは、同じまとめ書きで自分を顧問として members に入れる
       allow create: if googleUser() && validTeamId(t)
         && request.resource.data.keys().hasAll(['v', 'name', 'ownerUid', 'createdAt'])

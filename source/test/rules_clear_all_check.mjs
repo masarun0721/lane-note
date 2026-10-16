@@ -19,8 +19,9 @@ async function adminCount(p, live) { let n = 0; await env.withSecurityRulesDisab
 try {
   await env.clearFirestore();
   const alice = T('alice', '架空顧問'); const t = await alice.createTeam('架空中学陸上部');
-  const born = await alice.codes(t); const mcode = await alice.regen(t, 'manager', born.manager.mexp);   // v0.26.63 はじめのコードは承認あり。マネージャーとしての削除は承認なしのコードで入る
-  await T('bob', '架空マネ').join(mcode);
+  // v0.26.63：はじめのコードは「承認あり」。ここでは入ったマネージャーで試すので、「詳しい設定」で承認を外したコードに作り直す
+  await alice.regen(t, 'coach', null, {}); await alice.regen(t, 'manager', null, {});
+  const codes = await alice.codes(t); await T('bob', '架空マネ').join(codes.manager.code);
   // 架空の記録 1200件（ルールを外して入れる＝前から入っていたチームの記録の形）
   await env.withSecurityRulesDisabled(async c => { const f = c.firestore(); for (let i = 0; i < N; i += 400) { const b = writeBatch(f); for (let j = i; j < Math.min(N, i + 400); j++) b.set(doc(f, 'teams', t, 'records', 'r' + j), Object.assign(rec(j), { _by: 'alice', _at: new Date(), _st: 'ok', _h: 'x' })); await b.commit(); } });
   // 形の正しくない文書もまぜる

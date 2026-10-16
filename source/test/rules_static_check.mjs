@@ -41,6 +41,11 @@ ok('最終案（/workspace の firestore.rules.final）と本文が同じ（比�
   const f = '/workspace/astra_audit/firestore.rules.final'; if (!fs.existsSync(f)) return SKIP;
   const strip = s => s.replace(/^\/\/.*$/gm, '').replace(/\s+/g, ' ').trim(); assert.equal(strip(rulesBase.replace(/ *\/\/ v0\.26\.9 flags ここから[\s\S]*?\/\/ v0\.26\.9 flags ここまで\n/g, '').replace(/\s*&& featureOn\('share'\)/g, '').replace(/, 'aid', 'legs'\]/, ']').replace(/\)\n\s*&& \(!\('aid' in d\)[^\n]*/, ');').replace(/\/\/ v0\.24 talks ここから[\s\S]*?\/\/ v0\.24 talks ここまで\n/g, '').replace(/ *\/\/ v0\.25\.4 stats ここから[\s\S]*?\/\/ v0\.25\.4 stats ここまで\n/g, '').replace(/ *\/\/ v0\.26 teams ここから[\s\S]*?\/\/ v0\.26 teams ここまで\n/g, '')), strip(fs.readFileSync(f, 'utf8')));
 });
+ok('v0.26.64 一覧（list）を管理者に開けるのは teams の1か所だけ・メールアドレスや UID の決め打ちがない', () => {
+  assert.equal((body.match(/allow list: if isAdmin\(\)/g) || []).length, 1);
+  assert.match(body, /match \/teams\/\{t\} \{\s*allow get: if validTeamId\(t\) && activeMember\(t\);\s*allow list: if isAdmin\(\);/);
+  assert.doesNotMatch(rules, /@[A-Za-z0-9-]+\.[A-Za-z]/); assert.doesNotMatch(rules, /ADMIN_UID|request\.auth\.token\.email\s*==/);
+});
 ok('アプリ：短いリンクの期限はルールの120日より短い（119日）', () => assert.match(app, /SHARE_DAYS = 119/));
 ok('アプリ：短いリンクの中身は 190000 文字まで・ID は10文字', () => { assert.match(app, /str\.length > 190000/); assert.match(app, /while \(out\.length < 10\)/); });
 ok('アプリ：feedback はログインしていなければ送らない・uid は必ず文字列', () => { assert.match(fb, /if \(!u\) \{/); assert.match(fb, /uid: u\.uid/); assert.doesNotMatch(fb, /uid: null|uid = null/); });
