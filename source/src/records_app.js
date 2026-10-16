@@ -741,7 +741,7 @@
   }
 
   /* ---------- v0.26：チームで共有（teams/{T}）。権限は firestore.rules が決める。ここは表示と、ルールに合う読み書きだけ ---------- */
-  var TEAMS = [], TEAM_LOST = '', QUAR = [], TM = { members: null, codes: null, hist: null, banned: null, busy: false, open: {} }, TEAM_WAIT = '', SAFE = { open: false, data: null }, FLAGS = { talk: true, relay: true, counter: true, share: true }, ADMIN = false;
+  var TEAMS = [], TEAM_LOST = '', TEAM_LOST_WHY = '', QUAR = [], TM = { members: null, codes: null, hist: null, banned: null, busy: false, open: {} }, TEAM_WAIT = '', SAFE = { open: false, data: null }, FLAGS = { talk: true, relay: true, counter: true, share: true }, ADMIN = false;
   function teamKey(uid) { return 'lanenote.team.v1.' + uid; }
   function myDisplayName() { return String((USER && (USER.displayName || String(USER.email || '').split('@')[0])) || 'メンバー').slice(0, 40); }
   function LT(sc) { return LaneTeam.make({ F: FB.F, fs: FB.fs, uid: sc.uid, name: myDisplayName(), check: function () { check(sc); } }); }
@@ -757,7 +757,7 @@
   var MGR_KEY = 'lanenote.mgrhint.v1';
   function mgrHint(uid) { try { if (uid && TEAMS.some(function (x) { return x.role === 'manager'; })) localStorage.setItem(MGR_KEY, JSON.stringify({ uid: uid, at: Date.now() })); else localStorage.removeItem(MGR_KEY); } catch (e) { } }
   async function pickTeam(uid) {
-    var ep = authEpoch, api = LTu(uid, ep); TEAMS = await api.myTeams(); TEAM_LOST = ''; if (ep === authEpoch) mgrHint(uid);
+    var ep = authEpoch, api = LTu(uid, ep); TEAMS = await api.myTeams(); TEAM_LOST = ''; TEAM_LOST_WHY = ''; if (ep === authEpoch) mgrHint(uid);
     var sel = ''; try { sel = localStorage.getItem(teamKey(uid)) || ''; } catch (e) { }
     if (!sel || !TEAMS.some(function (x) { return x.id === sel; })) return;
     // v0.26.9：承認が要るコードで入った人は、顧問が承認するまで「承認待ち」（チームは読めない）
@@ -766,18 +766,18 @@
       var st = null; try { st = await api.myStatus(sel); } catch (e) { if (isAbort(e)) throw e; }
       if (ep !== authEpoch) return;
       if (st === 'pending') { TEAM_WAIT = sel; return; }
-      if (!st) { TEAM_LOST = 'チーム（承認されませんでした）'; return; }
+      if (!st) { TEAM_LOST = 'チーム（承認されませんでした）'; TEAM_LOST_WHY = 'rej'; return; }
     }
     var inf = null; try { inf = await api.info(sel); } catch (e) { if (isAbort(e)) throw e; inf = null; }
     if (ep !== authEpoch) return;
-    if (!inf || (inf.role === 'manager' && inf.expiresAt && inf.expiresAt < Date.now())) { TEAM_LOST = (TEAMS.filter(function (x) { return x.id === sel; })[0] || {}).name || 'チーム'; return; }
+    if (!inf || (inf.role === 'manager' && inf.expiresAt && inf.expiresAt < Date.now())) { TEAM_LOST = (TEAMS.filter(function (x) { return x.id === sel; })[0] || {}).name || 'チーム'; TEAM_LOST_WHY = inf ? 'exp' : 'gone'; return; }
     TEAM = inf;
     if (ent.role === 'pending') { try { await FB.F.setDoc(FB.F.doc(FB.fs, 'users', uid, 'teams', sel), { name: inf.name, role: inf.role, at: new Date().toISOString() }); } catch (e) { } }
   }
   async function teamGetAll(sc) {
     var list;
     try { list = await LT(sc).getRecords(sc.team.id); }
-    catch (e) { if (isAbort(e)) throw e; if (isPerm(e)) { TEAM_LOST = TEAM ? TEAM.name : 'チーム'; throw new Error('チームの記録を読めません（チームから外されたか、マネージャーの期限が過ぎた可能性があります）。保存先を「自分だけ」に戻してください'); } throw e; }
+    catch (e) { if (isAbort(e)) throw e; if (isPerm(e)) { TEAM_LOST = TEAM ? TEAM.name : 'チーム'; TEAM_LOST_WHY = ''; throw new Error('チームの記録を読めません（チームから外されたか、マネージャーの期限が過ぎた可能性があります）。保存先を「自分だけ」に戻してください'); } throw e; }
     check(sc); OFFLINE = false;
     QUAR = list.filter(function (r) { return !LaneTeam.validRec(r); });   // v0.26.1（C404）：形が正しくない記録は表示に入れず、別に知らせる
     list = list.filter(function (r) { return LaneTeam.validRec(r); });
@@ -865,9 +865,20 @@
     TM.busy = true; b.disabled = true;
     try {
       var r = await LTu(sc.uid, sc.epoch).join(JOIN.code); TM.busy = false; JOIN = null; joinSave();
-      await switchTeam(r.team); renderJoin(); status('rbTeamStatus', '✔ 「' + esc(r.name) + '」に ' + roleLabel(r.role) + ' として入りました。', 'ok');
-    } catch (x) { TM.busy = false; if (isAbort(x)) return; b.disabled = false; status('tpJoinStatus', '✖ 参加できませんでした：' + esc(x.code === 'permission-denied' ? '期限切れ・人数の上限・作り直されたコード・外された、のどれかかもしれません。顧問に新しい招待リンクをもらってください' : x.message), 'ng'); }
+      await switchTeam(r.team); renderJoin(); status('rbTeamStatus', joinMsg(r), 'ok');
+    } catch (x) { TM.busy = false; if (isAbort(x)) return; b.disabled = false; status('tpJoinStatus', '✖ 参加できませんでした：' + esc(x.code === 'permission-denied' ? 'コードの期限切れ・人数の上限・作り直されたコードなら、顧問に新しい招待リンクをもらってください。マネージャーの期限切れなら顧問に期限をのばしてもらい、チームから外されたなら顧問に再参加を許可してもらってください' : x.message), 'ng'); }
   });
+  // v0.26.63：使えなくなった理由が分かるときは、その人がすること（期限をのばしてもらう／再参加を許可してもらう）を出す
+  function joinMsg(r) {   // v0.26.63：承認が要るコードで申しこんだときは「承認待ち」とはっきり出す
+    if (r.role === 'pending') return '⏳ 参加を申しこみました。<b>顧問の承認待ち</b>です（' + esc(roleLabel(r.want)) + 'として）。顧問が承認すると、チームの記録が見えるようになります。承認されるまで、チームの記録は見えません。';
+    return '✔ 「' + esc(r.name) + '」に ' + roleLabel(r.role) + ' として入りました。';
+  }
+  function lostWhy() {
+    if (TEAM_LOST_WHY === 'exp') return '（マネージャーの期限が過ぎました）。顧問に期限をのばしてもらってください。';
+    if (TEAM_LOST_WHY === 'gone') return '（チームから外されました）。顧問に再参加を許可してもらってください。';
+    if (TEAM_LOST_WHY === 'rej') return '（参加が承認されませんでした）。もう一度申しこむときは、顧問に招待リンクをもらってください。';
+    return '（チームから外されたか、マネージャーの期限が過ぎました）。顧問に期限をのばしてもらうか、再参加を許可してもらってください。';
+  }
   function teamStatusHtml() {
     var sel = TEAMS.length ? '<label>保存先 <select id="rbTeamSel"><option value="">👤 自分だけ</option>' + TEAMS.map(function (x) { return '<option value="' + esc(x.id) + '"' + (TEAM && TEAM.id === x.id ? ' selected' : '') + '>👥 ' + esc(x.name) + '</option>'; }).join('') + '</select></label> ' : '';
     var st = TEAM ? '👥 <b>' + esc(TEAM.name) + '</b>（' + esc(roleLabel(TEAM.role)) + '）' + (pendingList().length ? ' ・<span class="pend">未確認</span> ' + pendingList().length + '件' : '')
@@ -917,7 +928,7 @@
     var sel = '<label>保存先 <select id="rbTeamSel"><option value="">👤 自分だけ（今までどおり）</option>' + TEAMS.map(function (x) { return '<option value="' + esc(x.id) + '"' + (TEAM && TEAM.id === x.id ? ' selected' : '') + '>👥 ' + esc(x.name) + '（' + esc(roleLabel(x.role)) + '）</option>'; }).join('') + '</select></label>';
     var h = '<h3>👥 チームで共有</h3><p class="small muted" data-xp="" data-xp-at="h3">顧問・マネージャーが、それぞれ<b>自分のGoogleアカウント</b>で同じチームの記録を使えます。アカウントやパスワードを共有する必要はありません。</p><div class="rb-row">' + sel + '</div>';
     if (TEAM_WAIT && !TEAM) h += '<p class="tm-warn">⏳ <b>承認待ちです。</b>顧問が承認すると、チームの記録が見えるようになります（承認されるまで、チームの記録は見えません）。 <button type="button" class="btn sub sm" data-tm="recheck">承認されたか確かめる</button></p>';
-    if (TEAM_LOST && !TEAM) h += '<p class="tm-warn">⚠ 「' + esc(TEAM_LOST) + '」は今は使えません（チームから外されたか、マネージャーの期限が過ぎました）。必要なら顧問に新しい参加コードをもらってください。 <button type="button" class="btn sub sm" data-tm="forget">一覧から消す</button></p>';
+    if (TEAM_LOST && !TEAM) h += '<p class="tm-warn">⚠ 「' + esc(TEAM_LOST) + '」は今は使えません' + lostWhy() + ' <button type="button" class="btn sub sm" data-tm="forget">一覧から消す</button></p>';
     if (!TEAM) {
       h += '<div class="tm-grid"><div class="tm-card"><b>➕ チームを作る</b>（顧問の方）<div class="rb-row"><input type="text" id="rbTeamName" maxlength="40" placeholder="例：本郷高校陸上部"><button type="button" class="btn" data-tm="create">チームを作る</button></div></div>' +
         '<div class="tm-card"><b>🔑 参加コードで入る</b>（顧問・マネージャーの方）<div class="rb-row"><input type="text" id="rbTeamCode" placeholder="顧問からもらった長いコード" autocomplete="off" spellcheck="false"><button type="button" class="btn" data-tm="join">参加する</button></div></div></div>';
@@ -977,7 +988,7 @@
         '<p class="small">新しく作るコードに付ける制限（どれかを付けるのがおすすめ）</p>' +
         '<label class="tm-f">コードを使える最後の日 <input type="date" data-copt="exp" data-role="' + role + '"></label>' +
         '<label class="tm-f">使える人数 <span><input type="number" min="1" max="100" inputmode="numeric" data-copt="max" data-role="' + role + '"> 人まで</span></label>' +
-        '<label class="tm-f tm-chk"><input type="checkbox" data-copt="approve" data-role="' + role + '"' + (role === 'coach' ? ' checked' : '') + '> 入る前に、わたしの承認を必要にする</label>' +
+        '<label class="tm-f tm-chk"><input type="checkbox" data-copt="approve" data-role="' + role + '" checked> 入る前に、わたしの承認を必要にする</label>' +
         (role === 'manager' ? '<label class="tm-f">入ったマネージャーが使える最後の日 <input type="date" id="rbTeamMexp" value="' + esc(isoDay(x && x.mexp || LaneTeam.schoolYearEnd())) + '"></label>' : '') +
         '<button type="button" class="btn sm tm-danger" data-tm="regen" data-role="' + role + '">🔄 コードを作り直す</button><p class="small muted">作り直すと、今のコードは使えなくなります（もう入った人はそのまま）。</p></details>';
       return h + '</div>';
@@ -988,7 +999,7 @@
     var a = [];
     if (x.exp) a.push(x.exp < Date.now() ? '期限切れ' : (new Date(x.exp).getMonth() + 1) + '/' + new Date(x.exp).getDate() + 'まで');
     if (x.max) a.push(x.used >= x.max ? '使い切り' : x.max + '人まで（あと' + Math.max(0, x.max - (x.used || 0)) + '人）');
-    if (x.approve) a.push('承認制');
+    if (x.approve) a.push('承認あり');
     return a.length ? a.join('・') : '制限なし';
   }
   function codeLimits(x) {
@@ -1113,7 +1124,7 @@
           var t = await LTu(sc.uid, sc.epoch).createTeam(nm); TM.busy = false; await switchTeam(t); status('rbTeamStatus', '✔ チームを作りました。「🔑 招待する」を開くと、ほかの顧問・マネージャーに送るコードがあります。', 'ok'); return;
         }
         if (a === 'join') {
-          var r = await LTu(sc.uid, sc.epoch).join($('rbTeamCode').value); TM.busy = false; await switchTeam(r.team); status('rbTeamStatus', '✔ 「' + esc(r.name) + '」に ' + roleLabel(r.role) + ' として入りました。', 'ok'); return;
+          var r = await LTu(sc.uid, sc.epoch).join($('rbTeamCode').value); TM.busy = false; await switchTeam(r.team); status('rbTeamStatus', joinMsg(r), 'ok'); return;
         }
         if (a === 'forget') { var sid = ''; try { sid = localStorage.getItem(teamKey(sc.uid)) || ''; } catch (x) { } if (sid) await LTu(sc.uid, sc.epoch).forget(sid); TM.busy = false; await switchTeam(''); return; }
         if (a === 'recheck') { TM.busy = false; await switchTeam(TEAM_WAIT); return; }
@@ -1232,7 +1243,7 @@
     renderBatches(); applyInference(); render();
   }
   function resetTeamState() {   // v0.26.1（C403）：前の人のチームの中身（コード・メンバー・履歴）をメモリと画面から消す
-    TEAM = null; TEAMS = []; TEAM_LOST = ''; TEAM_WAIT = ''; SAFE = { open: false, data: null }; ADMIN = false; QUAR = []; TM = { members: null, codes: null, hist: null, banned: null, busy: false, open: {} }; renderPendBan();
+    TEAM = null; TEAMS = []; TEAM_LOST = ''; TEAM_LOST_WHY = ''; TEAM_WAIT = ''; SAFE = { open: false, data: null }; ADMIN = false; QUAR = []; TM = { members: null, codes: null, hist: null, banned: null, busy: false, open: {} }; renderPendBan();
     var bx = $('rbTeam'); if (bx) { bx.innerHTML = ''; bx.hidden = true; }
   }
   async function onAuth(u) {

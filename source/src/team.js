@@ -92,7 +92,7 @@ var LaneTeam = (function () {
       b.set(d('teams', t, 'members', uid), { role: 'coach', name: myName, joinedAt: F.serverTimestamp() });
       await commit(b);
       await F.setDoc(d('users', uid, 'teams', t), { name: name, role: 'coach', at: new Date().toISOString() }); ok();
-      await regen(t, 'coach'); await regen(t, 'manager', schoolYearEnd());
+      await regen(t, 'coach', null, { approve: true }); await regen(t, 'manager', schoolYearEnd(), { approve: true });   // v0.26.63 はじめのコードも「承認あり」
       return t;
     }
     async function codes(t) {
@@ -140,6 +140,7 @@ var LaneTeam = (function () {
         if (!mine) { try { var bs = await srvDoc(d('teams', c.team, 'banned', uid)); ok(); ban = bs.exists(); } catch (e) { if (!(e && e.code === 'permission-denied')) throw e; } }
         var RL = { coach: '顧問', manager: 'マネージャー' }, e3 = null;
         if (mine && mine.role === 'pending') { e3 = new Error('このGoogleアカウントは、このチームに参加を申しこみ済みで、顧問の承認待ちです。承認されるまでお待ちください（同じコードで何度押しても変わりません）。別のアカウントで入りたいときは、ログアウトしてから入り直してください。'); e3.code = 'already-pending'; }
+        else if (mine && mine.role === 'manager' && mine.expiresAt && mine.expiresAt.toMillis && mine.expiresAt.toMillis() < Date.now()) { e3 = new Error('このGoogleアカウントは、このチームのマネージャーの期限が過ぎています。顧問に期限をのばしてもらってください（「👥 メンバー」で期限を変えられます）。'); e3.code = 'expired'; }   // v0.26.63
         else if (mine) { e3 = new Error('このGoogleアカウントは、もうこのチームに' + (RL[mine.role] || 'メンバー') + 'として入っています。チームの画面を開き直してください。役割を変えたいときは、チームの顧問に頼んでください。'); e3.code = 'already-member'; }
         else if (ban) { e3 = new Error('このGoogleアカウントは、このチームから外されています。もう一度入るには、チームの顧問に「再参加を許可」してもらってください。'); e3.code = 'banned'; }
         if (e3) throw e3;
