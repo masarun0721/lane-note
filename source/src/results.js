@@ -728,7 +728,15 @@ var ResultParser = (function () {
     var a = markValue(prevMark, ev), b = markValue(newMark, ev); if (!a || !b || a.lower !== b.lower) return null;
     return Math.round((a.lower ? a.v - b.v : b.v - a.v) * 100) / 100;
   }
-  function fmtImprovement(d, lower) { if (d == null) return ''; return (lower ? '−' : '+') + d.toFixed(2) + (lower ? '秒' : ''); }
+  // v0.26.61：時間の差（秒）の表し方を1か所に。60秒より短ければ今まで通り「0.27秒」、60秒以上は分から「2分23秒35」（秒は2けた）
+  function fmtSecDiff(d) {
+    if (d == null || !isFinite(d)) return '';
+    var c = Math.round(Math.abs(d) * 100), sg = d < 0 && c ? '-' : '';
+    if (c < 6000) return sg + (c / 100).toFixed(2) + '秒';
+    var m = Math.floor(c / 6000), ss = Math.floor(c % 6000 / 100), cc = c % 100;
+    return sg + m + '分' + (ss < 10 ? '0' : '') + ss + '秒' + (cc < 10 ? '0' : '') + cc;
+  }
+  function fmtImprovement(d, lower) { if (d == null) return ''; return (lower ? '−' + fmtSecDiff(d) : '+' + d.toFixed(2)); }
   // 各記録の PB 情報：{ flag:'PB'|'初', prev: 直前の公認ベストの記録, diff: 改善幅 }
   function pbDetails(recs) {
     var groups = {}, out = {};
@@ -1517,7 +1525,7 @@ var ResultParser = (function () {
   }
   return { dayHead: dayHead, parsePdf: parsePdf, parseCells: parseCells, goldMobileStream: goldMobileStream, parsePlain: parsePlain, textToStream: textToStream, normEvent: normEvent, markValue: markValue, recValue: recValue, padTime: padTime, viewRecord: viewRecord, windApplies: windApplies, windClass: windClass, windNum: windNum,
     computeBests: computeBests, baseEvent: baseEvent, learnGenders: learnGenders, isRelay: isRelay, relayEvent: relayEvent, relayMeta: relayMeta, relaySaveEvent: relaySaveEvent, relayTeamBase: relayTeamBase, matchRelayTeam: matchRelayTeam, parseRelayGold: parseRelayGold, parseRelayPdf: parseRelayPdf, mergeRelays: mergeRelays, legsText: legsText, parseLegs: parseLegs, relayRecord: relayRecord, pbLookup: pbLookup, nameKey: nameKey, athleteKey: athleteKey, matchSchool: matchSchool, schoolLoose: schoolLoose, cleanMark: cleanMark, isTag: isTag, canonSchool: canonSchool, cyuTeam: cyuTeam, eventShown: eventShown, teamLabel: teamLabel, teamOf: teamOf, recId: recId, recIdLegacy: recIdLegacy, recIdV6: recIdV6, identityKey: identityKey, fullIdentity: fullIdentity, looseIdentity: looseIdentity, manualRecord: manualRecord, sanitizeRecord: sanitizeRecord, validDate: validDate, normManualWind: normManualWind, dedupe: dedupe, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
-    guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText,
+    guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, fmtSecDiff: fmtSecDiff, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText,
     eventCat: eventCat, divisionOf: divisionOf, divLabel: divLabel, eventKey: eventKey, eventKeyLabel: eventKeyLabel, shownWind: shownWind, hasMark: hasMark, sortAthletes: sortAthletes, kanaKey: kanaKey,
     setGenderDefault: setGenderDefault, setDivisionHints: setDivisionHints, setMeetDivs: setMeetDivs, divSource: divSource, divisionWhy: divisionWhy, splitTeamGrade: splitTeamGrade, setPersonDivs: setPersonDivs, setRosterDivs: setRosterDivs, divConflicts: divConflicts, gradeFromEvent: gradeFromEvent, fixRecord: fixRecord, jhOnlyEvent: jhOnlyEvent, rawDivisionOf: rawDivisionOf, genderOf: genderOf, divGroup: divGroup, disciplineOrder: disciplineOrder, groupEvents: groupEvents, gendersIn: gendersIn, GROUPS: GROUPS,
     personKey: personKey, inferDivisions: inferDivisions, mapHeaders: mapHeaders, findHeaderRow: findHeaderRow, parseDateCell: parseDateCell, normImportMark: normImportMark, dupCheck: dupCheck, parseMeetPlan: parseMeetPlan, parseIcs: parseIcs, icsBytesToText: icsBytesToText, guessDiv: guessDiv, meetClass: meetClass, splitVenue: splitVenue, meetNorm: meetNorm, planKey: planKey, PLAN_TEMPLATE: PLAN_TEMPLATE, sheetEvent: sheetEvent, sheetBlocks: sheetBlocks, importBlock: importBlock, importWorkbook: importWorkbook, importRows: importRows, splitTable: splitTable, isTable: isTable, FIELD_LABELS: FIELD_LABELS, isFieldEvent: isFieldEvent };

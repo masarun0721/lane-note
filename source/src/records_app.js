@@ -799,7 +799,7 @@
     authEpoch++; resetTeamState();
     resetView();
     try { await pickTeam(USER.uid); } catch (e) { if (!isAbort(e)) status('rbTeamStatus', '✖ ' + esc(e.message), 'ng'); }
-    renderTeam(); renderAuth(); await reload(scope());
+    renderTeam(); renderAuth(); pendLoad(); await reload(scope());
   }
   function renderTeamPend() { var p = document.querySelector('#rbTeam .tm-pend'); if (p && TEAM && !TM.busy) { var n = pendingList().length, cur = +(p.getAttribute('data-n') || -1); if (cur !== n) { renderTeam(); var q = document.querySelector('#rbTeam .tm-pend'); if (q) q.setAttribute('data-n', n); } } }
   function pendingList() { return ALL.filter(function (r) { return r._st === 'pending'; }); }
@@ -874,7 +874,39 @@
       : TEAM_WAIT ? '⏳ チームの承認待ちです' : TEAM_LOST ? '⚠ 「' + esc(TEAM_LOST) + '」は今は使えません' : '👤 記録は自分だけが見られます';
     return '<div class="rb-row tm-mini">' + sel + '<span class="small">' + st + '</span> <a class="btn sub sm" href="team.html">👥 チームの設定を開く</a></div><div class="status" id="rbTeamStatus" aria-live="polite"></div>';
   }
+  /* v0.26.61：参加の承認待ち（role:'pending' のメンバー）がいるとき、顧問にだけ記録・チームのページのいちばん上に知らせる。
+     読むのは今までのメンバー一覧（顧問はもう読める）だけ。マネージャー・選手モード・承認待ちの人・大会予定のページには出さない */
+  function pendWaitN() { return TM.members ? TM.members.filter(function (m) { return m.role === 'pending'; }).length : 0; }
+  function renderPendBan() {
+    var el = $('rbPendBan'); if (!el) return;
+    var n = USER && CLOUD_READY && TEAM && TEAM.role === 'coach' && !document.body.classList.contains('ln-player') && !joinPlayer() && !document.body.classList.contains('sched-page') ? pendWaitN() : 0;
+    if (!n) { el.hidden = true; el.innerHTML = ''; return; }
+    el.innerHTML = '<span>🔔 参加の承認待ちが' + n + '人います</span><a class="btn sm" href="team.html#members" data-pendgo="1">確認する</a>'; el.hidden = false;
+  }
+  function pendLoad() {   // チームを選んだあと1回、顧問ならメンバー一覧を読む（失敗しても何も出さないだけ）
+    if (!TEAM || TEAM.role !== 'coach' || TM.members || !$('rbPendBan')) return;
+    var sc = scope(); tmLoad('members', sc).then(function () { if (sc.epoch === authEpoch) { renderTeam(); pendHash(); } }).catch(function () { });
+  }
+  async function pendOpen() {   // team.html：「👥 メンバー」を開いて、見えるところへ
+    if (!TEAM_PAGE || !TEAM) return;
+    TM.open.members = true;
+    if (!TM.members) { var sc = scope(); try { await tmLoad('members', sc); } catch (e) { if (isAbort(e)) return; } }
+    renderTeam(); var d = document.querySelector('#rbTeam details[data-tmd="members"]'); if (d) { d.open = true; d.scrollIntoView({ block: 'start', behavior: 'smooth' }); }
+  }
+  var PEND_HASH = TEAM_PAGE && location.hash === '#members';
+  function pendHash() { if (PEND_HASH && TEAM) { PEND_HASH = false; pendOpen(); } }
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('[data-pendgo]'); if (!a || !TEAM_PAGE) return;
+    e.preventDefault(); pendOpen();
+  });
+  // v0.26.61：チームに入るのは顧問とマネージャーだけ。選手には個人ページ（作るのは記録のページの「📱 選手の個人ページを作る」）
+  function whoNoteHtml() { return '<p class="small muted tm-who">👤 チームに入るのは顧問とマネージャーだけです。選手には「<a href="records.html#pp">個人ページ</a>」のリンクを配ってください（ログインなしで自分の記録だけ見られます）。</p>'; }
+  function ppHash() {   // records.html#pp：「📱 選手の個人ページを作る」を見えるところへ
+    if (TEAM_PAGE || location.hash !== '#pp') return; var bx = $('rbPPBox'); if (!bx || bx.hidden) return;
+    bx.scrollIntoView({ block: 'center' }); try { $('rbPPOpen').focus({ preventScroll: true }); } catch (e) { }
+  }
   function renderTeam() {
+    renderPendBan();
     ppRender().catch(function () { });   // v0.26.38 みんなの要項／みんなの結果のスイッチ（顧問だけ）
     var box = $('rbTeam'); if (!box) return;
     if (TEAM_PAGE) { var gate = $('tpGate'); if (gate) gate.hidden = !!(USER && CLOUD_READY); renderJoin(); }
@@ -898,6 +930,7 @@
       h += '<div class="tm-sum"><div class="tm-sum-n">👥 ' + esc(TEAM.name) + '</div><div class="tm-sum-c"><span class="tm-chip on">' + esc(me) + '</span>' + (pend.length ? '<span class="tm-chip warn">未確認 ' + pend.length + '件</span>' : '<span class="tm-chip">未確認なし</span>') + (nWait ? '<span class="tm-chip warn">承認待ち ' + nWait + '人</span>' : '') + (nMem != null ? '<span class="tm-chip">メンバー ' + nMem + '人</span>' : '') + '</div></div>';
       if (TEAM.role === 'coach' && (nMem == null || nMem <= 1)) h += '<ol class="tm-steps"><li><b>招待する</b>：下の「🔑 招待する」で、顧問・マネージャーにコードを送る</li><li><b>メンバーを確認</b>：入った人が「👥 メンバー」に出ます（承認制なら、ここで承認）</li></ol>';
       h += '<p class="tm-me small">あなたは <b>' + esc(me) + '</b>。記録の追加・修正は「変更履歴」に残り、あとから元に戻せます。' + (TEAM.role === 'manager' ? '<br>マネージャーが入れた記録は、顧問が確認するまで <span class="pend">未確認</span> と表示されます。やり取り・体調メモ・チームの設定は顧問だけが使えます。' : '') + '</p>';
+      h += whoNoteHtml();
       h += '<div class="tm-pend">' + (pend.length ? '<span class="pend">未確認</span> ' + pend.length + '件' + (TEAM.role === 'coach' ? ' <button type="button" class="btn sm" data-tm="confirmAll">内容を見て、すべて確認済みにする</button>' : '') + '<ul class="tm-plist">' + pend.slice(0, 30).map(function (r) { return '<li>' + esc(recLabel(r)) + (TEAM.role === 'coach' ? ' <button type="button" class="btn sub sm" data-tm="confirm" data-id="' + esc(r.id) + '">確認済みにする</button>' : '') + '</li>'; }).join('') + '</ul>' : '✔ 未確認の記録はありません') + '</div>';
       if (TEAM.role === 'coach') h += '<details data-tmd="codes"' + (TM.open['codes'] ? ' open' : '') + '><summary><b>🔑 招待する</b>（参加コード・顧問だけに見えます）</summary><div id="rbTeamCodes">' + codesHtml() + '</div></details>';
       h += '<details data-tmd="members"' + (TM.open['members'] ? ' open' : '') + '><summary><b>👥 メンバー</b></summary><div id="rbTeamMembers">' + membersHtml() + '</div></details>';
@@ -949,7 +982,7 @@
         '<button type="button" class="btn sm tm-danger" data-tm="regen" data-role="' + role + '">🔄 コードを作り直す</button><p class="small muted">作り直すと、今のコードは使えなくなります（もう入った人はそのまま）。</p></details>';
       return h + '</div>';
     };
-    return '<div class="tm-invs">' + card('coach', '🧑‍🏫 顧問を招待', 'すべての機能と、メンバーの管理ができます。') + card('manager', '📋 マネージャーを招待', '記録・大会の入力だけできます。期限が来ると自動で使えなくなります。') + '</div>';
+    return whoNoteHtml() + '<div class="tm-invs">' + card('coach', '🧑‍🏫 顧問を招待', 'すべての機能と、メンバーの管理ができます。') + card('manager', '📋 マネージャーを招待', '記録・大会の入力だけできます。期限が来ると自動で使えなくなります。') + '</div>';
   }
   function limitChip(x) {
     var a = [];
@@ -1199,7 +1232,7 @@
     renderBatches(); applyInference(); render();
   }
   function resetTeamState() {   // v0.26.1（C403）：前の人のチームの中身（コード・メンバー・履歴）をメモリと画面から消す
-    TEAM = null; TEAMS = []; TEAM_LOST = ''; TEAM_WAIT = ''; SAFE = { open: false, data: null }; ADMIN = false; QUAR = []; TM = { members: null, codes: null, hist: null, banned: null, busy: false, open: {} };
+    TEAM = null; TEAMS = []; TEAM_LOST = ''; TEAM_WAIT = ''; SAFE = { open: false, data: null }; ADMIN = false; QUAR = []; TM = { members: null, codes: null, hist: null, banned: null, busy: false, open: {} }; renderPendBan();
     var bx = $('rbTeam'); if (bx) { bx.innerHTML = ''; bx.hidden = true; }
   }
   async function onAuth(u) {
@@ -1214,9 +1247,9 @@
     GUEST_N = 0; renderAuth(); renderGuest();
     if (USER) { try { await checkAdmin(scope()); } catch (e) { if (isAbort(e)) return; } }
     if (USER && typeof LaneTeam !== 'undefined' && $('rbTeam')) { try { await pickTeam(USER.uid); } catch (e) { if (isAbort(e)) return; TEAM = null; renderTeam(); status('rbTeamStatus', '✖ チームを読めませんでした（自分だけの記録を出します）：' + esc(e.message), 'ng'); } if (sc0e !== authEpoch) return; }
-    renderTeam();
+    renderTeam(); pendLoad(); pendHash();
     var sc = scope();
-    try { if (sc.uid) await checkGuest(sc); await reload(sc); }
+    try { if (sc.uid) await checkGuest(sc); await reload(sc); if (sc.epoch === authEpoch) ppHash(); }
     catch (e) { if (!isAbort(e)) status('rbAuthStatus', '✖ ' + esc(e.message), 'ng'); }
     if (sc.epoch === authEpoch) renderAuth();
   }
