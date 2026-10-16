@@ -57,7 +57,7 @@
     return true;
   }
   function spark(list) {
-    var v = list.map(function (r) { var m = R.markValue ? R.markValue(r.mark) : null; return m ? m.v : parseFloat(r.mark); }).filter(function (x) { return isFinite(x); });
+    var v = list.map(function (r) { var m = R.markValue ? R.markValue(r.mark, r.event) : null; return m ? m.v : parseFloat(r.mark); }).filter(function (x) { return isFinite(x); });
     if (v.length < 2) return '';
     var lo = Math.min.apply(null, v), hi = Math.max.apply(null, v), sp = hi - lo || 1, W = 90, H = 24;
     var pts = v.map(function (x, i) { return (i * (W - 6) / (v.length - 1) + 3).toFixed(1) + ',' + (3 + (H - 6) * (1 - (x - lo) / sp)).toFixed(1); }).join(' ');

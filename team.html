@@ -1677,6 +1677,7 @@ var ResultParser = (function () {
   var STATUS = /^(DNS|DNF|DQ|NM|NR|棄権|欠場|失格|記録なし|途中棄権)$/;
   var MARK = /^(\d{1,2}:\d{2}[.:]\d{1,2}|\d{1,3}[.:]\d{2}|\d{1,2}[mｍ]\d{2}|\d{1,2}\.\d{2}m|\d{3,5}点?)$/;   // 10.47 / 4:12.34 / 5m74 / 5.74m / 4520点
   var WIND = /^[+\-±]?\d{1,2}\.\d$/;
+  var HAND = /^(\d{1,2}:\d{2}\.\d|\d{1,3}\.\d)$/;   // v0.26.57 手動計時（1/10秒）
   var PREF = /^(北海道|青森|岩手|宮城|秋田|山形|福島|茨城|栃木|群馬|埼玉|千葉|東京|神奈川|新潟|富山|石川|福井|山梨|長野|岐阜|静岡|愛知|三重|滋賀|京都|大阪|兵庫|奈良|和歌山|鳥取|島根|岡山|広島|山口|徳島|香川|愛媛|高知|福岡|佐賀|長崎|熊本|大分|宮崎|鹿児島|沖縄)$/;
   var TITLE = /(男子|女子|男|女|混合).{0,14}?(\d{2,5}\s*m\s*(H|SC|W)?|\d{2,5}\s*ｍ|走幅跳|走高跳|三段跳|棒高跳|砲丸投|円盤投|ハンマー投|やり投|ジャベリックスロー|ボール投|競歩|リレー|十種|八種|七種|四種|混成)/;
   var ROUND = /(タイムレース上位\d+位|タイムレース総合結果|タイムレース総合|ﾀｲﾑﾚｰｽ総合結果|ﾀｲﾑﾚｰｽ総合|総合結果|タイムレース|タイムレ-ス|予選|準決勝|決勝|ﾀｲﾑﾚｰｽ|オープン|順位決定)/;
@@ -1919,18 +1920,23 @@ var ResultParser = (function () {
     var out = (g + (d ? ' ' + d + ' ' : (g ? ' ' : '')) + n).trim();
     return noGender && g ? out.slice(g.length).trim() : out;
   }
-  function hasMark(r) { return !!markValue(r && r.mark); }
+  function hasMark(r) { return !!recValue(r); }
   function shownWind(r) { return hasMark(r) && windApplies(r.event) ? (r.wind || '') : ''; }   // DNS・DNF・失格などには風を出さない
   function windApplies(ev) { var d = nk(ev).replace(/\s/g, ''); return /(^|\D)(50|60|80|100|110|200)m(H|$|\()/.test(d) || /(走幅跳|三段跳)/.test(d) && !/立/.test(d); }
   // 記録の数値化：時間は秒（小さいほど良い）、距離はm（大きいほど良い）
-  function markValue(mark) {
-    var s = nk(mark || '').replace('ｍ', 'm'), m;
+  /* v0.26.57：ev（種目名）を渡すと、種目で決める。跳躍・投てき（走高跳・棒高跳も）の「5.80」「5.8」は m（速報・一覧から読んだ記録はこの形のまま保存されている）。
+     手動計時の1けた「12.1」「55.1」「2:05.3」もタイムとして読む（電気計時に直したり 0.24 を足したりはしない。値をそのまま比べる）。保存した記録は書きかえない */
+  function markValue(mark, ev) {
+    var s = nk(mark || '').replace('ｍ', 'm'), m, fld = ev != null && isFieldEvent(ev);
     if ((m = s.match(/^(\d{1,2}):(\d{2})[.:](\d{1,2})$/))) return { v: +m[1] * 60 + +m[2] + +('0.' + m[3]), lower: true };
+    if (fld && (m = s.match(/^(\d{1,2})\.(\d{1,2})$/))) return { v: +m[1] + +('0.' + m[2]), lower: false };
     if ((m = s.match(/^(\d{1,3})[.:](\d{2})$/))) return { v: +m[1] + +m[2] / 100, lower: true };
+    if ((m = s.match(/^(\d{1,3})\.(\d)$/))) return { v: +m[1] + +m[2] / 10, lower: true };   // 手動計時（1/10秒）
     if ((m = s.match(/^(\d{1,2})m(\d{2})$/)) || (m = s.match(/^(\d{1,2})\.(\d{2})m$/))) return { v: +m[1] + +m[2] / 100, lower: false };
     if ((m = s.match(/^(\d{3,5})点?$/))) return { v: +m[1], lower: false };
     return null;
   }
+  function recValue(r) { return r ? markValue(r.mark, r.event) : null; }   // v0.26.57 記録1件の値（種目で時間か距離かを決める）
   function parseGrade(s) {   // 「(3)」「(高3)」「(小6)」は学年。「(07)」のような2桁は生まれ年なので学年にしない
     var m = nk(s).match(/[(（]\s*([^()（）]*)\s*[)）]\s*$/); if (!m) return { name: s, grade: '', paren: '' };
     var p = m[1].trim(), g = /^(小|中|高|大)?[1-6]$/.test(p) ? p : '';
@@ -2224,7 +2230,7 @@ var ResultParser = (function () {
       var g = parseGrade(name);
       var mk = cleanMark(get(map.mark)), cmt = addTags(get(map.cmt), mk.tags), mark = mk.mark;
       if (!mark && STATUS.test(cmt.split(' ')[0])) { mark = cmt.split(' ')[0]; cmt = cmt.split(' ').slice(1).join(' '); }
-      var badMark = mark && !isMark(mark);
+      var badMark = mark && !isMark(mark) && !(HAND.test(mark) && !isFieldEvent(ev));   // v0.26.57 表の記録の欄の手動計時「12.1」「2:05.3」はそのまま残す（PDF は風の数字とまぎれるので今までどおり）
       var w = mk.wind != null ? mk.wind : (map.wind != null ? get(map.wind) : wind);
       if (/跳|投/.test(ev) && map.wind == null && mk.wind == null) w = '';
       if (!mark || STATUS.test(mark)) w = '';
@@ -2357,7 +2363,7 @@ var ResultParser = (function () {
       var g = groups[k].slice().sort(function (a, b) { return (a.date || '').localeCompare(b.date || '') || (a.order || 0) - (b.order || 0); });
       var best = null, bestAid = null;
       g.forEach(function (r) {
-        var mv = markValue(r.mark); if (!mv) return;
+        var mv = recValue(r); if (!mv) return;
         var wc = windClass(r);
         var better = function (b) { return !b || (mv.lower ? mv.v < b.mv.v : mv.v > b.mv.v); };
         if (wc === 'ok' || wc === 'na') {
@@ -2375,13 +2381,13 @@ var ResultParser = (function () {
   // シーズン＝学校の年度（4月〜翌3月）。2026-10-04 → 2026、2027-03-01 → 2026
   function seasonOf(date) { var m = String(date || '').match(/^(\d{4})-(\d{2})/); if (!m) return null; return +m[2] >= 4 ? +m[1] : +m[1] - 1; }
   function seasonLabel(y) { return y == null ? '' : y + '年度'; }
-  function isOfficial(r) { var w = windClass(r); return (w === 'ok' || w === 'na') && !!markValue(r.mark); }
+  function isOfficial(r) { var w = windClass(r); return (w === 'ok' || w === 'na') && !!recValue(r); }
   function gradeNum(g) { var m = nk(g || '').match(/(\d)/); return m ? +m[1] : null; }
   function isBetter(a, b) { return !b || (a.lower ? a.v < b.v : a.v > b.v); }
   function byDate(a, b) { return (a.date || '').localeCompare(b.date || '') || (a.order || 0) - (b.order || 0); }
   // 改善幅：時間は短くなった分、距離・得点は伸びた分（どちらも正の数で返す）
-  function improvement(prevMark, newMark) {
-    var a = markValue(prevMark), b = markValue(newMark); if (!a || !b || a.lower !== b.lower) return null;
+  function improvement(prevMark, newMark, ev) {
+    var a = markValue(prevMark, ev), b = markValue(newMark, ev); if (!a || !b || a.lower !== b.lower) return null;
     return Math.round((a.lower ? a.v - b.v : b.v - a.v) * 100) / 100;
   }
   function fmtImprovement(d, lower) { if (d == null) return ''; return (lower ? '−' : '+') + d.toFixed(2) + (lower ? '秒' : ''); }
@@ -2393,9 +2399,9 @@ var ResultParser = (function () {
       var best = null;
       groups[k].slice().sort(byDate).forEach(function (r) {
         if (!isOfficial(r)) return;
-        var mv = markValue(r.mark);
+        var mv = recValue(r);
         if (isBetter(mv, best && best.mv)) {
-          out[r.id] = best ? { flag: 'PB', prev: best.r, diff: improvement(best.r.mark, r.mark), lower: mv.lower } : { flag: '初', prev: null, diff: null, lower: mv.lower };
+          out[r.id] = best ? { flag: 'PB', prev: best.r, diff: improvement(best.r.mark, r.mark, r.event), lower: mv.lower } : { flag: '初', prev: null, diff: null, lower: mv.lower };
           best = { r: r, mv: mv };
         }
       });
@@ -2416,7 +2422,7 @@ var ResultParser = (function () {
         var g = groups[ev][k].slice().sort(byDate), last = g[g.length - 1], best = null;
         var gr = null; for (var i = g.length - 1; i >= 0 && gr == null; i--) gr = gradeNum(g[i].grade);
         if (opt.grade != null && gr !== opt.grade) return;
-        g.forEach(function (r) { if (isOfficial(r)) { var mv = markValue(r.mark); if (isBetter(mv, best && best.mv)) best = { r: r, mv: mv }; } });
+        g.forEach(function (r) { if (isOfficial(r)) { var mv = recValue(r); if (isBetter(mv, best && best.mv)) best = { r: r, mv: mv }; } });
         if (best) list.push({ key: k, label: eventKeyLabel(last), name: last.name || last.kana, team: teamOf(g), grade: gr, best: best.r, mv: best.mv, count: g.length });
       });
       list.sort(function (a, b) { return a.mv.lower ? a.mv.v - b.mv.v : b.mv.v - a.mv.v; });
@@ -2440,11 +2446,11 @@ var ResultParser = (function () {
     var last = mine.slice().sort(byDate)[mine.length - 1];
     var events = cb.bests.map(function (b) {
       var g = byEv[b.event].slice().sort(byDate);
-      var all = g.filter(hasMark).map(function (r) { return { date: r.date, v: markValue(r.mark).v, mark: r.mark, wind: r.wind || '', ref: !isOfficial(r), wc: windClass(r) }; });
+      var all = g.filter(hasMark).map(function (r) { return { date: r.date, v: recValue(r).v, mark: r.mark, wind: r.wind || '', ref: !isOfficial(r), wc: windClass(r) }; });
       var pts = all.filter(function (p) { return !p.ref; });
       // v0.15：記録の無い出場（DNS・DNF・DQ・NM など）もグラフの下に × で出す
       var nm = g.filter(function (r) { return !hasMark(r) && String(r.mark || '').trim(); }).map(function (r) { return { date: r.date, mark: String(r.mark).trim(), meet: r.meet || '', round: r.round || '' }; });
-      var any = g.map(function (r) { return markValue(r.mark); }).filter(Boolean)[0];
+      var any = g.map(recValue).filter(Boolean)[0];
       return { event: b.event, eventLabel: b.eventLabel, best: b.best, ref: b.ref, count: b.count, recent: g.slice().reverse().slice(0, 5), points: pts, allPoints: all, noMarks: nm, lower: any ? any.lower : true };
     }).sort(function (a, b) { return a.event < b.event ? -1 : a.event > b.event ? 1 : 0; });
     return { key: key, name: last.name || last.kana, kana: last.kana, team: teamOf(mine), grade: last.grade, events: events, count: mine.length };
@@ -2685,7 +2691,7 @@ var ResultParser = (function () {
       if (!date) probs.push('日付');
       if (!r.name) probs.push('氏名');
       if (!r.event) probs.push('種目');
-      if (!r.mark) probs.push('記録'); else if (!markValue(r.mark) && !STATUS.test(r.mark)) probs.push('記録の形（「' + r.mark + '」）');
+      if (!r.mark) probs.push('記録'); else if (!markValue(r.mark, r.event) && !STATUS.test(r.mark)) probs.push('記録の形（「' + r.mark + '」）');
       r.warn = probs.join('・');
       if (probs.length) bad.push(r); else recs.push(r);
     }
@@ -3050,7 +3056,7 @@ var ResultParser = (function () {
   /* v0.26.27 取り込む前の重複の確かめ：recs を、もう入っている記録 have（と、この取り込みの前の行）と比べる。
      'dup'＝入力済み（同じ人・種目・日付・記録）、'maybe'＝重複かも（同じ人・種目・記録で日付か大会名が違う／無い、または同じ日・種目で記録が違う）、''＝新しい記録 */
   function dupCheck(recs, have) {
-    var ek = function (r) { return eventKey(r).replace(/男子|女子|混合/g, ''); }, mv = function (r) { var m = markValue(r.mark); return m ? String(m.v) : nk(String(r.mark || '')).trim(); };
+    var ek = function (r) { return eventKey(r).replace(/男子|女子|混合/g, ''); }, mv = function (r) { var m = recValue(r); return m ? String(m.v) : nk(String(r.mark || '')).trim(); };
     var idx = {}, add = function (r) { var k = nameKey(r.name || '') + '|' + ek(r); (idx[k] = idx[k] || []).push({ date: r.date || '', meet: nk(String(r.meet || '')).replace(/\s+/g, ''), mv: mv(r) }); };
     (have || []).forEach(add);
     return (recs || []).map(function (r) {
@@ -3170,7 +3176,7 @@ var ResultParser = (function () {
     out.sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
     return { rows: out, cal: cal, err: out.length ? '' : '予定（VEVENT）がありません' };
   }
-  return { dayHead: dayHead, parsePdf: parsePdf, parseCells: parseCells, goldMobileStream: goldMobileStream, parsePlain: parsePlain, textToStream: textToStream, normEvent: normEvent, markValue: markValue, windApplies: windApplies, windClass: windClass, windNum: windNum,
+  return { dayHead: dayHead, parsePdf: parsePdf, parseCells: parseCells, goldMobileStream: goldMobileStream, parsePlain: parsePlain, textToStream: textToStream, normEvent: normEvent, markValue: markValue, recValue: recValue, windApplies: windApplies, windClass: windClass, windNum: windNum,
     computeBests: computeBests, baseEvent: baseEvent, learnGenders: learnGenders, isRelay: isRelay, relayEvent: relayEvent, relayMeta: relayMeta, relaySaveEvent: relaySaveEvent, relayTeamBase: relayTeamBase, matchRelayTeam: matchRelayTeam, parseRelayGold: parseRelayGold, parseRelayPdf: parseRelayPdf, mergeRelays: mergeRelays, legsText: legsText, parseLegs: parseLegs, relayRecord: relayRecord, pbLookup: pbLookup, nameKey: nameKey, athleteKey: athleteKey, matchSchool: matchSchool, schoolLoose: schoolLoose, cleanMark: cleanMark, isTag: isTag, canonSchool: canonSchool, cyuTeam: cyuTeam, eventShown: eventShown, teamLabel: teamLabel, teamOf: teamOf, recId: recId, recIdLegacy: recIdLegacy, recIdV6: recIdV6, identityKey: identityKey, fullIdentity: fullIdentity, looseIdentity: looseIdentity, manualRecord: manualRecord, sanitizeRecord: sanitizeRecord, validDate: validDate, normManualWind: normManualWind, dedupe: dedupe, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
     guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText,
     eventCat: eventCat, divisionOf: divisionOf, divLabel: divLabel, eventKey: eventKey, eventKeyLabel: eventKeyLabel, shownWind: shownWind, hasMark: hasMark, sortAthletes: sortAthletes, kanaKey: kanaKey,
@@ -3234,7 +3240,7 @@ if (typeof module !== 'undefined') module.exports = LaneRoster;
 
 </script>
 <script>
-var APP_VERSION = "v0.26.56", REC_VERSION = "v0.11.1";
+var APP_VERSION = "v0.26.57", REC_VERSION = "v0.11.1";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>
@@ -4025,7 +4031,7 @@ var LanePrint = (function () {
     var pbd = R.pbDetails(hist), names = {}, nPB = 0, nFirst = 0, hl = [];
     function prevOf(r) {
       var k = R.athleteKey(r), ek = R.eventKey(r), best = null;
-      hist.forEach(function (x) { if (x.id !== r.id && R.athleteKey(x) === k && R.eventKey(x) === ek && R.markValue(x.mark) && (x.date || '') < (r.date || '') && (!best || x.date > best.date || x.date === best.date && (x.order || 0) > (best.order || 0))) best = x; });
+      hist.forEach(function (x) { if (x.id !== r.id && R.athleteKey(x) === k && R.eventKey(x) === ek && R.markValue(x.mark, x.event) && (x.date || '') < (r.date || '') && (!best || x.date > best.date || x.date === best.date && (x.order || 0) > (best.order || 0))) best = x; });
       return best;
     }
     recs.forEach(function (r) { names[R.athleteKey(r)] = 1; var p = pbd[r.id]; if (p && p.flag === 'PB') { nPB++; hl.push({ r: r, p: p }); } else if (p) nFirst++; });
@@ -4045,9 +4051,9 @@ var LanePrint = (function () {
       R.groupEvents(evs, recs, o.nog).forEach(function (g) {
         body += '<div class="lp-div">' + esc(g.group) + '</div><div class="lp-boxes">';
         g.items.forEach(function (it) {
-          var rs = recs.filter(function (r) { return R.eventKey(r) === it.key; }).sort(function (a, b) { var va = R.markValue(a.mark), vb = R.markValue(b.mark); if (!va !== !vb) return va ? -1 : 1; if (va && vb && va.v !== vb.v) return va.lower ? va.v - vb.v : vb.v - va.v; return (a.order || 0) - (b.order || 0); });
+          var rs = recs.filter(function (r) { return R.eventKey(r) === it.key; }).sort(function (a, b) { var va = R.markValue(a.mark, a.event), vb = R.markValue(b.mark, b.event); if (!va !== !vb) return va ? -1 : 1; if (va && vb && va.v !== vb.v) return va.lower ? va.v - vb.v : vb.v - va.v; return (a.order || 0) - (b.order || 0); });
           body += '<div class="lp-box"><div class="lp-boxh"><span>' + esc(it.label) + '</span><em>' + rs.length + '人</em></div><table class="lp-bt"><thead><tr><th>氏名</th><th class="lp-c">学年</th><th class="lp-r">記録</th><th class="lp-r">風</th><th class="lp-c">順位</th></tr></thead><tbody>' + rs.map(function (r) {
-            var p = pbd[r.id], mv = R.markValue(r.mark);
+            var p = pbd[r.id], mv = R.markValue(r.mark, r.event);
             return '<tr class="' + (!mv ? 'lp-nm' : p && p.flag === 'PB' ? 'lp-pb' : '') + '"><td class="lp-nmn">' + esc(r.name) + '</td><td class="lp-c">' + esc(r.grade ? r.grade + '年' : '') + '</td><td class="lp-r lp-mkc"><b class="lp-mk">' + esc(r.mark) + '</b>' + (mv ? bdg(p) : '') + '</td><td class="lp-num lp-r">' + wind(R, r) + '</td><td class="lp-num lp-c">' + esc(r.rank) + '</td></tr>';
           }).join('') + '</tbody></table></div>';
         });
@@ -4103,7 +4109,7 @@ var LaneReview = (function () {
     var best = null;
     mine.forEach(function (r) {
       if (R.eventKey(r) !== ev || !okDay(r.date) || r.date >= from || !R.isOfficial(r)) return;
-      var mv = R.markValue(r.mark); if (!best || (mv.lower ? mv.v < best.mv.v : mv.v > best.mv.v)) best = { r: r, mv: mv };
+      var mv = R.markValue(r.mark, r.event); if (!best || (mv.lower ? mv.v < best.mv.v : mv.v > best.mv.v)) best = { r: r, mv: mv };
     });
     return best && best.r;
   }
@@ -4149,7 +4155,7 @@ var LaneReview = (function () {
       nPB += e.pbN; if (e.first) nFirst++;
       e.prev = prevBest(R, mine, e.event, from);
       e.before = mine.some(function (r) { return R.eventKey(r) === e.event && okDay(r.date) && r.date < from; });
-      e.diff = e.best && e.prev ? R.improvement(e.prev.mark, e.best.mark) : null;
+      e.diff = e.best && e.prev ? R.improvement(e.prev.mark, e.best.mark, e.best.event) : null;
       e.n = rs.length;
     });
     // 出た大会：同じ名前の大会（何日かある大会）は1つにまとめる
@@ -4172,7 +4178,7 @@ var LaneReview = (function () {
   function windTxt(R, r) { var w = R.shownWind(r); return w ? '風' + w : ''; }
   function vsCell(R, e) {
     if (!e.best) return e.ref ? '<span class="rv-muted">公認の記録はまだありません</span>' : '<span class="rv-muted">記録なし</span>';
-    var lower = (R.markValue(e.best.mark) || {}).lower;
+    var lower = (R.markValue(e.best.mark, e.best.event) || {}).lower;
     if (e.prev) {   // v0.26.55 「今シーズンの伸び」→ v0.26.56「昨年度からの伸び」：昨年度まで（期間より前）の公認ベスト → 伸び。数字は前と同じ計算
       var was = '昨年度まで ' + esc(e.prev.mark);
       if (e.diff > 0) return '<span class="rv-up">' + was + ' → ' + esc(gap(e.diff, lower)) + 'アップ</span><small>自己ベスト更新（前は ' + esc(sd(e.prev.date)) + '）</small>';
@@ -5105,7 +5111,7 @@ var LaneSuspect = (function () {
   // 1件の記録のおかしさ（なければ ''）
   function markWhy(R, r) {
     var m = sq(r.mark); if (!m || NOMARK.test(m)) return '';
-    var mv = R.markValue(r.mark); if (!mv) return '記録を読めません（「' + nk(r.mark).trim() + '」）';
+    var mv = R.markValue(r.mark, r.event); if (!mv) return '記録を読めません（「' + nk(r.mark).trim() + '」）';
     var b = bounds(R, r); if (!b) return '';
     if (b.field && /[:：′'"″]/.test(m)) return '跳躍・投てきなのに時間の形です';
     if (!b.field && /\dm\d|m$/i.test(m)) return '走る種目なのに長さの形です';
@@ -5118,7 +5124,8 @@ var LaneSuspect = (function () {
   function roundKey(s) { return sq(s).replace(/ﾀｲﾑﾚｰｽ|TR/gi, 'タイムレース').replace(/[（(].*?[)）]/g, ''); }
   function who(R, r) { return R.isRelay(r.event || '') ? 'R:' + sq(r.team) + '|' + sq(r.legs || '') : R.athleteKey(r); }
   function groupKey(R, r) { return [who(R, r), r.date || '', R.eventKey(r), roundKey(r.round)].join('|'); }
-  function markKey(r) { return sq(r.mark).toUpperCase(); }
+  // v0.26.57 読める記録は値でくらべる（走幅跳の「5.80」と「5m80」、「12.1」と「12.10」は同じ記録）
+  function markKey(R, r) { var v = R.markValue(r.mark, r.event); return v ? '#' + Math.round(v.v * 100) + (v.lower ? 't' : 'd') : sq(r.mark).toUpperCase(); }
   function inPlans(plans, r) {
     var n = sq(r.meet), ps = (plans || []).filter(function (p) { return p && sq(p.meet) === n && p.date; });
     if (!ps.length || !r.date) return true;
@@ -5136,12 +5143,12 @@ var LaneSuspect = (function () {
     Object.keys(g).forEach(function (k) {
       var a = g[k], seen = {}; a = a.filter(function (r) { if (seen[r.id]) return false; seen[r.id] = 1; return true; });   // 同じ ID は同じ記録（重ねて保存されない）
       if (a.length < 2) return;
-      var rk = roundKey(a[0].round), byM = {};
-      a.forEach(function (r) { var m = markKey(r); (byM[m] = byM[m] || []).push(r); });
-      Object.keys(byM).forEach(function (m) { if (byM[m].length > 1) out.push({ type: 'dup', recs: byM[m], why: '同じ日・同じ種目' + (rk ? '・同じラウンド' : '') + 'で、記録（' + (m || '空') + '）も同じです' + (sameMeet(byM[m]) ? '' : '（大会名がちがいます）') }); });
+      var rk = roundKey(a[0].round), byM = {}, shown = {};
+      a.forEach(function (r) { var m = markKey(R, r); if (!(m in shown)) shown[m] = sq(r.mark).toUpperCase(); (byM[m] = byM[m] || []).push(r); });
+      Object.keys(byM).forEach(function (m) { if (byM[m].length > 1) out.push({ type: 'dup', recs: byM[m], why: '同じ日・同じ種目' + (rk ? '・同じラウンド' : '') + 'で、記録（' + (shown[m] || '空') + '）も同じです' + (sameMeet(byM[m]) ? '' : '（大会名がちがいます）') }); });
       var ms = Object.keys(byM);
       // ちがう記録：ラウンドが書いてないときは、組がそろっているときだけ（予選と決勝を取りちがえない）
-      if (ms.length > 1 && (rk || a.every(function (r) { return sq(r.heat) === sq(a[0].heat); }))) out.push({ type: 'conflict', recs: a, why: '同じ日・同じ種目' + (rk ? '・同じラウンド（' + nk(a[0].round).trim() + '）' : '') + 'なのに、記録が ' + ms.map(function (m) { return m || '空'; }).join('・') + ' とちがいます' });
+      if (ms.length > 1 && (rk || a.every(function (r) { return sq(r.heat) === sq(a[0].heat); }))) out.push({ type: 'conflict', recs: a, why: '同じ日・同じ種目' + (rk ? '・同じラウンド（' + nk(a[0].round).trim() + '）' : '') + 'なのに、記録が ' + ms.map(function (m) { return shown[m] || '空'; }).join('・') + ' とちがいます' });
     });
     return out;
   }
@@ -5929,7 +5936,7 @@ var LanePdf = (function () {
     var last = rs.slice().sort(function (a, b) { return cmp(a.date, b.date); }).pop() || {};
     var h = '<details class="card rl-home"' + (RL.open || RL.edit ? ' open' : '') + ' data-rl-d="1"><summary><b>🏃 リレーの記録</b>（' + rs.length + '件）</summary>';
     h += Object.keys(by).sort().map(function (k) {
-      var l = by[k].slice().sort(function (a, b) { var x = R.markValue(a.mark), y = R.markValue(b.mark); return (x ? x.v : 1e9) - (y ? y.v : 1e9) || cmp(b.date, a.date); });
+      var l = by[k].slice().sort(function (a, b) { var x = R.markValue(a.mark, a.event), y = R.markValue(b.mark, b.event); return (x ? x.v : 1e9) - (y ? y.v : 1e9) || cmp(b.date, a.date); });
       return '<h4 class="rl-ev">' + esc(k) + '</h4><ol class="rl-list">' + l.map(function (r, i) { var p = R.parseLegs(r.legs); return '<li><b class="lmk">' + esc(r.mark) + '</b>' + (i === 0 ? ' <span class="pbt">チーム最高</span>' : '') + ' <span class="small muted">' + esc(r.date) + ' ' + esc(r.meet) + (r.round ? ' ' + esc(r.round) : '') + (r.rank !== '' && r.rank != null ? ' ' + esc(r.rank) + '位' : '') + '</span><br><span class="small">' + (p.length ? p.map(function (n, j) { return '<span class="rl-leg">' + (j + 1) + '走 ' + esc(n || '？') + '</span>'; }).join(' → ') : '<span class="muted">走順なし</span>') + '</span> <button type="button" class="btn sub sm" data-relay="edit" data-id="' + esc(r.id) + '">✏️ 直す</button></li>'; }).join('') + '</ol>';
     }).join('');
     h += '<div class="rl-form"><p class="small"><b>' + (ed ? '✏️ リレーの記録を直す' : '➕ リレーの記録を入れる') + '</b>（走順の名前は、記録にある選手から選べます）</p><div class="rb-row">' +
@@ -8136,7 +8143,7 @@ var LanePdf = (function () {
   }
   function windTag(r) { return (r && r._st === 'pending' ? '<span class="pend" title="マネージャーが入れた記録。顧問が確認すると消えます">未確認</span>' : '') + windTag0(r); }
   function windTag0(r) { if (!R.hasMark(r)) return ''; var w = R.windClass(r); return w === 'aid' ? '<span class="ref">追参</span>' : w === 'unk' && !/^[A-Z棄失欠]/.test(r.mark) ? '<span class="unk">風?</span>' : ''; }
-  function mv(r) { var m = r && R.markValue(r.mark); return m ? (m.lower ? m.v : -m.v) : 1e9; }
+  function mv(r) { var m = r && R.markValue(r.mark, r.event); return m ? (m.lower ? m.v : -m.v) : 1e9; }
   function cmp(a, b) { return a < b ? -1 : a > b ? 1 : 0; }
   function sortRows(rows, key, defs) {
     var s = sort[key]; if (!s) return rows;

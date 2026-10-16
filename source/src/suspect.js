@@ -35,7 +35,7 @@ var LaneSuspect = (function () {
   // 1件の記録のおかしさ（なければ ''）
   function markWhy(R, r) {
     var m = sq(r.mark); if (!m || NOMARK.test(m)) return '';
-    var mv = R.markValue(r.mark); if (!mv) return '記録を読めません（「' + nk(r.mark).trim() + '」）';
+    var mv = R.markValue(r.mark, r.event); if (!mv) return '記録を読めません（「' + nk(r.mark).trim() + '」）';
     var b = bounds(R, r); if (!b) return '';
     if (b.field && /[:：′'"″]/.test(m)) return '跳躍・投てきなのに時間の形です';
     if (!b.field && /\dm\d|m$/i.test(m)) return '走る種目なのに長さの形です';
@@ -48,7 +48,8 @@ var LaneSuspect = (function () {
   function roundKey(s) { return sq(s).replace(/ﾀｲﾑﾚｰｽ|TR/gi, 'タイムレース').replace(/[（(].*?[)）]/g, ''); }
   function who(R, r) { return R.isRelay(r.event || '') ? 'R:' + sq(r.team) + '|' + sq(r.legs || '') : R.athleteKey(r); }
   function groupKey(R, r) { return [who(R, r), r.date || '', R.eventKey(r), roundKey(r.round)].join('|'); }
-  function markKey(r) { return sq(r.mark).toUpperCase(); }
+  // v0.26.57 読める記録は値でくらべる（走幅跳の「5.80」と「5m80」、「12.1」と「12.10」は同じ記録）
+  function markKey(R, r) { var v = R.markValue(r.mark, r.event); return v ? '#' + Math.round(v.v * 100) + (v.lower ? 't' : 'd') : sq(r.mark).toUpperCase(); }
   function inPlans(plans, r) {
     var n = sq(r.meet), ps = (plans || []).filter(function (p) { return p && sq(p.meet) === n && p.date; });
     if (!ps.length || !r.date) return true;
@@ -66,12 +67,12 @@ var LaneSuspect = (function () {
     Object.keys(g).forEach(function (k) {
       var a = g[k], seen = {}; a = a.filter(function (r) { if (seen[r.id]) return false; seen[r.id] = 1; return true; });   // 同じ ID は同じ記録（重ねて保存されない）
       if (a.length < 2) return;
-      var rk = roundKey(a[0].round), byM = {};
-      a.forEach(function (r) { var m = markKey(r); (byM[m] = byM[m] || []).push(r); });
-      Object.keys(byM).forEach(function (m) { if (byM[m].length > 1) out.push({ type: 'dup', recs: byM[m], why: '同じ日・同じ種目' + (rk ? '・同じラウンド' : '') + 'で、記録（' + (m || '空') + '）も同じです' + (sameMeet(byM[m]) ? '' : '（大会名がちがいます）') }); });
+      var rk = roundKey(a[0].round), byM = {}, shown = {};
+      a.forEach(function (r) { var m = markKey(R, r); if (!(m in shown)) shown[m] = sq(r.mark).toUpperCase(); (byM[m] = byM[m] || []).push(r); });
+      Object.keys(byM).forEach(function (m) { if (byM[m].length > 1) out.push({ type: 'dup', recs: byM[m], why: '同じ日・同じ種目' + (rk ? '・同じラウンド' : '') + 'で、記録（' + (shown[m] || '空') + '）も同じです' + (sameMeet(byM[m]) ? '' : '（大会名がちがいます）') }); });
       var ms = Object.keys(byM);
       // ちがう記録：ラウンドが書いてないときは、組がそろっているときだけ（予選と決勝を取りちがえない）
-      if (ms.length > 1 && (rk || a.every(function (r) { return sq(r.heat) === sq(a[0].heat); }))) out.push({ type: 'conflict', recs: a, why: '同じ日・同じ種目' + (rk ? '・同じラウンド（' + nk(a[0].round).trim() + '）' : '') + 'なのに、記録が ' + ms.map(function (m) { return m || '空'; }).join('・') + ' とちがいます' });
+      if (ms.length > 1 && (rk || a.every(function (r) { return sq(r.heat) === sq(a[0].heat); }))) out.push({ type: 'conflict', recs: a, why: '同じ日・同じ種目' + (rk ? '・同じラウンド（' + nk(a[0].round).trim() + '）' : '') + 'なのに、記録が ' + ms.map(function (m) { return shown[m] || '空'; }).join('・') + ' とちがいます' });
     });
     return out;
   }

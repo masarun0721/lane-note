@@ -531,7 +531,7 @@
     var last = rs.slice().sort(function (a, b) { return cmp(a.date, b.date); }).pop() || {};
     var h = '<details class="card rl-home"' + (RL.open || RL.edit ? ' open' : '') + ' data-rl-d="1"><summary><b>🏃 リレーの記録</b>（' + rs.length + '件）</summary>';
     h += Object.keys(by).sort().map(function (k) {
-      var l = by[k].slice().sort(function (a, b) { var x = R.markValue(a.mark), y = R.markValue(b.mark); return (x ? x.v : 1e9) - (y ? y.v : 1e9) || cmp(b.date, a.date); });
+      var l = by[k].slice().sort(function (a, b) { var x = R.markValue(a.mark, a.event), y = R.markValue(b.mark, b.event); return (x ? x.v : 1e9) - (y ? y.v : 1e9) || cmp(b.date, a.date); });
       return '<h4 class="rl-ev">' + esc(k) + '</h4><ol class="rl-list">' + l.map(function (r, i) { var p = R.parseLegs(r.legs); return '<li><b class="lmk">' + esc(r.mark) + '</b>' + (i === 0 ? ' <span class="pbt">チーム最高</span>' : '') + ' <span class="small muted">' + esc(r.date) + ' ' + esc(r.meet) + (r.round ? ' ' + esc(r.round) : '') + (r.rank !== '' && r.rank != null ? ' ' + esc(r.rank) + '位' : '') + '</span><br><span class="small">' + (p.length ? p.map(function (n, j) { return '<span class="rl-leg">' + (j + 1) + '走 ' + esc(n || '？') + '</span>'; }).join(' → ') : '<span class="muted">走順なし</span>') + '</span> <button type="button" class="btn sub sm" data-relay="edit" data-id="' + esc(r.id) + '">✏️ 直す</button></li>'; }).join('') + '</ol>';
     }).join('');
     h += '<div class="rl-form"><p class="small"><b>' + (ed ? '✏️ リレーの記録を直す' : '➕ リレーの記録を入れる') + '</b>（走順の名前は、記録にある選手から選べます）</p><div class="rb-row">' +
@@ -2738,7 +2738,7 @@
   }
   function windTag(r) { return (r && r._st === 'pending' ? '<span class="pend" title="マネージャーが入れた記録。顧問が確認すると消えます">未確認</span>' : '') + windTag0(r); }
   function windTag0(r) { if (!R.hasMark(r)) return ''; var w = R.windClass(r); return w === 'aid' ? '<span class="ref">追参</span>' : w === 'unk' && !/^[A-Z棄失欠]/.test(r.mark) ? '<span class="unk">風?</span>' : ''; }
-  function mv(r) { var m = r && R.markValue(r.mark); return m ? (m.lower ? m.v : -m.v) : 1e9; }
+  function mv(r) { var m = r && R.markValue(r.mark, r.event); return m ? (m.lower ? m.v : -m.v) : 1e9; }
   function cmp(a, b) { return a < b ? -1 : a > b ? 1 : 0; }
   function sortRows(rows, key, defs) {
     var s = sort[key]; if (!s) return rows;

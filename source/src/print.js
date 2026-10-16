@@ -91,7 +91,7 @@ var LanePrint = (function () {
     var pbd = R.pbDetails(hist), names = {}, nPB = 0, nFirst = 0, hl = [];
     function prevOf(r) {
       var k = R.athleteKey(r), ek = R.eventKey(r), best = null;
-      hist.forEach(function (x) { if (x.id !== r.id && R.athleteKey(x) === k && R.eventKey(x) === ek && R.markValue(x.mark) && (x.date || '') < (r.date || '') && (!best || x.date > best.date || x.date === best.date && (x.order || 0) > (best.order || 0))) best = x; });
+      hist.forEach(function (x) { if (x.id !== r.id && R.athleteKey(x) === k && R.eventKey(x) === ek && R.markValue(x.mark, x.event) && (x.date || '') < (r.date || '') && (!best || x.date > best.date || x.date === best.date && (x.order || 0) > (best.order || 0))) best = x; });
       return best;
     }
     recs.forEach(function (r) { names[R.athleteKey(r)] = 1; var p = pbd[r.id]; if (p && p.flag === 'PB') { nPB++; hl.push({ r: r, p: p }); } else if (p) nFirst++; });
@@ -111,9 +111,9 @@ var LanePrint = (function () {
       R.groupEvents(evs, recs, o.nog).forEach(function (g) {
         body += '<div class="lp-div">' + esc(g.group) + '</div><div class="lp-boxes">';
         g.items.forEach(function (it) {
-          var rs = recs.filter(function (r) { return R.eventKey(r) === it.key; }).sort(function (a, b) { var va = R.markValue(a.mark), vb = R.markValue(b.mark); if (!va !== !vb) return va ? -1 : 1; if (va && vb && va.v !== vb.v) return va.lower ? va.v - vb.v : vb.v - va.v; return (a.order || 0) - (b.order || 0); });
+          var rs = recs.filter(function (r) { return R.eventKey(r) === it.key; }).sort(function (a, b) { var va = R.markValue(a.mark, a.event), vb = R.markValue(b.mark, b.event); if (!va !== !vb) return va ? -1 : 1; if (va && vb && va.v !== vb.v) return va.lower ? va.v - vb.v : vb.v - va.v; return (a.order || 0) - (b.order || 0); });
           body += '<div class="lp-box"><div class="lp-boxh"><span>' + esc(it.label) + '</span><em>' + rs.length + '人</em></div><table class="lp-bt"><thead><tr><th>氏名</th><th class="lp-c">学年</th><th class="lp-r">記録</th><th class="lp-r">風</th><th class="lp-c">順位</th></tr></thead><tbody>' + rs.map(function (r) {
-            var p = pbd[r.id], mv = R.markValue(r.mark);
+            var p = pbd[r.id], mv = R.markValue(r.mark, r.event);
             return '<tr class="' + (!mv ? 'lp-nm' : p && p.flag === 'PB' ? 'lp-pb' : '') + '"><td class="lp-nmn">' + esc(r.name) + '</td><td class="lp-c">' + esc(r.grade ? r.grade + '年' : '') + '</td><td class="lp-r lp-mkc"><b class="lp-mk">' + esc(r.mark) + '</b>' + (mv ? bdg(p) : '') + '</td><td class="lp-num lp-r">' + wind(R, r) + '</td><td class="lp-num lp-c">' + esc(r.rank) + '</td></tr>';
           }).join('') + '</tbody></table></div>';
         });

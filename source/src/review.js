@@ -37,7 +37,7 @@ var LaneReview = (function () {
     var best = null;
     mine.forEach(function (r) {
       if (R.eventKey(r) !== ev || !okDay(r.date) || r.date >= from || !R.isOfficial(r)) return;
-      var mv = R.markValue(r.mark); if (!best || (mv.lower ? mv.v < best.mv.v : mv.v > best.mv.v)) best = { r: r, mv: mv };
+      var mv = R.markValue(r.mark, r.event); if (!best || (mv.lower ? mv.v < best.mv.v : mv.v > best.mv.v)) best = { r: r, mv: mv };
     });
     return best && best.r;
   }
@@ -83,7 +83,7 @@ var LaneReview = (function () {
       nPB += e.pbN; if (e.first) nFirst++;
       e.prev = prevBest(R, mine, e.event, from);
       e.before = mine.some(function (r) { return R.eventKey(r) === e.event && okDay(r.date) && r.date < from; });
-      e.diff = e.best && e.prev ? R.improvement(e.prev.mark, e.best.mark) : null;
+      e.diff = e.best && e.prev ? R.improvement(e.prev.mark, e.best.mark, e.best.event) : null;
       e.n = rs.length;
     });
     // 出た大会：同じ名前の大会（何日かある大会）は1つにまとめる
@@ -106,7 +106,7 @@ var LaneReview = (function () {
   function windTxt(R, r) { var w = R.shownWind(r); return w ? '風' + w : ''; }
   function vsCell(R, e) {
     if (!e.best) return e.ref ? '<span class="rv-muted">公認の記録はまだありません</span>' : '<span class="rv-muted">記録なし</span>';
-    var lower = (R.markValue(e.best.mark) || {}).lower;
+    var lower = (R.markValue(e.best.mark, e.best.event) || {}).lower;
     if (e.prev) {   // v0.26.55 「今シーズンの伸び」→ v0.26.56「昨年度からの伸び」：昨年度まで（期間より前）の公認ベスト → 伸び。数字は前と同じ計算
       var was = '昨年度まで ' + esc(e.prev.mark);
       if (e.diff > 0) return '<span class="rv-up">' + was + ' → ' + esc(gap(e.diff, lower)) + 'アップ</span><small>自己ベスト更新（前は ' + esc(sd(e.prev.date)) + '）</small>';
