@@ -2140,6 +2140,7 @@
     if (p.retry) delete p.retry[kind];
     p.docs[kind] = Object.assign(d, cd.here ? { here: 1 } : {}); prepLocalSave(true); prepBar(note);
     if (kind === 'yoko' && url) await pubMaybe(p, d.url).catch(function (e) { pubMsg('✖ みんなの要項に登録できませんでした：' + esc(e.message)); });
+    else if (kind === 'yoko') await pubSuggest(p).catch(function () { });   // v0.26.65：ファイルで入れた要項は登録されないことを知らせる
   }
   /* ===== v0.26.35 みんなの要項（学校をこえて、公開の大会要項のURLを分け合う）=====
    * 登録：顧問だけ・URLから読んだ要項だけ（ファイルの中身は登録しない）・最初の1回だけ「登録するか」を聞く（先生ごとにやめられる）
@@ -2173,7 +2174,8 @@
   }
   function pubShow(p, ms, head) {
     var b = pubBox(); if (!b) return; p.pubList = ms;
-    b.innerHTML = (head ? '<div>' + head + '</div>' : '<div>📚 <b>みんなの要項</b>：ほかの学校の先生が登録した、この大会の要項があります。</div>') + '<ul class="pub-list">' + ms.map(function (e, i) {
+    var allMine = ms.length && ms.every(function (e) { return e.by === p.owner.uid; });   // v0.26.65：自分の登録だけなら「ほかの先生」とは書かない
+    b.innerHTML = (head ? '<div>' + head + '</div>' : allMine ? '<div>' + PUB_MINE + '</div>' : '<div>📚 <b>みんなの要項</b>：ほかの学校の先生が登録した、この大会の要項があります。</div>') + '<ul class="pub-list">' + ms.map(function (e, i) {
       return '<li><b>' + esc(e.name) + '</b>（' + esc(e.date) + (e.venue ? '・' + esc(e.venue) : '') + '）<br><small class="muted">' + esc(LanePub.srcText(e)) + '</small> ' +
         '<a href="' + esc(e.url) + '" target="_blank" rel="noopener noreferrer">ページを見る</a> ' +
         (head ? '' : '<button type="button" class="btn small" data-pubuse="' + i + '">この要項を使う</button> ') +
@@ -2182,12 +2184,27 @@
   }
   function PUB_INC(ms) { return '<small class="warn">⚠ 検索の一部を取得できませんでした（' + esc(ms.reason || '') + '）。ほかにも登録があるかもしれません。</small> <button type="button" class="btn sub small" data-pubretry="1">もう一度さがす</button>'; }
   document.addEventListener('click', function (ev) { var t = ev.target; if (t && t.dataset && t.dataset.pubretry && PREP) { var b = pubBox(); if (b) b.innerHTML = ''; pubSuggest(PREP).catch(function () { }); } });
+  // v0.26.65：大会予定から開いた大会で、みんなの要項に登録がないときも、機能があることを小さく知らせる（チームの顧問・登録をやめていない人だけ）
+  var PUB_NONE = '📚 みんなの要項：この大会はまだ登録がありません。要項をURLから読むと、ほかの学校の先生も使えるように登録できます。';
+  var PUB_FILE = 'ファイルで入れた要項は登録されません（URLから読むと登録できます）';
+  var PUB_MINE = '📚 この大会の要項は、あなたが『みんなの要項』に登録済みです。';
   async function pubSuggest(p) {
-    var api = pubApi(p); if (!api || p.docs.yoko) return;
-    var ms = []; try { ms = await api.search(p.p); } catch (e) { return; } if (!prepLive(p) || p.docs.yoko) return;
+    var api = pubApi(p), y = p.docs.yoko; if (!api) return;
+    if (y && (!p.owner.team || p.pubFrom)) return;   // 要項があるときは、チームの顧問に登録の状態を知らせるだけ（みんなの要項から読んだものは、読んだときに出典を出している）
+    var ms = []; try { ms = await api.search(p.p); } catch (e) { return; } if (!prepLive(p) || p.docs.yoko !== y) return;
+    if (y) return pubNote(p, api, ms, y);
     // v0.26.43（監査 C604）：0件でも、検索の一部が失敗していたら「ない」とは言わずに再試行を出す
-    if (!ms.length) { if (ms.incomplete) { var b = pubBox(); if (b) b.innerHTML = '<div>📚 <b>みんなの要項</b>：' + PUB_INC(ms) + '</div>'; } return; }
+    if (!ms.length) { if (ms.incomplete) { var b = pubBox(); if (b) b.innerHTML = '<div>📚 <b>みんなの要項</b>：' + PUB_INC(ms) + '</div>'; return; } return pubNote(p, api, ms, null); }
     pubShow(p, ms);   // v0.26.39（監査 C509）：自動では読み込まない。「この要項を使う」を押したときだけ
+  }
+  // v0.26.65：登録の状態の1行（今までの検索・顧問の確認・登録するかの設定を読むだけ。書かない）
+  async function pubNote(p, api, ms, y) {
+    if (!p.owner.team || !(await api.isCoach(p.owner.team))) return;
+    var on = await api.pref(); if (on === false || !prepLive(p) || (p.docs.yoko || null) !== (y || null)) return;   // 「これからは登録しない」にした人には出さない
+    var mine = ms.filter(function (e) { return e.by === p.owner.uid; });
+    if (mine.length) { if (y) pubShow(p, mine, PUB_MINE); return; }   // 要項がないときは pubShow（自分の登録だけなら同じ見出し・「この要項を使う」つき）
+    if (ms.length || ms.incomplete || (y && y.url)) return;   // ほかの先生の登録がある・検索の一部が失敗・URLから読んだ（登録は pubMaybe が知らせる）
+    pubMsg('<small class="muted pub-none" id="pubNone">' + esc(PUB_NONE) + (y ? '<br>' + esc(PUB_FILE) : '') + '</small>');
   }
   document.addEventListener('click', function (ev) {
     var t = ev.target, p = PREP, i; if (!t || !t.dataset || !p) return;
