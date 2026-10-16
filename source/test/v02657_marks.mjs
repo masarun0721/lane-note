@@ -1,9 +1,9 @@
-// v0.26.57 記録の読み方：跳躍・投てきの「5.80」（m の無い距離）は種目で距離として読む・手動計時「12.1」もタイムとして読む。架空データのみ。
+// v0.26.57 記録の読み方：跳躍・投てきの「5.80」（m の無い距離）は種目で距離として読む・小数1けたの「12.1」もタイムとして読む。架空データのみ。
 import assert from 'node:assert/strict'; import {createRequire} from 'node:module';
 const req = createRequire(import.meta.url), R = req('../src/results.js'); globalThis.ResultParser = R;
 const P = req('../src/print.js'); globalThis.LanePrint = P; const V = req('../src/review.js'), S = req('../src/suspect.js');
 let pass = 0, fail = 0; async function check(n, f) { try { await f(); pass++; console.log('  ok', n); } catch (e) { fail++; console.log('  NG', n, '\n    ', e && e.stack || e); } }
-console.log('[v0.26.57] 記録の読み方（距離の「5.80」・手動計時の「12.1」）');
+console.log('[v0.26.57] 記録の読み方（距離の「5.80」・小数1けたの「12.1」）');
 const rec = o => { const r = Object.assign({ meet: '架空区大会', date: '2026-06-01', event: '男子走幅跳', round: '決勝', heat: '', name: '架空 一郎', kana: '', grade: '2', team: '架空中', mark: '5.80', wind: '+0.5', bib: '', lane: '', rank: 1, comment: '' }, o); r.id = R.recId(r.meet, r.date, r); return r; };
 const mv = (m, ev) => { const x = R.markValue(m, ev); return x && [Math.round(x.v * 100) / 100, x.lower]; };
 
@@ -17,7 +17,7 @@ await check('種目を渡すと、跳躍・投てき（走高跳・棒高跳も�
   assert.deepEqual(mv('6012', '男子八種競技'), [6012, false]); assert.deepEqual(mv('4520点', '女子四種競技'), [4520, false]); assert.equal(R.markValue('580cm', '男子走幅跳'), null, 'cm は前から読まない');
   assert.deepEqual(mv('614', '男子走幅跳'), [614, false], '「614」は前と同じ（得点の形・怪しい記録の「単位がcm」で出す）');
 });
-await check('手動計時：12.1 / 55.1 / 2:05.3 はタイム。電気計時に直さない（0.24 を足さない）。12.1 と 12.05 は値のままくらべる', () => {
+await check('小数1けた：12.1 / 55.1 / 2:05.3 はタイム（12.10 と同じ値）。12.1 と 12.05 は値のままくらべる', () => {
   assert.deepEqual(mv('12.1', '男子100m'), [12.1, true]); assert.deepEqual(mv('55.1', '男子400m'), [55.1, true]); assert.deepEqual(mv('2:05.3', '男子800m'), [125.3, true]); assert.deepEqual(mv('12.1'), [12.1, true]);
   for (const m of ['NM', 'DNS', 'DQ', 'NR', '記録なし', '×××', '4分12秒3', '11"25', '12.']) assert.equal(R.markValue(m, '男子100m'), null, m);
   const a = rec({ event: '男子100m', mark: '12.1', date: '2026-05-01', meet: '春の記録会' }), b = rec({ event: '男子100m', mark: '12.05', date: '2026-06-01' });
@@ -51,17 +51,17 @@ await check('大会まとめ（印刷）：走幅跳は遠い順・PBの印', ()
   const i1 = bx.indexOf('試験 三郎'), i2 = bx.indexOf('架空 一郎'), i3 = bx.indexOf('見本 二郎'); assert(i1 > 0 && i1 < i2 && i2 < i3, '6m02 → 5.80 → 5.40 の順');
   assert.match(s, /PB \+0\.30/);
 });
-await check('怪しい記録チェック：走幅跳の「5.80」は時間あつかいしない。「5.80」と「5m80」は二重（記録がちがう、にしない）。手動計時「12.1」は読める', () => {
+await check('怪しい記録チェック：走幅跳の「5.80」は時間あつかいしない。「5.80」と「5m80」は二重（記録がちがう、にしない）。小数1けたの「12.1」は読める', () => {
   assert.equal(S.markWhy(R, rec({ mark: '5.80' })), ''); assert.equal(S.markWhy(R, rec({ event: '男子走高跳', mark: '1.75' })), '');
   assert.equal(S.markWhy(R, rec({ event: '男子100m', mark: '12.1' })), ''); assert.equal(S.markWhy(R, rec({ event: '男子800m', mark: '2:05.3' })), '');
   assert.match(S.markWhy(R, rec({ event: '男子走幅跳', mark: '2:05.30' })), /時間の形/);
   const L = S.scan(R, [rec({ mark: '5.80' }), rec({ mark: '5m80', meet: '架空区大会（速報）' })], {}); assert.deepEqual(L.map(x => x.type), ['dup']); assert.match(L[0].why, /記録（5\.80）も同じ/);
   const L2 = S.scan(R, [rec({ mark: '5.80' }), rec({ mark: '5m90', meet: '別' })], {}); assert.deepEqual(L2.map(x => x.type), ['conflict']); assert.match(L2[0].why, /5\.80・5M90|5M90・5\.80/);
 });
-await check('取り込み（表・貼り付け・HTML）：手動計時「12.1」は残す（前は記録を消していた）。距離の「5.80」は書きかえずに保存。「11\"25」などは今までどおり読めない', () => {
+await check('取り込み（表・貼り付け・HTML）：「12.1」は消さずに「12.10」で残す（前は記録を消していた）。距離の「5.80」は書きかえずに保存。「11\"25」などは今までどおり読めない', () => {
   const txt = '男子走幅跳 決勝\n順位\t氏名\t所属\t記録\t風\n1\t架空 一郎(2)\t架空中\t5.80\t+1.2\n2\t見本 二郎(2)\t架空中\t5m60\t+0.3\n男子100m 決勝\n順位\t氏名\t所属\t記録\t風\n1\t架空 三郎(2)\t架空中\t12.1\t+0.5\n2\t架空 四郎(2)\t架空中\t11"25\t+0.5\n3\t架空 五郎(2)\t架空中\t12.15\t+0.5\n';
   const o = R.parsePlain(txt, {}), m = Object.fromEntries(o.recs.map(r => [r.name, r]));
-  assert.equal(m['架空 一郎'].mark, '5.80'); assert.equal(m['見本 二郎'].mark, '5m60'); assert.equal(m['架空 三郎'].mark, '12.1'); assert.equal(m['架空 三郎'].warn, '');
+  assert.equal(m['架空 一郎'].mark, '5.80'); assert.equal(m['見本 二郎'].mark, '5m60'); assert.equal(m['架空 三郎'].mark, '12.10'); assert.equal(m['架空 三郎'].warn, '');
   assert.equal(m['架空 五郎'].mark, '12.15'); assert.equal(m['架空 四郎'].mark, ''); assert.match(m['架空 四郎'].warn, /記録の形/);
   const o2 = R.parsePlain('男子走幅跳 決勝\n順位\t氏名\t所属\t記録\t風\n1\t架空 一郎(2)\t架空中\t5.8\t+1.2\n', {}); assert.equal(o2.recs[0].mark, '', '跳躍の1けた「5.8」は前と同じ（読まない）');
 });

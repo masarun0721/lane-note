@@ -6,7 +6,7 @@ var ResultParser = (function () {
   var STATUS = /^(DNS|DNF|DQ|NM|NR|棄権|欠場|失格|記録なし|途中棄権)$/;
   var MARK = /^(\d{1,2}:\d{2}[.:]\d{1,2}|\d{1,3}[.:]\d{2}|\d{1,2}[mｍ]\d{2}|\d{1,2}\.\d{2}m|\d{3,5}点?)$/;   // 10.47 / 4:12.34 / 5m74 / 5.74m / 4520点
   var WIND = /^[+\-±]?\d{1,2}\.\d$/;
-  var HAND = /^(\d{1,2}:\d{2}\.\d|\d{1,3}\.\d)$/;   // v0.26.57 手動計時（1/10秒）
+  var HAND = /^(\d{1,2}:\d{2}\.\d|\d{1,3}\.\d)$/;   // v0.26.57 小数1けたのタイム（12.1・2:05.3）
   var PREF = /^(北海道|青森|岩手|宮城|秋田|山形|福島|茨城|栃木|群馬|埼玉|千葉|東京|神奈川|新潟|富山|石川|福井|山梨|長野|岐阜|静岡|愛知|三重|滋賀|京都|大阪|兵庫|奈良|和歌山|鳥取|島根|岡山|広島|山口|徳島|香川|愛媛|高知|福岡|佐賀|長崎|熊本|大分|宮崎|鹿児島|沖縄)$/;
   var TITLE = /(男子|女子|男|女|混合).{0,14}?(\d{2,5}\s*m\s*(H|SC|W)?|\d{2,5}\s*ｍ|走幅跳|走高跳|三段跳|棒高跳|砲丸投|円盤投|ハンマー投|やり投|ジャベリックスロー|ボール投|競歩|リレー|十種|八種|七種|四種|混成)/;
   var ROUND = /(タイムレース上位\d+位|タイムレース総合結果|タイムレース総合|ﾀｲﾑﾚｰｽ総合結果|ﾀｲﾑﾚｰｽ総合|総合結果|タイムレース|タイムレ-ス|予選|準決勝|決勝|ﾀｲﾑﾚｰｽ|オープン|順位決定)/;
@@ -254,17 +254,25 @@ var ResultParser = (function () {
   function windApplies(ev) { var d = nk(ev).replace(/\s/g, ''); return /(^|\D)(50|60|80|100|110|200)m(H|$|\()/.test(d) || /(走幅跳|三段跳)/.test(d) && !/立/.test(d); }
   // 記録の数値化：時間は秒（小さいほど良い）、距離はm（大きいほど良い）
   /* v0.26.57：ev（種目名）を渡すと、種目で決める。跳躍・投てき（走高跳・棒高跳も）の「5.80」「5.8」は m（速報・一覧から読んだ記録はこの形のまま保存されている）。
-     手動計時の1けた「12.1」「55.1」「2:05.3」もタイムとして読む（電気計時に直したり 0.24 を足したりはしない。値をそのまま比べる）。保存した記録は書きかえない */
+     小数1けたの「12.1」「55.1」「2:05.3」もタイムとして読む（12.10 と同じ値。表示は padTime で2けたにそろえる）。保存した記録は書きかえない */
   function markValue(mark, ev) {
     var s = nk(mark || '').replace('ｍ', 'm'), m, fld = ev != null && isFieldEvent(ev);
     if ((m = s.match(/^(\d{1,2}):(\d{2})[.:](\d{1,2})$/))) return { v: +m[1] * 60 + +m[2] + +('0.' + m[3]), lower: true };
     if (fld && (m = s.match(/^(\d{1,2})\.(\d{1,2})$/))) return { v: +m[1] + +('0.' + m[2]), lower: false };
     if ((m = s.match(/^(\d{1,3})[.:](\d{2})$/))) return { v: +m[1] + +m[2] / 100, lower: true };
-    if ((m = s.match(/^(\d{1,3})\.(\d)$/))) return { v: +m[1] + +m[2] / 10, lower: true };   // 手動計時（1/10秒）
+    if ((m = s.match(/^(\d{1,3})\.(\d)$/))) return { v: +m[1] + +m[2] / 10, lower: true };   // 小数1けた（12.1 ＝ 12.10）
     if ((m = s.match(/^(\d{1,2})m(\d{2})$/)) || (m = s.match(/^(\d{1,2})\.(\d{2})m$/))) return { v: +m[1] + +m[2] / 100, lower: false };
     if ((m = s.match(/^(\d{3,5})点?$/))) return { v: +m[1], lower: false };
     return null;
   }
+  /* v0.26.58 走る種目の小数1けたの記録を2けたにそろえる（11.8 → 11.80、2:05.3 → 2:05.30）。1件ずつ入れる・Excel と同じ。跳躍・投てきはそのまま */
+  function padTime(mark, ev) {
+    if (mark == null || isFieldEvent(ev || '')) return mark;
+    var t = nk(String(mark)).trim();
+    return /^(\d{1,2}:\d{2}|\d{1,3})\.\d$/.test(t) ? t + '0' : mark;
+  }
+  // 画面・印刷に出すための記録（保存した記録は書きかえない。そろえたときだけ写しを返す）
+  function viewRecord(r) { if (!r || r.mark == null) return r; var m = padTime(r.mark, r.event); return m === r.mark ? r : Object.assign({}, r, { mark: m }); }
   function recValue(r) { return r ? markValue(r.mark, r.event) : null; }   // v0.26.57 記録1件の値（種目で時間か距離かを決める）
   function parseGrade(s) {   // 「(3)」「(高3)」「(小6)」は学年。「(07)」のような2桁は生まれ年なので学年にしない
     var m = nk(s).match(/[(（]\s*([^()（）]*)\s*[)）]\s*$/); if (!m) return { name: s, grade: '', paren: '' };
@@ -480,7 +488,7 @@ var ResultParser = (function () {
             if (w == null && wev && !/走幅跳|三段跳|跳|投/.test(ev)) w = wev.v;
             var g = parseGrade(kanji || '');
             if (STATUS.test(mark) || !mark) w = null;
-            var r = { event: nk(ev).replace(/\s+/g, ' ').trim(), round: round, heat: hev ? hev.v : '', rank: rank ? +rank.n : '', lane: lane ? +lane.n : '', bib: a.n, name: g.name || kanji, kana: kana, grade: g.grade, team: team, mark: mark, wind: w != null ? String(nk(w)).replace('±', '') : '', comment: cmt, page: pi + 1 };
+            var r = { event: nk(ev).replace(/\s+/g, ' ').trim(), round: round, heat: hev ? hev.v : '', rank: rank ? +rank.n : '', lane: lane ? +lane.n : '', bib: a.n, name: g.name || kanji, kana: kana, grade: g.grade, team: team, mark: padTime(mark, ev), wind: w != null ? String(nk(w)).replace('±', '') : '', comment: cmt, page: pi + 1 };
             if (day) r.dday = day;
             if (opt.school && !matchSchool(r.team, opt.school)) return;
             var probs = [];
@@ -559,7 +567,8 @@ var ResultParser = (function () {
       var g = parseGrade(name);
       var mk = cleanMark(get(map.mark)), cmt = addTags(get(map.cmt), mk.tags), mark = mk.mark;
       if (!mark && STATUS.test(cmt.split(' ')[0])) { mark = cmt.split(' ')[0]; cmt = cmt.split(' ').slice(1).join(' '); }
-      var badMark = mark && !isMark(mark) && !(HAND.test(mark) && !isFieldEvent(ev));   // v0.26.57 表の記録の欄の手動計時「12.1」「2:05.3」はそのまま残す（PDF は風の数字とまぎれるので今までどおり）
+      if (HAND.test(mark) && !isFieldEvent(ev)) mark = padTime(mark, ev);   // v0.26.57/58 表の記録の欄の「12.1」「2:05.3」は消さずに「12.10」「2:05.30」にそろえる（PDF は風の数字とまぎれるので今までどおり）
+      var badMark = mark && !isMark(mark);
       var w = mk.wind != null ? mk.wind : (map.wind != null ? get(map.wind) : wind);
       if (/跳|投/.test(ev) && map.wind == null && mk.wind == null) w = '';
       if (!mark || STATUS.test(mark)) w = '';
@@ -995,6 +1004,7 @@ var ResultParser = (function () {
     }
     t = t.replace(/^(\d{1,2})分(\d{1,2})秒?(\d{1,2})$/, '$1:$2.$3').replace(/^(\d{1,2})'(\d{2})"(\d{1,2})$/, '$1:$2.$3');
     if (/^\d+\.\d$/.test(t)) t += '0';
+    if (!isFieldEvent(ev) && /^\d{1,2}:\d{2}\.\d$/.test(t)) t += '0';   // v0.26.58 2:05.3 → 2:05.30
     if (isFieldEvent(ev) && /^\d{1,2}\.\d{2}$/.test(t)) t = t.replace('.', 'm');
     return t;
   }
@@ -1505,7 +1515,7 @@ var ResultParser = (function () {
     out.sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
     return { rows: out, cal: cal, err: out.length ? '' : '予定（VEVENT）がありません' };
   }
-  return { dayHead: dayHead, parsePdf: parsePdf, parseCells: parseCells, goldMobileStream: goldMobileStream, parsePlain: parsePlain, textToStream: textToStream, normEvent: normEvent, markValue: markValue, recValue: recValue, windApplies: windApplies, windClass: windClass, windNum: windNum,
+  return { dayHead: dayHead, parsePdf: parsePdf, parseCells: parseCells, goldMobileStream: goldMobileStream, parsePlain: parsePlain, textToStream: textToStream, normEvent: normEvent, markValue: markValue, recValue: recValue, padTime: padTime, viewRecord: viewRecord, windApplies: windApplies, windClass: windClass, windNum: windNum,
     computeBests: computeBests, baseEvent: baseEvent, learnGenders: learnGenders, isRelay: isRelay, relayEvent: relayEvent, relayMeta: relayMeta, relaySaveEvent: relaySaveEvent, relayTeamBase: relayTeamBase, matchRelayTeam: matchRelayTeam, parseRelayGold: parseRelayGold, parseRelayPdf: parseRelayPdf, mergeRelays: mergeRelays, legsText: legsText, parseLegs: parseLegs, relayRecord: relayRecord, pbLookup: pbLookup, nameKey: nameKey, athleteKey: athleteKey, matchSchool: matchSchool, schoolLoose: schoolLoose, cleanMark: cleanMark, isTag: isTag, canonSchool: canonSchool, cyuTeam: cyuTeam, eventShown: eventShown, teamLabel: teamLabel, teamOf: teamOf, recId: recId, recIdLegacy: recIdLegacy, recIdV6: recIdV6, identityKey: identityKey, fullIdentity: fullIdentity, looseIdentity: looseIdentity, manualRecord: manualRecord, sanitizeRecord: sanitizeRecord, validDate: validDate, normManualWind: normManualWind, dedupe: dedupe, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
     guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText,
     eventCat: eventCat, divisionOf: divisionOf, divLabel: divLabel, eventKey: eventKey, eventKeyLabel: eventKeyLabel, shownWind: shownWind, hasMark: hasMark, sortAthletes: sortAthletes, kanaKey: kanaKey,

@@ -660,6 +660,7 @@
     list.forEach(function (r0) {
       var r = Object.assign({}, r0), tg = R.fixRecord(r);
       if (tg.changed) { r.team = tg.team; r.grade = tg.grade; r.event = tg.event; }   // v0.26.34「本郷・3」→ 所属「本郷」・学年「3」
+      var pm = R.padTime(r.mark, r.event); if (pm !== r.mark) { r.mark = pm; r.id = R.recId(r.meet, r.date, r); }   // v0.26.58 走る種目の「11.8」は「11.80」で保存（どの入れ方でも）
       var fi = R.fullIdentity(r);
       if (hasOwn(full, fi)) return;                                  // 同じ記録
       // v0.26.49（C1105）学年別のリレー（「男子1年4×100mR」）：v0.26.48 までは学年を落として「男子4×100mR」で保存していた。その記録があれば同じ記録（取り込み直しで二重にしない）
@@ -2713,7 +2714,8 @@
     if (sc.epoch !== authEpoch) return;
     var ros; try { ros = typeof LaneRoster === 'undefined' ? [] : await loadRoster(sc); } catch (e) { if (isAbort(e)) return; ros = []; }
     if (sc.epoch !== authEpoch) return;
-    ALL = list; METS = side.mets; DIV_OV = side.ov; MODE = md; ROSTER = ros; applyModeUi();
+    ALL = list.map(R.viewRecord); METS = side.mets;   // v0.26.58 「11.8」のような前の記録は「11.80」で見せる（保存した記録は書きかえない）
+    DIV_OV = side.ov; MODE = md; ROSTER = ros; applyModeUi();
     applyInference(); render(); if (CLOUD_READY) renderAuth();
     if (!YB.busy && $('rbYear') && $('rbYear').open) ybRender();
     impKick(); prepSweep(sc).then(function () { if (sc.epoch === authEpoch) planList(); }, function () { });
