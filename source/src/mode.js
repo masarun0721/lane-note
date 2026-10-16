@@ -72,7 +72,7 @@ var LaneMode = (function () {
     var h = '';
     // v0.26.23：マネージャーとしてチームに入っていて、ログインしている人だけ（記録のページが付けた印）。モードは切りかえずに記録のページへ
     var mh = null; try { mh = JSON.parse(localStorage.getItem('lanenote.mgrhint.v1') || 'null'); } catch (e) { }
-    if (mh && mh.uid && mh.at && Date.now() - mh.at < 60 * 864e5) h += '<section class="ph-card ph-mgr"><a class="ph-btn" id="phMgr" href="records.html">📋 マネージャーの記録へ</a><p class="ph-sub">選手モードのまま、マネージャーとしてチームの記録を開きます。記録のページの上の「👟 選手のホームへ戻る」で、ここに戻れます。</p></section>';
+    if (mh && mh.uid && mh.at && Date.now() - mh.at < 60 * 864e5) h += '<section class="ph-card ph-mgr"><a class="ph-btn" id="phMgr" href="records.html">📋 マネージャーの記録へ</a><p class="ph-sub" data-xp="">選手モードのまま、マネージャーとしてチームの記録を開きます。記録のページの上の「👟 選手のホームへ戻る」で、ここに戻れます。</p></section>';
     // 1 次の大会
     h += '<section class="ph-card"><h3>📅 次の大会の予定・招集</h3>';
     if (up.length) {
@@ -80,7 +80,7 @@ var LaneMode = (function () {
       h += '<a class="ph-next" href="' + esc(n.L.url) + '"><span class="ph-meet">' + esc(n.o.n || '大会') + '</span><span class="ph-date">' + esc([n.o.d, n.o.pl].filter(Boolean).join('・')) + '</span>' +
         '<span class="ph-times">' + (call ? '<span><small>最初の招集</small><b>' + esc(call.t) + '</b><em>' + esc(call.label) + '</em></span>' : '') + (race ? '<span><small>最初の競技</small><b>' + esc(race.t) + '</b><em>' + esc(race.label) + '</em></span>' : '') + '</span><span class="ph-open">予定を開く →</span></a>';
       if (up.length > 1) h += '<ul class="ph-list">' + up.slice(1, 6).map(function (m) { return '<li><a href="' + esc(m.L.url) + '">' + esc(m.o.n || '大会') + '<small>' + esc(m.o.d || '') + '</small></a></li>'; }).join('') + '</ul>';
-    } else h += '<p class="ph-empty">まだありません。先生から「大会当日の予定」のリンクをもらって開くと、ここに出ます。</p>';
+    } else h += '<p class="ph-empty">まだありません <span data-xp="">先生から「大会当日の予定」のリンクをもらって開くと、ここに出ます。</span></p>';
     h += '</section>';
     // v0.26.30 これからの大会：先生のリンク（大会当日の予定・個人ページ）に入っている予定。いちばん新しいリンクのもの（ほかのリンクにしかない大会も足す）
     if (typeof LanePlans !== 'undefined') {
@@ -95,7 +95,7 @@ var LaneMode = (function () {
       var p = pps[0];
       h += '<p class="ph-sub">' + esc(p.o.a.name) + ' さん・' + esc(LanePersonal.snapLabel(p.o.g)) + '時点</p><ul class="ph-pbs">' + p.o.e.slice(0, 8).map(function (e) { var b = e.b || e.rf; return '<li><span>' + esc(e.l) + '</span><b>' + esc(b ? b[0] : '—') + '</b></li>'; }).join('') + '</ul>' +
         '<a class="ph-btn" href="' + esc(p.L.url) + '">📈 グラフと最近の記録を見る</a>';
-    } else h += '<p class="ph-empty">まだありません。先生から「個人ページ」のリンクをもらって開くと、ここに出ます。自分で記録をつけるなら、下の「自分の記録をつける」へ。</p>';
+    } else h += '<p class="ph-empty">まだありません <span data-xp="">先生から「個人ページ」のリンクをもらって開くと、ここに出ます。自分で記録をつけるなら、下の「自分の記録をつける」へ。</span></p>';
     h += '</section>';
     // 3 先生とのやり取り（先生がオンにしているときだけ。LaneTalk が中身を入れる）
     h += '<section class="ph-card" id="phTalk" hidden></section>';
@@ -103,14 +103,14 @@ var LaneMode = (function () {
     h += '<section class="ph-card"><h3>📝 体調メモ</h3><div id="phCond">' + LanePersonal.condFormHtml(td, '今日の体調') + '</div>' +
       (LanePersonal.cList().length ? '<ul class="ph-cdlist">' + LanePersonal.cList().slice(0, 5).map(function (x) { return '<li><b>' + esc(LanePersonal.mdLabel(x.d)) + '</b> ' + LanePersonal.condBadge(x.c) + '</li>'; }).join('') + '</ul>' : '') + '</section>';
     // 5 自分の記録
-    h += '<section class="ph-card"><h3>📒 自分の記録をつける</h3><p class="ph-sub">大会の結果PDFやWebページから、自分の記録だけを取り込みます（「個人で使う」）。ログインしなくても、このスマホに保存できます。</p><a class="ph-btn" href="records.html?me=1">📒 自分の記録をつける・見る</a></section>';
+    h += '<section class="ph-card"><h3>📒 自分の記録をつける</h3><p class="ph-sub" data-xp="" data-xp-at="h3">大会の結果PDFやWebページから、自分の記録だけを取り込みます（「個人で使う」）。ログインしなくても、このスマホに保存できます。</p><a class="ph-btn" href="records.html?me=1">📒 自分の記録をつける・見る</a></section>';
     // 6 もらったリンク
     h += '<section class="ph-card"><h3>🔗 もらったリンク</h3>' + (links.length ? '<ul class="ph-links">' + links.map(function (L) {
       var o = (pps.concat(meets).filter(function (x) { return x.L.id === L.id; })[0] || {}).o || {};
       var t = L.kind === 'pp' ? '🏅 個人ページ' + (o.a ? '（' + o.a.name + '）' : '') : '📅 ' + (o.n || '大会当日の予定') + (o.d ? '（' + o.d + '）' : '');
-      return '<li><a href="' + esc(L.url) + '">' + esc(t) + '</a><button type="button" class="ph-x" data-phforget="' + esc(L.id) + '" aria-label="このリンクをスマホから削除">削除</button></li>'; }).join('') + '</ul>' : '<p class="ph-empty">先生からもらったリンクは、一度開くと自動でここに保存されます。</p>') +
+      return '<li><a href="' + esc(L.url) + '">' + esc(t) + '</a><button type="button" class="ph-x" data-phforget="' + esc(L.id) + '" aria-label="このリンクをスマホから削除">削除</button></li>'; }).join('') + '</ul>' : '<p class="ph-empty">まだありません <span data-xp="">先生からもらったリンクは、一度開くと自動でここに保存されます。</span></p>') +
       '<div class="ph-paste"><input type="url" id="phUrl" placeholder="もらったリンクをここに貼る" aria-label="もらったリンク"><button type="button" class="ph-btn sm" id="phGo">開いて保存</button></div><div class="ph-msg" id="phMsg" role="status"></div></section>';
-    h += '<p class="ph-foot">🔒 この画面の内容は、このスマホの中だけに保存しています。<br><button type="button" class="ph-link danger" id="phWipe">🗑 この端末から全部消す（共用のスマホを返す前に）</button><br><button type="button" class="ph-link" data-pickmode="1">🧑‍🏫 顧問・コーチの画面に切りかえる</button></p>';
+    h += '<p class="ph-foot">🔒 このスマホだけに保存 <span data-xp="">この画面の内容は、このスマホの中だけに保存しています。共用のスマホを返す前に「この端末から全部消す」で消してください。</span><br><button type="button" class="ph-link danger" id="phWipe">🗑 この端末から全部消す（共用のスマホを返す前に）</button><br><button type="button" class="ph-link" data-pickmode="1">🧑‍🏫 顧問・コーチの画面に切りかえる</button></p>';
     box.innerHTML = h;
     LanePersonal.bindCond($('phCond'), function () { });
     box.querySelectorAll('[data-phforget]').forEach(function (b) { b.addEventListener('click', function () { if (!confirm('このリンクを、このスマホから削除しますか？（もう一度開けば、また保存されます）')) return; forget(b.getAttribute('data-phforget')); renderHome(); }); });

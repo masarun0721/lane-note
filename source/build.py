@@ -13,7 +13,7 @@ import base64, hashlib, html as htmlmod, json, pathlib, re, sys
 ROOT = pathlib.Path(__file__).resolve().parent
 S = ROOT / 'src'
 SHARE_BASE = 'https://masarun0721.github.io/lane-note/'   # 共有リンク・QRの公開アドレス（file:// で開いたとき用）
-VERSION = 'v0.26.55'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
+VERSION = 'v0.26.56'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
 # 作成日は版番号から取れないので固定（ビルドした日で変わると、公開時の一致検査ができないため）
 BUILD_DATE = '2026年10月12日'
 REC_VERSION = 'v0.11.1'   # LANE LOG（records.html）だけの版
@@ -82,7 +82,11 @@ def build():
     trial = build_try()
     # v0.26.10：全ページの見出しに「3分体験」「チーム」（チームは選手モードでは出さない）。チームの設定は team.html（記録のページと同じ部品で、チームの欄だけを出す）
     html, rec, chk = [with_nav(x.replace('__TOPBAR__', ''), c) for x, c in ((html, 'index'), (rec, 'records'), (chk, 'check'))]
+    # v0.27（案）説明は「？」の中へ：大会準備・記録（チーム・大会予定も）のページに小さな部品を入れる
+    tips = '<script>\n' + text('src/tips.js') + '\n</script>\n'
+    html, rec, chk = [x[:x.rindex('</body>')] + tips + x[x.rindex('</body>'):] for x in (html, rec, chk)]
     guide = with_nav(guide, 'guide').replace('__TOPBAR__', '').replace('__CHANGELOG__', changelog_html()).replace('__FBSCRIPTS__', fb_scripts())
+    guide = guide[:guide.rindex('</body>')] + tips + guide[guide.rindex('</body>'):]
     # 3分体験は Firebase・中継を読み込まない（v0.26.6）。「不具合・要望を送る」は記録のページで開く（?fb=1）
     trial = with_nav(trial, 'try').replace('__TOPBAR__', '').replace('__FBSCRIPTS__', '')
     trial = trial.replace('<button type="button" class="tb-btn fb-link" data-feedback="1" data-tb="feedback">🚨 不具合・要望を送る</button>', '<a href="records.html?fb=1" class="tb-btn fb-link" data-tb="feedback">🚨 不具合・要望を送る</a>', 1)
@@ -169,7 +173,7 @@ def buttons_html():
     def chip(sid, t):
         it = [x for x in scr[sid]['items'] if x['t'] == t][0]
         return '<span class="%s bx-chip" aria-hidden="true">%s</span>' % (E(it['c']), E(t))
-    out = ['<section class="box g-card" id="manual"><h2>📖 マニュアル</h2><p>LANE NOTE で「何ができるか」を、やりたいこと別にまとめました。まず自分に近いものを選んでください。下には、画面ごとのボタンの説明があります。絵は架空のデータで撮った実際の画面です（押すと大きく表示）。</p>',
+    out = ['<section class="box g-card" id="manual"><h2>📖 マニュアル</h2><p data-xp="" data-xp-at="h2">LANE NOTE で「何ができるか」を、やりたいこと別にまとめました。まず自分に近いものを選んでください。下には、画面ごとのボタンの説明があります。絵は架空のデータで撮った実際の画面です（押すと大きく表示）。</p>',
            '<h3>こんなときに使えます</h3><nav class="bx-toc" aria-label="やりたいこと">']
     out += ['<a href="#u%d">%s</a>' % (i + 1, E(u['q'])) for i, u in enumerate(data['purposes'])]
     out.append('</nav><h3>画面ごとのボタン</h3><nav class="bx-toc" aria-label="画面ごとの目次">')

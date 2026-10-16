@@ -40,7 +40,7 @@ var LanePersonal = (function () {
   function condFormHtml(d, title) {
     var c = cGet(d) || {};
     return '<div class="cd-box" data-cdday="' + esc(d) + '"><h3>' + esc(title || '体調メモ') + '</h3>' +
-      '<div class="cd-priv">' + PRIV + '</div>' +
+      '<div class="cd-priv">🔒 このスマホだけに保存（先生には見えません） <span data-xp="">' + PRIV + '</span></div>' +
       '<div class="cd-lab">体調（5段階）</div><div class="cd-faces" role="radiogroup" aria-label="体調">' + [1, 2, 3, 4, 5].map(function (n) { return '<button type="button" class="cd-f' + (c.s === n ? ' on' : '') + '" data-cds="' + n + '" aria-pressed="' + (c.s === n) + '" aria-label="' + FWORD[n] + '"><span>' + FACES[n] + '</span><small>' + n + '</small></button>'; }).join('') + '</div>' +
       '<div class="cd-row"><label>睡眠時間 <input type="number" inputmode="decimal" min="0" max="24" step="0.5" class="cd-sl" value="' + (c.sl != null ? esc(c.sl) : '') + '"> 時間</label></div>' +
       '<div class="cd-row"><input type="text" class="cd-m" maxlength="100" placeholder="ひとことメモ（例：足が軽かった）" value="' + esc(c.m || '') + '" aria-label="ひとことメモ"></div>' +

@@ -63,7 +63,7 @@ async function page(o = {}) {
   Object.assign(w, { TextEncoder, TextDecoder, Response, Blob, File }); w.indexedDB = new IDBFactory(); w.fetch = () => Promise.reject(new Error('no network'));
   if (o.player) w.localStorage.setItem('lanenote.mode.v1', 'player');
   if (o.mets) w.localStorage.setItem('lanenote-rec-meets', JSON.stringify(o.mets));
-  for (const s of ['auth_common.js', 'mode.js', 'results.js', 'roster.js', 'team.js', 'plans.js', 'urlload.js', 'pubmeets.js', 'prepdel.js', 'yearbuild.js', 'suspect.js', 'print.js', 'review.js']) { try { w.eval(src(s)); } catch (e) { if (s !== 'mode.js') throw e; } }
+  for (const s of ['auth_common.js', 'mode.js', 'results.js', 'roster.js', 'team.js', 'plans.js', 'urlload.js', 'pubmeets.js', 'prepdel.js', 'yearbuild.js', 'suspect.js', 'print.js', 'review.js', 'tips.js']) { try { w.eval(src(s)); } catch (e) { if (s !== 'mode.js') throw e; } }
   assert(src('records_app.js').includes(tail));
   w.eval(src('records_app.js').replace(tail, 'window.__t={all:function(){return ALL;},put:function(a){return putMany(a,scope()).then(function(){return reload(scope());});},batches:function(){return batches;},files:function(f){return handleFilesIn(f,scope()).then(function(){renderBatches();});},rb:function(){renderBatches();},ev:function(s){return eval(s);}};AUTH_SEEN=true;renderAuth();reload();')); await delay(300);
   const sch = w.document.getElementById('rbSchool'); sch.value = '架空'; sch.dispatchEvent(new w.Event('input', { bubbles: true })); await delay();
@@ -119,7 +119,8 @@ await check('🔍 怪しい記録チェック：種類ごとに並ぶ・各行�
     const box = $('rbSus'); assert(!box.hidden); assert.equal($('rbSusOpen').getAttribute('aria-expanded'), 'true');
     assert.deepEqual([...box.querySelectorAll('.sus-h')].map(h => h.firstChild.textContent), ['二重', '記録がちがう', 'ありえない記録', '日付が合わない']);
     assert.match(box.querySelector('.card-h').textContent, /4件/);
-    const help = box.querySelector('details.sus-help'); assert(help && !help.open, '説明は閉じた「?」'); assert.equal(help.querySelector('summary').textContent, '?');
+    await delay(80); const help = box.querySelector('.card-h .sus-help[data-xp]'), q = help && help.closest('.xpw') && help.closest('.xpw').querySelector('button.tipq');   // v0.26.56 共通の「？」（tips.js）
+    assert(q, '説明は共通の「？」の中'); assert.equal(q.getAttribute('aria-expanded'), 'false', '説明は閉じた「？」'); assert.equal(q.querySelector('.tipi').textContent, '?'); assert.match(help.textContent, /値は直しません/);
     const dup = box.querySelector('.sus-dup'); assert.match(dup.textContent, /架空 一郎/); assert.match(dup.textContent, /架空区大会/); assert.match(dup.textContent, /架空区民大会/); assert.match(dup.textContent, /2026-09-06/); assert.match(dup.textContent, /DNS/);
     assert.equal(dup.querySelectorAll('[data-susdel]').length, 2); assert(dup.querySelector('[data-susok]'));
     assert.match(box.querySelector('.sus-mark').textContent, /cm/); assert.match(box.querySelector('.sus-date').textContent, /架空 三郎.*|日程/);

@@ -646,6 +646,44 @@ body.fb-open{overflow:hidden}
 /* v0.26.33 大会準備の保存 */
 .pub-box{background:#fff8e6;border-color:#e8c46a}.pub-box .pub-list{margin:4px 0;padding-left:18px}.pub-box .btn.small{width:auto;padding:2px 8px;font-size:12px}
 .prep-bar .pp-b{border-radius:8px;padding:0 6px;font-size:12px;border:1px solid #c9d2e0;display:inline-block;margin:1px 0}.prep-bar .pp-b.on{background:#e7f6ec;border-color:#9fd3b0;color:#17663a}.prep-bar .pp-b.wait{background:#f6f6f6;color:#666}.prep-bar .btn.small{width:auto;padding:2px 8px;font-size:12px}
+/* v0.27（案）説明の「？」 */
+.xpw{position:relative;display:inline-flex;align-items:flex-start;vertical-align:middle;margin:0 2px;font-size:13px;font-weight:400;line-height:1.6;color:var(--ink);text-align:left;letter-spacing:0}
+.tipq{display:inline-flex;align-items:center;gap:4px;border:1.5px solid #c9cfdc;background:#fff;color:var(--navy);border-radius:999px;padding:1px 9px 1px 3px;font:inherit;font-size:12px;font-weight:700;cursor:help;min-height:24px;white-space:nowrap}
+.xpw:not(.xp-lab) .tipq{padding:1px 3px}
+.tipi{display:inline-flex;width:18px;height:18px;border-radius:50%;background:var(--navy);color:#fff;align-items:center;justify-content:center;font-size:12px;font-weight:800}
+.tipq:hover,.tipq:focus-visible,.xpw.open>.tipq{border-color:var(--navy);background:#f1f4fa}
+.tipq:focus-visible{outline:3px solid #9db4d9;outline-offset:1px}
+.xpw>.xp{display:none!important;margin:0}
+/* パソコン：四角い吹き出し */
+@media (hover:hover) and (pointer:fine){
+  .xpw>.xp{position:absolute;z-index:60;top:calc(100% + 6px);left:0;width:min(380px,calc(100vw - 24px));box-sizing:border-box;background:#fff;color:var(--ink);border:1px solid #cfd5e2;border-radius:12px;box-shadow:0 10px 30px rgba(20,33,61,.18);padding:12px 14px;font-size:13px;font-weight:400;line-height:1.7;white-space:normal}
+  .xpw::after{content:"";position:absolute;left:0;right:0;top:100%;height:8px}
+  .xpw.xp-r>.xp{left:auto;right:0}
+  .xpw.xp-up>.xp{top:auto;bottom:calc(100% + 6px)}
+  .xpw:hover>.xp,.xpw:focus-within>.xp,.xpw.open>.xp{display:block!important}
+  .xpw.xp-shut>.xp{display:none!important}
+}
+/* スマホ：押すとその場で開く */
+@media not all and (hover:hover) and (pointer:fine){
+  .xpw.open{display:flex;flex-direction:column;width:100%;margin:4px 0}
+  .xpw.open>.xp{display:block!important;margin-top:6px;background:#f7f8fb;border-left:4px solid var(--navy);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.7}
+  .tipq{min-height:32px;padding:3px 11px 3px 5px}.xpw:not(.xp-lab) .tipq{padding:3px 5px}
+  .tipi{width:22px;height:22px}
+}
+.xpw:has(>.xp[hidden]),.xpw:has(>.xp:empty){display:none}
+h2 .xpw,summary .xpw{margin-left:6px}
+@media print{.xpw{display:none!important}}
+.ph-hero .xpw{color:var(--ink)}
+.ck-drops .drop{border-color:#d9a593;background:#fff8f4}
+/* ボタンを先に：主な操作を目立たせる */
+.btn.hero{font-size:16px;padding:12px 22px;border-radius:12px}
+#inputs .drop,#rbDrop{border-color:#d9a593;background:#fff8f4}
+#inputs .drop .big,#rbDrop .big{font-size:17px}
+details.act>summary{display:inline-flex;align-items:center;gap:6px;list-style:none;cursor:pointer;background:#fff;border:1.5px solid #cfd5e2;border-radius:12px;padding:9px 14px;margin:4px 0;color:var(--navy)}
+details.act>summary::-webkit-details-marker{display:none}
+details.act>summary:hover{border-color:var(--navy);background:#f5f7fb}
+details.act[open]>summary{border-color:var(--navy);background:#eef2f9}
+details.act>summary .sum-x{display:none}
 </style>
 </head>
 <body>
@@ -667,7 +705,7 @@ __TOPBAR__
 <main>
 <p id="ssNote" class="ss-note" hidden role="status"><span id="ssNoteText">↺ 前に読み込んだ内容を戻しました（このタブを閉じると消えます）。</span> <button type="button" class="btn sub" id="ssClearBtn">最初から</button></p>
 <section id="phome" hidden aria-label="選手モード">
-  <div class="ph-hero"><small>選手モード</small><h2>わたしの陸上ノート</h2><p>先生・コーチからもらったリンクは、一度開くと自動でここにまとまります。ログインは要りません。</p></div>
+  <div class="ph-hero"><small>選手モード</small><h2>わたしの陸上ノート</h2><p>ログインは要りません <span data-xp="">先生・コーチからもらったリンクは、一度開くと自動でここにまとまります。ログインは要りません。</span></p></div>
   <div id="phBody"><p class="ph-empty">読み込んでいます…</p></div>
 </section>
 <section id="player" hidden>
@@ -683,12 +721,12 @@ __TOPBAR__
   </div>
   <div id="pvCond"></div>
   <button type="button" class="pv-forget" id="pvForget">🗑 この予定を端末から削除</button>
-  <p class="pv-foot">🔒 マークは先生が入れた予定（招集・試合）なので削除できません。自分で追加した予定は、このスマホにだけ保存されます。<br>時刻が変わることもあるので、最後は会場の発表や先生の指示を確認してください。</p>
+  <p class="pv-foot">⚠ 最後は会場の発表・先生の指示で確認 <span data-xp="">🔒 マークは先生が入れた予定（招集・試合）なので削除できません。自分で追加した予定は、このスマホにだけ保存されます。<br>時刻が変わることもあるので、最後は会場の発表や先生の指示を確認してください。</span></p>
 </section>
 <section id="personal" hidden aria-live="polite"><div id="ppBody"></div>
   <section class="pp-card tk-card" id="ppTalk" hidden></section>
   <button type="button" class="pv-forget" id="ppForget">🗑 このページをスマホから削除</button>
-  <p class="pv-foot">このページは、先生が作った「あなた1人分」の記録のコピーです（ログインは要りません）。リンクを知っている人は誰でも開けるので、ほかの人には送らないでください。体調メモはこのスマホにだけ保存され、先生には見えません。共用のスマホでは、使い終わったら消してください。</p>
+  <p class="pv-foot">🔗 このリンクはほかの人に送らないでください <span data-xp="">このページは、先生が作った「あなた1人分」の記録のコピーです（ログインは要りません）。リンクを知っている人は誰でも開けるので、ほかの人には送らないでください。体調メモはこのスマホにだけ保存され、先生には見えません。共用のスマホでは、使い終わったら消してください。</span></p>
 </section>
 <section id="talkView" hidden aria-live="polite"><div class="ph-hero"><small>LANE NOTE</small><h2>先生とのやり取り</h2><p>このリンクはあなた専用です。ログインは要りません。</p></div><section class="ph-card tk-card" id="tvBody"></section><p class="ph-foot"><a href="./">🏠 LANE NOTE のトップへ</a></p></section>
 <section class="box" id="viewer" hidden>
@@ -697,7 +735,7 @@ __TOPBAR__
   <p class="small muted" id="vMeta"></p>
   <p class="small" id="vRule"></p>
   <div class="v-actions"><button class="btn" id="vSave" type="button">📥 この端末に保存</button></div>
-  <p class="small muted">この画面は共有リンクの中身だけを表示しています（内容を変えることはできません）。最終的には大会公式資料で確認してください。</p>
+  <p class="small muted" data-xp="この画面について">この画面は共有リンクの中身だけを表示しています（内容を変えることはできません）。最終的には大会公式資料で確認してください。</p>
   <div class="vtabs" role="tablist"><button class="on" data-v="vTime">時間順</button><button data-v="vAth">選手別</button><button data-v="vCards">ナンバーカード</button></div>
   <div id="vBody"><div id="vTime" class="mcards vshow"></div><div id="vAth" class="mcards vshow" hidden></div><div id="vCards" class="mcards vshow" hidden></div></div>
   <details class="v-saved"><summary>この端末に保存した大会</summary><div class="savedList"></div></details>
@@ -714,65 +752,66 @@ __TOPBAR__
     <div id="shareQr" class="qr"></div>
     <input id="shareUrl" readonly aria-label="共有リンク">
     <div class="dlg-btns"><button class="btn" id="shareCopy" type="button">🔗 リンクをコピー</button><button class="btn sub" id="shareClose" type="button">閉じる</button></div>
-    <p class="small muted" id="shareHow"></p>
+    <p class="small muted" id="shareHow" data-xp="使い方"></p>
     <details class="small"><summary><b>作った短いリンク</b>（一覧・共有を止める）</summary><div class="myShares" id="shareMine"></div></details>
   </div>
 </div>
 <div id="playerDlg" class="dlg" hidden role="dialog" aria-modal="true" aria-labelledby="plTtl">
   <div class="dlg-in">
     <h3 id="plTtl">🏃 選手用リンク（1人ずつ）</h3>
-    <p class="small">選手それぞれに、<b>その子の出場（種目・組・レーン・レースと招集の時刻）だけ</b>が入ったリンクとQRを作ります。ほかの選手の名前やリレーの仲間の名前は入りません。選手はログインなしで開けて、起きる時間などを自分で足せます（その子のスマホにだけ保存）。</p>
+    <p class="small" data-xp="このリンクについて" data-xp-at="#plTtl">選手それぞれに、<b>その子の出場（種目・組・レーン・レースと招集の時刻）だけ</b>が入ったリンクとQRを作ります。ほかの選手の名前やリレーの仲間の名前は入りません。選手はログインなしで開けて、起きる時間などを自分で足せます（その子のスマホにだけ保存）。</p>
     <label class="small">会場（任意）：<input id="plVenue" size="20" placeholder="例：夢の島競技場"></label>
     <div id="plAuth" class="small" hidden><span id="plAuthInfo"></span> <button class="btn sub" id="plSignIn" type="button">Googleでログイン</button></div>
     <div class="dlg-btns"><button class="btn" id="plMake" type="button">🔗 全員分のリンクを作る</button><button class="btn sub" id="plCopyAll" type="button" disabled>📋 全員分をまとめてコピー（LINE用）</button></div>
     <div id="plMsg" class="small"></div>
     <div id="plList" class="pl-list"></div>
-    <p class="warn small">⚠ リンクを知っている人なら誰でも、その子の名前と出場が見られます（パスワードのような鍵ではありません）。LINEのグループに貼るときは、自分のリンクだけ開くよう伝え、グループの外には送らないでください。短いリンクは作ってから119日で開けなくなり、下の一覧からいつでも止められます（止めても、選手の端末に残ったスクリーンショットや転送された長いリンクは消せません）。</p>
+    <p class="warn small">⚠ リンクを知っている人は誰でも見られます <span data-xp="">リンクを知っている人なら誰でも、その子の名前と出場が見られます（パスワードのような鍵ではありません）。LINEのグループに貼るときは、自分のリンクだけ開くよう伝え、グループの外には送らないでください。短いリンクは作ってから119日で開けなくなり、下の一覧からいつでも止められます（止めても、選手の端末に残ったスクリーンショットや転送された長いリンクは消せません）。</span></p>
     <details class="small"><summary><b>作った短いリンク</b>（一覧・共有を止める）</summary><div class="myShares" id="plMine"></div></details>
     <div class="dlg-btns"><button class="btn sub" id="plClose" type="button">閉じる</button></div>
   </div>
 </div>
 <section class="box howto">
-  <div class="quick"><b>使い方</b>：①スタートリストとタイムテーブルのPDFを入れる → ②学校・クラブ名を入れる → ③時間順・選手別・記録用紙ができる</div>
-  <p class="privacy-line" id="dataPolicy">🔒 読み込んだPDFはふだんこの端末の中だけで読みます。<b>大会予定から開いた大会</b>では、ログインしていれば準備の続きのために保存します：ファイルで入れたPDF（5MBまで）は自分だけ／チームのメンバーだけが見られるクラウドに、URLから読んだものはURLだけ（大会終了の1か月後から、保存したPDFはアプリで読めなくなります。現在、クラウド上の自動削除は行っていません。「保存を消す」などで削除できますが、保存に失敗したデータなどがサーバーに残る場合があります）。共有リンクを作ったときは、その中身を保存します。「URLから読み込む」のときは、URLと中身が LANE NOTE の中継を通ります（保存しません）。詳しくは <a href="guide.html#data">はじめての人はこちら（データの取り扱い）</a></p>
+  <div class="quick" data-xp="使い方" data-xp-at="#inH2"><b>使い方</b>：①スタートリストとタイムテーブルのPDFを入れる → ②学校・クラブ名を入れる → ③時間順・選手別・記録用紙ができる</div>
+  <p class="privacy-line" id="dataPolicy" data-xp="🔒 データの扱い" data-xp-at="#inH2">🔒 読み込んだPDFはふだんこの端末の中だけで読みます。<b>大会予定から開いた大会</b>では、ログインしていれば準備の続きのために保存します：ファイルで入れたPDF（5MBまで）は自分だけ／チームのメンバーだけが見られるクラウドに、URLから読んだものはURLだけ（大会終了の1か月後から、保存したPDFはアプリで読めなくなります。現在、クラウド上の自動削除は行っていません。「保存を消す」などで削除できますが、保存に失敗したデータなどがサーバーに残る場合があります）。共有リンクを作ったときは、その中身を保存します。「URLから読み込む」のときは、URLと中身が LANE NOTE の中継を通ります（保存しません）。詳しくは <a href="guide.html#data">はじめての人はこちら（データの取り扱い）</a></p>
 </section>
 
 <section class="box" id="inputs">
-  <h2><span class="no">1</span>PDFを入れる <a href="guide.html#data" class="lockbadge">🔒 保存するのは大会予定から開いたときだけ</a> <button class="btn sub" id="btnReset" type="button">新しい大会を始める（全消去）</button></h2>
+  <h2 id="inH2"><span class="no">1</span>PDFを入れる <a href="guide.html#data" class="lockbadge">🔒 保存するのは大会予定から開いたときだけ</a> <button class="btn sub" id="btnReset" type="button">新しい大会を始める（全消去）</button></h2>
   <div class="drops">
-    <div class="drop" id="slDrop" tabindex="0"><div class="big">📄 スタートリスト</div><div class="muted small">ここにドラッグ／クリックして選ぶ</div><input type="file" id="slFile" accept="application/pdf,.pdf"><div class="status" id="slStatus"></div></div>
-    <div class="drop" id="ttDrop" tabindex="0"><div class="big">🕘 タイムテーブル（競技時間）</div><div class="muted small">ここにドラッグ／クリックして選ぶ<br>（プログラムに時刻が載っている大会は不要）</div><input type="file" id="ttFile" accept="application/pdf,.pdf"><div class="status" id="ttStatus"></div></div>
-    <div class="drop" id="yokoDrop" tabindex="0"><div class="big">📑 大会要項<span class="opt">任意</span></div><div class="muted small">大会の日付・参加料を読み取ります</div><input type="file" id="yokoFile" accept="application/pdf,.pdf"><div class="status" id="yokoStatus"></div></div>
-    <div class="drop" id="noteDrop" tabindex="0"><div class="big">📋 競技注意事項<span class="opt">任意</span></div><div class="muted small">招集時刻のルールを自動で読み取ります<br>（要項をここに入れてもOK）</div><input type="file" id="noteFile" accept="application/pdf,.pdf"><div class="status" id="noteStatus"></div></div>
+    <div class="drop" id="slDrop" tabindex="0"><div class="big">📄 スタートリスト</div><div class="muted small">ドラッグ／クリックで選ぶ</div><input type="file" id="slFile" accept="application/pdf,.pdf"><div class="status" id="slStatus"></div></div>
+    <div class="drop" id="ttDrop" tabindex="0"><div class="big">🕘 タイムテーブル（競技時間）</div><div class="muted small">時刻入りプログラムなら不要</div><input type="file" id="ttFile" accept="application/pdf,.pdf"><div class="status" id="ttStatus"></div></div>
+    <div class="drop" id="yokoDrop" tabindex="0"><div class="big">📑 大会要項<span class="opt">任意</span></div><div class="muted small">日付・参加料を読み取り</div><input type="file" id="yokoFile" accept="application/pdf,.pdf"><div class="status" id="yokoStatus"></div></div>
+    <div class="drop" id="noteDrop" tabindex="0"><div class="big">📋 競技注意事項<span class="opt">任意</span></div><div class="muted small">招集ルールを読み取り</div><input type="file" id="noteFile" accept="application/pdf,.pdf"><div class="status" id="noteStatus"></div></div>
   </div>
+  <p class="small muted" data-xp="ファイルの入れ方">それぞれの枠にPDFをドラッグするか、クリックして選びます。タイムテーブルは、プログラムに時刻が載っている大会では不要です。大会要項からは大会の日付・参加料を、競技注意事項からは招集時刻のルールを自動で読み取ります（競技注意事項の枠に要項を入れてもOK）。</p>
   <div id="urlLoad"></div>
   <div id="rulesBox" class="rules"></div>
   <h2 style="margin-top:16px"><span class="no">2</span>学校・クラブ名を入れる</h2>
   <div class="row"><input type="text" id="school" placeholder="例：本郷" autocomplete="off"></div>
   <div id="teamList" style="margin-top:6px"></div>
   <details class="settings">
-    <summary>⚙ 設定（招集時刻・ナンバーカードの枚数など）</summary>
+    <summary>⚙ 設定<span class="sum-sub" data-xp="">招集時刻・ナンバーカードの枚数など</span></summary>
     <div class="sgrid">
       <label><span class="rs" data-rule="track"></span>トラック招集：開始 <input type="number" class="setting" id="cT0" value="" placeholder="－" min="0">分前〜完了 <input type="number" class="setting" id="cT1" value="" placeholder="－" min="0">分前</label>
       <label><span class="rs" data-rule="field"></span>フィールド招集：開始 <input type="number" class="setting" id="cF0" value="" placeholder="－" min="0">分前〜完了 <input type="number" class="setting" id="cF1" value="" placeholder="－" min="0">分前</label>
       <label><span class="rs" data-rule="relay"></span>リレー招集：開始 <input type="number" class="setting" id="cR0" value="" min="0" placeholder="－">分前〜完了 <input type="number" class="setting" id="cR1" value="" min="0" placeholder="－">分前<br><small class="muted">空欄ならトラックと同じ</small></label>
       <label><span class="rs" data-rule="dist"></span>長距離（ORD種目）招集：開始 <input type="number" class="setting" id="cD0" value="" min="0" placeholder="－">分前〜完了 <input type="number" class="setting" id="cD1" value="" min="0" placeholder="－">分前<br><small class="muted">空欄ならトラックと同じ</small></label>
       <label><span class="rs" data-rule="place"></span>招集場所：<input type="text" class="setting" id="cPlace" value="" placeholder="（未設定）" style="width:12em"></label>
-      <label>オーダー番号ビブスにする距離：<input type="number" class="setting" id="ordTh" value="3000" step="100" min="0">m以上<br><small class="muted">それより短いORD種目（1500mなど）は腰番に数えます</small></label>
+      <label>オーダー番号ビブスにする距離：<input type="number" class="setting" id="ordTh" value="3000" step="100" min="0">m以上<br><small class="muted" data-xp="">それより短いORD種目（1500mなど）は腰番に数えます</small></label>
       <label>ゼッケン枚数（1人あたり）<input type="number" class="setting" id="bibCopies" value="2" min="1" max="4"> 枚（胸・背中）</label>
       <label>オーダー番号ビブス枚数 <input type="number" class="setting" id="ordCopies" value="2" min="1" max="4"> 枚</label>
       <label><input type="checkbox" class="setting" id="relayKoshi" checked> リレーは1チーム1枚の腰番を数える</label>
-      <label>時刻の優先（プログラムとタイムテーブルの両方に時刻があり、違うとき）：<select class="setting" id="timeSrc"><option value="program">プログラムの時刻</option><option value="timetable">タイムテーブルの時刻</option></select><br><small class="muted">新しく出た方の資料を選んでください</small></label>
+      <label>時刻の優先 <span data-xp="">プログラムとタイムテーブルの両方に時刻があり、違うときにどちらを使うか。新しく出た方の資料を選んでください。</span>：<select class="setting" id="timeSrc"><option value="program">プログラムの時刻</option><option value="timetable">タイムテーブルの時刻</option></select></label>
       <label><span class="rs" data-rule="relayOrder"></span>リレーのオーダー用紙提出：<select class="setting" id="roBase"><option>招集完了</option><option>招集開始</option><option>競技開始</option></select>の <input type="number" class="setting" id="roMin" value="" min="0" placeholder="－"> 分前<br><small class="muted">空欄なら表示しません</small></label>
     </div>
-    <p class="small muted">〇＝自動抽出（未照合）：競技注意事項から読み取った値（〇にマウスを乗せる／押すと原文が出ます）、×＝見つからなかったので空欄（招集時刻は出しません。手入力できます）。数字を自分で変えると「手入力」になります。</p>
+    <p class="small muted" data-xp="〇・×の意味">〇＝自動抽出（未照合）：競技注意事項から読み取った値（〇にマウスを乗せる／押すと原文が出ます）、×＝見つからなかったので空欄（招集時刻は出しません。手入力できます）。数字を自分で変えると「手入力」になります。</p>
     <div id="ruleSrc" class="rules" hidden></div>
   </details>
 </section>
 
 <section class="box" id="results" hidden>
   <h2><span class="no">3</span>結果</h2>
-  <p class="disclaimer sm">ⓘ 本ツールはPDFの文字を読み取って自動で整理しているだけです。内容は必ず元のスタートリスト・タイムテーブル等と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</p>
+  <p class="disclaimer sm">ⓘ 内容は元の資料と照らし合わせてください <span data-xp="">本ツールはPDFの文字を読み取って自動で整理しているだけです。内容は必ず元のスタートリスト・タイムテーブル等と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</span></p>
   <div id="dayPick" class="daypick noprint" hidden><span id="dayPickMsg"></span><label> 対象日：<select id="daySel"></select></label></div>
   <div id="summary" class="cards"></div>
   <div class="toolbar">
@@ -786,7 +825,7 @@ __TOPBAR__
     <button class="btn sub" id="btnVenues" type="button">🏟 競技場の設定</button>
   </div>
   <div class="recmeta noprint"><select id="planPick" class="lp-pick" hidden title="記録のページで登録した大会予定から選ぶ"></select> 大会名 <input id="meetName" size="28" placeholder="例：第74回北区民体育大会"> <span class="rs na" id="dateMark" title="">－</span>日付 <input id="meetDate" size="18" placeholder="例：2026年10月11日（日）"> <small class="muted" id="dateSrc"></small> <select id="dateAlt" hidden title="日付の候補から選ぶ"></select><div class="warn small" id="multiDayWarn" hidden></div><div class="small muted" id="planPicked" hidden></div></div>
-  <p class="small muted noprint">用紙：出場一覧・記録用紙＝A4縦／ナンバーカード＝B5。印刷の設定は「実際のサイズ（100%）」にしてください。</p>
+  <p class="small muted noprint" data-xp="印刷のしかた">用紙：出場一覧・記録用紙＝A4縦／ナンバーカード＝B5。印刷の設定は「実際のサイズ（100%）」にしてください。</p>
   <div class="tabbar"><div class="tabs">
     <button class="on" data-tab="paneTime">時間順</button>
     <button data-tab="paneAth">選手別</button>
@@ -800,17 +839,17 @@ __TOPBAR__
       <thead><tr><th>競技開始</th><th>招集</th><th>種目</th><th>組</th><th>レーン/順番</th><th>ナンバー</th><th>氏名</th><th>学年</th><th>所属</th><th>備考</th></tr></thead>
       <tbody id="timeBody"></tbody></table></div>
     <div id="timeCards" class="mcards"></div>
-    <p class="small muted noprint">時刻は「組のまとまり」の開始時刻です。後ろの組はその分遅くなります。</p>
+    <p class="small muted noprint" data-xp="時刻について">時刻は「組のまとまり」の開始時刻です。後ろの組はその分遅くなります。</p>
   </div>
   <div class="tabpane" id="paneAth" hidden>
     <p class="scrollhint small muted">表が画面に入りきらないときは、横にスクロールできます →</p><div class="tw"><table>
       <thead id="athHead"><tr><th>所属</th><th data-sort="bib">ナンバー</th><th data-sort="name">氏名</th><th data-sort="grade">学年</th><th data-sort="event">種目</th><th>ラウンド</th><th data-sort="heat">組</th><th data-sort="pos">レーン/順番</th><th>招集</th><th data-sort="time">競技開始</th><th>備考</th></tr></thead>
       <tbody id="athBody"></tbody></table></div>
     <div id="athCards" class="mcards"></div>
-    <p class="small muted">見出し（ナンバー・氏名・学年・種目・組・レーン・競技開始）を押すと並べ替え（もう一度で逆順、3回目で元の「所属→ナンバー」順）。リレーは「競技開始」で並べたとき以外は下にまとめます。<span id="kanaNote"></span></p>
+    <p class="small muted" data-xp="並べ替え">見出し（ナンバー・氏名・学年・種目・組・レーン・競技開始）を押すと並べ替え（もう一度で逆順、3回目で元の「所属→ナンバー」順）。リレーは「競技開始」で並べたとき以外は下にまとめます。<span id="kanaNote"></span></p>
   </div>
   <div class="tabpane" id="paneCards" hidden>
-    <p class="small muted">ボタンを押すと、同梱B5テンプレートの数字だけを差し替えたWordファイルができます（B5用紙・実際のサイズで印刷）。印刷はWordから行ってください。ゼッケンは1ページ1枚、腰番は1ページに上下2枚（半分に切る）です。</p>
+    <p class="small muted" data-xp="ナンバーカードの作り方">ボタンを押すと、同梱B5テンプレートの数字だけを差し替えたWordファイルができます（B5用紙・実際のサイズで印刷）。印刷はWordから行ってください。ゼッケンは1ページ1枚、腰番は1ページに上下2枚（半分に切る）です。</p>
     <div id="cardsArea"></div>
     <div id="dlMsg"></div>
   </div>
@@ -821,7 +860,7 @@ __TOPBAR__
     <label class="small"><input type="checkbox" id="feeInPrint" class="setting"> 「時間順」の印刷・PDFの見出しに参加料の合計を入れる</label>
   </div>
   <div class="tabpane" id="paneCheck" hidden>
-    <p class="small muted">読み取りの問題（⚠）を先に、そのあと各種目が何時に当たったか（p.＝元のスタートリスト／プログラムのページ）を並べています。おかしいところがあれば元のPDFを確認してください。</p>
+    <p class="small muted" data-xp="この画面の見方">読み取りの問題（⚠）を先に、そのあと各種目が何時に当たったか（p.＝元のスタートリスト／プログラムのページ）を並べています。おかしいところがあれば元のPDFを確認してください。</p>
     <ul id="checkList"></ul>
   </div>
 </section>
@@ -847,7 +886,7 @@ __MODEPICK__
     <li>Wordのナンバーカードは「HGP創英角ｺﾞｼｯｸUB」「ＭＳ ゴシック」を使います。フォントは同梱していません（各パソコンに入っているものを使います。無い場合は別のフォントで表示されます）。</li>
     <li>既知の制限：対応を確認した形式は北区型スタートリスト＋タイムテーブル／江東区型プログラムのみ。スキャン（画像）PDFは読めません。複数日の大会は対象日を選んで1日分ずつ出します（日付が書かれていない資料は日付を区別できません）。タイムテーブルの時刻は「組のまとまり」の開始時刻で、後ろの組は遅くなります。参加料は「1種目あたり」の単価だけ自動計算します。</li>
   </ul></details>
-<div class="f-disc">ⓘ 本ツールはPDFの文字を読み取って自動で整理しているだけです。内容は必ず元のスタートリスト・タイムテーブル等と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div><div><b class="f-brand">LANE NOTE</b>（レーンノート）試作版 ／ <span class="f-credit">Presented by Sakata</span></div>🔒 PDFをクラウドに保存するのは、大会予定から開いた大会でログインしているときだけ（チームはメンバーだけ・期限つき）。選手情報はそのときと「短いリンク」を作ったときだけ Firebase に保存。部品取得のため外部CDNへ通信します）。 <a href="#dataPolicy" onclick="document.getElementById('dataPolicy').open=true">データの取り扱いについて</a> ／ <a href="records.html">記録（試作）</a><br><button type="button" class="fb-btn" data-feedback="1">📮 不具合・要望を送る</button></footer>
+<div class="f-disc">ⓘ 本ツールはPDFの文字を読み取って自動で整理しているだけです。内容は必ず元のスタートリスト・タイムテーブル等と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div><div><b class="f-brand">LANE NOTE</b>（レーンノート）試作版 ／ <span class="f-credit">Presented by Sakata</span></div><span data-xp="🔒 データの扱い">🔒 PDFをクラウドに保存するのは、大会予定から開いた大会でログインしているときだけ（チームはメンバーだけ・期限つき）。選手情報はそのときと「短いリンク」を作ったときだけ Firebase に保存。部品取得のため外部CDNへ通信します）。</span> <a href="#dataPolicy" onclick="document.getElementById('dataPolicy').open=true">データの取り扱いについて</a> ／ <a href="records.html">記録（試作）</a><br><button type="button" class="fb-btn" data-feedback="1">📮 不具合・要望を送る</button></footer>
 
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG" crossorigin="anonymous"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>

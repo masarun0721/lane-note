@@ -64,17 +64,18 @@ __MODEPICK__
 <main>
 <section class="box">
   <h2><span class="no">1</span>ファイルを2つ入れる</h2>
-  <p class="ck-priv">🔒 ファイルはこの端末の中だけで読み取ります。どこにも送らず、画面を閉じると消えます（「URLから読み込む」を使ったときだけ、URLと中身が LANE NOTE の中継を通ります。保存はしません）。</p>
+  <p class="ck-priv">🔒 この端末の中だけで読み取ります <span data-xp="">ファイルはこの端末の中だけで読み取ります。どこにも送らず、画面を閉じると消えます（「URLから読み込む」を使ったときだけ、URLと中身が LANE NOTE の中継を通ります。保存はしません）。</span></p>
   <div class="ck-drops">
-    <div class="drop" id="ckEntDrop" tabindex="0"><div class="big">📝 エントリーファイル</div><div class="muted small">大会に出したExcel（.xlsx／.xls）・CSV<br>ここにドラッグ／クリックして選ぶ</div><input type="file" id="ckEntFile" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"><div class="status" id="ckEntStatus"></div></div>
-    <div class="drop" id="ckSlDrop" tabindex="0"><div class="big">📄 スタートリスト</div><div class="muted small">大会から届いたPDF（プログラムでもOK）<br>ここにドラッグ／クリックして選ぶ</div><input type="file" id="ckSlFile" accept="application/pdf,.pdf"><div class="status" id="ckSlStatus"></div></div>
+    <div class="drop" id="ckEntDrop" tabindex="0"><div class="big">📝 エントリーファイル</div><div class="muted small">出したExcel・CSV（ドラッグ／クリック）</div><input type="file" id="ckEntFile" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"><div class="status" id="ckEntStatus"></div></div>
+    <div class="drop" id="ckSlDrop" tabindex="0"><div class="big">📄 スタートリスト</div><div class="muted small">届いたPDF（ドラッグ／クリック）</div><input type="file" id="ckSlFile" accept="application/pdf,.pdf"><div class="status" id="ckSlStatus"></div></div>
   </div>
+  <p class="small muted" data-xp="入れるファイル">エントリーファイルは、大会に出したExcel（.xlsx／.xls）・CSV。スタートリストは、大会から届いたPDF（プログラムでもOK）。それぞれの枠にドラッグするか、クリックして選びます。</p>
   <div id="ckUrlLoad"></div>
-  <details class="ck-map" id="ckMap" hidden><summary>🔧 列の割り当て（自動で読めなかったときに直す）</summary><p class="small muted">大会ごとにエントリーファイルの形が違うので、氏名・種目などの列を自動で探しています。違っていたらここで選び直してください。</p><div id="ckMapBody"></div></details>
+  <details class="ck-map" id="ckMap" hidden><summary>🔧 列の割り当て<span class="sum-sub" data-xp="">自動で読めなかったときに直す</span></summary><p class="small muted" data-xp="">大会ごとにエントリーファイルの形が違うので、氏名・種目などの列を自動で探しています。違っていたらここで選び直してください。</p><div id="ckMapBody"></div></details>
 </section>
 <section class="box">
   <h2><span class="no">2</span>学校を選ぶ</h2>
-  <label class="small">学校・クラブ名（一部でOK・エントリーファイルの所属から自動で入ります）<br><input type="text" id="ckSchool" placeholder="例：本郷" style="min-height:40px;font-size:16px;width:100%;max-width:320px"></label>
+  <label class="small">学校・クラブ名 <span data-xp="">一部でOK。エントリーファイルの所属から自動で入ります。</span><br><input type="text" id="ckSchool" placeholder="例：本郷" style="min-height:40px;font-size:16px;width:100%;max-width:320px"></label>
   <div id="ckTeams" style="margin-top:6px"></div>
 </section>
 <section class="box" id="ckResult" hidden>
@@ -83,11 +84,11 @@ __MODEPICK__
   <div class="ck-acts"><button class="btn sub" type="button" data-ckprint="view">👀 画面で見る</button><button class="btn sub" type="button" data-ckprint="pdf">📄 PDF作成</button><button class="btn" type="button" data-ckprint="print">🖨 印刷</button></div>
   <div id="ckList"></div>
   <div id="ckRelay"></div>
-  <p class="small muted">名前は、空白・全角/半角・ひらがな/カタカナ・旧字（澤/沢、邊/邉/辺、髙/高、﨑/崎 など）の違いを「表記ゆれ」として一致させています。種目は「中1_100」と「男子中学1年 100m」のような書き方の違いを、性別の列も使ってそろえています。</p>
+  <p class="small muted" data-xp="一致のさせ方">名前は、空白・全角/半角・ひらがな/カタカナ・旧字（澤/沢、邊/邉/辺、髙/高、﨑/崎 など）の違いを「表記ゆれ」として一致させています。種目は「中1_100」と「男子中学1年 100m」のような書き方の違いを、性別の列も使ってそろえています。</p>
 </section>
 </main>
 <div id="ckPrint" hidden><div class="cp-bar"><button class="btn sub" type="button" id="ckPrintClose">✕ 閉じる</button><button class="btn" type="button" id="ckPrintPdf">📄 PDF作成</button><button class="btn" type="button" id="ckPrintGo">🖨 印刷</button><span id="ckPrintHint" hidden></span></div><div id="ckPrintBody"></div></div>
-<footer><div class="f-disc">ⓘ 本ツールはファイルの文字を読み取って自動で突き合わせているだけです。内容は必ず元のエントリーファイル・スタートリストと照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。 問い合わせ：<a href="mailto:lanenote.info@gmail.com">lanenote.info@gmail.com</a>・<a href="https://x.com/lanenote" target="_blank" rel="noopener">X：@lanenote</a></div><div><b class="f-brand">LANE NOTE</b>（レーンノート）試作版 ／ <span class="f-credit">Presented by Sakata</span></div>🔒 エントリーファイル・PDFはこの端末の中だけで読み、どこにも送りません（部品取得のため外部CDNへ通信します。「URLから読み込む」のときだけ、URLと取ってきた中身が LANE NOTE の Cloudflare 中継を通ります・保存しません）。 <a href="./">大会準備のページへ</a><br><button type="button" class="fb-btn" data-feedback="1">📮 不具合・要望を送る</button></footer>
+<footer><div class="f-disc">ⓘ 本ツールはファイルの文字を読み取って自動で突き合わせているだけです。内容は必ず元のエントリーファイル・スタートリストと照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。 問い合わせ：<a href="mailto:lanenote.info@gmail.com">lanenote.info@gmail.com</a>・<a href="https://x.com/lanenote" target="_blank" rel="noopener">X：@lanenote</a></div><div><b class="f-brand">LANE NOTE</b>（レーンノート）試作版 ／ <span class="f-credit">Presented by Sakata</span></div><span data-xp="🔒 データの扱い">🔒 エントリーファイル・PDFはこの端末の中だけで読み、どこにも送りません（部品取得のため外部CDNへ通信します。「URLから読み込む」のときだけ、URLと取ってきた中身が LANE NOTE の Cloudflare 中継を通ります・保存しません）。</span> <a href="./">大会準備のページへ</a><br><button type="button" class="fb-btn" data-feedback="1">📮 不具合・要望を送る</button></footer>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
 <script src="firebase-config.js"></script>
 <script>

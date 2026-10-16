@@ -645,6 +645,44 @@ body.fb-open{overflow:hidden}
 /* v0.26.33 大会準備の保存 */
 .pub-box{background:#fff8e6;border-color:#e8c46a}.pub-box .pub-list{margin:4px 0;padding-left:18px}.pub-box .btn.small{width:auto;padding:2px 8px;font-size:12px}
 .prep-bar .pp-b{border-radius:8px;padding:0 6px;font-size:12px;border:1px solid #c9d2e0;display:inline-block;margin:1px 0}.prep-bar .pp-b.on{background:#e7f6ec;border-color:#9fd3b0;color:#17663a}.prep-bar .pp-b.wait{background:#f6f6f6;color:#666}.prep-bar .btn.small{width:auto;padding:2px 8px;font-size:12px}
+/* v0.27（案）説明の「？」 */
+.xpw{position:relative;display:inline-flex;align-items:flex-start;vertical-align:middle;margin:0 2px;font-size:13px;font-weight:400;line-height:1.6;color:var(--ink);text-align:left;letter-spacing:0}
+.tipq{display:inline-flex;align-items:center;gap:4px;border:1.5px solid #c9cfdc;background:#fff;color:var(--navy);border-radius:999px;padding:1px 9px 1px 3px;font:inherit;font-size:12px;font-weight:700;cursor:help;min-height:24px;white-space:nowrap}
+.xpw:not(.xp-lab) .tipq{padding:1px 3px}
+.tipi{display:inline-flex;width:18px;height:18px;border-radius:50%;background:var(--navy);color:#fff;align-items:center;justify-content:center;font-size:12px;font-weight:800}
+.tipq:hover,.tipq:focus-visible,.xpw.open>.tipq{border-color:var(--navy);background:#f1f4fa}
+.tipq:focus-visible{outline:3px solid #9db4d9;outline-offset:1px}
+.xpw>.xp{display:none!important;margin:0}
+/* パソコン：四角い吹き出し */
+@media (hover:hover) and (pointer:fine){
+  .xpw>.xp{position:absolute;z-index:60;top:calc(100% + 6px);left:0;width:min(380px,calc(100vw - 24px));box-sizing:border-box;background:#fff;color:var(--ink);border:1px solid #cfd5e2;border-radius:12px;box-shadow:0 10px 30px rgba(20,33,61,.18);padding:12px 14px;font-size:13px;font-weight:400;line-height:1.7;white-space:normal}
+  .xpw::after{content:"";position:absolute;left:0;right:0;top:100%;height:8px}
+  .xpw.xp-r>.xp{left:auto;right:0}
+  .xpw.xp-up>.xp{top:auto;bottom:calc(100% + 6px)}
+  .xpw:hover>.xp,.xpw:focus-within>.xp,.xpw.open>.xp{display:block!important}
+  .xpw.xp-shut>.xp{display:none!important}
+}
+/* スマホ：押すとその場で開く */
+@media not all and (hover:hover) and (pointer:fine){
+  .xpw.open{display:flex;flex-direction:column;width:100%;margin:4px 0}
+  .xpw.open>.xp{display:block!important;margin-top:6px;background:#f7f8fb;border-left:4px solid var(--navy);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.7}
+  .tipq{min-height:32px;padding:3px 11px 3px 5px}.xpw:not(.xp-lab) .tipq{padding:3px 5px}
+  .tipi{width:22px;height:22px}
+}
+.xpw:has(>.xp[hidden]),.xpw:has(>.xp:empty){display:none}
+h2 .xpw,summary .xpw{margin-left:6px}
+@media print{.xpw{display:none!important}}
+.ph-hero .xpw{color:var(--ink)}
+.ck-drops .drop{border-color:#d9a593;background:#fff8f4}
+/* ボタンを先に：主な操作を目立たせる */
+.btn.hero{font-size:16px;padding:12px 22px;border-radius:12px}
+#inputs .drop,#rbDrop{border-color:#d9a593;background:#fff8f4}
+#inputs .drop .big,#rbDrop .big{font-size:17px}
+details.act>summary{display:inline-flex;align-items:center;gap:6px;list-style:none;cursor:pointer;background:#fff;border:1.5px solid #cfd5e2;border-radius:12px;padding:9px 14px;margin:4px 0;color:var(--navy)}
+details.act>summary::-webkit-details-marker{display:none}
+details.act>summary:hover{border-color:var(--navy);background:#f5f7fb}
+details.act[open]>summary{border-color:var(--navy);background:#eef2f9}
+details.act>summary .sum-x{display:none}
 
 .tr-demo{position:sticky;top:0;z-index:50;background:#fff3c4;border:2px solid #e0a800;border-radius:10px;padding:8px 12px;margin:0 0 12px;font-weight:700;color:#5a4300;font-size:14px;line-height:1.6}
 .tr-steps{display:flex;gap:6px;list-style:none;padding:0;margin:0 0 12px;flex-wrap:wrap}.tr-steps li{flex:1 1 120px;text-align:center;border-radius:999px;padding:6px 8px;background:#eef1f6;color:#555;font-size:13px;font-weight:700}
@@ -664,7 +702,7 @@ body.fb-open{overflow:hidden}
 <body class="trypage">
 <header>
   <div class="hdr-meta">
-    <div class="hdr-ver" aria-label="バージョン">v0.26.55</div>
+    <div class="hdr-ver" aria-label="バージョン">v0.26.56</div>
     <div class="credit">Presented by Sakata</div>
     <div class="hdr-msg"><span class="hm-l">すべての陸上競技部顧問が、</span><span class="hm-l">少しでも楽になりますように。</span></div>
   </div>
@@ -3520,7 +3558,7 @@ var LaneMode = (function () {
     var h = '';
     // v0.26.23：マネージャーとしてチームに入っていて、ログインしている人だけ（記録のページが付けた印）。モードは切りかえずに記録のページへ
     var mh = null; try { mh = JSON.parse(localStorage.getItem('lanenote.mgrhint.v1') || 'null'); } catch (e) { }
-    if (mh && mh.uid && mh.at && Date.now() - mh.at < 60 * 864e5) h += '<section class="ph-card ph-mgr"><a class="ph-btn" id="phMgr" href="records.html">📋 マネージャーの記録へ</a><p class="ph-sub">選手モードのまま、マネージャーとしてチームの記録を開きます。記録のページの上の「👟 選手のホームへ戻る」で、ここに戻れます。</p></section>';
+    if (mh && mh.uid && mh.at && Date.now() - mh.at < 60 * 864e5) h += '<section class="ph-card ph-mgr"><a class="ph-btn" id="phMgr" href="records.html">📋 マネージャーの記録へ</a><p class="ph-sub" data-xp="">選手モードのまま、マネージャーとしてチームの記録を開きます。記録のページの上の「👟 選手のホームへ戻る」で、ここに戻れます。</p></section>';
     // 1 次の大会
     h += '<section class="ph-card"><h3>📅 次の大会の予定・招集</h3>';
     if (up.length) {
@@ -3528,7 +3566,7 @@ var LaneMode = (function () {
       h += '<a class="ph-next" href="' + esc(n.L.url) + '"><span class="ph-meet">' + esc(n.o.n || '大会') + '</span><span class="ph-date">' + esc([n.o.d, n.o.pl].filter(Boolean).join('・')) + '</span>' +
         '<span class="ph-times">' + (call ? '<span><small>最初の招集</small><b>' + esc(call.t) + '</b><em>' + esc(call.label) + '</em></span>' : '') + (race ? '<span><small>最初の競技</small><b>' + esc(race.t) + '</b><em>' + esc(race.label) + '</em></span>' : '') + '</span><span class="ph-open">予定を開く →</span></a>';
       if (up.length > 1) h += '<ul class="ph-list">' + up.slice(1, 6).map(function (m) { return '<li><a href="' + esc(m.L.url) + '">' + esc(m.o.n || '大会') + '<small>' + esc(m.o.d || '') + '</small></a></li>'; }).join('') + '</ul>';
-    } else h += '<p class="ph-empty">まだありません。先生から「大会当日の予定」のリンクをもらって開くと、ここに出ます。</p>';
+    } else h += '<p class="ph-empty">まだありません <span data-xp="">先生から「大会当日の予定」のリンクをもらって開くと、ここに出ます。</span></p>';
     h += '</section>';
     // v0.26.30 これからの大会：先生のリンク（大会当日の予定・個人ページ）に入っている予定。いちばん新しいリンクのもの（ほかのリンクにしかない大会も足す）
     if (typeof LanePlans !== 'undefined') {
@@ -3543,7 +3581,7 @@ var LaneMode = (function () {
       var p = pps[0];
       h += '<p class="ph-sub">' + esc(p.o.a.name) + ' さん・' + esc(LanePersonal.snapLabel(p.o.g)) + '時点</p><ul class="ph-pbs">' + p.o.e.slice(0, 8).map(function (e) { var b = e.b || e.rf; return '<li><span>' + esc(e.l) + '</span><b>' + esc(b ? b[0] : '—') + '</b></li>'; }).join('') + '</ul>' +
         '<a class="ph-btn" href="' + esc(p.L.url) + '">📈 グラフと最近の記録を見る</a>';
-    } else h += '<p class="ph-empty">まだありません。先生から「個人ページ」のリンクをもらって開くと、ここに出ます。自分で記録をつけるなら、下の「自分の記録をつける」へ。</p>';
+    } else h += '<p class="ph-empty">まだありません <span data-xp="">先生から「個人ページ」のリンクをもらって開くと、ここに出ます。自分で記録をつけるなら、下の「自分の記録をつける」へ。</span></p>';
     h += '</section>';
     // 3 先生とのやり取り（先生がオンにしているときだけ。LaneTalk が中身を入れる）
     h += '<section class="ph-card" id="phTalk" hidden></section>';
@@ -3551,14 +3589,14 @@ var LaneMode = (function () {
     h += '<section class="ph-card"><h3>📝 体調メモ</h3><div id="phCond">' + LanePersonal.condFormHtml(td, '今日の体調') + '</div>' +
       (LanePersonal.cList().length ? '<ul class="ph-cdlist">' + LanePersonal.cList().slice(0, 5).map(function (x) { return '<li><b>' + esc(LanePersonal.mdLabel(x.d)) + '</b> ' + LanePersonal.condBadge(x.c) + '</li>'; }).join('') + '</ul>' : '') + '</section>';
     // 5 自分の記録
-    h += '<section class="ph-card"><h3>📒 自分の記録をつける</h3><p class="ph-sub">大会の結果PDFやWebページから、自分の記録だけを取り込みます（「個人で使う」）。ログインしなくても、このスマホに保存できます。</p><a class="ph-btn" href="records.html?me=1">📒 自分の記録をつける・見る</a></section>';
+    h += '<section class="ph-card"><h3>📒 自分の記録をつける</h3><p class="ph-sub" data-xp="" data-xp-at="h3">大会の結果PDFやWebページから、自分の記録だけを取り込みます（「個人で使う」）。ログインしなくても、このスマホに保存できます。</p><a class="ph-btn" href="records.html?me=1">📒 自分の記録をつける・見る</a></section>';
     // 6 もらったリンク
     h += '<section class="ph-card"><h3>🔗 もらったリンク</h3>' + (links.length ? '<ul class="ph-links">' + links.map(function (L) {
       var o = (pps.concat(meets).filter(function (x) { return x.L.id === L.id; })[0] || {}).o || {};
       var t = L.kind === 'pp' ? '🏅 個人ページ' + (o.a ? '（' + o.a.name + '）' : '') : '📅 ' + (o.n || '大会当日の予定') + (o.d ? '（' + o.d + '）' : '');
-      return '<li><a href="' + esc(L.url) + '">' + esc(t) + '</a><button type="button" class="ph-x" data-phforget="' + esc(L.id) + '" aria-label="このリンクをスマホから削除">削除</button></li>'; }).join('') + '</ul>' : '<p class="ph-empty">先生からもらったリンクは、一度開くと自動でここに保存されます。</p>') +
+      return '<li><a href="' + esc(L.url) + '">' + esc(t) + '</a><button type="button" class="ph-x" data-phforget="' + esc(L.id) + '" aria-label="このリンクをスマホから削除">削除</button></li>'; }).join('') + '</ul>' : '<p class="ph-empty">まだありません <span data-xp="">先生からもらったリンクは、一度開くと自動でここに保存されます。</span></p>') +
       '<div class="ph-paste"><input type="url" id="phUrl" placeholder="もらったリンクをここに貼る" aria-label="もらったリンク"><button type="button" class="ph-btn sm" id="phGo">開いて保存</button></div><div class="ph-msg" id="phMsg" role="status"></div></section>';
-    h += '<p class="ph-foot">🔒 この画面の内容は、このスマホの中だけに保存しています。<br><button type="button" class="ph-link danger" id="phWipe">🗑 この端末から全部消す（共用のスマホを返す前に）</button><br><button type="button" class="ph-link" data-pickmode="1">🧑‍🏫 顧問・コーチの画面に切りかえる</button></p>';
+    h += '<p class="ph-foot">🔒 このスマホだけに保存 <span data-xp="">この画面の内容は、このスマホの中だけに保存しています。共用のスマホを返す前に「この端末から全部消す」で消してください。</span><br><button type="button" class="ph-link danger" id="phWipe">🗑 この端末から全部消す（共用のスマホを返す前に）</button><br><button type="button" class="ph-link" data-pickmode="1">🧑‍🏫 顧問・コーチの画面に切りかえる</button></p>';
     box.innerHTML = h;
     LanePersonal.bindCond($('phCond'), function () { });
     box.querySelectorAll('[data-phforget]').forEach(function (b) { b.addEventListener('click', function () { if (!confirm('このリンクを、このスマホから削除しますか？（もう一度開けば、また保存されます）')) return; forget(b.getAttribute('data-phforget')); renderHome(); }); });

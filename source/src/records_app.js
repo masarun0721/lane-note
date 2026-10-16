@@ -307,7 +307,7 @@
     };
     var y = +LP.ym.slice(0, 4), m = +LP.ym.slice(5, 7);
     box.innerHTML = '<h2>📅 今後の大会 <small class="muted">' + (up.length ? up.length + '件' : '') + '</small></h2>' +
-      (P.past(all, td).length ? '<p class="lp-yb"><a class="btn sub small" href="records.html?year=1">📚 1年分の記録をまとめる</a> <small class="muted">終わった大会の結果を、まとめてさがして取り込みます</small></p>' : '') +   // v0.26.50
+      (P.past(all, td).length ? '<p class="lp-yb"><a class="btn sub small" href="records.html?year=1">📚 1年分の記録をまとめる</a> <small class="muted" data-xp="">終わった大会の結果を、まとめてさがして取り込みます</small></p>' : '') +   // v0.26.50
       (up.length ? '<ul class="lp-list">' + up.slice(0, 40).map(row).join('') + '</ul>' : '<p class="small muted">まだありません。下の「📅 大会予定をまとめて追加」から入れられます。</p>') +
       (all.length ? '<div class="lp-calbox"><div class="rb-row lp-nav"><button class="btn sub small" type="button" data-lpm="-1" aria-label="前の月">◀</button><b>' + y + '年' + m + '月</b><button class="btn sub small" type="button" data-lpm="1" aria-label="次の月">▶</button></div>' + P.monthHtml(all, LP.ym, td) + '</div>' : '') +
       (P.past(all, td).length ? '<details class="small"><summary>終わった予定 ' + P.past(all, td).length + '件</summary><ul class="lp-list">' + P.past(all, td).slice(0, 60).map(row).join('') + '</ul></details>' : '');
@@ -510,7 +510,7 @@
     var act = ROSTER.filter(function (e) { return e.status === 'active'; }), old = ROSTER.filter(function (e) { return e.status !== 'active'; });
     var row = function (e) { return '<li><a href="#athlete=' + encodeURIComponent('id:' + e.aid) + '">' + esc(e.name) + '</a> <span class="small muted">' + esc(e.team || '') + '・' + esc(gradeNow(e)) + '</span></li>'; };
     var h = '<details class="card ro-home"' + (RS.open ? ' open' : '') + ' data-ro-d="1"><summary><b>🪪 選手台帳・年度更新</b>（在籍 ' + act.length + '人' + (old.length ? '・卒業など ' + old.length + '人' : '') + '）</summary>';
-    h += '<p class="small">選手のページの「🪪 台帳に入れる」で選手IDをつけます。台帳の人は、名前の表記が変わっても同じ人として記録をまとめます。<b>名前だけで自動的に結びつけることはしません。</b></p>';
+    h += '<p class="small" data-xp="台帳とは">選手のページの「🪪 台帳に入れる」で選手IDをつけます。台帳の人は、名前の表記が変わっても同じ人として記録をまとめます。<b>名前だけで自動的に結びつけることはしません。</b></p>';
     if (act.length) h += '<ul class="ro-list">' + act.map(row).join('') + '</ul>'; else h += '<p class="small muted">まだだれも入っていません。</p>';
     if (old.length) h += '<details><summary class="small">卒業・退部の人（記録はそのまま残ります）</summary><ul class="ro-list">' + old.map(row).join('') + '</ul></details>';
     if (can && act.length) {
@@ -882,7 +882,7 @@
     box.hidden = false;
     if (!TEAM_PAGE) { var o0 = $('rbTeamStatus'), k0 = o0 ? o0.innerHTML : ''; box.innerHTML = teamStatusHtml(); if (k0) $('rbTeamStatus').innerHTML = k0; var tb0 = $('rbTalkBox'); if (tb0) tb0.hidden = !!(TEAM && TEAM.role === 'manager'); return; }
     var sel = '<label>保存先 <select id="rbTeamSel"><option value="">👤 自分だけ（今までどおり）</option>' + TEAMS.map(function (x) { return '<option value="' + esc(x.id) + '"' + (TEAM && TEAM.id === x.id ? ' selected' : '') + '>👥 ' + esc(x.name) + '（' + esc(roleLabel(x.role)) + '）</option>'; }).join('') + '</select></label>';
-    var h = '<h3>👥 チームで共有</h3><p class="small muted">顧問・マネージャーが、それぞれ<b>自分のGoogleアカウント</b>で同じチームの記録を使えます。アカウントやパスワードを共有する必要はありません。</p><div class="rb-row">' + sel + '</div>';
+    var h = '<h3>👥 チームで共有</h3><p class="small muted" data-xp="" data-xp-at="h3">顧問・マネージャーが、それぞれ<b>自分のGoogleアカウント</b>で同じチームの記録を使えます。アカウントやパスワードを共有する必要はありません。</p><div class="rb-row">' + sel + '</div>';
     if (TEAM_WAIT && !TEAM) h += '<p class="tm-warn">⏳ <b>承認待ちです。</b>顧問が承認すると、チームの記録が見えるようになります（承認されるまで、チームの記録は見えません）。 <button type="button" class="btn sub sm" data-tm="recheck">承認されたか確かめる</button></p>';
     if (TEAM_LOST && !TEAM) h += '<p class="tm-warn">⚠ 「' + esc(TEAM_LOST) + '」は今は使えません（チームから外されたか、マネージャーの期限が過ぎました）。必要なら顧問に新しい参加コードをもらってください。 <button type="button" class="btn sub sm" data-tm="forget">一覧から消す</button></p>';
     if (!TEAM) {
@@ -1127,9 +1127,10 @@
     var hid = 0; try { hid = +localStorage.getItem(LN_KEY) || 0; } catch (e) { }
     if (USER || !AUTH_SEEN || (hid && Date.now() - hid < LN_AGAIN)) { box.hidden = true; return; }
     box.hidden = false;
-    box.innerHTML = '<b>⚠ この記録は、このブラウザの中だけに保存しています。</b><br>ブラウザが消すことがあります（iPhone の Safari では、7日ほど開かないと消えることがあります）。<br>' +
-      'なくしたくない記録は、<b>Googleでログイン</b>してクラウドに保存するか、「💾 ファイルに書き出す」で残してください。' +
-      '<div><button class="btn sub" type="button" id="rbLocalNoteIn">Googleでログイン</button><button class="btn sub" type="button" id="rbLocalNoteX">閉じる（しばらく出しません）</button></div>';
+    // v0.27（案）1行に：「⚠ この端末だけに保存中」＋ログイン＋「？」（全文）＋閉じる
+    box.innerHTML = '<b>⚠ この端末だけに保存中</b><span data-xp="">⚠ この記録は、このブラウザの中だけに保存しています。<br>ブラウザが消すことがあります（iPhone の Safari では、7日ほど開かないと消えることがあります）。<br>' +
+      'なくしたくない記録は、<b>Googleでログイン</b>してクラウドに保存するか、「💾 ファイルに書き出す」で残してください。「閉じる」と、しばらく（14日）出しません。</span>' +
+      '<button class="btn sub" type="button" id="rbLocalNoteIn">Googleでログイン</button><button class="btn sub ln-x" type="button" id="rbLocalNoteX" title="しばらく出しません" aria-label="閉じる（しばらく出しません）">閉じる</button>';
     $('rbLocalNoteX').addEventListener('click', function () { try { localStorage.setItem(LN_KEY, String(Date.now())); } catch (e) { } box.hidden = true; });
     var lb = $('rbLocalNoteIn'); if (typeof CLOUD_READY !== 'undefined' && !CLOUD_READY) lb.hidden = true; lb.addEventListener('click', function () { var b = $('rbSignIn'); if (b) b.click(); });
   }
@@ -1187,7 +1188,7 @@
     if (!CLOUD_READY) { info.innerHTML = '💻 <b>この端末だけに保存中</b>（クラウド保存はまだ準備中です）'; inB.hidden = true; outB.hidden = true; return; }
     $('rbClearCloud').hidden = !USER;
     if (USER) { info.innerHTML = '☁ <b>' + esc(USER.email || USER.displayName || 'ログイン中') + '</b> でログイン中：記録はクラウドに保存し、どの端末からでも見られます' + (OFFLINE ? '<br><span class="ng">⚠ いまクラウドにつながらないので、' + (noCache(scope()) ? '記録を表示できません（この端末には控えを置かない設定です）' : 'この端末の控えを表示しています') + '</span>' : '') + (noCache(scope()) ? '<br><span class="small">🧹 この端末には控えを置いていません（「端末のデータを消す」のあと）。 <button class="btn sub" type="button" id="rbCacheOn">この端末に控えを置く</button></span>' : ''); inB.hidden = true; outB.hidden = false; }
-    else { info.innerHTML = '💻 <b>ログインしていません</b>：記録はこの端末だけに保存されます。Googleでログインすると、どの端末からでも同じ記録が見られます。'; inB.hidden = false; outB.hidden = true; }
+    else { info.innerHTML = '💻 <b>ログインしていません</b> <span data-xp="">記録はこの端末だけに保存されます。Googleでログインすると、どの端末からでも同じ記録が見られます。</span>'; inB.hidden = false; outB.hidden = true; }
   }
   // アカウントが変わったら、前の人の画面の中身（記録・読み込み途中の資料・入力欄）をすべて消す
   function resetView() {
@@ -1683,9 +1684,9 @@
         '<small>' + (on === false ? 'オフ：' + what + 'ても、登録しません。' : on === true ? 'オン（前に「登録する」と答えたので、今は聞かずに登録します。オフにすると止まります）' : 'オン：' + what + 'たとき、はじめの1回だけ聞きます。') + '</small></label>';
     };
     box.hidden = false;
-    box.innerHTML = '<details class="small"' + (PP.open ? ' open' : '') + ' data-ppd="1"><summary><b>🤝 だれかが入れた大会は、もう入れなくてOK</b>（みんなの要項／みんなの結果）</summary><p class="small muted">この設定は顧問だけが変えられます。</p>' +
+    box.innerHTML = '<details class="small"' + (PP.open ? ' open' : '') + ' data-ppd="1"><summary><b>🤝 だれかが入れた大会は、もう入れなくてOK</b>（みんなの要項／みんなの結果）</summary><p class="small muted" data-xp="" data-xp-at="summary">この設定は顧問だけが変えられます。</p>' +
       row('pub', 'みんなの要項', '大会予定から開いた大会で要項をURLから読み') + row('pubres', 'みんなの結果', '結果をURLから読んで保存し') +
-      '<p class="small muted">だれか1人が要項や結果のURLを登録すると、同じ大会に出るほかの先生は、大会を選ぶだけで入れられます。登録されるのは大会名・日付・会場・URL（要項は大会のきまりも）だけで、選手の名前や記録は送りません。すでに登録したものは、オフにしてもそのままです。</p><div class="status" id="ppMsg"></div></details>';
+      '<p class="small muted" data-xp="しくみ">だれか1人が要項や結果のURLを登録すると、同じ大会に出るほかの先生は、大会を選ぶだけで入れられます。登録されるのは大会名・日付・会場・URL（要項は大会のきまりも）だけで、選手の名前や記録は送りません。すでに登録したものは、オフにしてもそのままです。</p><div class="status" id="ppMsg"></div></details>';
   }
   document.addEventListener('toggle', function (e) { if (e.target && e.target.getAttribute && e.target.getAttribute('data-ppd')) PP.open = e.target.open; }, true);
   document.addEventListener('change', async function (e) {
@@ -1785,15 +1786,15 @@
     rows.forEach(function (r, i) { if ((st[i] === 'found' || st[i] === 'done') && r.go && r.sel) n.go++; });
     var ready = rows.filter(function (r, i) { return st[i] === 'ready'; }), recN = ready.reduce(function (m, r) { return m + r.n; }, 0);
     var cnt = {}; st.forEach(function (x) { cnt[x] = (cnt[x] || 0) + 1; });
-    box.innerHTML = '<p class="small">大会予定に入れた<b>終わった大会</b>ごとに、公開されている結果の一覧（gold.jaic.org の東京陸協・高体連・中体連、江東区陸協）から結果をさがし、まとめて読み込みます。読み込むと、<b>学校・クラブ名の選手の記録だけ</b>を下の確認画面に出します。保存するのは、最後に「まとめて保存」を押したときだけです。</p>' +
+    box.innerHTML = '<p class="small" data-xp="この機能について">大会予定に入れた<b>終わった大会</b>ごとに、公開されている結果の一覧（gold.jaic.org の東京陸協・高体連・中体連、江東区陸協）から結果をさがし、まとめて読み込みます。読み込むと、<b>学校・クラブ名の選手の記録だけ</b>を下の確認画面に出します。保存するのは、最後に「まとめて保存」を押したときだけです。</p>' +
       '<div class="rb-row yb-per"><label>この日から <input type="date" id="ybFrom" value="' + esc(YB.from) + '"></label><label>この日まで <input type="date" id="ybTo" value="' + esc(YB.to) + '"></label><span class="yb-q"><button type="button" class="btn sub small" data-ybr="fy">今年度</button><button type="button" class="btn sub small" data-ybr="cy">今年</button><button type="button" class="btn sub small" data-ybr="y">この1年</button></span></div>' +
-      '<p class="small">この期間の終わった大会予定：<b>' + ps.length + '件</b>' + (ps.length ? '' : '（📅 大会予定のページで、大会名と日付を入れてください。CSV でまとめて入れられます）') + '</p>' +
+      '<p class="small">この期間の終わった大会予定：<b>' + ps.length + '件</b>' + (ps.length ? '' : ' <span data-xp="">📅 大会予定のページで、大会名と日付を入れてください。CSV でまとめて入れられます。</span>') + '</p>' +
       '<div class="rb-row"><button type="button" class="btn" id="ybFind"' + (ps.length && !YB.busy ? '' : ' disabled') + '>🔎 結果をさがす</button>' + (YB.busy ? '<button type="button" class="btn sub" id="ybStop">やめる</button>' : '') + '</div>' +
       '<div class="status" id="ybMsg">' + esc(YB.note || '') + '</div>' +
       (rows.length ? '<p class="small yb-sum1">見つかった ' + ((cnt.found || 0) + (cnt.done || 0)) + '・候補を確認 ' + (cnt.pick || 0) + '・見つからない ' + (cnt.none || 0) + (cnt.ready ? '・読み取り済み ' + cnt.ready : '') + (cnt.saved ? '・保存済み ' + cnt.saved : '') + '（全 ' + rows.length + '大会）</p><ul class="yb-list" id="ybList">' + rows.map(ybRowHtml).join('') + '</ul>' +
         '<div class="rb-row yb-acts"><button type="button" class="btn" id="ybRead"' + (n.go && !YB.busy ? '' : ' disabled') + '>📥 まとめて読み込む（' + n.go + '大会）</button>' +
         '<button type="button" class="btn" id="ybSave"' + (ready.length && !YB.busy ? '' : ' disabled') + '>💾 まとめて保存（' + ready.length + '大会・' + recN + '件）</button></div>' +
-        '<p class="small muted">大きな大会は、1つで数百ページあります（この学校の選手が出ていない種目の決勝などは読みません）。1年分（30大会ほど）で5分くらいかかります（中継が混んでいるときは、もう少しかかります）。読み終わった大会から、記録の件数と自己ベストの更新が出ます。読み込みの間は、この画面を開いたままにしてください（スマホは画面が消えないように）。読み込んだ記録は、保存する前に下の確認画面で1大会ずつ確かめられます。</p>' : '') +
+        '<p class="small muted" data-xp="時間の目安">大きな大会は、1つで数百ページあります（この学校の選手が出ていない種目の決勝などは読みません）。1年分（30大会ほど）で5分くらいかかります（中継が混んでいるときは、もう少しかかります）。読み終わった大会から、記録の件数と自己ベストの更新が出ます。読み込みの間は、この画面を開いたままにしてください（スマホは画面が消えないように）。読み込んだ記録は、保存する前に下の確認画面で1大会ずつ確かめられます。</p>' : '') +
       (YB.saved ? YB.saved : '');
   }
   function ybMsg(t, c) { YB.note = t; var el = $('ybMsg'); if (el) { el.className = 'status' + (c ? ' ' + c : ''); el.textContent = t; } }
@@ -2506,7 +2507,7 @@
     if (!SUS.open) { box.hidden = true; box.innerHTML = ''; return; }
     var L = susList(), del = susCanDel(), LB = LaneSuspect.LABEL, h = '';
     h += '<div class="card-h"><b>🔍 怪しい記録</b><span class="sus-n">' + L.length + '件</span>' +
-      '<details class="sus-help"><summary aria-label="説明">?</summary><p class="small">二重・同じ日に記録がちがう・ありえない記録・大会の日程の外の日付を探します。値は直しません。' + (del ? '「消す」は確認のあと消し、すぐなら元に戻せます。' : 'この画面では消せません（顧問・マネージャーが消せます）。') + '「問題ない」はこの端末だけに覚え、次から出しません。</p></details>' +
+      '<span class="sus-help" data-xp="">二重・同じ日に記録がちがう・ありえない記録・大会の日程の外の日付を探します。値は直しません。' + (del ? '「消す」は確認のあと消し、すぐなら元に戻せます。' : 'この画面では消せません（顧問・マネージャーが消せます）。') + '「問題ない」はこの端末だけに覚え、次から出しません。</span>' +
       '<button type="button" class="btn sub small" data-sus="close">閉じる</button></div>';
     if (SUS.msg) h += '<div class="status ' + SUS.cls + '">' + SUS.msg + (SUS.undo && SUS.undo.length ? ' <button type="button" class="btn sub small" data-sus="undo">↩ 元に戻す</button>' : '') + '</div>';
     if (!L.length) h += '<p class="small ok">✔ 見つかりませんでした。</p>';
@@ -2562,7 +2563,7 @@
     sus.list.forEach(function (x) { if (!by[x.id]) { by[x.id] = []; order.push(x.id); } by[x.id].push(x); });
     var nEx = order.filter(function (id) { return ex[id]; }).length, LB = LaneSuspect.LABEL;
     return '<div class="rb-sus"><b>🔍 気になる行 ' + order.length + '件</b>' + (nEx ? '（' + nEx + '件は入れません）' : '') +
-      ' <details class="sus-help"><summary aria-label="説明">?</summary><p class="small">二重（保存ずみや、この中にもう1つ同じ行がある）は、はじめから入れません。ほかは入れて、印だけ付けます。値は直しません。チェックで変えられます。</p></details>' +
+      ' <span class="sus-help" data-xp="">二重（保存ずみや、この中にもう1つ同じ行がある）は、はじめから入れません。ほかは入れて、印だけ付けます。値は直しません。チェックで変えられます。</span>' +
       '<ul class="sus-list">' + order.map(function (id) {
         var xs = by[id], r = xs[0].rec;
         return '<li class="sus-it' + (ex[id] ? ' sus-ex' : '') + '"><label><input type="checkbox" data-susx="' + esc(id) + '"' + (ex[id] ? ' checked' : '') + '> 入れない</label> <b>' + esc(r.name || r.kana || r.team || '') + '</b> ' + esc(r.date || '') + ' ' + esc(evName(r)) + (r.round ? ' ' + esc(r.round) : '') + ' <b>' + esc(r.mark || '—') + '</b>' +
@@ -2994,14 +2995,14 @@
     var ls = LaneReview.athletes(R, filtered(), RV.from, RV.to), c = filterCond(), ys = rvSeasons(), cur = '';
     ys.forEach(function (y) { var g = LaneReview.seasonRange(y); if (g[0] === RV.from && g[1] === RV.to) cur = String(y); });
     var act = { view: '👀 画面で見る', pdf: '📄 PDFを作る', print: '🖨 印刷する' }[PICK_ACT] || '👀 画面で見る', uid = rvUid();
-    openPrint('<div class="lp-pick rv-pick"><b>📝 ふりかえりシートを作る選手を選ぶ</b><p class="small muted">選手1人につきA4 1枚です。種目ごとのベスト・自己ベストの更新・記録の推移・出た大会・リレーと、「先生から一言」の枠が入ります。会話や体調メモは入りません。</p>' +
+    openPrint('<div class="lp-pick rv-pick"><b>📝 ふりかえりシートを作る選手を選ぶ</b> <p class="small muted" data-xp="">選手1人につきA4 1枚です。種目ごとのベスト・自己ベストの更新・記録の推移・出た大会・リレーと、「先生から一言」の枠が入ります。会話や体調メモは入りません。</p>' +
       '<div class="rv-per"><label>期間 <select data-rvseason="1">' + ys.map(function (y) { return '<option value="' + y + '"' + (String(y) === cur ? ' selected' : '') + '>' + esc(R.seasonLabel(y)) + (y === nowSeason() ? '（今の年度）' : '') + '</option>'; }).join('') + '<option value=""' + (cur ? '' : ' selected') + '>期間を指定</option></select></label>' +
       '<label>はじめ <input type="date" data-rvfrom="1" value="' + esc(RV.from) + '"></label><label>おわり <input type="date" data-rvto="1" value="' + esc(RV.to) + '"></label></div>' +
       '<p class="small muted">' + (c ? 'いまの絞り込み（' + esc(c) + '）の' : '') + esc(LaneReview.periodLabel(RV.from, RV.to)) + 'に記録がある選手 ' + ls.length + '人</p>' +
       (ls.length ? '<div class="lp-ops"><button class="btn sub" type="button" data-rvall="1">全員選択</button><button class="btn sub" type="button" data-rvnone="1">全解除</button><button class="btn" type="button" data-rvmake="1">' + act + '（<span id="rbRVn">' + ls.length + '</span>人）</button></div>' : '<p class="muted">この期間の記録がありません。期間を変えてください。</p>') +
       '<ul>' + ls.map(function (b) { var nt = LaneReview.noteGet(uid, b.key, RV.from, RV.to);
         return '<li><label><input type="checkbox" data-rvk="' + esc(b.key) + '" checked><b>' + esc(b.name) + '</b><span class="gr">' + esc(b.grade ? b.grade + (/年/.test(b.grade) ? '' : '年') : '') + ' ' + esc(b.team || '') + '・' + b.nMeets + '大会</span></label>' +
-          '<details class="rv-nd"' + (nt ? ' open' : '') + '><summary>✏️ 先生から一言を入れる' + (nt ? '（入力あり）' : '（空けておくと手書きの枠）') + '</summary><textarea data-rvnote="' + esc(b.key) + '" maxlength="' + LaneReview.NOTE_MAX + '" rows="3" placeholder="例：春から夏にかけて大きく伸びました。来年も楽しみです。">' + esc(nt) + '</textarea><small class="muted">この端末だけに保存します（どこにも送りません）。</small></details></li>'; }).join('') + '</ul></div>', true);
+          '<details class="rv-nd"' + (nt ? ' open' : '') + '><summary>✏️ 先生から一言を入れる' + (nt ? '（入力あり）' : '') + '<span class="sum-sub" data-xp="">空けておくと、手書きの枠になります。</span></summary><textarea data-rvnote="' + esc(b.key) + '" maxlength="' + LaneReview.NOTE_MAX + '" rows="3" placeholder="例：春から夏にかけて大きく伸びました。来年も楽しみです。">' + esc(nt) + '</textarea><small class="muted">🔒 この端末だけに保存</small> <small class="muted" data-xp="">どこにも送りません。</small></details></li>'; }).join('') + '</ul></div>', true);
   }
   function startPrint(kind, key, act) {
     act = act || 'view'; PICK_ACT = act; CUR_PRINT = { kind: kind, key: key || '' };

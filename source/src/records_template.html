@@ -74,14 +74,10 @@ body.personal-on .tabs button[data-v="rank"],body.personal-on .tabs button[data-
 .pp-sw{display:block;margin:6px 0}.pp-sw small{display:block;margin-left:1.6em;color:#666}
 .rb-loose{background:#fff3e0;border:1px solid #f0b46a;border-radius:8px;padding:6px 10px;font-size:13px;margin:6px 0}
 .rb-sus{background:#fff8e6;border:1px solid #f0c36a;border-radius:8px;padding:6px 10px;font-size:13px;margin:6px 0}
-/* v0.26.55 🔍 怪しい記録チェック（説明は「?」の中。あとで共通の部品に置きかえやすいよう details 1つ） */
+/* v0.26.55 🔍 怪しい記録チェック（説明は共通の「？」の中） */
 .sus-card{margin:8px 0;padding:10px 12px}
 .sus-card .card-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .sus-n{font-weight:700;color:#b45309}
-.sus-help{display:inline-block;position:relative}
-.sus-help>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;border:1px solid #9aa8bd;color:#334;font-weight:700;font-size:13px}
-.sus-help>summary::-webkit-details-marker{display:none}
-.sus-help[open]>p{margin:6px 0;max-width:36em}
 .sus-card .card-h [data-sus="close"]{margin-left:auto}
 .sus-h{margin:12px 0 4px;font-size:14px}.sus-h small{margin-left:6px;background:#eef2f8;border-radius:10px;padding:0 7px;font-weight:700}
 .sus-list{list-style:none;margin:0;padding:0}
@@ -195,7 +191,7 @@ body.ath-open #rbLegend{display:none}
 .rb-manual .mnote{font-size:11.5px;color:var(--muted);font-weight:400}
 .rb-manual .edit-banner{background:#e4572e;color:#fff;border-radius:8px;padding:6px 10px;font-size:13px;font-weight:700;margin:6px 0}
 .url-note{font-size:12px;color:#7a5a00;background:#fff7dc;border:1px solid #f0d58a;border-radius:8px;padding:5px 9px;margin:6px 0}
-.rb-localnote{border:1px solid #e0b252;background:#fff9e8;border-radius:10px;padding:8px 12px;margin:10px 0;font-size:14px;line-height:1.6}.rb-localnote .btn{margin:6px 6px 0 0}
+.rb-localnote{border:1px solid #e0b252;background:#fff9e8;border-radius:10px;padding:6px 10px;margin:8px 0;font-size:14px;line-height:1.6;display:flex;flex-wrap:wrap;align-items:center;gap:6px}.rb-localnote .btn{margin:0;padding:5px 12px;font-size:13px}.rb-localnote .ln-x{margin-left:auto}
 .rb-guest{border:2px solid #e4572e;background:#fff8f4;border-radius:12px;padding:10px 12px;margin:10px 0}
 label.btn,.filebtn{display:inline-flex;align-items:center;justify-content:center;text-align:center;box-sizing:border-box;vertical-align:middle}
 .rb-guest .btn{margin:4px 6px 0 0;white-space:normal;max-width:100%;text-align:center}
@@ -407,11 +403,11 @@ __MODEPICK__
 <script>(function () { var k = 'lanenote.xnews.v1', b = document.getElementById('xNews'); try { if (localStorage.getItem(k) || document.body.classList.contains('team-page')) return; } catch (e) { } b.hidden = false; b.querySelector('.xnews-x').addEventListener('click', function () { b.hidden = true; try { localStorage.setItem(k, '1'); } catch (e) { } }); })();</script>
 <main>
 <section class="box">
-  <div id="tpHead"><h2>👥 チームの設定</h2><p class="small">チームを作る・参加コードで入る、メンバーと役割、参加コード、引き継ぎ、見える人とリンクをここで扱います。<a href="records.html">📒 記録のページへ戻る</a></p></div>
+  <div id="tpHead"><h2>👥 チームの設定</h2><p class="small" data-xp="このページについて" data-xp-at="#tpHead h2">チームを作る・参加コードで入る、メンバーと役割、参加コード、引き継ぎ、見える人とリンクをここで扱います。<a href="records.html">📒 記録のページへ戻る</a></p></div>
   <p id="tpGate" class="tm-warn">チームの設定は、顧問・マネージャーの方が<b>Googleでログイン</b>してから使います（選手・保護者の方は使いません）。</p>
-  <div id="spHead"><h2>📅 大会予定</h2><p class="small">これからの大会を登録して、あと何日・エントリー締切をカレンダーで見られます。登録した予定は、大会準備の「大会予定から選ぶ」と、選手に送るリンク（これからの大会）で使います。ログインしているときは記録と同じ保存先（自分のクラウド／チーム）に保存します。</p></div>
-  <h2><span class="no">1</span>学校・クラブ名と結果の資料</h2>
-  <p class="privacy-line">🔒 ログインすると自分専用のクラウドに保存（ほかの人には見えません。「チームで共有」を使ったときだけ、そのチームのメンバーに見えます）。ログインなしはこの端末だけ。「URLから読み込む」のときは、URLと中身が LANE NOTE の中継を通ります（保存しません）。利用回数だけを数えます（個人の情報は集めません）。詳しくは <a href="guide.html#data">はじめての人はこちら</a></p>
+  <div id="spHead"><h2>📅 大会予定</h2><p class="small" data-xp="このページについて" data-xp-at="#spHead h2">これからの大会を登録して、あと何日・エントリー締切をカレンダーで見られます。登録した予定は、大会準備の「大会予定から選ぶ」と、選手に送るリンク（これからの大会）で使います。ログインしているときは記録と同じ保存先（自分のクラウド／チーム）に保存します。</p></div>
+  <h2 id="rbH1"><span class="no">1</span>学校・クラブ名と結果の資料</h2>
+  <p class="privacy-line" data-xp="🔒 データの扱い" data-xp-at="#rbH1">🔒 ログインすると自分専用のクラウドに保存（ほかの人には見えません。「チームで共有」を使ったときだけ、そのチームのメンバーに見えます）。ログインなしはこの端末だけ。「URLから読み込む」のときは、URLと中身が LANE NOTE の中継を通ります（保存しません）。利用回数だけを数えます（個人の情報は集めません）。詳しくは <a href="guide.html#data">はじめての人はこちら</a></p>
   <div class="rb-row" id="rbAuth" style="margin:10px 0;align-items:center">
     <span id="rbAuthInfo" class="small"></span>
     <button class="btn" id="rbSignIn" type="button" hidden>Googleでログイン</button>
@@ -421,11 +417,11 @@ __MODEPICK__
   <div class="rb-guest" id="rbGuest" hidden aria-live="polite"></div>
   <div class="rb-localnote" id="rbLocalNote" hidden role="note"></div>
   <section class="rb-team" id="rbTeam" hidden aria-label="チームで共有"></section>
-  <div class="disclaimer sm" style="margin-top:8px">ⓘ 結果の資料の文字を読み取って整理しているだけです。<b>記録は必ず元の結果資料と照らし合わせて確認してください。</b>読めなかったところは空欄にして警告を出します（推測で埋めません）。</div>
+  <div class="disclaimer sm" style="margin-top:8px">ⓘ 記録は元資料と照らし合わせてください <span data-xp="">結果の資料の文字を読み取って整理しているだけです。<b>記録は必ず元の結果資料と照らし合わせて確認してください。</b>読めなかったところは空欄にして警告を出します（推測で埋めません）。</span></div>
   <input type="checkbox" id="rbPersonal" hidden aria-hidden="true">
   <div class="rb-row" style="margin:10px 0" id="rbSchoolRow">
     <label>学校・クラブ名 <input type="text" id="rbSchool" placeholder="例：本郷" autocomplete="off"></label>
-    <span class="small muted">「本郷」と打つと「本郷」「本郷高」「本郷中」を拾います。</span>
+    <span class="small muted" data-xp="">「本郷」と打つと「本郷」「本郷高」「本郷中」を拾います。</span>
     <button type="button" class="mode-link" id="rbToPersonal">👤 個人で使う方はこちら</button>
   </div>
   <div class="rb-row" style="margin:10px 0" id="rbPersonRow" hidden>
@@ -433,24 +429,25 @@ __MODEPICK__
     <label>所属（任意） <input type="text" id="rbPTeam" placeholder="例：本郷中・〇〇AC" autocomplete="off" maxlength="60"></label>
     <button type="button" class="mode-link" id="rbToSchool">🏫 学校で使う方はこちら</button>
   </div>
-  <details class="rb-manual yb-box" id="rbYear"><summary><b>📚 1年分の記録をまとめる</b>（大会予定の大会の結果を、まとめてさがして取り込む）</summary><div id="ybBody"></div></details>
+  <details class="rb-manual yb-box act" id="rbYear"><summary><b>📚 1年分の記録をまとめる</b><span class="sum-sub" data-xp="">大会予定の大会の結果を、まとめてさがして取り込みます。</span></summary><div id="ybBody"></div></details>
   <div class="drop" id="rbDrop" tabindex="0" role="button" aria-label="結果のファイルを選ぶ">
-    <div class="big">📄 結果のPDF・保存したWebページ（HTML）・Excel（.xlsx/.xls/.csv）をここへ</div>
-    <div class="small muted">複数まとめて入れられます（種目ごとにページが分かれた結果サイトは、ページを全部保存して一度に入れてください）</div>
+    <div class="big">📄 結果のファイルをここへ</div>
+    <div class="small muted">PDF・Webページ（HTML）・Excel（.xlsx/.xls/.csv）・複数OK</div>
     <input type="file" id="rbFile" multiple accept=".pdf,.html,.htm,.txt,.xlsx,.xls,.csv,application/pdf,text/html">
     <div class="status" id="rbStatus"></div>
   </div>
+  <p class="small muted" data-xp="ファイルの入れ方">結果のPDF・保存したWebページ（HTML）・Excel（.xlsx/.xls/.csv）を入れます。複数まとめて入れられます（種目ごとにページが分かれた結果サイトは、ページを全部保存して一度に入れてください）。</p>
   <div id="rbUrlLoad"></div>
-  <details style="margin-top:10px"><summary><b>Webページの結果を貼り付ける</b>（ファイルにできないとき）</summary>
-    <p class="small muted">結果のページを開き、Ctrl+A（全部選ぶ）→ Ctrl+C（コピー）して、ここに貼り付けます。種目ごとにページが分かれているときは、続けて貼り付けてかまいません。</p>
+  <details class="act" style="margin-top:10px"><summary><b>📋 Webページの結果を貼り付ける</b><span class="sum-sub" data-xp="">ファイルにできないときに使います。</span></summary>
+    <p class="small muted" data-xp="貼り付け方">結果のページを開き、Ctrl+A（全部選ぶ）→ Ctrl+C（コピー）して、ここに貼り付けます。種目ごとにページが分かれているときは、続けて貼り付けてかまいません。</p>
     <p class="small muted">URLだけを貼ったときは、上の「URLから読み込む」に入れます。</p>
     <textarea id="rbPaste" placeholder="ここに貼り付け"></textarea>
     <button class="btn sub" id="rbPasteGo" type="button">貼り付けた文章を読み取る</button>
   </details>
-  <details class="rb-manual" id="rbManualBox"><summary><b>✏️ 1件ずつ入力する</b>（読み取りで漏れた記録・資料のない記録）</summary>
+  <details class="rb-manual act" id="rbManualBox"><summary><b>✏️ 1件ずつ入力する</b><span class="sum-sub" data-xp="">読み取りで漏れた記録・資料のない記録を入れます。</span></summary>
     <form id="rbManual" novalidate autocomplete="off">
       <div class="edit-banner" id="rmEditing" hidden></div>
-      <p class="small muted">＊は必須です。氏名・所属・種目・大会名は、今までの記録から候補が出ます（氏名を選ぶと、フリガナ・学年・所属も入ります）。</p>
+      <p class="small muted" data-xp="入力のしかた">＊は必須です。氏名・所属・種目・大会名は、今までの記録から候補が出ます（氏名を選ぶと、フリガナ・学年・所属も入ります）。</p>
       <div class="mgrid">
         <label>日付 <b class="req">＊</b><input type="date" id="rmDate"></label>
         <label>大会名 <span class="mnote">（空なら「大会名なし（日付）」）</span><input id="rmMeet" list="rmMeets" maxlength="100" placeholder="例：区民大会"></label>
@@ -470,7 +467,7 @@ __MODEPICK__
       <div class="rb-row"><button class="btn" type="submit" id="rmSave">記録に保存</button><button class="btn sub" type="button" id="rmCancel" hidden>直すのをやめる</button><button class="btn sub danger-t" type="button" id="rmDelete" hidden>🗑 この記録を消す</button></div>
     </form>
   </details>
-  <p class="small sp-link" id="spLink">📅 これからの大会の予定（今後の大会・カレンダー・まとめて追加・Google カレンダーから）は <a href="schedule.html">大会予定</a> のページへ。</p>
+  <p class="small sp-link" id="spLink">📅 これからの大会は <a href="schedule.html">大会予定</a> へ <span data-xp="">今後の大会・カレンダー・まとめて追加・Google カレンダーからの読み込みは、大会予定のページで使います。</span></p>
   <div id="rbBatches"></div>
   <div class="status" id="rbDone" aria-live="polite"></div>
   <details class="rb-meets" id="rbMeetsBox"><summary><b>取り込み済みの大会</b> <span class="small muted" id="rbMeetsN"></span></summary><ul class="rb-meetlist" id="rbMeets"></ul></details>
@@ -478,12 +475,12 @@ __MODEPICK__
 
 <section class="box lp-home" id="lpHome" hidden aria-label="今後の大会"></section>
 <section class="box sp-add" id="spAdd" aria-label="大会予定をまとめて追加">
-  <details class="rb-manual" id="rbPlanBox" open><summary><b>➕ 大会予定をまとめて追加</b>（CSV・Excel から貼り付け・Google カレンダー）</summary>
-    <p class="small">CSV（Excel なら「CSV UTF-8」で保存）を選ぶか、表を貼り付けてください。1行目は <code>大会名,日付,終了日,会場,区分,締切</code>。大会名と日付は必須、終了日（2日以上の大会）・会場・区分（中／高）・締切（エントリー締切）は空でかまいません。登録済みの大会はとばします。</p>
+  <details class="rb-manual" id="rbPlanBox" open><summary><b>➕ 大会予定をまとめて追加</b><span class="sum-sub" data-xp="">CSV・Excel から貼り付け・Google カレンダー</span></summary>
+    <p class="small" data-xp="CSVの形">CSV（Excel なら「CSV UTF-8」で保存）を選ぶか、表を貼り付けてください。1行目は <code>大会名,日付,終了日,会場,区分,締切</code>。大会名と日付は必須、終了日（2日以上の大会）・会場・区分（中／高）・締切（エントリー締切）は空でかまいません。登録済みの大会はとばします。</p>
     <div class="rb-row"><button class="btn sub" type="button" id="rpTemplate">ひな形（CSV）をダウンロード</button><label class="btn sub">CSV／.ics を選ぶ<input type="file" id="rpFile" accept=".csv,.txt,.ics,text/csv,text/calendar" hidden></label></div>
     <textarea id="rpPaste" rows="4" placeholder="大会名,日付,終了日,会場,区分&#10;江東区中学校秋季陸上競技大会,2026/10/4,,夢の島競技場,中"></textarea>
     <div class="rb-row"><button class="btn sub" type="button" id="rpRead">貼り付けた表を読む</button></div>
-    <details class="rp-gcal small"><summary><b>Google カレンダーから入れる</b>（CSV を作らずに）</summary>
+    <details class="rp-gcal small"><summary><b>Google カレンダーから入れる</b><span class="sum-sub" data-xp="">CSV を作らずに入れられます</span></summary>
       <p>① パソコンで Google カレンダーを開き、左の「マイカレンダー」で大会を入れているカレンダーの「︙」→「設定と共有」。<br>② 下の方の「カレンダーの統合」にある <b>「iCal 形式の公開URL」</b>（カレンダーを公開しているとき）か <b>「iCal 形式の非公開URL」</b> をコピーして、下に貼ります。<br>
       ・非公開URLを知っている人は、そのカレンダーの予定をすべて見られます。人に送ったり、ほかの所に貼ったりしないでください（LANE NOTE はアドレスを保存しません。読み込みは LANE NOTE の中継を通ります）。<br>・アドレスを使いたくないときは、「設定」→「インポート／エクスポート」→「エクスポート」で出したファイル（.zip の中の .ics）を、上の「CSV／.ics を選ぶ」で選んでも入ります。</p>
       <div class="rb-row"><input type="url" id="rpIcsUrl" placeholder="https://calendar.google.com/calendar/ical/…/basic.ics" size="40" autocomplete="off"><button class="btn sub" type="button" id="rpIcsGo">カレンダーを読み込む</button></div>
@@ -500,33 +497,33 @@ __MODEPICK__
   <div class="rb-stats" id="rbStats"></div>
   <div class="rb-pp rb-row" id="rbSusBox"><button class="btn sub" type="button" id="rbSusOpen" aria-controls="rbSus" aria-expanded="false">🔍 怪しい記録チェック</button></div>
   <div class="card sus-card" id="rbSus" hidden></div>
-  <div class="rb-pp rb-row" id="rbPPBox"><button class="btn sub" type="button" id="rbPPOpen">📱 選手の個人ページを作る</button><span class="small muted">選手が自分の記録とグラフを見られるリンクです。<a href="guide.html#g3">くわしく</a></span></div>
-  <div class="rb-pp rb-row" id="rbTalkBox"><button class="btn sub" type="button" id="rbTalkOpen">💬 選手とのやり取り</button><span class="small muted">使いたい先生だけ。はじめはオフです（Googleでログインが必要）。</span></div>
+  <div class="rb-pp rb-row" id="rbPPBox"><button class="btn sub" type="button" id="rbPPOpen">📱 選手の個人ページを作る</button><span class="small muted" data-xp="">選手が自分の記録とグラフを見られるリンクです。<a href="guide.html#g3">くわしく</a></span></div>
+  <div class="rb-pp rb-row" id="rbTalkBox"><button class="btn sub" type="button" id="rbTalkOpen">💬 選手とのやり取り</button><span class="small muted" data-xp="">使いたい先生だけ。はじめはオフです（Googleでログインが必要）。</span></div>
   <div class="rb-pp" id="rbPubPref" hidden></div>
   <div class="tabbar"><div class="tabs" role="tablist">
     <button class="on" data-v="home" type="button">ホーム</button><button data-v="ath" type="button">選手別</button><button data-v="rank" type="button">部内ランキング</button><button data-v="meet" type="button">大会別</button><button data-v="hist" type="button">歴代記録</button><button data-v="all" type="button">全記録</button>
   </div></div>
   <div class="rb-filter rb-row"><input type="text" id="rbQ" placeholder="しぼりこみ（氏名・種目・大会名など）"><label class="small"><input type="checkbox" id="rbMine" checked> 学校・クラブ名の選手だけ</label></div>
-  <p class="small muted" id="rbLegend"><span class="pb">PB</span> 自己ベスト更新　<span class="pb first">初</span> その種目の初記録　<span class="ref">追参</span> 追い風2.0m超（公認ベストにしない）　<span class="unk">風?</span> 風が読めなかった記録（公認ベストにしない）</p>
+  <p class="small muted" id="rbLegend" data-xp="記号の見方"><span class="pb">PB</span> 自己ベスト更新　<span class="pb first">初</span> その種目の初記録　<span class="ref">追参</span> 追い風2.0m超（公認ベストにしない）　<span class="unk">風?</span> 風が読めなかった記録（公認ベストにしない）</p>
   <div class="tblwrap" id="rbView"></div>
 </section>
 
 <section class="box">
-  <h2><span class="no">3</span>データの持ち運び・消去</h2>
+  <h2 id="rbH3"><span class="no">3</span>データの持ち運び・消去</h2>
   <div class="rb-row">
     <button class="btn sub" id="rbExport" type="button">💾 ファイルに書き出す（JSON）</button>
     <label class="btn sub filebtn">📂 ファイルから読み込む<input type="file" id="rbImport" accept=".json,application/json" hidden></label>
     <button class="btn sub" id="rbXlsx" type="button">📊 Excelに書き出す</button>
     <button class="btn danger" id="rbClear" type="button">🗑 記録を全部消す</button>
   </div>
-  <details class="rb-wipe small"><summary><b>ほかの消し方</b>（クラウドのデータすべて・この端末のデータ・共有の停止）</summary>
+  <details class="rb-wipe small"><summary><b>ほかの消し方</b><span class="sum-sub" data-xp="">クラウドのデータすべて・この端末のデータ・共有の停止</span></summary>
     <div class="rb-row" style="margin-top:6px">
       <button class="btn sub danger-t" id="rbClearCloud" type="button" hidden>☁ クラウドのデータをすべて消す（記録・天気・中学/高校の選択）</button>
       <button class="btn sub danger-t" id="rbWipeDevice" type="button">💻 この端末のデータを消す</button>
     </div>
-    <p class="small muted">「この端末のデータを消す」は、このブラウザに残っている記録（ログインしていないときの記録と、ログイン中の控え）と、天気・中学/高校の選択を消します。ログイン中のクラウドの記録は消えません。短いリンク（共有）を止めるときは、<a href="./">大会準備のページ</a>の「スマホで見る／共有」→「作った短いリンク」から止められます。Googleのアカウント自体は消えません。</p>
+    <p class="small muted" data-xp="消し方の説明">「この端末のデータを消す」は、このブラウザに残っている記録（ログインしていないときの記録と、ログイン中の控え）と、天気・中学/高校の選択を消します。ログイン中のクラウドの記録は消えません。短いリンク（共有）を止めるときは、<a href="./">大会準備のページ</a>の「スマホで見る／共有」→「作った短いリンク」から止められます。Googleのアカウント自体は消えません。</p>
   </details>
-  <p class="small muted">書き出したファイルには選手の氏名と記録が入ります。学校のルールに従って保管してください。読み込むと、今ある記録に足し合わせます（同じ記録は重ねません）。</p>
+  <p class="small muted" data-xp="書き出し・読み込みについて" data-xp-at="#rbH3">書き出したファイルには選手の氏名と記録が入ります。学校のルールに従って保管してください。読み込むと、今ある記録に足し合わせます（同じ記録は重ねません）。</p>
   <div class="status" id="rbDataStatus"></div>
 </section>
 </main>
@@ -540,7 +537,7 @@ __MODEPICK__
     <li>使っている部品（外部CDNから読み込み）：pdf.js 4.10.38（Apache-2.0, Mozilla）と SheetJS Community Edition 0.20.3（Apache-2.0）は決まった版をハッシュ（SRI）で確かめてから使います。Firebase JS SDK 10.14.1（Apache-2.0, Google・ログインと保存）は Google の配信元（gstatic.com）から版を固定して読み込みますが、仕組みの都合で<b>ハッシュ確認はしていません</b>（今後、同じサイトから配る形に変える予定です）。</li>
     <li>1件ずつ入力（v0.6）：読み取りで漏れた記録や、資料のない記録を手で入れられます。記録の「✏️ 直す」で直し、「🗑 消す」で1件だけ消せます。</li>
   </ul></details>
-<div class="f-disc">ⓘ 本ツールは結果資料の文字を読み取って自動で整理しているだけです。内容は必ず元の結果資料と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div><div><b class="f-brand">LANE NOTE</b>（レーンノート）記録 試作版 ／ <span class="f-credit">Presented by Sakata</span></div>🔒 ログイン中の記録は本人だけが読めるクラウド（Google Firebase）に保存し、この端末にも控えを置きます（ログアウトで消します）。ログインしないときはこのブラウザの中にだけ保存します（部品取得のため外部CDNへ通信します）。「不具合・要望を送る」（Googleログインが必要）の内容だけは作成者に届きます。 <a href="./">大会準備のページへ</a><br><button type="button" class="fb-btn" data-feedback="1">📮 不具合・要望を送る</button></footer>
+<div class="f-disc">ⓘ 本ツールは結果資料の文字を読み取って自動で整理しているだけです。内容は必ず元の結果資料と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div><div><b class="f-brand">LANE NOTE</b>（レーンノート）記録 試作版 ／ <span class="f-credit">Presented by Sakata</span></div><span data-xp="🔒 データの扱い">🔒 ログイン中の記録は本人だけが読めるクラウド（Google Firebase）に保存し、この端末にも控えを置きます（ログアウトで消します）。ログインしないときはこのブラウザの中にだけ保存します（部品取得のため外部CDNへ通信します）。「不具合・要望を送る」（Googleログインが必要）の内容だけは作成者に届きます。</span> <a href="./">大会準備のページへ</a><br><button type="button" class="fb-btn" data-feedback="1">📮 不具合・要望を送る</button></footer>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
 <script src="firebase-config.js"></script>
 <script>
@@ -565,7 +562,7 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
 var SHARE_BASE = "__SHARE_BASE__";
 </script>
 <div id="rbPPScreen" hidden role="dialog" aria-label="選手の個人ページを作る"><div class="pps-bar"><button class="btn sub" type="button" id="rbPPBack">← 戻る</button><b>📱 選手の個人ページを作る</b></div><div class="pps-body">
-  <p class="small muted">チェックした選手ごとに、その子の記録だけが入ったリンクを作ります。<a href="guide.html#g3">くわしくは使い方へ</a></p>
+  <p class="small muted" data-xp="このリンクについて">チェックした選手ごとに、その子の記録だけが入ったリンクを作ります。<a href="guide.html#g3">くわしくは使い方へ</a></p>
   <div class="divsw" id="rbPPDiv"><button type="button" data-ppdiv="all">すべて</button><button type="button" data-ppdiv="jh">中学</button><button type="button" data-ppdiv="hs">高校</button></div>
   <div class="divsw" id="rbPPSex" hidden><button type="button" data-ppsex="all">男女</button><button type="button" data-ppsex="m">男子</button><button type="button" data-ppsex="f">女子</button></div>
   <div class="rb-row"><button class="btn sub" type="button" id="rbPPAll">全員選択</button><button class="btn sub" type="button" id="rbPPNone">全解除</button><span class="small"><b id="rbPPCount">0</b>人を選択中</span></div>
@@ -576,9 +573,9 @@ var SHARE_BASE = "__SHARE_BASE__";
 </div></div>
 <div id="rbTalkScreen" hidden role="dialog" aria-label="選手とのやり取り"><div class="pps-bar"><button class="btn sub" type="button" id="rbTalkBack">← 戻る</button><b>💬 選手とのやり取り</b></div><div class="pps-body">
   <div id="rbTalkAuth" class="status"></div>
-  <label class="tk-switch"><input type="checkbox" id="rbTalkOn"> <span><b>選手とのやり取りを使う</b><small>オンにすると、選手ごとに「ひとこと」を書いたり、選手と返信をやり取りしたりできます（選手専用のリンクを1人ずつ渡します）。オフのあいだは、選手の画面にもやり取りの欄は出ません。</small></span></label>
+  <label class="tk-switch"><input type="checkbox" id="rbTalkOn"> <span><b>選手とのやり取りを使う</b><small data-xp="">オンにすると、選手ごとに「ひとこと」を書いたり、選手と返信をやり取りしたりできます（選手専用のリンクを1人ずつ渡します）。オフのあいだは、選手の画面にもやり取りの欄は出ません。</small></span></label>
   <div id="rbTalkMain" hidden>
-    <p class="small muted">選手ごとに「使う」を押すと、その選手専用のリンク（119日まで）ができます。個人ページのリンクを作り直すと、やり取りの欄も入ります。ほかの選手のやり取りは見えません。</p>
+    <p class="small muted" data-xp="使い方">選手ごとに「使う」を押すと、その選手専用のリンク（119日まで）ができます。個人ページのリンクを作り直すと、やり取りの欄も入ります。ほかの選手のやり取りは見えません。</p>
     <ul class="pps-list tk-alist" id="rbTalkList"></ul>
   </div>
   <div class="status" id="rbTalkMsg"></div>

@@ -654,6 +654,44 @@ body.fb-open{overflow:hidden}
 /* v0.26.33 大会準備の保存 */
 .pub-box{background:#fff8e6;border-color:#e8c46a}.pub-box .pub-list{margin:4px 0;padding-left:18px}.pub-box .btn.small{width:auto;padding:2px 8px;font-size:12px}
 .prep-bar .pp-b{border-radius:8px;padding:0 6px;font-size:12px;border:1px solid #c9d2e0;display:inline-block;margin:1px 0}.prep-bar .pp-b.on{background:#e7f6ec;border-color:#9fd3b0;color:#17663a}.prep-bar .pp-b.wait{background:#f6f6f6;color:#666}.prep-bar .btn.small{width:auto;padding:2px 8px;font-size:12px}
+/* v0.27（案）説明の「？」 */
+.xpw{position:relative;display:inline-flex;align-items:flex-start;vertical-align:middle;margin:0 2px;font-size:13px;font-weight:400;line-height:1.6;color:var(--ink);text-align:left;letter-spacing:0}
+.tipq{display:inline-flex;align-items:center;gap:4px;border:1.5px solid #c9cfdc;background:#fff;color:var(--navy);border-radius:999px;padding:1px 9px 1px 3px;font:inherit;font-size:12px;font-weight:700;cursor:help;min-height:24px;white-space:nowrap}
+.xpw:not(.xp-lab) .tipq{padding:1px 3px}
+.tipi{display:inline-flex;width:18px;height:18px;border-radius:50%;background:var(--navy);color:#fff;align-items:center;justify-content:center;font-size:12px;font-weight:800}
+.tipq:hover,.tipq:focus-visible,.xpw.open>.tipq{border-color:var(--navy);background:#f1f4fa}
+.tipq:focus-visible{outline:3px solid #9db4d9;outline-offset:1px}
+.xpw>.xp{display:none!important;margin:0}
+/* パソコン：四角い吹き出し */
+@media (hover:hover) and (pointer:fine){
+  .xpw>.xp{position:absolute;z-index:60;top:calc(100% + 6px);left:0;width:min(380px,calc(100vw - 24px));box-sizing:border-box;background:#fff;color:var(--ink);border:1px solid #cfd5e2;border-radius:12px;box-shadow:0 10px 30px rgba(20,33,61,.18);padding:12px 14px;font-size:13px;font-weight:400;line-height:1.7;white-space:normal}
+  .xpw::after{content:"";position:absolute;left:0;right:0;top:100%;height:8px}
+  .xpw.xp-r>.xp{left:auto;right:0}
+  .xpw.xp-up>.xp{top:auto;bottom:calc(100% + 6px)}
+  .xpw:hover>.xp,.xpw:focus-within>.xp,.xpw.open>.xp{display:block!important}
+  .xpw.xp-shut>.xp{display:none!important}
+}
+/* スマホ：押すとその場で開く */
+@media not all and (hover:hover) and (pointer:fine){
+  .xpw.open{display:flex;flex-direction:column;width:100%;margin:4px 0}
+  .xpw.open>.xp{display:block!important;margin-top:6px;background:#f7f8fb;border-left:4px solid var(--navy);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.7}
+  .tipq{min-height:32px;padding:3px 11px 3px 5px}.xpw:not(.xp-lab) .tipq{padding:3px 5px}
+  .tipi{width:22px;height:22px}
+}
+.xpw:has(>.xp[hidden]),.xpw:has(>.xp:empty){display:none}
+h2 .xpw,summary .xpw{margin-left:6px}
+@media print{.xpw{display:none!important}}
+.ph-hero .xpw{color:var(--ink)}
+.ck-drops .drop{border-color:#d9a593;background:#fff8f4}
+/* ボタンを先に：主な操作を目立たせる */
+.btn.hero{font-size:16px;padding:12px 22px;border-radius:12px}
+#inputs .drop,#rbDrop{border-color:#d9a593;background:#fff8f4}
+#inputs .drop .big,#rbDrop .big{font-size:17px}
+details.act>summary{display:inline-flex;align-items:center;gap:6px;list-style:none;cursor:pointer;background:#fff;border:1.5px solid #cfd5e2;border-radius:12px;padding:9px 14px;margin:4px 0;color:var(--navy)}
+details.act>summary::-webkit-details-marker{display:none}
+details.act>summary:hover{border-color:var(--navy);background:#f5f7fb}
+details.act[open]>summary{border-color:var(--navy);background:#eef2f9}
+details.act>summary .sum-x{display:none}
 
 /* ===== 記録ページだけの見た目 ===== */
 .divsw{display:flex;gap:0;margin:4px 0 10px;border:1px solid #1f3a68;border-radius:10px;overflow:hidden;width:max-content}
@@ -712,14 +750,10 @@ body.personal-on .tabs button[data-v="rank"],body.personal-on .tabs button[data-
 .pp-sw{display:block;margin:6px 0}.pp-sw small{display:block;margin-left:1.6em;color:#666}
 .rb-loose{background:#fff3e0;border:1px solid #f0b46a;border-radius:8px;padding:6px 10px;font-size:13px;margin:6px 0}
 .rb-sus{background:#fff8e6;border:1px solid #f0c36a;border-radius:8px;padding:6px 10px;font-size:13px;margin:6px 0}
-/* v0.26.55 🔍 怪しい記録チェック（説明は「?」の中。あとで共通の部品に置きかえやすいよう details 1つ） */
+/* v0.26.55 🔍 怪しい記録チェック（説明は共通の「？」の中） */
 .sus-card{margin:8px 0;padding:10px 12px}
 .sus-card .card-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .sus-n{font-weight:700;color:#b45309}
-.sus-help{display:inline-block;position:relative}
-.sus-help>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;border:1px solid #9aa8bd;color:#334;font-weight:700;font-size:13px}
-.sus-help>summary::-webkit-details-marker{display:none}
-.sus-help[open]>p{margin:6px 0;max-width:36em}
 .sus-card .card-h [data-sus="close"]{margin-left:auto}
 .sus-h{margin:12px 0 4px;font-size:14px}.sus-h small{margin-left:6px;background:#eef2f8;border-radius:10px;padding:0 7px;font-weight:700}
 .sus-list{list-style:none;margin:0;padding:0}
@@ -833,7 +867,7 @@ body.ath-open #rbLegend{display:none}
 .rb-manual .mnote{font-size:11.5px;color:var(--muted);font-weight:400}
 .rb-manual .edit-banner{background:#e4572e;color:#fff;border-radius:8px;padding:6px 10px;font-size:13px;font-weight:700;margin:6px 0}
 .url-note{font-size:12px;color:#7a5a00;background:#fff7dc;border:1px solid #f0d58a;border-radius:8px;padding:5px 9px;margin:6px 0}
-.rb-localnote{border:1px solid #e0b252;background:#fff9e8;border-radius:10px;padding:8px 12px;margin:10px 0;font-size:14px;line-height:1.6}.rb-localnote .btn{margin:6px 6px 0 0}
+.rb-localnote{border:1px solid #e0b252;background:#fff9e8;border-radius:10px;padding:6px 10px;margin:8px 0;font-size:14px;line-height:1.6;display:flex;flex-wrap:wrap;align-items:center;gap:6px}.rb-localnote .btn{margin:0;padding:5px 12px;font-size:13px}.rb-localnote .ln-x{margin-left:auto}
 .rb-guest{border:2px solid #e4572e;background:#fff8f4;border-radius:12px;padding:10px 12px;margin:10px 0}
 label.btn,.filebtn{display:inline-flex;align-items:center;justify-content:center;text-align:center;box-sizing:border-box;vertical-align:middle}
 .rb-guest .btn{margin:4px 6px 0 0;white-space:normal;max-width:100%;text-align:center}
@@ -1055,11 +1089,11 @@ body.sched-page main>.box:first-of-type>:not(#rbAuth):not(#rbAuthStatus):not(#rb
 <script>(function () { var k = 'lanenote.xnews.v1', b = document.getElementById('xNews'); try { if (localStorage.getItem(k) || document.body.classList.contains('team-page')) return; } catch (e) { } b.hidden = false; b.querySelector('.xnews-x').addEventListener('click', function () { b.hidden = true; try { localStorage.setItem(k, '1'); } catch (e) { } }); })();</script>
 <main>
 <section class="box">
-  <div id="tpHead"><h2>👥 チームの設定</h2><p class="small">チームを作る・参加コードで入る、メンバーと役割、参加コード、引き継ぎ、見える人とリンクをここで扱います。<a href="records.html">📒 記録のページへ戻る</a></p></div>
+  <div id="tpHead"><h2>👥 チームの設定</h2><p class="small" data-xp="このページについて" data-xp-at="#tpHead h2">チームを作る・参加コードで入る、メンバーと役割、参加コード、引き継ぎ、見える人とリンクをここで扱います。<a href="records.html">📒 記録のページへ戻る</a></p></div>
   <p id="tpGate" class="tm-warn">チームの設定は、顧問・マネージャーの方が<b>Googleでログイン</b>してから使います（選手・保護者の方は使いません）。</p>
-  <div id="spHead"><h2>📅 大会予定</h2><p class="small">これからの大会を登録して、あと何日・エントリー締切をカレンダーで見られます。登録した予定は、大会準備の「大会予定から選ぶ」と、選手に送るリンク（これからの大会）で使います。ログインしているときは記録と同じ保存先（自分のクラウド／チーム）に保存します。</p></div>
-  <h2><span class="no">1</span>学校・クラブ名と結果の資料</h2>
-  <p class="privacy-line">🔒 ログインすると自分専用のクラウドに保存（ほかの人には見えません。「チームで共有」を使ったときだけ、そのチームのメンバーに見えます）。ログインなしはこの端末だけ。「URLから読み込む」のときは、URLと中身が LANE NOTE の中継を通ります（保存しません）。利用回数だけを数えます（個人の情報は集めません）。詳しくは <a href="guide.html#data">はじめての人はこちら</a></p>
+  <div id="spHead"><h2>📅 大会予定</h2><p class="small" data-xp="このページについて" data-xp-at="#spHead h2">これからの大会を登録して、あと何日・エントリー締切をカレンダーで見られます。登録した予定は、大会準備の「大会予定から選ぶ」と、選手に送るリンク（これからの大会）で使います。ログインしているときは記録と同じ保存先（自分のクラウド／チーム）に保存します。</p></div>
+  <h2 id="rbH1"><span class="no">1</span>学校・クラブ名と結果の資料</h2>
+  <p class="privacy-line" data-xp="🔒 データの扱い" data-xp-at="#rbH1">🔒 ログインすると自分専用のクラウドに保存（ほかの人には見えません。「チームで共有」を使ったときだけ、そのチームのメンバーに見えます）。ログインなしはこの端末だけ。「URLから読み込む」のときは、URLと中身が LANE NOTE の中継を通ります（保存しません）。利用回数だけを数えます（個人の情報は集めません）。詳しくは <a href="guide.html#data">はじめての人はこちら</a></p>
   <div class="rb-row" id="rbAuth" style="margin:10px 0;align-items:center">
     <span id="rbAuthInfo" class="small"></span>
     <button class="btn" id="rbSignIn" type="button" hidden>Googleでログイン</button>
@@ -1069,11 +1103,11 @@ body.sched-page main>.box:first-of-type>:not(#rbAuth):not(#rbAuthStatus):not(#rb
   <div class="rb-guest" id="rbGuest" hidden aria-live="polite"></div>
   <div class="rb-localnote" id="rbLocalNote" hidden role="note"></div>
   <section class="rb-team" id="rbTeam" hidden aria-label="チームで共有"></section>
-  <div class="disclaimer sm" style="margin-top:8px">ⓘ 結果の資料の文字を読み取って整理しているだけです。<b>記録は必ず元の結果資料と照らし合わせて確認してください。</b>読めなかったところは空欄にして警告を出します（推測で埋めません）。</div>
+  <div class="disclaimer sm" style="margin-top:8px">ⓘ 記録は元資料と照らし合わせてください <span data-xp="">結果の資料の文字を読み取って整理しているだけです。<b>記録は必ず元の結果資料と照らし合わせて確認してください。</b>読めなかったところは空欄にして警告を出します（推測で埋めません）。</span></div>
   <input type="checkbox" id="rbPersonal" hidden aria-hidden="true">
   <div class="rb-row" style="margin:10px 0" id="rbSchoolRow">
     <label>学校・クラブ名 <input type="text" id="rbSchool" placeholder="例：本郷" autocomplete="off"></label>
-    <span class="small muted">「本郷」と打つと「本郷」「本郷高」「本郷中」を拾います。</span>
+    <span class="small muted" data-xp="">「本郷」と打つと「本郷」「本郷高」「本郷中」を拾います。</span>
     <button type="button" class="mode-link" id="rbToPersonal">👤 個人で使う方はこちら</button>
   </div>
   <div class="rb-row" style="margin:10px 0" id="rbPersonRow" hidden>
@@ -1081,24 +1115,25 @@ body.sched-page main>.box:first-of-type>:not(#rbAuth):not(#rbAuthStatus):not(#rb
     <label>所属（任意） <input type="text" id="rbPTeam" placeholder="例：本郷中・〇〇AC" autocomplete="off" maxlength="60"></label>
     <button type="button" class="mode-link" id="rbToSchool">🏫 学校で使う方はこちら</button>
   </div>
-  <details class="rb-manual yb-box" id="rbYear"><summary><b>📚 1年分の記録をまとめる</b>（大会予定の大会の結果を、まとめてさがして取り込む）</summary><div id="ybBody"></div></details>
+  <details class="rb-manual yb-box act" id="rbYear"><summary><b>📚 1年分の記録をまとめる</b><span class="sum-sub" data-xp="">大会予定の大会の結果を、まとめてさがして取り込みます。</span></summary><div id="ybBody"></div></details>
   <div class="drop" id="rbDrop" tabindex="0" role="button" aria-label="結果のファイルを選ぶ">
-    <div class="big">📄 結果のPDF・保存したWebページ（HTML）・Excel（.xlsx/.xls/.csv）をここへ</div>
-    <div class="small muted">複数まとめて入れられます（種目ごとにページが分かれた結果サイトは、ページを全部保存して一度に入れてください）</div>
+    <div class="big">📄 結果のファイルをここへ</div>
+    <div class="small muted">PDF・Webページ（HTML）・Excel（.xlsx/.xls/.csv）・複数OK</div>
     <input type="file" id="rbFile" multiple accept=".pdf,.html,.htm,.txt,.xlsx,.xls,.csv,application/pdf,text/html">
     <div class="status" id="rbStatus"></div>
   </div>
+  <p class="small muted" data-xp="ファイルの入れ方">結果のPDF・保存したWebページ（HTML）・Excel（.xlsx/.xls/.csv）を入れます。複数まとめて入れられます（種目ごとにページが分かれた結果サイトは、ページを全部保存して一度に入れてください）。</p>
   <div id="rbUrlLoad"></div>
-  <details style="margin-top:10px"><summary><b>Webページの結果を貼り付ける</b>（ファイルにできないとき）</summary>
-    <p class="small muted">結果のページを開き、Ctrl+A（全部選ぶ）→ Ctrl+C（コピー）して、ここに貼り付けます。種目ごとにページが分かれているときは、続けて貼り付けてかまいません。</p>
+  <details class="act" style="margin-top:10px"><summary><b>📋 Webページの結果を貼り付ける</b><span class="sum-sub" data-xp="">ファイルにできないときに使います。</span></summary>
+    <p class="small muted" data-xp="貼り付け方">結果のページを開き、Ctrl+A（全部選ぶ）→ Ctrl+C（コピー）して、ここに貼り付けます。種目ごとにページが分かれているときは、続けて貼り付けてかまいません。</p>
     <p class="small muted">URLだけを貼ったときは、上の「URLから読み込む」に入れます。</p>
     <textarea id="rbPaste" placeholder="ここに貼り付け"></textarea>
     <button class="btn sub" id="rbPasteGo" type="button">貼り付けた文章を読み取る</button>
   </details>
-  <details class="rb-manual" id="rbManualBox"><summary><b>✏️ 1件ずつ入力する</b>（読み取りで漏れた記録・資料のない記録）</summary>
+  <details class="rb-manual act" id="rbManualBox"><summary><b>✏️ 1件ずつ入力する</b><span class="sum-sub" data-xp="">読み取りで漏れた記録・資料のない記録を入れます。</span></summary>
     <form id="rbManual" novalidate autocomplete="off">
       <div class="edit-banner" id="rmEditing" hidden></div>
-      <p class="small muted">＊は必須です。氏名・所属・種目・大会名は、今までの記録から候補が出ます（氏名を選ぶと、フリガナ・学年・所属も入ります）。</p>
+      <p class="small muted" data-xp="入力のしかた">＊は必須です。氏名・所属・種目・大会名は、今までの記録から候補が出ます（氏名を選ぶと、フリガナ・学年・所属も入ります）。</p>
       <div class="mgrid">
         <label>日付 <b class="req">＊</b><input type="date" id="rmDate"></label>
         <label>大会名 <span class="mnote">（空なら「大会名なし（日付）」）</span><input id="rmMeet" list="rmMeets" maxlength="100" placeholder="例：区民大会"></label>
@@ -1118,7 +1153,7 @@ body.sched-page main>.box:first-of-type>:not(#rbAuth):not(#rbAuthStatus):not(#rb
       <div class="rb-row"><button class="btn" type="submit" id="rmSave">記録に保存</button><button class="btn sub" type="button" id="rmCancel" hidden>直すのをやめる</button><button class="btn sub danger-t" type="button" id="rmDelete" hidden>🗑 この記録を消す</button></div>
     </form>
   </details>
-  <p class="small sp-link" id="spLink">📅 これからの大会の予定（今後の大会・カレンダー・まとめて追加・Google カレンダーから）は <a href="schedule.html">大会予定</a> のページへ。</p>
+  <p class="small sp-link" id="spLink">📅 これからの大会は <a href="schedule.html">大会予定</a> へ <span data-xp="">今後の大会・カレンダー・まとめて追加・Google カレンダーからの読み込みは、大会予定のページで使います。</span></p>
   <div id="rbBatches"></div>
   <div class="status" id="rbDone" aria-live="polite"></div>
   <details class="rb-meets" id="rbMeetsBox"><summary><b>取り込み済みの大会</b> <span class="small muted" id="rbMeetsN"></span></summary><ul class="rb-meetlist" id="rbMeets"></ul></details>
@@ -1126,12 +1161,12 @@ body.sched-page main>.box:first-of-type>:not(#rbAuth):not(#rbAuthStatus):not(#rb
 
 <section class="box lp-home" id="lpHome" hidden aria-label="今後の大会"></section>
 <section class="box sp-add" id="spAdd" aria-label="大会予定をまとめて追加">
-  <details class="rb-manual" id="rbPlanBox" open><summary><b>➕ 大会予定をまとめて追加</b>（CSV・Excel から貼り付け・Google カレンダー）</summary>
-    <p class="small">CSV（Excel なら「CSV UTF-8」で保存）を選ぶか、表を貼り付けてください。1行目は <code>大会名,日付,終了日,会場,区分,締切</code>。大会名と日付は必須、終了日（2日以上の大会）・会場・区分（中／高）・締切（エントリー締切）は空でかまいません。登録済みの大会はとばします。</p>
+  <details class="rb-manual" id="rbPlanBox" open><summary><b>➕ 大会予定をまとめて追加</b><span class="sum-sub" data-xp="">CSV・Excel から貼り付け・Google カレンダー</span></summary>
+    <p class="small" data-xp="CSVの形">CSV（Excel なら「CSV UTF-8」で保存）を選ぶか、表を貼り付けてください。1行目は <code>大会名,日付,終了日,会場,区分,締切</code>。大会名と日付は必須、終了日（2日以上の大会）・会場・区分（中／高）・締切（エントリー締切）は空でかまいません。登録済みの大会はとばします。</p>
     <div class="rb-row"><button class="btn sub" type="button" id="rpTemplate">ひな形（CSV）をダウンロード</button><label class="btn sub">CSV／.ics を選ぶ<input type="file" id="rpFile" accept=".csv,.txt,.ics,text/csv,text/calendar" hidden></label></div>
     <textarea id="rpPaste" rows="4" placeholder="大会名,日付,終了日,会場,区分&#10;江東区中学校秋季陸上競技大会,2026/10/4,,夢の島競技場,中"></textarea>
     <div class="rb-row"><button class="btn sub" type="button" id="rpRead">貼り付けた表を読む</button></div>
-    <details class="rp-gcal small"><summary><b>Google カレンダーから入れる</b>（CSV を作らずに）</summary>
+    <details class="rp-gcal small"><summary><b>Google カレンダーから入れる</b><span class="sum-sub" data-xp="">CSV を作らずに入れられます</span></summary>
       <p>① パソコンで Google カレンダーを開き、左の「マイカレンダー」で大会を入れているカレンダーの「︙」→「設定と共有」。<br>② 下の方の「カレンダーの統合」にある <b>「iCal 形式の公開URL」</b>（カレンダーを公開しているとき）か <b>「iCal 形式の非公開URL」</b> をコピーして、下に貼ります。<br>
       ・非公開URLを知っている人は、そのカレンダーの予定をすべて見られます。人に送ったり、ほかの所に貼ったりしないでください（LANE NOTE はアドレスを保存しません。読み込みは LANE NOTE の中継を通ります）。<br>・アドレスを使いたくないときは、「設定」→「インポート／エクスポート」→「エクスポート」で出したファイル（.zip の中の .ics）を、上の「CSV／.ics を選ぶ」で選んでも入ります。</p>
       <div class="rb-row"><input type="url" id="rpIcsUrl" placeholder="https://calendar.google.com/calendar/ical/…/basic.ics" size="40" autocomplete="off"><button class="btn sub" type="button" id="rpIcsGo">カレンダーを読み込む</button></div>
@@ -1148,33 +1183,33 @@ body.sched-page main>.box:first-of-type>:not(#rbAuth):not(#rbAuthStatus):not(#rb
   <div class="rb-stats" id="rbStats"></div>
   <div class="rb-pp rb-row" id="rbSusBox"><button class="btn sub" type="button" id="rbSusOpen" aria-controls="rbSus" aria-expanded="false">🔍 怪しい記録チェック</button></div>
   <div class="card sus-card" id="rbSus" hidden></div>
-  <div class="rb-pp rb-row" id="rbPPBox"><button class="btn sub" type="button" id="rbPPOpen">📱 選手の個人ページを作る</button><span class="small muted">選手が自分の記録とグラフを見られるリンクです。<a href="guide.html#g3">くわしく</a></span></div>
-  <div class="rb-pp rb-row" id="rbTalkBox"><button class="btn sub" type="button" id="rbTalkOpen">💬 選手とのやり取り</button><span class="small muted">使いたい先生だけ。はじめはオフです（Googleでログインが必要）。</span></div>
+  <div class="rb-pp rb-row" id="rbPPBox"><button class="btn sub" type="button" id="rbPPOpen">📱 選手の個人ページを作る</button><span class="small muted" data-xp="">選手が自分の記録とグラフを見られるリンクです。<a href="guide.html#g3">くわしく</a></span></div>
+  <div class="rb-pp rb-row" id="rbTalkBox"><button class="btn sub" type="button" id="rbTalkOpen">💬 選手とのやり取り</button><span class="small muted" data-xp="">使いたい先生だけ。はじめはオフです（Googleでログインが必要）。</span></div>
   <div class="rb-pp" id="rbPubPref" hidden></div>
   <div class="tabbar"><div class="tabs" role="tablist">
     <button class="on" data-v="home" type="button">ホーム</button><button data-v="ath" type="button">選手別</button><button data-v="rank" type="button">部内ランキング</button><button data-v="meet" type="button">大会別</button><button data-v="hist" type="button">歴代記録</button><button data-v="all" type="button">全記録</button>
   </div></div>
   <div class="rb-filter rb-row"><input type="text" id="rbQ" placeholder="しぼりこみ（氏名・種目・大会名など）"><label class="small"><input type="checkbox" id="rbMine" checked> 学校・クラブ名の選手だけ</label></div>
-  <p class="small muted" id="rbLegend"><span class="pb">PB</span> 自己ベスト更新　<span class="pb first">初</span> その種目の初記録　<span class="ref">追参</span> 追い風2.0m超（公認ベストにしない）　<span class="unk">風?</span> 風が読めなかった記録（公認ベストにしない）</p>
+  <p class="small muted" id="rbLegend" data-xp="記号の見方"><span class="pb">PB</span> 自己ベスト更新　<span class="pb first">初</span> その種目の初記録　<span class="ref">追参</span> 追い風2.0m超（公認ベストにしない）　<span class="unk">風?</span> 風が読めなかった記録（公認ベストにしない）</p>
   <div class="tblwrap" id="rbView"></div>
 </section>
 
 <section class="box">
-  <h2><span class="no">3</span>データの持ち運び・消去</h2>
+  <h2 id="rbH3"><span class="no">3</span>データの持ち運び・消去</h2>
   <div class="rb-row">
     <button class="btn sub" id="rbExport" type="button">💾 ファイルに書き出す（JSON）</button>
     <label class="btn sub filebtn">📂 ファイルから読み込む<input type="file" id="rbImport" accept=".json,application/json" hidden></label>
     <button class="btn sub" id="rbXlsx" type="button">📊 Excelに書き出す</button>
     <button class="btn danger" id="rbClear" type="button">🗑 記録を全部消す</button>
   </div>
-  <details class="rb-wipe small"><summary><b>ほかの消し方</b>（クラウドのデータすべて・この端末のデータ・共有の停止）</summary>
+  <details class="rb-wipe small"><summary><b>ほかの消し方</b><span class="sum-sub" data-xp="">クラウドのデータすべて・この端末のデータ・共有の停止</span></summary>
     <div class="rb-row" style="margin-top:6px">
       <button class="btn sub danger-t" id="rbClearCloud" type="button" hidden>☁ クラウドのデータをすべて消す（記録・天気・中学/高校の選択）</button>
       <button class="btn sub danger-t" id="rbWipeDevice" type="button">💻 この端末のデータを消す</button>
     </div>
-    <p class="small muted">「この端末のデータを消す」は、このブラウザに残っている記録（ログインしていないときの記録と、ログイン中の控え）と、天気・中学/高校の選択を消します。ログイン中のクラウドの記録は消えません。短いリンク（共有）を止めるときは、<a href="./">大会準備のページ</a>の「スマホで見る／共有」→「作った短いリンク」から止められます。Googleのアカウント自体は消えません。</p>
+    <p class="small muted" data-xp="消し方の説明">「この端末のデータを消す」は、このブラウザに残っている記録（ログインしていないときの記録と、ログイン中の控え）と、天気・中学/高校の選択を消します。ログイン中のクラウドの記録は消えません。短いリンク（共有）を止めるときは、<a href="./">大会準備のページ</a>の「スマホで見る／共有」→「作った短いリンク」から止められます。Googleのアカウント自体は消えません。</p>
   </details>
-  <p class="small muted">書き出したファイルには選手の氏名と記録が入ります。学校のルールに従って保管してください。読み込むと、今ある記録に足し合わせます（同じ記録は重ねません）。</p>
+  <p class="small muted" data-xp="書き出し・読み込みについて" data-xp-at="#rbH3">書き出したファイルには選手の氏名と記録が入ります。学校のルールに従って保管してください。読み込むと、今ある記録に足し合わせます（同じ記録は重ねません）。</p>
   <div class="status" id="rbDataStatus"></div>
 </section>
 </main>
@@ -1188,7 +1223,7 @@ body.sched-page main>.box:first-of-type>:not(#rbAuth):not(#rbAuthStatus):not(#rb
     <li>使っている部品（外部CDNから読み込み）：pdf.js 4.10.38（Apache-2.0, Mozilla）と SheetJS Community Edition 0.20.3（Apache-2.0）は決まった版をハッシュ（SRI）で確かめてから使います。Firebase JS SDK 10.14.1（Apache-2.0, Google・ログインと保存）は Google の配信元（gstatic.com）から版を固定して読み込みますが、仕組みの都合で<b>ハッシュ確認はしていません</b>（今後、同じサイトから配る形に変える予定です）。</li>
     <li>1件ずつ入力（v0.6）：読み取りで漏れた記録や、資料のない記録を手で入れられます。記録の「✏️ 直す」で直し、「🗑 消す」で1件だけ消せます。</li>
   </ul></details>
-<div class="f-disc">ⓘ 本ツールは結果資料の文字を読み取って自動で整理しているだけです。内容は必ず元の結果資料と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div><div><b class="f-brand">LANE NOTE</b>（レーンノート）記録 試作版 ／ <span class="f-credit">Presented by Sakata</span></div>🔒 ログイン中の記録は本人だけが読めるクラウド（Google Firebase）に保存し、この端末にも控えを置きます（ログアウトで消します）。ログインしないときはこのブラウザの中にだけ保存します（部品取得のため外部CDNへ通信します）。「不具合・要望を送る」（Googleログインが必要）の内容だけは作成者に届きます。 <a href="./">大会準備のページへ</a><br><button type="button" class="fb-btn" data-feedback="1">📮 不具合・要望を送る</button></footer>
+<div class="f-disc">ⓘ 本ツールは結果資料の文字を読み取って自動で整理しているだけです。内容は必ず元の結果資料と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div><div><b class="f-brand">LANE NOTE</b>（レーンノート）記録 試作版 ／ <span class="f-credit">Presented by Sakata</span></div><span data-xp="🔒 データの扱い">🔒 ログイン中の記録は本人だけが読めるクラウド（Google Firebase）に保存し、この端末にも控えを置きます（ログアウトで消します）。ログインしないときはこのブラウザの中にだけ保存します（部品取得のため外部CDNへ通信します）。「不具合・要望を送る」（Googleログインが必要）の内容だけは作成者に届きます。</span> <a href="./">大会準備のページへ</a><br><button type="button" class="fb-btn" data-feedback="1">📮 不具合・要望を送る</button></footer>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
 <script src="firebase-config.js"></script>
 <script>
@@ -1266,7 +1301,7 @@ var LaneMode = (function () {
     var h = '';
     // v0.26.23：マネージャーとしてチームに入っていて、ログインしている人だけ（記録のページが付けた印）。モードは切りかえずに記録のページへ
     var mh = null; try { mh = JSON.parse(localStorage.getItem('lanenote.mgrhint.v1') || 'null'); } catch (e) { }
-    if (mh && mh.uid && mh.at && Date.now() - mh.at < 60 * 864e5) h += '<section class="ph-card ph-mgr"><a class="ph-btn" id="phMgr" href="records.html">📋 マネージャーの記録へ</a><p class="ph-sub">選手モードのまま、マネージャーとしてチームの記録を開きます。記録のページの上の「👟 選手のホームへ戻る」で、ここに戻れます。</p></section>';
+    if (mh && mh.uid && mh.at && Date.now() - mh.at < 60 * 864e5) h += '<section class="ph-card ph-mgr"><a class="ph-btn" id="phMgr" href="records.html">📋 マネージャーの記録へ</a><p class="ph-sub" data-xp="">選手モードのまま、マネージャーとしてチームの記録を開きます。記録のページの上の「👟 選手のホームへ戻る」で、ここに戻れます。</p></section>';
     // 1 次の大会
     h += '<section class="ph-card"><h3>📅 次の大会の予定・招集</h3>';
     if (up.length) {
@@ -1274,7 +1309,7 @@ var LaneMode = (function () {
       h += '<a class="ph-next" href="' + esc(n.L.url) + '"><span class="ph-meet">' + esc(n.o.n || '大会') + '</span><span class="ph-date">' + esc([n.o.d, n.o.pl].filter(Boolean).join('・')) + '</span>' +
         '<span class="ph-times">' + (call ? '<span><small>最初の招集</small><b>' + esc(call.t) + '</b><em>' + esc(call.label) + '</em></span>' : '') + (race ? '<span><small>最初の競技</small><b>' + esc(race.t) + '</b><em>' + esc(race.label) + '</em></span>' : '') + '</span><span class="ph-open">予定を開く →</span></a>';
       if (up.length > 1) h += '<ul class="ph-list">' + up.slice(1, 6).map(function (m) { return '<li><a href="' + esc(m.L.url) + '">' + esc(m.o.n || '大会') + '<small>' + esc(m.o.d || '') + '</small></a></li>'; }).join('') + '</ul>';
-    } else h += '<p class="ph-empty">まだありません。先生から「大会当日の予定」のリンクをもらって開くと、ここに出ます。</p>';
+    } else h += '<p class="ph-empty">まだありません <span data-xp="">先生から「大会当日の予定」のリンクをもらって開くと、ここに出ます。</span></p>';
     h += '</section>';
     // v0.26.30 これからの大会：先生のリンク（大会当日の予定・個人ページ）に入っている予定。いちばん新しいリンクのもの（ほかのリンクにしかない大会も足す）
     if (typeof LanePlans !== 'undefined') {
@@ -1289,7 +1324,7 @@ var LaneMode = (function () {
       var p = pps[0];
       h += '<p class="ph-sub">' + esc(p.o.a.name) + ' さん・' + esc(LanePersonal.snapLabel(p.o.g)) + '時点</p><ul class="ph-pbs">' + p.o.e.slice(0, 8).map(function (e) { var b = e.b || e.rf; return '<li><span>' + esc(e.l) + '</span><b>' + esc(b ? b[0] : '—') + '</b></li>'; }).join('') + '</ul>' +
         '<a class="ph-btn" href="' + esc(p.L.url) + '">📈 グラフと最近の記録を見る</a>';
-    } else h += '<p class="ph-empty">まだありません。先生から「個人ページ」のリンクをもらって開くと、ここに出ます。自分で記録をつけるなら、下の「自分の記録をつける」へ。</p>';
+    } else h += '<p class="ph-empty">まだありません <span data-xp="">先生から「個人ページ」のリンクをもらって開くと、ここに出ます。自分で記録をつけるなら、下の「自分の記録をつける」へ。</span></p>';
     h += '</section>';
     // 3 先生とのやり取り（先生がオンにしているときだけ。LaneTalk が中身を入れる）
     h += '<section class="ph-card" id="phTalk" hidden></section>';
@@ -1297,14 +1332,14 @@ var LaneMode = (function () {
     h += '<section class="ph-card"><h3>📝 体調メモ</h3><div id="phCond">' + LanePersonal.condFormHtml(td, '今日の体調') + '</div>' +
       (LanePersonal.cList().length ? '<ul class="ph-cdlist">' + LanePersonal.cList().slice(0, 5).map(function (x) { return '<li><b>' + esc(LanePersonal.mdLabel(x.d)) + '</b> ' + LanePersonal.condBadge(x.c) + '</li>'; }).join('') + '</ul>' : '') + '</section>';
     // 5 自分の記録
-    h += '<section class="ph-card"><h3>📒 自分の記録をつける</h3><p class="ph-sub">大会の結果PDFやWebページから、自分の記録だけを取り込みます（「個人で使う」）。ログインしなくても、このスマホに保存できます。</p><a class="ph-btn" href="records.html?me=1">📒 自分の記録をつける・見る</a></section>';
+    h += '<section class="ph-card"><h3>📒 自分の記録をつける</h3><p class="ph-sub" data-xp="" data-xp-at="h3">大会の結果PDFやWebページから、自分の記録だけを取り込みます（「個人で使う」）。ログインしなくても、このスマホに保存できます。</p><a class="ph-btn" href="records.html?me=1">📒 自分の記録をつける・見る</a></section>';
     // 6 もらったリンク
     h += '<section class="ph-card"><h3>🔗 もらったリンク</h3>' + (links.length ? '<ul class="ph-links">' + links.map(function (L) {
       var o = (pps.concat(meets).filter(function (x) { return x.L.id === L.id; })[0] || {}).o || {};
       var t = L.kind === 'pp' ? '🏅 個人ページ' + (o.a ? '（' + o.a.name + '）' : '') : '📅 ' + (o.n || '大会当日の予定') + (o.d ? '（' + o.d + '）' : '');
-      return '<li><a href="' + esc(L.url) + '">' + esc(t) + '</a><button type="button" class="ph-x" data-phforget="' + esc(L.id) + '" aria-label="このリンクをスマホから削除">削除</button></li>'; }).join('') + '</ul>' : '<p class="ph-empty">先生からもらったリンクは、一度開くと自動でここに保存されます。</p>') +
+      return '<li><a href="' + esc(L.url) + '">' + esc(t) + '</a><button type="button" class="ph-x" data-phforget="' + esc(L.id) + '" aria-label="このリンクをスマホから削除">削除</button></li>'; }).join('') + '</ul>' : '<p class="ph-empty">まだありません <span data-xp="">先生からもらったリンクは、一度開くと自動でここに保存されます。</span></p>') +
       '<div class="ph-paste"><input type="url" id="phUrl" placeholder="もらったリンクをここに貼る" aria-label="もらったリンク"><button type="button" class="ph-btn sm" id="phGo">開いて保存</button></div><div class="ph-msg" id="phMsg" role="status"></div></section>';
-    h += '<p class="ph-foot">🔒 この画面の内容は、このスマホの中だけに保存しています。<br><button type="button" class="ph-link danger" id="phWipe">🗑 この端末から全部消す（共用のスマホを返す前に）</button><br><button type="button" class="ph-link" data-pickmode="1">🧑‍🏫 顧問・コーチの画面に切りかえる</button></p>';
+    h += '<p class="ph-foot">🔒 このスマホだけに保存 <span data-xp="">この画面の内容は、このスマホの中だけに保存しています。共用のスマホを返す前に「この端末から全部消す」で消してください。</span><br><button type="button" class="ph-link danger" id="phWipe">🗑 この端末から全部消す（共用のスマホを返す前に）</button><br><button type="button" class="ph-link" data-pickmode="1">🧑‍🏫 顧問・コーチの画面に切りかえる</button></p>';
     box.innerHTML = h;
     LanePersonal.bindCond($('phCond'), function () { });
     box.querySelectorAll('[data-phforget]').forEach(function (b) { b.addEventListener('click', function () { if (!confirm('このリンクを、このスマホから削除しますか？（もう一度開けば、また保存されます）')) return; forget(b.getAttribute('data-phforget')); renderHome(); }); });
@@ -3199,14 +3234,14 @@ if (typeof module !== 'undefined') module.exports = LaneRoster;
 
 </script>
 <script>
-var APP_VERSION = "v0.26.55", REC_VERSION = "v0.11.1";
+var APP_VERSION = "v0.26.56", REC_VERSION = "v0.11.1";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>
 var SHARE_BASE = "https://masarun0721.github.io/lane-note/";
 </script>
 <div id="rbPPScreen" hidden role="dialog" aria-label="選手の個人ページを作る"><div class="pps-bar"><button class="btn sub" type="button" id="rbPPBack">← 戻る</button><b>📱 選手の個人ページを作る</b></div><div class="pps-body">
-  <p class="small muted">チェックした選手ごとに、その子の記録だけが入ったリンクを作ります。<a href="guide.html#g3">くわしくは使い方へ</a></p>
+  <p class="small muted" data-xp="このリンクについて">チェックした選手ごとに、その子の記録だけが入ったリンクを作ります。<a href="guide.html#g3">くわしくは使い方へ</a></p>
   <div class="divsw" id="rbPPDiv"><button type="button" data-ppdiv="all">すべて</button><button type="button" data-ppdiv="jh">中学</button><button type="button" data-ppdiv="hs">高校</button></div>
   <div class="divsw" id="rbPPSex" hidden><button type="button" data-ppsex="all">男女</button><button type="button" data-ppsex="m">男子</button><button type="button" data-ppsex="f">女子</button></div>
   <div class="rb-row"><button class="btn sub" type="button" id="rbPPAll">全員選択</button><button class="btn sub" type="button" id="rbPPNone">全解除</button><span class="small"><b id="rbPPCount">0</b>人を選択中</span></div>
@@ -3217,9 +3252,9 @@ var SHARE_BASE = "https://masarun0721.github.io/lane-note/";
 </div></div>
 <div id="rbTalkScreen" hidden role="dialog" aria-label="選手とのやり取り"><div class="pps-bar"><button class="btn sub" type="button" id="rbTalkBack">← 戻る</button><b>💬 選手とのやり取り</b></div><div class="pps-body">
   <div id="rbTalkAuth" class="status"></div>
-  <label class="tk-switch"><input type="checkbox" id="rbTalkOn"> <span><b>選手とのやり取りを使う</b><small>オンにすると、選手ごとに「ひとこと」を書いたり、選手と返信をやり取りしたりできます（選手専用のリンクを1人ずつ渡します）。オフのあいだは、選手の画面にもやり取りの欄は出ません。</small></span></label>
+  <label class="tk-switch"><input type="checkbox" id="rbTalkOn"> <span><b>選手とのやり取りを使う</b><small data-xp="">オンにすると、選手ごとに「ひとこと」を書いたり、選手と返信をやり取りしたりできます（選手専用のリンクを1人ずつ渡します）。オフのあいだは、選手の画面にもやり取りの欄は出ません。</small></span></label>
   <div id="rbTalkMain" hidden>
-    <p class="small muted">選手ごとに「使う」を押すと、その選手専用のリンク（119日まで）ができます。個人ページのリンクを作り直すと、やり取りの欄も入ります。ほかの選手のやり取りは見えません。</p>
+    <p class="small muted" data-xp="使い方">選手ごとに「使う」を押すと、その選手専用のリンク（119日まで）ができます。個人ページのリンクを作り直すと、やり取りの欄も入ります。ほかの選手のやり取りは見えません。</p>
     <ul class="pps-list tk-alist" id="rbTalkList"></ul>
   </div>
   <div class="status" id="rbTalkMsg"></div>
@@ -3269,7 +3304,7 @@ var LanePersonal = (function () {
   function condFormHtml(d, title) {
     var c = cGet(d) || {};
     return '<div class="cd-box" data-cdday="' + esc(d) + '"><h3>' + esc(title || '体調メモ') + '</h3>' +
-      '<div class="cd-priv">' + PRIV + '</div>' +
+      '<div class="cd-priv">🔒 このスマホだけに保存（先生には見えません） <span data-xp="">' + PRIV + '</span></div>' +
       '<div class="cd-lab">体調（5段階）</div><div class="cd-faces" role="radiogroup" aria-label="体調">' + [1, 2, 3, 4, 5].map(function (n) { return '<button type="button" class="cd-f' + (c.s === n ? ' on' : '') + '" data-cds="' + n + '" aria-pressed="' + (c.s === n) + '" aria-label="' + FWORD[n] + '"><span>' + FACES[n] + '</span><small>' + n + '</small></button>'; }).join('') + '</div>' +
       '<div class="cd-row"><label>睡眠時間 <input type="number" inputmode="decimal" min="0" max="24" step="0.5" class="cd-sl" value="' + (c.sl != null ? esc(c.sl) : '') + '"> 時間</label></div>' +
       '<div class="cd-row"><input type="text" class="cd-m" maxlength="100" placeholder="ひとことメモ（例：足が軽かった）" value="' + esc(c.m || '') + '" aria-label="ひとことメモ"></div>' +
@@ -4030,7 +4065,7 @@ var LanePrint = (function () {
 if (typeof module !== 'undefined') module.exports = LanePrint;
 
 /* v0.26.52 今年のふりかえりシート（選手1人＝A4 1枚）。1年分の記録をまとめたあとに、選手・保護者へ配る紙を作る。
-   ・中身：名前・学年・学校、期間の中の種目ごとのベスト（公認と参考を分ける・風）、それより前の自己ベストとの比較＝今シーズンの伸び（前の記録が無ければ「今シーズンからの記録」と書くだけで、数字は作らない）、
+   ・中身：名前・学年・学校、期間の中の種目ごとのベスト（公認と参考を分ける・風）、それより前の自己ベストとの比較＝昨年度からの伸び（前の記録が無ければ「昨年度までの記録なし」と書くだけで、数字は作らない）、
      自己ベスト更新の印、主な種目の推移グラフ、出た大会と記録・順位、リレー（走順に名前がある記録だけ）、大会数・自己ベスト更新の回数、「先生から一言」の枠。
    ・入れないもの：選手とのやり取り（会話）・体調メモ・記録の備考。HTML の文字列を作るだけの関数（画面・印刷・PDF作成は記録ページの仕組みを使う） */
 var LaneReview = (function () {
@@ -4138,13 +4173,13 @@ var LaneReview = (function () {
   function vsCell(R, e) {
     if (!e.best) return e.ref ? '<span class="rv-muted">公認の記録はまだありません</span>' : '<span class="rv-muted">記録なし</span>';
     var lower = (R.markValue(e.best.mark) || {}).lower;
-    if (e.prev) {   // v0.26.55 「今シーズンの伸び」：去年まで（期間より前）の公認ベスト → 伸び。数字は前と同じ計算
-      var was = '去年まで ' + esc(e.prev.mark);
+    if (e.prev) {   // v0.26.55 「今シーズンの伸び」→ v0.26.56「昨年度からの伸び」：昨年度まで（期間より前）の公認ベスト → 伸び。数字は前と同じ計算
+      var was = '昨年度まで ' + esc(e.prev.mark);
       if (e.diff > 0) return '<span class="rv-up">' + was + ' → ' + esc(gap(e.diff, lower)) + 'アップ</span><small>自己ベスト更新（前は ' + esc(sd(e.prev.date)) + '）</small>';
       if (e.diff === 0) return '<span class="rv-eq">' + was + '　自己ベストと同じ記録</span>';
       return '<span>' + was + '　自己ベストまで あと ' + esc(gap(-e.diff, lower)) + '</span><small>（' + esc(sd(e.prev.date)) + '）</small>';
     }
-    return '<span class="rv-new">' + (e.before ? '今シーズンからの公認記録' : '今シーズンからの記録') + '</span>';
+    return '<span class="rv-new">' + (e.before ? '昨年度までの公認記録なし' : '昨年度までの記録なし') + '</span>';
   }
   /* シートの HTML（印刷用の lp-page）。meta：{ school, date（出力日）, note（先生から一言・空なら手書きの枠）, chart（LanePrint.chart）, band, page } */
   function sheet(R, d, meta) {
@@ -4156,7 +4191,7 @@ var LaneReview = (function () {
     var chips = [d.team, d.div ? R.divLabel(d.div) : '', d.grade ? d.grade + (/年/.test(d.grade) ? '' : '年') : '', per].filter(Boolean).map(function (x) { return '<i>' + esc(x) + '</i>'; }).join('');
     var h = '<div class="rv-title"><b>' + esc(per) + '　今年のふりかえり</b><span>' + esc(sd(d.from)) + '〜' + esc(sd(d.to)) + ' の大会の記録から</span></div>';
     h += '<div class="rv-kpis"><div class="rv-kpi"><b>' + c.meets + '</b><span>出場した大会</span></div><div class="rv-kpi"><b>' + c.recs + '</b><span>記録の数</span></div><div class="rv-kpi rv-kpb"><b>' + c.pb + '</b><span>自己ベスト更新</span></div><div class="rv-kpi"><b>' + c.events + '</b><span>種目</span></div></div>';
-    h += '<div class="lp-h2">種目ごとのベスト（この期間）</div><table class="rv-t rv-best"><thead><tr><th>種目</th><th class="rv-r">ベスト</th><th>日付・大会</th><th>今シーズンの伸び</th></tr></thead><tbody>' + d.events.map(function (e) {
+    h += '<div class="lp-h2">種目ごとのベスト（この期間）</div><table class="rv-t rv-best"><thead><tr><th>種目</th><th class="rv-r">ベスト</th><th>日付・大会</th><th>昨年度からの伸び</th></tr></thead><tbody>' + d.events.map(function (e) {
       var b = e.best, f = e.ref, bad = '';
       if (e.pbN) bad += '<span class="rv-bdg rv-bpb">自己ベスト更新' + (e.pbN > 1 ? ' ×' + e.pbN : '') + '</span>';
       if (e.first && !e.prev) bad += '<span class="rv-bdg rv-bfs">初記録</span>';
@@ -5670,7 +5705,7 @@ var LanePdf = (function () {
     };
     var y = +LP.ym.slice(0, 4), m = +LP.ym.slice(5, 7);
     box.innerHTML = '<h2>📅 今後の大会 <small class="muted">' + (up.length ? up.length + '件' : '') + '</small></h2>' +
-      (P.past(all, td).length ? '<p class="lp-yb"><a class="btn sub small" href="records.html?year=1">📚 1年分の記録をまとめる</a> <small class="muted">終わった大会の結果を、まとめてさがして取り込みます</small></p>' : '') +   // v0.26.50
+      (P.past(all, td).length ? '<p class="lp-yb"><a class="btn sub small" href="records.html?year=1">📚 1年分の記録をまとめる</a> <small class="muted" data-xp="">終わった大会の結果を、まとめてさがして取り込みます</small></p>' : '') +   // v0.26.50
       (up.length ? '<ul class="lp-list">' + up.slice(0, 40).map(row).join('') + '</ul>' : '<p class="small muted">まだありません。下の「📅 大会予定をまとめて追加」から入れられます。</p>') +
       (all.length ? '<div class="lp-calbox"><div class="rb-row lp-nav"><button class="btn sub small" type="button" data-lpm="-1" aria-label="前の月">◀</button><b>' + y + '年' + m + '月</b><button class="btn sub small" type="button" data-lpm="1" aria-label="次の月">▶</button></div>' + P.monthHtml(all, LP.ym, td) + '</div>' : '') +
       (P.past(all, td).length ? '<details class="small"><summary>終わった予定 ' + P.past(all, td).length + '件</summary><ul class="lp-list">' + P.past(all, td).slice(0, 60).map(row).join('') + '</ul></details>' : '');
@@ -5873,7 +5908,7 @@ var LanePdf = (function () {
     var act = ROSTER.filter(function (e) { return e.status === 'active'; }), old = ROSTER.filter(function (e) { return e.status !== 'active'; });
     var row = function (e) { return '<li><a href="#athlete=' + encodeURIComponent('id:' + e.aid) + '">' + esc(e.name) + '</a> <span class="small muted">' + esc(e.team || '') + '・' + esc(gradeNow(e)) + '</span></li>'; };
     var h = '<details class="card ro-home"' + (RS.open ? ' open' : '') + ' data-ro-d="1"><summary><b>🪪 選手台帳・年度更新</b>（在籍 ' + act.length + '人' + (old.length ? '・卒業など ' + old.length + '人' : '') + '）</summary>';
-    h += '<p class="small">選手のページの「🪪 台帳に入れる」で選手IDをつけます。台帳の人は、名前の表記が変わっても同じ人として記録をまとめます。<b>名前だけで自動的に結びつけることはしません。</b></p>';
+    h += '<p class="small" data-xp="台帳とは">選手のページの「🪪 台帳に入れる」で選手IDをつけます。台帳の人は、名前の表記が変わっても同じ人として記録をまとめます。<b>名前だけで自動的に結びつけることはしません。</b></p>';
     if (act.length) h += '<ul class="ro-list">' + act.map(row).join('') + '</ul>'; else h += '<p class="small muted">まだだれも入っていません。</p>';
     if (old.length) h += '<details><summary class="small">卒業・退部の人（記録はそのまま残ります）</summary><ul class="ro-list">' + old.map(row).join('') + '</ul></details>';
     if (can && act.length) {
@@ -6245,7 +6280,7 @@ var LanePdf = (function () {
     box.hidden = false;
     if (!TEAM_PAGE) { var o0 = $('rbTeamStatus'), k0 = o0 ? o0.innerHTML : ''; box.innerHTML = teamStatusHtml(); if (k0) $('rbTeamStatus').innerHTML = k0; var tb0 = $('rbTalkBox'); if (tb0) tb0.hidden = !!(TEAM && TEAM.role === 'manager'); return; }
     var sel = '<label>保存先 <select id="rbTeamSel"><option value="">👤 自分だけ（今までどおり）</option>' + TEAMS.map(function (x) { return '<option value="' + esc(x.id) + '"' + (TEAM && TEAM.id === x.id ? ' selected' : '') + '>👥 ' + esc(x.name) + '（' + esc(roleLabel(x.role)) + '）</option>'; }).join('') + '</select></label>';
-    var h = '<h3>👥 チームで共有</h3><p class="small muted">顧問・マネージャーが、それぞれ<b>自分のGoogleアカウント</b>で同じチームの記録を使えます。アカウントやパスワードを共有する必要はありません。</p><div class="rb-row">' + sel + '</div>';
+    var h = '<h3>👥 チームで共有</h3><p class="small muted" data-xp="" data-xp-at="h3">顧問・マネージャーが、それぞれ<b>自分のGoogleアカウント</b>で同じチームの記録を使えます。アカウントやパスワードを共有する必要はありません。</p><div class="rb-row">' + sel + '</div>';
     if (TEAM_WAIT && !TEAM) h += '<p class="tm-warn">⏳ <b>承認待ちです。</b>顧問が承認すると、チームの記録が見えるようになります（承認されるまで、チームの記録は見えません）。 <button type="button" class="btn sub sm" data-tm="recheck">承認されたか確かめる</button></p>';
     if (TEAM_LOST && !TEAM) h += '<p class="tm-warn">⚠ 「' + esc(TEAM_LOST) + '」は今は使えません（チームから外されたか、マネージャーの期限が過ぎました）。必要なら顧問に新しい参加コードをもらってください。 <button type="button" class="btn sub sm" data-tm="forget">一覧から消す</button></p>';
     if (!TEAM) {
@@ -6490,9 +6525,10 @@ var LanePdf = (function () {
     var hid = 0; try { hid = +localStorage.getItem(LN_KEY) || 0; } catch (e) { }
     if (USER || !AUTH_SEEN || (hid && Date.now() - hid < LN_AGAIN)) { box.hidden = true; return; }
     box.hidden = false;
-    box.innerHTML = '<b>⚠ この記録は、このブラウザの中だけに保存しています。</b><br>ブラウザが消すことがあります（iPhone の Safari では、7日ほど開かないと消えることがあります）。<br>' +
-      'なくしたくない記録は、<b>Googleでログイン</b>してクラウドに保存するか、「💾 ファイルに書き出す」で残してください。' +
-      '<div><button class="btn sub" type="button" id="rbLocalNoteIn">Googleでログイン</button><button class="btn sub" type="button" id="rbLocalNoteX">閉じる（しばらく出しません）</button></div>';
+    // v0.27（案）1行に：「⚠ この端末だけに保存中」＋ログイン＋「？」（全文）＋閉じる
+    box.innerHTML = '<b>⚠ この端末だけに保存中</b><span data-xp="">⚠ この記録は、このブラウザの中だけに保存しています。<br>ブラウザが消すことがあります（iPhone の Safari では、7日ほど開かないと消えることがあります）。<br>' +
+      'なくしたくない記録は、<b>Googleでログイン</b>してクラウドに保存するか、「💾 ファイルに書き出す」で残してください。「閉じる」と、しばらく（14日）出しません。</span>' +
+      '<button class="btn sub" type="button" id="rbLocalNoteIn">Googleでログイン</button><button class="btn sub ln-x" type="button" id="rbLocalNoteX" title="しばらく出しません" aria-label="閉じる（しばらく出しません）">閉じる</button>';
     $('rbLocalNoteX').addEventListener('click', function () { try { localStorage.setItem(LN_KEY, String(Date.now())); } catch (e) { } box.hidden = true; });
     var lb = $('rbLocalNoteIn'); if (typeof CLOUD_READY !== 'undefined' && !CLOUD_READY) lb.hidden = true; lb.addEventListener('click', function () { var b = $('rbSignIn'); if (b) b.click(); });
   }
@@ -6550,7 +6586,7 @@ var LanePdf = (function () {
     if (!CLOUD_READY) { info.innerHTML = '💻 <b>この端末だけに保存中</b>（クラウド保存はまだ準備中です）'; inB.hidden = true; outB.hidden = true; return; }
     $('rbClearCloud').hidden = !USER;
     if (USER) { info.innerHTML = '☁ <b>' + esc(USER.email || USER.displayName || 'ログイン中') + '</b> でログイン中：記録はクラウドに保存し、どの端末からでも見られます' + (OFFLINE ? '<br><span class="ng">⚠ いまクラウドにつながらないので、' + (noCache(scope()) ? '記録を表示できません（この端末には控えを置かない設定です）' : 'この端末の控えを表示しています') + '</span>' : '') + (noCache(scope()) ? '<br><span class="small">🧹 この端末には控えを置いていません（「端末のデータを消す」のあと）。 <button class="btn sub" type="button" id="rbCacheOn">この端末に控えを置く</button></span>' : ''); inB.hidden = true; outB.hidden = false; }
-    else { info.innerHTML = '💻 <b>ログインしていません</b>：記録はこの端末だけに保存されます。Googleでログインすると、どの端末からでも同じ記録が見られます。'; inB.hidden = false; outB.hidden = true; }
+    else { info.innerHTML = '💻 <b>ログインしていません</b> <span data-xp="">記録はこの端末だけに保存されます。Googleでログインすると、どの端末からでも同じ記録が見られます。</span>'; inB.hidden = false; outB.hidden = true; }
   }
   // アカウントが変わったら、前の人の画面の中身（記録・読み込み途中の資料・入力欄）をすべて消す
   function resetView() {
@@ -7046,9 +7082,9 @@ var LanePdf = (function () {
         '<small>' + (on === false ? 'オフ：' + what + 'ても、登録しません。' : on === true ? 'オン（前に「登録する」と答えたので、今は聞かずに登録します。オフにすると止まります）' : 'オン：' + what + 'たとき、はじめの1回だけ聞きます。') + '</small></label>';
     };
     box.hidden = false;
-    box.innerHTML = '<details class="small"' + (PP.open ? ' open' : '') + ' data-ppd="1"><summary><b>🤝 だれかが入れた大会は、もう入れなくてOK</b>（みんなの要項／みんなの結果）</summary><p class="small muted">この設定は顧問だけが変えられます。</p>' +
+    box.innerHTML = '<details class="small"' + (PP.open ? ' open' : '') + ' data-ppd="1"><summary><b>🤝 だれかが入れた大会は、もう入れなくてOK</b>（みんなの要項／みんなの結果）</summary><p class="small muted" data-xp="" data-xp-at="summary">この設定は顧問だけが変えられます。</p>' +
       row('pub', 'みんなの要項', '大会予定から開いた大会で要項をURLから読み') + row('pubres', 'みんなの結果', '結果をURLから読んで保存し') +
-      '<p class="small muted">だれか1人が要項や結果のURLを登録すると、同じ大会に出るほかの先生は、大会を選ぶだけで入れられます。登録されるのは大会名・日付・会場・URL（要項は大会のきまりも）だけで、選手の名前や記録は送りません。すでに登録したものは、オフにしてもそのままです。</p><div class="status" id="ppMsg"></div></details>';
+      '<p class="small muted" data-xp="しくみ">だれか1人が要項や結果のURLを登録すると、同じ大会に出るほかの先生は、大会を選ぶだけで入れられます。登録されるのは大会名・日付・会場・URL（要項は大会のきまりも）だけで、選手の名前や記録は送りません。すでに登録したものは、オフにしてもそのままです。</p><div class="status" id="ppMsg"></div></details>';
   }
   document.addEventListener('toggle', function (e) { if (e.target && e.target.getAttribute && e.target.getAttribute('data-ppd')) PP.open = e.target.open; }, true);
   document.addEventListener('change', async function (e) {
@@ -7148,15 +7184,15 @@ var LanePdf = (function () {
     rows.forEach(function (r, i) { if ((st[i] === 'found' || st[i] === 'done') && r.go && r.sel) n.go++; });
     var ready = rows.filter(function (r, i) { return st[i] === 'ready'; }), recN = ready.reduce(function (m, r) { return m + r.n; }, 0);
     var cnt = {}; st.forEach(function (x) { cnt[x] = (cnt[x] || 0) + 1; });
-    box.innerHTML = '<p class="small">大会予定に入れた<b>終わった大会</b>ごとに、公開されている結果の一覧（gold.jaic.org の東京陸協・高体連・中体連、江東区陸協）から結果をさがし、まとめて読み込みます。読み込むと、<b>学校・クラブ名の選手の記録だけ</b>を下の確認画面に出します。保存するのは、最後に「まとめて保存」を押したときだけです。</p>' +
+    box.innerHTML = '<p class="small" data-xp="この機能について">大会予定に入れた<b>終わった大会</b>ごとに、公開されている結果の一覧（gold.jaic.org の東京陸協・高体連・中体連、江東区陸協）から結果をさがし、まとめて読み込みます。読み込むと、<b>学校・クラブ名の選手の記録だけ</b>を下の確認画面に出します。保存するのは、最後に「まとめて保存」を押したときだけです。</p>' +
       '<div class="rb-row yb-per"><label>この日から <input type="date" id="ybFrom" value="' + esc(YB.from) + '"></label><label>この日まで <input type="date" id="ybTo" value="' + esc(YB.to) + '"></label><span class="yb-q"><button type="button" class="btn sub small" data-ybr="fy">今年度</button><button type="button" class="btn sub small" data-ybr="cy">今年</button><button type="button" class="btn sub small" data-ybr="y">この1年</button></span></div>' +
-      '<p class="small">この期間の終わった大会予定：<b>' + ps.length + '件</b>' + (ps.length ? '' : '（📅 大会予定のページで、大会名と日付を入れてください。CSV でまとめて入れられます）') + '</p>' +
+      '<p class="small">この期間の終わった大会予定：<b>' + ps.length + '件</b>' + (ps.length ? '' : ' <span data-xp="">📅 大会予定のページで、大会名と日付を入れてください。CSV でまとめて入れられます。</span>') + '</p>' +
       '<div class="rb-row"><button type="button" class="btn" id="ybFind"' + (ps.length && !YB.busy ? '' : ' disabled') + '>🔎 結果をさがす</button>' + (YB.busy ? '<button type="button" class="btn sub" id="ybStop">やめる</button>' : '') + '</div>' +
       '<div class="status" id="ybMsg">' + esc(YB.note || '') + '</div>' +
       (rows.length ? '<p class="small yb-sum1">見つかった ' + ((cnt.found || 0) + (cnt.done || 0)) + '・候補を確認 ' + (cnt.pick || 0) + '・見つからない ' + (cnt.none || 0) + (cnt.ready ? '・読み取り済み ' + cnt.ready : '') + (cnt.saved ? '・保存済み ' + cnt.saved : '') + '（全 ' + rows.length + '大会）</p><ul class="yb-list" id="ybList">' + rows.map(ybRowHtml).join('') + '</ul>' +
         '<div class="rb-row yb-acts"><button type="button" class="btn" id="ybRead"' + (n.go && !YB.busy ? '' : ' disabled') + '>📥 まとめて読み込む（' + n.go + '大会）</button>' +
         '<button type="button" class="btn" id="ybSave"' + (ready.length && !YB.busy ? '' : ' disabled') + '>💾 まとめて保存（' + ready.length + '大会・' + recN + '件）</button></div>' +
-        '<p class="small muted">大きな大会は、1つで数百ページあります（この学校の選手が出ていない種目の決勝などは読みません）。1年分（30大会ほど）で5分くらいかかります（中継が混んでいるときは、もう少しかかります）。読み終わった大会から、記録の件数と自己ベストの更新が出ます。読み込みの間は、この画面を開いたままにしてください（スマホは画面が消えないように）。読み込んだ記録は、保存する前に下の確認画面で1大会ずつ確かめられます。</p>' : '') +
+        '<p class="small muted" data-xp="時間の目安">大きな大会は、1つで数百ページあります（この学校の選手が出ていない種目の決勝などは読みません）。1年分（30大会ほど）で5分くらいかかります（中継が混んでいるときは、もう少しかかります）。読み終わった大会から、記録の件数と自己ベストの更新が出ます。読み込みの間は、この画面を開いたままにしてください（スマホは画面が消えないように）。読み込んだ記録は、保存する前に下の確認画面で1大会ずつ確かめられます。</p>' : '') +
       (YB.saved ? YB.saved : '');
   }
   function ybMsg(t, c) { YB.note = t; var el = $('ybMsg'); if (el) { el.className = 'status' + (c ? ' ' + c : ''); el.textContent = t; } }
@@ -7869,7 +7905,7 @@ var LanePdf = (function () {
     if (!SUS.open) { box.hidden = true; box.innerHTML = ''; return; }
     var L = susList(), del = susCanDel(), LB = LaneSuspect.LABEL, h = '';
     h += '<div class="card-h"><b>🔍 怪しい記録</b><span class="sus-n">' + L.length + '件</span>' +
-      '<details class="sus-help"><summary aria-label="説明">?</summary><p class="small">二重・同じ日に記録がちがう・ありえない記録・大会の日程の外の日付を探します。値は直しません。' + (del ? '「消す」は確認のあと消し、すぐなら元に戻せます。' : 'この画面では消せません（顧問・マネージャーが消せます）。') + '「問題ない」はこの端末だけに覚え、次から出しません。</p></details>' +
+      '<span class="sus-help" data-xp="">二重・同じ日に記録がちがう・ありえない記録・大会の日程の外の日付を探します。値は直しません。' + (del ? '「消す」は確認のあと消し、すぐなら元に戻せます。' : 'この画面では消せません（顧問・マネージャーが消せます）。') + '「問題ない」はこの端末だけに覚え、次から出しません。</span>' +
       '<button type="button" class="btn sub small" data-sus="close">閉じる</button></div>';
     if (SUS.msg) h += '<div class="status ' + SUS.cls + '">' + SUS.msg + (SUS.undo && SUS.undo.length ? ' <button type="button" class="btn sub small" data-sus="undo">↩ 元に戻す</button>' : '') + '</div>';
     if (!L.length) h += '<p class="small ok">✔ 見つかりませんでした。</p>';
@@ -7925,7 +7961,7 @@ var LanePdf = (function () {
     sus.list.forEach(function (x) { if (!by[x.id]) { by[x.id] = []; order.push(x.id); } by[x.id].push(x); });
     var nEx = order.filter(function (id) { return ex[id]; }).length, LB = LaneSuspect.LABEL;
     return '<div class="rb-sus"><b>🔍 気になる行 ' + order.length + '件</b>' + (nEx ? '（' + nEx + '件は入れません）' : '') +
-      ' <details class="sus-help"><summary aria-label="説明">?</summary><p class="small">二重（保存ずみや、この中にもう1つ同じ行がある）は、はじめから入れません。ほかは入れて、印だけ付けます。値は直しません。チェックで変えられます。</p></details>' +
+      ' <span class="sus-help" data-xp="">二重（保存ずみや、この中にもう1つ同じ行がある）は、はじめから入れません。ほかは入れて、印だけ付けます。値は直しません。チェックで変えられます。</span>' +
       '<ul class="sus-list">' + order.map(function (id) {
         var xs = by[id], r = xs[0].rec;
         return '<li class="sus-it' + (ex[id] ? ' sus-ex' : '') + '"><label><input type="checkbox" data-susx="' + esc(id) + '"' + (ex[id] ? ' checked' : '') + '> 入れない</label> <b>' + esc(r.name || r.kana || r.team || '') + '</b> ' + esc(r.date || '') + ' ' + esc(evName(r)) + (r.round ? ' ' + esc(r.round) : '') + ' <b>' + esc(r.mark || '—') + '</b>' +
@@ -8357,14 +8393,14 @@ var LanePdf = (function () {
     var ls = LaneReview.athletes(R, filtered(), RV.from, RV.to), c = filterCond(), ys = rvSeasons(), cur = '';
     ys.forEach(function (y) { var g = LaneReview.seasonRange(y); if (g[0] === RV.from && g[1] === RV.to) cur = String(y); });
     var act = { view: '👀 画面で見る', pdf: '📄 PDFを作る', print: '🖨 印刷する' }[PICK_ACT] || '👀 画面で見る', uid = rvUid();
-    openPrint('<div class="lp-pick rv-pick"><b>📝 ふりかえりシートを作る選手を選ぶ</b><p class="small muted">選手1人につきA4 1枚です。種目ごとのベスト・自己ベストの更新・記録の推移・出た大会・リレーと、「先生から一言」の枠が入ります。会話や体調メモは入りません。</p>' +
+    openPrint('<div class="lp-pick rv-pick"><b>📝 ふりかえりシートを作る選手を選ぶ</b> <p class="small muted" data-xp="">選手1人につきA4 1枚です。種目ごとのベスト・自己ベストの更新・記録の推移・出た大会・リレーと、「先生から一言」の枠が入ります。会話や体調メモは入りません。</p>' +
       '<div class="rv-per"><label>期間 <select data-rvseason="1">' + ys.map(function (y) { return '<option value="' + y + '"' + (String(y) === cur ? ' selected' : '') + '>' + esc(R.seasonLabel(y)) + (y === nowSeason() ? '（今の年度）' : '') + '</option>'; }).join('') + '<option value=""' + (cur ? '' : ' selected') + '>期間を指定</option></select></label>' +
       '<label>はじめ <input type="date" data-rvfrom="1" value="' + esc(RV.from) + '"></label><label>おわり <input type="date" data-rvto="1" value="' + esc(RV.to) + '"></label></div>' +
       '<p class="small muted">' + (c ? 'いまの絞り込み（' + esc(c) + '）の' : '') + esc(LaneReview.periodLabel(RV.from, RV.to)) + 'に記録がある選手 ' + ls.length + '人</p>' +
       (ls.length ? '<div class="lp-ops"><button class="btn sub" type="button" data-rvall="1">全員選択</button><button class="btn sub" type="button" data-rvnone="1">全解除</button><button class="btn" type="button" data-rvmake="1">' + act + '（<span id="rbRVn">' + ls.length + '</span>人）</button></div>' : '<p class="muted">この期間の記録がありません。期間を変えてください。</p>') +
       '<ul>' + ls.map(function (b) { var nt = LaneReview.noteGet(uid, b.key, RV.from, RV.to);
         return '<li><label><input type="checkbox" data-rvk="' + esc(b.key) + '" checked><b>' + esc(b.name) + '</b><span class="gr">' + esc(b.grade ? b.grade + (/年/.test(b.grade) ? '' : '年') : '') + ' ' + esc(b.team || '') + '・' + b.nMeets + '大会</span></label>' +
-          '<details class="rv-nd"' + (nt ? ' open' : '') + '><summary>✏️ 先生から一言を入れる' + (nt ? '（入力あり）' : '（空けておくと手書きの枠）') + '</summary><textarea data-rvnote="' + esc(b.key) + '" maxlength="' + LaneReview.NOTE_MAX + '" rows="3" placeholder="例：春から夏にかけて大きく伸びました。来年も楽しみです。">' + esc(nt) + '</textarea><small class="muted">この端末だけに保存します（どこにも送りません）。</small></details></li>'; }).join('') + '</ul></div>', true);
+          '<details class="rv-nd"' + (nt ? ' open' : '') + '><summary>✏️ 先生から一言を入れる' + (nt ? '（入力あり）' : '') + '<span class="sum-sub" data-xp="">空けておくと、手書きの枠になります。</span></summary><textarea data-rvnote="' + esc(b.key) + '" maxlength="' + LaneReview.NOTE_MAX + '" rows="3" placeholder="例：春から夏にかけて大きく伸びました。来年も楽しみです。">' + esc(nt) + '</textarea><small class="muted">🔒 この端末だけに保存</small> <small class="muted" data-xp="">どこにも送りません。</small></details></li>'; }).join('') + '</ul></div>', true);
   }
   function startPrint(kind, key, act) {
     act = act || 'view'; PICK_ACT = act; CUR_PRINT = { kind: kind, key: key || '' };
@@ -8920,6 +8956,55 @@ var LanePdf = (function () {
   if (typeof LaneShareTip !== 'undefined') LaneShareTip.attach($('rbPPOpen'), LaneShareTip.T.pp);
   msOpenFromQuery();   // v0.23：?s=… は大会まとめの共有リンク（ログイン不要で見るだけ）
   if (CLOUD_READY) initCloud(); else { renderAuth(); reload(); }
+})();
+
+</script>
+<script>
+/* v0.27（案）説明は「？」の中へ（ボタンを先に見せる）
+   ・説明の要素に data-xp="ラベル"（空でもよい）をつける。data-xp-at="セレクタ" があれば、「？」をその見出しなどの中に置く（なければその場所）
+   ・パソコン（マウス）：「？」にマウスを乗せる／Tab で選ぶと、四角い吹き出しで説明が出る。押すと出したまま（もう一度押す・外を押す・Esc で閉じる）
+   ・スマホ（タッチ）：「？」を押すと、その場で説明が開く（はじめは閉じている）
+   ・要素は動かすだけで、作り直さない（id・中身を変える今までの処理はそのまま動く）。あとから出る説明（画面の書き換え）にも自動でつける */
+(function () {
+  if (window.LaneTips) return;
+  var n = 0, fine = window.matchMedia ? window.matchMedia('(hover: hover) and (pointer: fine)') : { matches: false };
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function side(w) {   // 画面の右にはみ出すときは右寄せ、下にはみ出すときは上に出す
+    var p = w.querySelector(':scope > .xp'); if (!p || !fine.matches) return;
+    w.classList.remove('xp-r', 'xp-up');
+    var r = w.getBoundingClientRect(), pw = Math.min(380, window.innerWidth - 24);
+    if (r.left + pw > window.innerWidth - 8) w.classList.add('xp-r');
+    var ph = p.offsetHeight || 0; if (ph && r.bottom + ph + 12 > window.innerHeight && r.top > ph + 12) w.classList.add('xp-up');
+  }
+  function set(w, on) { w.classList.toggle('open', on); if (on) w.classList.remove('xp-shut'); var b = w.querySelector(':scope > .tipq'); if (b) b.setAttribute('aria-expanded', on ? 'true' : 'false'); if (on) side(w); }
+  function emptyParent(par) {
+    if (!par || par === document.body) return;
+    var t = Array.prototype.some.call(par.childNodes, function (c) { return c.nodeType === 1 || (c.nodeType === 3 && c.textContent.trim()); });
+    if (!t) par.hidden = true;
+  }
+  function wrap(el) {
+    if (el.__xp || !el.parentNode) return; el.__xp = 1;
+    var lab = el.getAttribute('data-xp') || '', at = el.getAttribute('data-xp-at'), host = at ? (el.closest('section, .dlg-in, .pps-body, details, form, body') || document).querySelector(at) || document.querySelector(at) : null;
+    if (!el.id) el.id = 'xp' + (++n) + '_' + Math.random().toString(36).slice(2, 6);
+    var w = document.createElement('span'); w.className = 'xpw' + (lab ? ' xp-lab' : '');
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'tipq';
+    b.setAttribute('aria-expanded', 'false'); b.setAttribute('aria-controls', el.id); b.setAttribute('aria-label', (lab || '説明') + '（説明を見る）');
+    b.innerHTML = '<span class="tipi" aria-hidden="true">?</span>' + (lab ? '<span class="tipl">' + esc(lab) + '</span>' : '');
+    var par = el.parentNode;
+    if (host) host.appendChild(w); else par.insertBefore(w, el);
+    w.appendChild(b); w.appendChild(el); el.classList.add('xp'); el.setAttribute('role', 'note');
+    if (host) emptyParent(par);
+    b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); set(w, !w.classList.contains('open')); });
+    w.addEventListener('mouseenter', function () { side(w); }); w.addEventListener('mouseleave', function () { w.classList.remove('xp-shut'); }); w.addEventListener('focusout', function (e) { if (!w.contains(e.relatedTarget)) w.classList.remove('xp-shut'); }); b.addEventListener('focus', function () { side(w); });
+  }
+  function scan(root) { (root || document).querySelectorAll('[data-xp]:not(.xp)').forEach(wrap); }
+  document.addEventListener('click', function (e) { if (!fine.matches) return; document.querySelectorAll('.xpw.open').forEach(function (w) { if (!w.contains(e.target)) set(w, false); }); });
+  document.addEventListener('keydown', function (e) { if (e.key !== 'Escape') return; document.querySelectorAll('.xpw.open, .xpw:hover, .xpw:focus-within').forEach(function (w) { set(w, false); w.classList.add('xp-shut'); var b = w.querySelector('.tipq'); if (w.contains(document.activeElement) && b) b.focus(); }); });
+  var pend = false;
+  function later() { if (pend) return; pend = true; setTimeout(function () { pend = false; scan(); }, 0); }   // rAF は裏のタブで止まるので setTimeout
+  function start() { scan(); if (window.MutationObserver) new MutationObserver(later).observe(document.body, { childList: true, subtree: true }); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+  window.LaneTips = { scan: scan };
 })();
 
 </script>
