@@ -162,6 +162,7 @@ h2 .no{background:var(--track);width:30px;height:30px;font-size:15px;font-weight
 .drop:hover,.drop.drag{border-color:var(--track);background:#fff6f2;transform:translateY(-1px);box-shadow:var(--shadow)}
 .drop:focus-visible{outline:3px solid var(--track-l);border-color:var(--track)}
 .drop .big{font-size:16px;font-weight:800;color:var(--navy)}
+.drop .big .wb{display:inline-block;max-width:100%}  /* v0.26.60：「タイムテーブル」と「（競技時間）」の間でだけ折り返す */
 .drop.loaded{border-style:solid;border-color:var(--ok);background:#f3faf6}
 .drop.loaded::after{content:"✓";position:absolute;top:-10px;right:-10px;width:28px;height:28px;border-radius:50%;background:var(--ok);color:#fff;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(30,125,79,.4)}
 .drop.failed{border-color:var(--ng);background:#fdf3f2}
@@ -683,6 +684,10 @@ details.act>summary::-webkit-details-marker{display:none}
 details.act>summary:hover{border-color:var(--navy);background:#f5f7fb}
 details.act[open]>summary{border-color:var(--navy);background:#eef2f9}
 details.act>summary .sum-x{display:none}
+/* v0.26.60：たたむ行（details の summary）は全ページで「押せる」見た目に。:where で強さ0にして、各所の見た目はそのまま */
+:where(summary){cursor:pointer;-webkit-user-select:none;user-select:none;border-radius:8px}
+:where(summary):hover{background:rgba(31,58,104,.06)}
+:where(summary):focus-visible{outline:3px solid #6f8fc8;outline-offset:2px}
 
 .tr-demo{position:sticky;top:0;z-index:50;background:#fff3c4;border:2px solid #e0a800;border-radius:10px;padding:8px 12px;margin:0 0 12px;font-weight:700;color:#5a4300;font-size:14px;line-height:1.6}
 .tr-steps{display:flex;gap:6px;list-style:none;padding:0;margin:0 0 12px;flex-wrap:wrap}.tr-steps li{flex:1 1 120px;text-align:center;border-radius:999px;padding:6px 8px;background:#eef1f6;color:#555;font-size:13px;font-weight:700}
@@ -702,7 +707,7 @@ details.act>summary .sum-x{display:none}
 <body class="trypage">
 <header>
   <div class="hdr-meta">
-    <div class="hdr-ver" aria-label="バージョン">v0.26.59</div>
+    <div class="hdr-ver" aria-label="バージョン">v0.26.60</div>
     <div class="credit">Presented by Sakata</div>
     <div class="hdr-msg"><span class="hm-l">すべての陸上競技部顧問が、</span><span class="hm-l">少しでも楽になりますように。</span></div>
   </div>

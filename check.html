@@ -162,6 +162,7 @@ h2 .no{background:var(--track);width:30px;height:30px;font-size:15px;font-weight
 .drop:hover,.drop.drag{border-color:var(--track);background:#fff6f2;transform:translateY(-1px);box-shadow:var(--shadow)}
 .drop:focus-visible{outline:3px solid var(--track-l);border-color:var(--track)}
 .drop .big{font-size:16px;font-weight:800;color:var(--navy)}
+.drop .big .wb{display:inline-block;max-width:100%}  /* v0.26.60：「タイムテーブル」と「（競技時間）」の間でだけ折り返す */
 .drop.loaded{border-style:solid;border-color:var(--ok);background:#f3faf6}
 .drop.loaded::after{content:"✓";position:absolute;top:-10px;right:-10px;width:28px;height:28px;border-radius:50%;background:var(--ok);color:#fff;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(30,125,79,.4)}
 .drop.failed{border-color:var(--ng);background:#fdf3f2}
@@ -683,6 +684,10 @@ details.act>summary::-webkit-details-marker{display:none}
 details.act>summary:hover{border-color:var(--navy);background:#f5f7fb}
 details.act[open]>summary{border-color:var(--navy);background:#eef2f9}
 details.act>summary .sum-x{display:none}
+/* v0.26.60：たたむ行（details の summary）は全ページで「押せる」見た目に。:where で強さ0にして、各所の見た目はそのまま */
+:where(summary){cursor:pointer;-webkit-user-select:none;user-select:none;border-radius:8px}
+:where(summary):hover{background:rgba(31,58,104,.06)}
+:where(summary):focus-visible{outline:3px solid #6f8fc8;outline-offset:2px}
 
 .ck-drops{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
 .ck-map{margin-top:10px}.ck-map summary{font-weight:700;cursor:pointer;min-height:36px}
@@ -2553,7 +2558,7 @@ if (typeof module !== 'undefined') module.exports = LaneAuth;
 
 </script>
 <script>
-var APP_VERSION = "v0.26.59";
+var APP_VERSION = "v0.26.60";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>

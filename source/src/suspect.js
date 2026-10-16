@@ -115,6 +115,38 @@ var LaneSuspect = (function () {
     rows.sort(function (a, b) { return TYPES.indexOf(a.type) - TYPES.indexOf(b.type); });
     return { list: rows };
   }
-  return { scan: scan, forBatch: forBatch, markWhy: markWhy, bounds: bounds, TYPES: TYPES, LABEL: LABEL, sig: sig };
+  /* v0.26.60 大会名だけちがう二重（同じ日）を、日付と大会名の組でまとめる（🔍 で「まとめて消す」「まとめて問題ない」に使う）。
+     items＝scan の結果。2件だけの組（大会名が2つ・同じ日）だけを使い、3件以上の組は1件ずつのまま。→ [{ key, date, meets:[A,B], side:[[A の記録],[B の記録]], items }]（2組以上のものだけ） */
+  function dupClusters(items) {
+    var by = {}, out = [];
+    (items || []).forEach(function (it) {
+      if (it.type !== 'dup' || it.recs.length !== 2) return;
+      var a = it.recs[0], b = it.recs[1]; if (!a.date || a.date !== b.date || sq(a.meet) === sq(b.meet)) return;
+      var pr = [a, b].sort(function (x, y) { return sq(x.meet) < sq(y.meet) ? -1 : 1; }), k = a.date + '|' + sq(pr[0].meet) + '|' + sq(pr[1].meet);
+      var c = by[k]; if (!c) { c = by[k] = { key: k, date: a.date, meets: [nk(pr[0].meet).trim(), nk(pr[1].meet).trim()], side: [[], []], items: [] }; out.push(c); }
+      c.items.push(it); c.side[0].push(pr[0]); c.side[1].push(pr[1]);
+    });
+    return out.filter(function (c) { return c.items.length >= 2; });
+  }
+  /* v0.26.60 取り込みの前：同じ日に、記録がほぼ同じ（選手・種目・ラウンド・記録）で大会名だけちがう保存ずみの大会があるか。決めるのは先生（ここでは知らせるだけ）。
+     add＝これから入れる記録、existing＝保存ずみ。「ほぼ同じ」＝重なる行が2件以上で、その日に入れる記録の半分以上。→ [{ key, date, meet(保存ずみの大会名), inMeet, n(重なる件数), total }]（日付ごとにいちばん重なる大会1つ） */
+  function overlapKey(R, r) { return [who(R, r), R.eventKey(r), roundKey(r.round), markKey(R, r)].join('|'); }
+  function meetOverlap(R, add, existing) {
+    var key = function (r) { return overlapKey(R, r); };
+    var byDay = {}; (add || []).forEach(function (r) { if (r && r.date) (byDay[r.date] = byDay[r.date] || []).push(r); });
+    var out = [];
+    Object.keys(byDay).sort().forEach(function (d) {
+      var inc = byDay[d], mine = {}; inc.forEach(function (r) { mine[sq(r.meet)] = 1; });
+      var g = {}; (existing || []).forEach(function (r) { if (!r || r._del || r.date !== d || mine[sq(r.meet)]) return; var m = sq(r.meet); (g[m] = g[m] || { name: nk(r.meet).trim(), keys: {} }).keys[key(r)] = 1; });
+      var best = null;
+      Object.keys(g).forEach(function (m) {
+        var n = inc.filter(function (r) { return g[m].keys[key(r)]; }).length;
+        if (n >= 2 && n * 2 >= inc.length && (!best || n > best.n)) best = { key: d + '|' + m, date: d, meet: g[m].name, inMeet: nk(inc[0].meet).trim(), n: n, total: inc.length };
+      });
+      if (best) out.push(best);
+    });
+    return out;
+  }
+  return { scan: scan, forBatch: forBatch, dupClusters: dupClusters, meetOverlap: meetOverlap, overlapKey: overlapKey, markWhy: markWhy, bounds: bounds, TYPES: TYPES, LABEL: LABEL, sig: sig };
 })();
 if (typeof module !== 'undefined') module.exports = LaneSuspect;

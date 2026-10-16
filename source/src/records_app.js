@@ -2278,14 +2278,17 @@
     return out;
   }
   // v0.26.49（監査 C1101）：保存する行（個人＋チェックしたリレー）と日付の置き換え。プレビューと保存で同じものを使う
-  function saveList(b) {
+  // v0.26.60 「同じ大会」と答えた日：その日のこの資料の記録は、保存ずみの大会名で入れる（raw＝答えを当てる前。重なりの判定に使う）
+  function meetSameName(b, r, raw) { var mp = !raw && b.meetMap; return mp && r.meet === b.meta.name && mp[r.date] ? mp[r.date] : ''; }
+  function saveList(b, raw) {
     var now = new Date().toISOString(), oorSkip = 0, rs = batchRecs(b).map(function (r, i) {
       var o = Object.assign({}, r); delete o.dday; o.meet = b.meta.name; o.date = dayOf(b, r); o.src = b.src; o.order = i; o.savedAt = now;
       var od = oorDest(b, r); if (od === null) { oorSkip++; return null; } if (od) { o.meet = od.meet; o.date = od.date; o._oor = 1; }   // v0.26.48 期間の外の日付：選んだ行き先だけ
+      var sm = meetSameName(b, o, raw); if (sm) o.meet = sm;
       o.id = R.recId(o.meet, o.date, o); return o;
     }).filter(Boolean);
     relayPrep(b); var rr = relayRecsOf(b);   // v0.26.21：チェックを付けたリレー
-    rr.recs.forEach(function (r, i) { r.src = b.src; r.order = rs.length + i; r.savedAt = now; r.id = R.recId(r.meet, r.date, r); rs.push(r); });
+    rr.recs.forEach(function (r, i) { var sm = meetSameName(b, r, raw); if (sm) r.meet = sm; r.src = b.src; r.order = rs.length + i; r.savedAt = now; r.id = R.recId(r.meet, r.date, r); rs.push(r); });
     return { rs: rs, oorSkip: oorSkip, errs: rr.errs, mv: dayMoves(b, rs) };
   }
   function dayHtml(b) {
@@ -2311,7 +2314,7 @@
         '<div class="rb-row xlw"><span class="small"><b>天気（任意）</b></span>' + weatherInputs(b.meta, 'data-f') + '</div>' +
         '<p class="small">読み取った記録：' + rs.length + '件' + (b.all.recs.length !== rs.length ? '（全体 ' + b.all.recs.length + '件のうち）' : '') + '</p>' +
         (ws.length ? '<ul class="rb-warn">' + ws.map(function (w) { return '<li>⚠ ' + esc(w) + '</li>'; }).join('') + '</ul>' : '') +
-        (b.sc && b.sc.pub ? '<p class="small rb-pubsrc">📊 ' + esc(LanePub.srcText(b.sc.pub)) + '</p>' : '') + looseHtml(b) + oorHtml(b) + dayHtml(b) + susBatchHtml(b, sus) +
+        (b.sc && b.sc.pub ? '<p class="small rb-pubsrc">📊 ' + esc(LanePub.srcText(b.sc.pub)) + '</p>' : '') + looseHtml(b) + oorHtml(b) + dayHtml(b) + meetQHtml(b) + susBatchHtml(b, sus) +
         (!rs.length || ws.some(function (w) { return /見つかりませんでした|読み取れませんでした/.test(w); }) ? rescueHint(b) : '') +
         (rs.length ? '<div class="tblwrap"><table class="rbt">' + REC_HEAD + rs.map(function (r) { return recRow(r); }).join('') + '</table></div>' : '') + relayBatchHtml(b) +
         '<div class="rb-row" style="margin-top:8px"><button class="btn" data-save="' + b.id + '" type="button"' + (rs.length || relaysOf(b).length ? '' : ' disabled') + '>記録に保存</button><button class="btn sub" data-del="' + b.id + '" type="button">取り消す</button></div><div class="status" data-st="' + b.id + '"></div></div>';
@@ -2368,16 +2371,21 @@
     var sc = b.sc, sl = saveList(b), rs = sl.rs, oorSkip = sl.oorSkip, mv = sl.mv;
     if (sl.errs.length) { st.className = 'status ng'; st.textContent = '✖ リレー：' + sl.errs.join(' / '); return null; }
     if (mv.keep) rs = rs.filter(function (r, i) { return !mv.drop[i]; });
+    if (meetQs(b).some(function (q) { return !(b.meetAns && b.meetAns[q.key]); })) { st.className = 'status ng'; st.textContent = '✖ 「同じ大会ですか？」に答えてから保存してください。'; return null; }   // v0.26.60 自動では決めない
+    var mqN = 0; if (b.meetMap && Object.keys(b.meetMap).length) {   // v0.26.60 「同じ大会」：その大会に同じ行（選手・種目・ラウンド・記録）があれば入れない
+      var mk = {}; ALL.forEach(function (x) { if (b.meetMap[x.date] && sqMeet(x.meet) === sqMeet(b.meetMap[x.date])) mk[x.date + '|' + LaneSuspect.overlapKey(R, x)] = 1; });
+      rs = rs.filter(function (r) { if (b.meetMap[r.date] && sqMeet(r.meet) === sqMeet(b.meetMap[r.date]) && mk[r.date + '|' + LaneSuspect.overlapKey(R, r)]) { mqN++; return false; } return true; });
+    }
     var sxi = susExIds(b, susForBatch(b)), susN = 0; rs = rs.filter(function (r) { if (sxi[r.id]) { susN++; return false; } return true; });   // v0.26.55 確認画面で「入れない」にした行（二重ははじめから）
     rs.forEach(function (r) { delete r.ecat; delete r._oor; });   // v0.26.48・49 一時の控え（区分 ecat・期間の外 _oor）は保存しない
     if (!rs.length && oorSkip && !mv.keep) { st.className = 'status ng'; st.textContent = '✖ 保存するものがありません（' + oorSkip + '件は大会予定の期間の外の日付なので保存しませんでした）。'; return null; }
-    if (!rs.length && !mv.keep) { st.className = 'status ng'; st.textContent = susN ? '✖ 保存するものがありません（' + susN + '件は「入れない」にした行です）。' : '✖ 保存するものがありません（リレーはチェックを付けてください）。'; return null; }
+    if (!rs.length && !mv.keep) { st.className = 'status ng'; st.textContent = mqN ? '✖ 保存するものがありません（' + mqN + '件は、同じ大会にもう入っています）。' : susN ? '✖ 保存するものがありません（' + susN + '件は「入れない」にした行です）。' : '✖ 保存するものがありません（リレーはチェックを付けてください）。'; return null; }
     try {
       var res = rs.length ? await putMany(rs, sc) : { added: 0, dup: 0, review: 0, ids: [] };
       // 置き換え：新しい日付の記録が保存できたものだけ、前の（日付の違う）記録を消す
       var mdel = mv.pair.filter(function (p) { return res.ids.indexOf(p.nw) >= 0; }).map(function (p) { return p.old; }).filter(function (x, i, a) { return a.indexOf(x) === i; });
       if (mdel.length) { check(sc); var olds = ALL.filter(function (x) { return mdel.indexOf(x.id) >= 0; }).map(function (x) { return Object.assign({}, x); }); await delIds(mdel, sc); b.moved = (b.moved || []).concat(olds); }
-      res.dup += mv.keep; res.sus = susN;
+      res.dup += mv.keep + mqN; res.sus = susN;
       await saveBatchWeather(b, [b.meta.date + '|' + b.meta.name], sc);
       check(sc);
       b.addedIds = (b.addedIds || []).concat(res.ids);
@@ -2413,6 +2421,13 @@
     } catch (err) { if (isAbort(err)) return; st.className = 'status ng'; st.textContent = '✖ 保存できませんでした：' + err.message; }
   }
   $('rbBatches').addEventListener('click', onBatchClick); $('rbDone').addEventListener('click', onBatchClick);
+  $('rbBatches').addEventListener('click', function (e) {   // v0.26.60 「同じ大会ですか？」の答え・大会名ちがいの重複をまとめて外す
+    var t = e.target.closest('[data-mq],[data-susxall]'); if (!t) return;
+    var bx = t.closest('[data-b]'), b = bx && batches.filter(function (x) { return x.id === +bx.getAttribute('data-b'); })[0]; if (!b) return;
+    if (t.hasAttribute('data-mq')) meetQSet(b, t.getAttribute('data-mq'), t.getAttribute('data-mqv'));
+    else { b.susPick = b.susPick || {}; t.getAttribute('data-susxall').split('\n').forEach(function (id) { if (id) b.susPick[id] = true; }); }
+    renderBatches();
+  });
 
   /* ---------- v0.6：1件ずつ入力・記録を直す・1件だけ消す ---------- */
   var EDIT_ID = '', MF = ['date', 'meet', 'name', 'kana', 'grade', 'team', 'event', 'mark', 'wind', 'round', 'rank'];
@@ -2514,7 +2529,7 @@
     if (!L.length) h += '<p class="small ok">✔ 見つかりませんでした。</p>';
     LaneSuspect.TYPES.forEach(function (t) {
       var its = L.filter(function (x) { return x.type === t; }); if (!its.length) return;
-      h += '<h4 class="sus-h">' + esc(LB[t]) + '<small>' + its.length + '</small></h4><ul class="sus-list">' + its.slice(0, 200).map(function (it) {
+      h += '<h4 class="sus-h">' + esc(LB[t]) + '<small>' + its.length + '</small></h4>' + (t === 'dup' ? susClusterHtml(its, del) : '') + '<ul class="sus-list">' + its.slice(0, 200).map(function (it) {
         return '<li class="sus-it sus-' + t + '"><div class="sus-why small">' + esc(it.why) + '</div><table class="sus-t">' + it.recs.map(function (r) {
           return '<tr><td class="sus-nm"><b>' + esc(r.name || r.kana || r.team || '') + '</b></td><td class="sus-dt">' + esc(r.date || '') + '</td><td class="sus-mt">' + esc(r.meet || '') + '</td><td class="sus-ev">' + esc(evName(r)) + (r.round ? '<small> ' + esc(r.round) + '</small>' : '') + '</td><td class="sus-mk"><b>' + esc(r.mark || '—') + '</b></td>' +
             '<td class="sus-op">' + (del ? '<button type="button" class="btn sub small danger-t" data-susdel="' + esc(r.id) + '">🗑 消す</button>' : '') + '</td></tr>';
@@ -2523,8 +2538,32 @@
     });
     box.innerHTML = h; box.hidden = false;
   }
+  // v0.26.60 大会名だけちがう二重を、日付と大会名の組ごとにまとめて（消す・問題ない）。1件ずつの行もそのまま下に出す
+  function susClusterHtml(its, del) {
+    var cs = LaneSuspect.dupClusters(its); if (!cs.length) return '';
+    var q = function (m) { return '『' + esc(m) + '』'; };
+    return '<ul class="sus-list sus-bulk">' + cs.map(function (c) {
+      var n = c.items.length;
+      return '<li class="sus-it sus-cl"><div><b>' + esc(c.date) + '：' + q(c.meets[0]) + 'と' + q(c.meets[1]) + 'で同じ記録が ' + n + '件</b></div><div class="rb-row sus-cla">' +
+        (del ? '<button type="button" class="btn sub small danger-t" data-susbulk="del" data-susk="' + esc(c.key) + '" data-susside="1">🗑 ' + q(c.meets[1]) + 'の方を' + n + '件まとめて消す</button>' +
+          '<button type="button" class="btn sub small danger-t" data-susbulk="del" data-susk="' + esc(c.key) + '" data-susside="0">🗑 ' + q(c.meets[0]) + 'の方を' + n + '件まとめて消す</button>' : '') +
+        '<button type="button" class="btn sub small" data-susbulk="ok" data-susk="' + esc(c.key) + '">✔ まとめて問題ない</button></div></li>';
+    }).join('') + '</ul>';
+  }
+  async function susBulk(t) {
+    var c = LaneSuspect.dupClusters(susList()).filter(function (x) { return x.key === t.getAttribute('data-susk'); })[0]; if (!c) return;
+    if (t.getAttribute('data-susbulk') === 'ok') { c.items.forEach(function (it) { susOkAdd(it.sig); }); SUS.msg = '✔ ' + c.items.length + '件を「問題ない」にしました（この端末で覚えます）。'; SUS.cls = 'ok'; SUS.undo = null; susRender(); return; }
+    if (!susCanDel()) return;
+    var side = +t.getAttribute('data-susside') ? 1 : 0, recs = c.side[side], ids = recs.map(function (r) { return r.id; });
+    if (!confirm('『' + c.meets[side] + '』（' + c.date + '）の記録を ' + ids.length + '件まとめて消します。\n『' + c.meets[1 - side] + '』の同じ記録 ' + ids.length + '件は残ります。ほかの記録は消しません。\n\nよろしいですか？（このあとすぐなら「元に戻す」で' + ids.length + '件まとめて戻せます）')) return;
+    var sc = scope(), copies = recs.map(function (r) { return Object.assign({}, r); });
+    try { await delIds(ids, sc); check(sc); SUS.undo = copies; SUS.msg = '✔ 『' + esc(c.meets[side]) + '』の方を ' + ids.length + '件消しました。'; SUS.cls = 'ok'; await reload(sc); }
+    catch (x) { if (isAbort(x)) return; SUS.msg = '✖ 消せませんでした：' + esc(x.message); SUS.cls = 'ng'; }
+    susRender();
+  }
   async function susClick(e) {
     var t = e.target.closest('button'); if (!t) return;
+    if (t.hasAttribute('data-susbulk')) { await susBulk(t); return; }
     var a = t.getAttribute('data-sus'), dl = t.getAttribute('data-susdel'), ok = t.getAttribute('data-susok');
     if (a === 'close') { SUS.open = false; SUS.msg = ''; SUS.undo = null; susRender(); return; }
     if (ok != null) { susOkAdd(ok); SUS.msg = '✔ 「問題ない」にしました（この端末で覚えます）。'; SUS.cls = 'ok'; SUS.undo = null; susRender(); return; }
@@ -2552,6 +2591,27 @@
     if (typeof LaneSuspect === 'undefined' || !b.all) return null;
     var sl = saveList(b); return LaneSuspect.forBatch(R, sl.rs, ALL, { plans: susPlans(), today: susToday() });
   }
+  /* v0.26.60 取り込みの前：同じ日に、記録がほぼ同じで大会名だけちがう保存ずみの大会。答え（b.meetAns：same／diff）は先生が選ぶ */
+  function meetQs(b) { if (typeof LaneSuspect === 'undefined' || !b.all || b.xl) return []; try { return LaneSuspect.meetOverlap(R, saveList(b, true).rs, ALL); } catch (e) { return []; } }
+  function meetQHtml(b) {
+    var qs = meetQs(b); if (!qs.length) return '';
+    return qs.map(function (q) {
+      var a = b.meetAns && b.meetAns[q.key], m = '『' + esc(q.meet) + '』';
+      return '<div class="rb-mq' + (a ? ' done' : '') + '" role="group" aria-label="同じ大会か"><p><b>❓ ' + esc(q.date) + '：同じ日に、記録がほぼ同じ大会' + m + 'がすでにあります。同じ大会ですか？</b><br><small>重なる記録 ' + q.n + '件（この日の ' + q.total + '件のうち）。いまの大会名は『' + esc(q.inMeet) + '』です。</small></p>' +
+        (a ? '<p class="small">' + (a === 'same' ? '✔ 同じ大会：重なる記録は入れず、新しい分だけ' + m + 'として入れます。' : '✔ 別の大会として入れます（重なる記録も入れます）。') + ' <button type="button" class="btn sub small" data-mq="' + esc(q.key) + '" data-mqv="">選び直す</button></p>' :
+          '<div class="rb-row"><button type="button" class="btn" data-mq="' + esc(q.key) + '" data-mqv="same">同じ大会（重なる' + q.n + '件は入れず、新しい分だけ' + m + 'として入れる）</button><button type="button" class="btn sub" data-mq="' + esc(q.key) + '" data-mqv="diff">別の大会として入れる</button></div>') + '</div>';
+    }).join('');
+  }
+  function meetQSet(b, k, v) {
+    var q = meetQs(b).filter(function (x) { return x.key === k; })[0] || ((b.meetQ || {})[k]);
+    b.meetAns = b.meetAns || {}; b.meetMap = b.meetMap || {}; b.meetQ = b.meetQ || {};
+    if (q) b.meetQ[k] = q; q = b.meetQ[k]; if (!q) return;
+    if (v) b.meetAns[k] = v; else delete b.meetAns[k];
+    if (v === 'same') b.meetMap[q.date] = q.meet; else delete b.meetMap[q.date];
+    b.susPick = b.susPick || {};   // 「別の大会」：その大会との重なり（二重の印）も入れる。選び直したら、はじめの決まりに戻す
+    var sus = susForBatch(b); if (sus) sus.list.forEach(function (x) { if (x.type === 'dup' && x.rec.date === q.date && x.other.some(function (o) { return sqMeet(o.meet) === sqMeet(q.meet); })) { if (v === 'diff') b.susPick[x.id] = false; else delete b.susPick[x.id]; } });
+  }
+  function sqMeet(m) { return String(m || '').normalize('NFKC').replace(/\s+/g, ''); }
   function susExIds(b, sus) {
     var ids = {}, pk = b.susPick || {}; if (!sus) return ids;
     var def = {}; sus.list.forEach(function (x) { if (x.ex) def[x.id] = true; else if (!(x.id in def)) def[x.id] = false; });
@@ -2563,7 +2623,11 @@
     var ex = susExIds(b, sus), by = {}, order = [];
     sus.list.forEach(function (x) { if (!by[x.id]) { by[x.id] = []; order.push(x.id); } by[x.id].push(x); });
     var nEx = order.filter(function (id) { return ex[id]; }).length, LB = LaneSuspect.LABEL;
-    return '<div class="rb-sus"><b>🔍 気になる行 ' + order.length + '件</b>' + (nEx ? '（' + nEx + '件は入れません）' : '') +
+    // v0.26.60 大会名だけちがう二重を、日付と相手の大会名ごとにまとめて「外す」
+    var cl = {}, cls = []; sus.list.forEach(function (x) { if (x.type !== 'dup' || !x.other.length || sqMeet(x.other[0].meet) === sqMeet(x.rec.meet)) return; var k = x.rec.date + '|' + sqMeet(x.other[0].meet); if (!cl[k]) { cl[k] = { date: x.rec.date, meet: x.other[0].meet, ids: [] }; cls.push(cl[k]); } if (cl[k].ids.indexOf(x.id) < 0) cl[k].ids.push(x.id); });
+    var bulk = cls.filter(function (c) { return c.ids.length >= 2; }).map(function (c) { var on = c.ids.filter(function (id) { return !ex[id]; }).length;
+      return '<div class="rb-row sus-cla"><span class="small">' + esc(c.date) + '：『' + esc(c.meet) + '』と同じ記録 ' + c.ids.length + '件</span>' + (on ? '<button type="button" class="btn sub small" data-susxall="' + esc(c.ids.join('\n')) + '">この大会名ちがいの重複' + c.ids.length + '件をまとめて外す</button>' : '<span class="small muted">（' + c.ids.length + '件とも入れません）</span>') + '</div>'; }).join('');
+    return '<div class="rb-sus"><b>🔍 気になる行 ' + order.length + '件</b>' + (nEx ? '（' + nEx + '件は入れません）' : '') + bulk +
       ' <span class="sus-help" data-xp="">二重（保存ずみや、この中にもう1つ同じ行がある）は、はじめから入れません。ほかは入れて、印だけ付けます。値は直しません。チェックで変えられます。</span>' +
       '<ul class="sus-list">' + order.map(function (id) {
         var xs = by[id], r = xs[0].rec;

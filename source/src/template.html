@@ -163,6 +163,7 @@ h2 .no{background:var(--track);width:30px;height:30px;font-size:15px;font-weight
 .drop:hover,.drop.drag{border-color:var(--track);background:#fff6f2;transform:translateY(-1px);box-shadow:var(--shadow)}
 .drop:focus-visible{outline:3px solid var(--track-l);border-color:var(--track)}
 .drop .big{font-size:16px;font-weight:800;color:var(--navy)}
+.drop .big .wb{display:inline-block;max-width:100%}  /* v0.26.60：「タイムテーブル」と「（競技時間）」の間でだけ折り返す */
 .drop.loaded{border-style:solid;border-color:var(--ok);background:#f3faf6}
 .drop.loaded::after{content:"✓";position:absolute;top:-10px;right:-10px;width:28px;height:28px;border-radius:50%;background:var(--ok);color:#fff;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(30,125,79,.4)}
 .drop.failed{border-color:var(--ng);background:#fdf3f2}
@@ -684,6 +685,10 @@ details.act>summary::-webkit-details-marker{display:none}
 details.act>summary:hover{border-color:var(--navy);background:#f5f7fb}
 details.act[open]>summary{border-color:var(--navy);background:#eef2f9}
 details.act>summary .sum-x{display:none}
+/* v0.26.60：たたむ行（details の summary）は全ページで「押せる」見た目に。:where で強さ0にして、各所の見た目はそのまま */
+:where(summary){cursor:pointer;-webkit-user-select:none;user-select:none;border-radius:8px}
+:where(summary):hover{background:rgba(31,58,104,.06)}
+:where(summary):focus-visible{outline:3px solid #6f8fc8;outline-offset:2px}
 </style>
 </head>
 <body>
@@ -779,7 +784,7 @@ __TOPBAR__
   <h2 id="inH2"><span class="no">1</span>PDFを入れる <a href="guide.html#data" class="lockbadge">🔒 保存するのは大会予定から開いたときだけ</a> <button class="btn sub" id="btnReset" type="button">新しい大会を始める（全消去）</button></h2>
   <div class="drops">
     <div class="drop" id="slDrop" tabindex="0"><div class="big">📄 スタートリスト</div><div class="muted small">ドラッグ／クリックで選ぶ</div><input type="file" id="slFile" accept="application/pdf,.pdf"><div class="status" id="slStatus"></div></div>
-    <div class="drop" id="ttDrop" tabindex="0"><div class="big">🕘 タイムテーブル（競技時間）</div><div class="muted small">時刻入りプログラムなら不要</div><input type="file" id="ttFile" accept="application/pdf,.pdf"><div class="status" id="ttStatus"></div></div>
+    <div class="drop" id="ttDrop" tabindex="0"><div class="big"><span class="wb">🕘 タイムテーブル</span><span class="wb">（競技時間）</span></div><div class="muted small">時刻入りプログラムなら不要</div><input type="file" id="ttFile" accept="application/pdf,.pdf"><div class="status" id="ttStatus"></div></div>
     <div class="drop" id="yokoDrop" tabindex="0"><div class="big">📑 大会要項<span class="opt">任意</span></div><div class="muted small">日付・参加料を読み取り</div><input type="file" id="yokoFile" accept="application/pdf,.pdf"><div class="status" id="yokoStatus"></div></div>
     <div class="drop" id="noteDrop" tabindex="0"><div class="big">📋 競技注意事項<span class="opt">任意</span></div><div class="muted small">招集ルールを読み取り</div><input type="file" id="noteFile" accept="application/pdf,.pdf"><div class="status" id="noteStatus"></div></div>
   </div>
