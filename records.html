@@ -3177,7 +3177,7 @@ if (typeof module !== 'undefined') module.exports = LaneRoster;
 
 </script>
 <script>
-var APP_VERSION = "v0.26.53", REC_VERSION = "v0.11.1";
+var APP_VERSION = "v0.26.54", REC_VERSION = "v0.11.1";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>
@@ -6905,7 +6905,7 @@ var LanePdf = (function () {
     box.hidden = false;
     box.innerHTML = '<details class="small"' + (PP.open ? ' open' : '') + ' data-ppd="1"><summary><b>🤝 だれかが入れた大会は、もう入れなくてOK</b>（みんなの要項／みんなの結果）</summary><p class="small muted">この設定は顧問だけが変えられます。</p>' +
       row('pub', 'みんなの要項', '大会予定から開いた大会で要項をURLから読み') + row('pubres', 'みんなの結果', '結果をURLから読んで保存し') +
-      '<p class="small muted">だれか1人が要項や結果のURLを登録すると、同じ大会に出るほかの先生は、大会を選ぶだけで入れられます。登録されるのは大会名・日付・会場・URLだけで、選手の名前や記録は送りません。すでに登録したものは、オフにしてもそのままです。</p><div class="status" id="ppMsg"></div></details>';
+      '<p class="small muted">だれか1人が要項や結果のURLを登録すると、同じ大会に出るほかの先生は、大会を選ぶだけで入れられます。登録されるのは大会名・日付・会場・URL（要項は大会のきまりも）だけで、選手の名前や記録は送りません。すでに登録したものは、オフにしてもそのままです。</p><div class="status" id="ppMsg"></div></details>';
   }
   document.addEventListener('toggle', function (e) { if (e.target && e.target.getAttribute && e.target.getAttribute('data-ppd')) PP.open = e.target.open; }, true);
   document.addEventListener('change', async function (e) {
