@@ -867,7 +867,7 @@ body.ath-open #rbLegend{display:none}
 .rb-manual .mnote{font-size:11.5px;color:var(--muted);font-weight:400}
 .rb-manual .edit-banner{background:#e4572e;color:#fff;border-radius:8px;padding:6px 10px;font-size:13px;font-weight:700;margin:6px 0}
 .url-note{font-size:12px;color:#7a5a00;background:#fff7dc;border:1px solid #f0d58a;border-radius:8px;padding:5px 9px;margin:6px 0}
-.rb-localnote{border:1px solid #e0b252;background:#fff9e8;border-radius:10px;padding:6px 10px;margin:8px 0;font-size:14px;line-height:1.6;display:flex;flex-wrap:wrap;align-items:center;gap:6px}.rb-localnote .btn{margin:0;padding:5px 12px;font-size:13px}.rb-localnote .ln-x{margin-left:auto}
+.rb-localnote{border:1px solid #e0b252;background:#fff9e8;border-radius:10px;padding:6px 10px;margin:8px 0;font-size:14px;line-height:1.6;display:flex;flex-wrap:wrap;align-items:center;gap:6px}.rb-localnote .btn{margin:0;padding:5px 12px;font-size:13px}.rb-localnote .ln-x{margin-left:auto}.rb-localnote[hidden]{display:none}/* v0.26.59 display:flex が hidden に勝って、ログイン中・閉じたあとも空の枠が出ていた */
 .rb-guest{border:2px solid #e4572e;background:#fff8f4;border-radius:12px;padding:10px 12px;margin:10px 0}
 label.btn,.filebtn{display:inline-flex;align-items:center;justify-content:center;text-align:center;box-sizing:border-box;vertical-align:middle}
 .rb-guest .btn{margin:4px 6px 0 0;white-space:normal;max-width:100%;text-align:center}
@@ -3250,7 +3250,7 @@ if (typeof module !== 'undefined') module.exports = LaneRoster;
 
 </script>
 <script>
-var APP_VERSION = "v0.26.58", REC_VERSION = "v0.11.1";
+var APP_VERSION = "v0.26.59", REC_VERSION = "v0.11.1";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>
