@@ -22,8 +22,11 @@ const try_ = async f => { try { await f(); return null; } catch (e) { return e; 
 try {
   await env.clearFirestore();
   const alice = T('alice', '架空顧問'); const t = await alice.createTeam('架空中学陸上部');
-  const codes = await alice.codes(t), cc = codes.coach.code;
-  await test('はじめての参加は今までどおり', async () => { await T('bob').join(codes.manager.code); });
+  const born = await alice.codes(t);
+  if (!born.coach.approve || !born.manager.approve) throw new Error('はじめのコードは承認あり');
+  // v0.26.63 はじめのコードは承認あり。「今までどおり入れる」は承認なしのコードで確かめる
+  const mc = await alice.regen(t, 'manager', born.manager.mexp), cc = await alice.regen(t, 'coach');
+  await test('はじめての参加は今までどおり', async () => { await T('bob').join(mc); });
   await test('もう入っている人がもう一度押す →「もうこのチームにマネージャーとして入っています」', async () => {
     await sleep(10500); const e = await try_(() => T('bob').join(cc)); if (!e || e.code !== 'already-member' || !/マネージャーとして入っています/.test(e.message)) throw new Error(e ? e.code + e.message : '通ってしまった');
   });

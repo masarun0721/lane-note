@@ -34,7 +34,15 @@ try {
   let t, mcode, ccode;
   const alice = T('alice', '架空顧問A'), bob = T('bob', '架空マネB'), carol = T('carol', '架空顧問C'), dave = T('dave'), erin = T('erin', '架空マネE');
   await test('TEAM: Google の顧問がチームを作れる（自分が顧問・持ち主）', async () => { t = await alice.createTeam('架空高校陸上部'); const i = await alice.info(t); if (!i || i.role !== 'coach' || !i.owner) throw new Error(JSON.stringify(i)); });
-  await test('TEAM: 作ると顧問用とマネージャー用の参加コードができる（マネージャーは年度末まで）', async () => { const c = await alice.codes(t); ccode = c.coach.code; mcode = c.manager.code; if (!/^[A-Za-z0-9]{20}-[A-Za-z0-9]{24}$/.test(ccode) || !/-\d{8}$/.test(mcode)) throw new Error(ccode + ' ' + mcode); if (LaneTeam.ymd(c.manager.mexp).slice(4) !== '0331') throw new Error(LaneTeam.ymd(c.manager.mexp)); });
+  await test('TEAM: 作ると顧問用とマネージャー用の参加コードができる（マネージャーは年度末まで・はじめから承認あり）', async () => {
+    const c = await alice.codes(t);
+    if (!c.coach.approve || !c.manager.approve) throw new Error('はじめのコードは承認あり');
+    if (!/^[A-Za-z0-9]{20}-[A-Za-z0-9]{24}$/.test(c.coach.code) || !/-\d{8}$/.test(c.manager.code)) throw new Error(c.coach.code + ' ' + c.manager.code);
+    if (LaneTeam.ymd(c.manager.mexp).slice(4) !== '0331') throw new Error(LaneTeam.ymd(c.manager.mexp));
+    // v0.26.63 はじめのコードは承認あり。この先は入ったあとのルール（役割・記録・外す）を見るので、承認なしに作り直す
+    ccode = await alice.regen(t, 'coach');
+    mcode = await alice.regen(t, 'manager', c.manager.mexp);
+  });
   await test('TEAM: ログインなし・匿名ではチームを作れない', async () => { const an = env.unauthenticatedContext().firestore(); const b = writeBatch(an); b.set(doc(an, 'teams/AAAAAAAAAAAAAAAAAAAA'), { v: 1, name: 'x', ownerUid: 'x', createdAt: serverTimestamp() }); await assertFails(b.commit()); });
   await test('TEAM: 他人を持ち主にしてチームは作れない', async () => { const f = db('dave'), b = writeBatch(f); b.set(doc(f, 'teams/BBBBBBBBBBBBBBBBBBBB'), { v: 1, name: 'x', ownerUid: 'alice', createdAt: serverTimestamp() }); b.set(doc(f, 'teams/BBBBBBBBBBBBBBBBBBBB/members/dave'), { role: 'coach', name: 'x', joinedAt: serverTimestamp() }); await assertFails(b.commit()); });
   await test('TEAM: 既にあるチームの顧問に、コードなしで自分を足せない', () => assertFails(setDoc(doc(db('dave'), 'teams', t, 'members', 'dave'), { role: 'coach', name: 'x', joinedAt: serverTimestamp() })));
