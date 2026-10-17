@@ -136,6 +136,7 @@ tr.sep td{border-top:2.5px solid #7c8aa5}
 #dlMsg{color:var(--ok);font-size:14px;margin-top:8px}
 #printHead{display:none}
 footer{text-align:center;color:var(--muted);font-size:12px;padding:16px}
+body.dayset .md-wait{display:none}
 @media (max-width:720px){
   .drops{grid-template-columns:1fr}
   .cline{grid-template-columns:1fr}
@@ -3284,7 +3285,7 @@ if (typeof module !== 'undefined') module.exports = LaneRoster;
 
 </script>
 <script>
-var APP_VERSION = "v0.26.66", REC_VERSION = "v0.11.1";
+var APP_VERSION = "v0.26.67", REC_VERSION = "v0.11.1";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>
@@ -8559,7 +8560,7 @@ var LanePdf = (function () {
     var o = { school: MODE.personal ? (MODE.team || MODE.name || '') : school(), date: LanePrint.today(), nog: NOG, spark: function (e) { return spark(e.allPoints, e.lower, false, e.noMarks, true); } };
     for (var k in extra || {}) o[k] = extra[k]; return o;
   }
-  function filterCond() { return [DIV === 'all' ? '' : R.divLabel(DIV), NOG ? '' : SEX].filter(Boolean).join('・'); }
+  function filterCond() { return [DIV === 'all' ? '' : R.divLabel(DIV), NOG ? '' : (SEX === 'f' ? '女子のみ' : '男子のみ')].filter(Boolean).join('・'); }   // v0.26.67：「m」「f」ではなく「男子のみ」「女子のみ」
   function openPrint(html, pick) {
     $('rbPrintBody').innerHTML = html; $('rbPrintGo').hidden = $('rbPrintPdf').hidden = !!pick; $('rbPrintHint').hidden = true; $('rbPrint').hidden = false; $('rbPrint').scrollTop = 0; document.body.classList.add('printing');
   }

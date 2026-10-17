@@ -127,6 +127,7 @@ tr.sep td{border-top:2.5px solid #7c8aa5}
 #dlMsg{color:var(--ok);font-size:14px;margin-top:8px}
 #printHead{display:none}
 footer{text-align:center;color:var(--muted);font-size:12px;padding:16px}
+body.dayset .md-wait{display:none}
 @media (max-width:720px){
   .drops{grid-template-columns:1fr}
   .cline{grid-template-columns:1fr}
@@ -707,7 +708,7 @@ details.act>summary .sum-x{display:none}
 <body class="trypage">
 <header>
   <div class="hdr-meta">
-    <div class="hdr-ver" aria-label="バージョン">v0.26.66</div>
+    <div class="hdr-ver" aria-label="バージョン">v0.26.67</div>
     <div class="credit">Presented by Sakata</div>
     <div class="hdr-msg"><span class="hm-l">すべての陸上競技部顧問が、</span><span class="hm-l">少しでも楽になりますように。</span></div>
   </div>
@@ -735,6 +736,7 @@ details.act>summary .sum-x{display:none}
 <ol class="tr-steps" id="trSteps" aria-label="進み具合"><li>① 選ぶ</li><li>② 資料を入れる</li><li>③ 学校名</li><li>④ できあがり</li></ol>
 <section class="box" id="trBody" aria-live="polite"></section>
 </main>
+<footer><div class="f-disc">ⓘ 内容は必ず元の資料と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div></footer>
 <script>
 /* ===== 陸上大会 スタートリスト／タイムテーブル 解析（座標ベース・AI不使用） ===== */
 var MeetParser = (function () {

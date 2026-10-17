@@ -127,7 +127,7 @@
         var nSec = sl.diag.length, W = sl.warnings;
         setStatus(sid, '✔ 「' + esc(file.name) + '」 ' + pages.length + 'ページ／' + sl.events.length + '種目・' + sl.entries.length + '人・リレー' + sl.relays.length + 'チーム<br><span class="fmt">' + fmtLabel + '</span>' + timeMsg +
           (W.length ? '<br><span class="warn">⚠ ' + nSec + 'か所中 ' + W.length + 'か所に読み取りの問題があります（「読み取りの確認」タブに一覧）</span>' : '<br><span class="small muted">' + nSec + 'か所の種目表を読み取り、問題は見つかりませんでした</span>') +
-          (sl.multiDay ? '<br><span class="warn">⚠ 複数日（' + esc(sl.dates.join('・')) + '）の大会です。結果の上で「対象日」を選ぶまで、出場一覧は出しません。</span>' : ''), W.length || sl.multiDay ? 'ok warnst' : 'ok');
+          (sl.multiDay ? '<br><span class="warn">⚠ 複数日（' + esc(sl.dates.join('・')) + '）の大会です。<span class="md-wait">結果の上で「対象日」を選ぶまで、出場一覧は出しません。</span></span>' : ''), W.length || sl.multiDay ? 'ok warnst' : 'ok');
       } else if (kind === 'note') {
         var nt = MeetParser.parseNotes(pages);
         state.notes = nt; state.noteName = file.name;
@@ -146,7 +146,7 @@
         state.tt = tt; state.ttName = file.name;
         var tds = ttDates();
         setStatus(sid, '✔ 「' + esc(file.name) + '」 ' + tt.length + '件の種目：時刻あり ' + tOk + '／未確定 ' + (tt.length - tOk) +
-          (tds.length > 1 ? '<br><span class="warn">⚠ 複数日（' + esc(tds.join('・')) + '）のタイムテーブルです。結果の上で「対象日」を選ぶまで、出場一覧は出しません。</span>' : ''), tOk === tt.length && tds.length < 2 ? 'ok' : 'ok warnst');
+          (tds.length > 1 ? '<br><span class="warn">⚠ 複数日（' + esc(tds.join('・')) + '）のタイムテーブルです。<span class="md-wait">結果の上で「対象日」を選ぶまで、出場一覧は出しません。</span></span>' : ''), tOk === tt.length && tds.length < 2 ? 'ok' : 'ok warnst');
       }
       res.adopted = live();
     } catch (e) {
@@ -664,13 +664,14 @@
   function render() {
     ssSave();
     var res = $('results');
-    if (!state.sl || !state.teams.length) { res.hidden = true; state.rows = []; state.allRows = []; state.tent = []; refreshPrint(); return; }
+    if (!state.sl || !state.teams.length) { document.body.classList.remove('dayset'); res.hidden = true; state.rows = []; state.allRows = []; state.tent = []; refreshPrint(); return; }
     requestAnimationFrame(function () { var tb = document.querySelector('.tabbar'); if (tb) document.documentElement.style.setProperty('--tabh', tb.offsetHeight + 'px'); });
     var S = settings();
     // 複数日の大会：対象日を選ぶまでは出場一覧・印刷・Excel・共有を出さない
     var MD = multiDates(), dp = $('dayPick'), ds = $('daySel');
     if (MD.indexOf(state.day) < 0) state.day = '';
     dp.hidden = MD.length < 2;
+    document.body.classList.toggle('dayset', MD.length > 1 && !!state.day);   // v0.26.67：対象日を選んだら、カードの「対象日を選ぶまで…」を隠す
     if (MD.length > 1) {
       var opts = '<option value="">（対象日を選んでください）</option>' + MD.map(function (d) { return '<option value="' + esc(d) + '"' + (d === state.day ? ' selected' : '') + '>' + esc(dayLabel(d)) + '</option>'; }).join('');
       if (ds.dataset.opts !== opts) { ds.innerHTML = opts; ds.dataset.opts = opts; }

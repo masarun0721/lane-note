@@ -3072,7 +3072,7 @@
     var o = { school: MODE.personal ? (MODE.team || MODE.name || '') : school(), date: LanePrint.today(), nog: NOG, spark: function (e) { return spark(e.allPoints, e.lower, false, e.noMarks, true); } };
     for (var k in extra || {}) o[k] = extra[k]; return o;
   }
-  function filterCond() { return [DIV === 'all' ? '' : R.divLabel(DIV), NOG ? '' : SEX].filter(Boolean).join('・'); }
+  function filterCond() { return [DIV === 'all' ? '' : R.divLabel(DIV), NOG ? '' : (SEX === 'f' ? '女子のみ' : '男子のみ')].filter(Boolean).join('・'); }   // v0.26.67：「m」「f」ではなく「男子のみ」「女子のみ」
   function openPrint(html, pick) {
     $('rbPrintBody').innerHTML = html; $('rbPrintGo').hidden = $('rbPrintPdf').hidden = !!pick; $('rbPrintHint').hidden = true; $('rbPrint').hidden = false; $('rbPrint').scrollTop = 0; document.body.classList.add('printing');
   }
