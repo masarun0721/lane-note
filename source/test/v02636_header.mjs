@@ -72,9 +72,11 @@ try {
   // v0.26.38.1 各ページの上に更新情報の欄は無い。「📰 更新情報」は guide.html の更新情報の欄へ移り、新しい版が先頭
   ok(await p.evaluate(() => !document.getElementById('changelog') && !document.getElementById('lnTopbar')), '記録のページの上に古い更新情報の欄が無い');
   await p.click('#lnNav .pn-menu'); await sl(100);
+  // 更新情報の先頭の日付は changelog.json の最後の版の日付（決め打ちにすると、版を上げるたびに直す必要がある）
+  const LAST_CL_DATE = (cls => cls[cls.length - 1].date.replace(/-/g, '/'))(JSON.parse(fs.readFileSync(new URL('../src/changelog.json', import.meta.url), 'utf8')));
   await Promise.all([p.waitForNavigation({ waitUntil: 'domcontentloaded' }), p.click('[data-tb="changelog"]')]); await sl(200);
   const cl = await p.evaluate(() => { const c = document.getElementById('changelog'), b = c && c.querySelector('li .cl-h b'), r = c && c.getBoundingClientRect(); return { path: location.pathname + location.hash, first: b && b.textContent, date: b && b.parentNode.textContent.replace(b.textContent, ''), inView: !!r && r.top < innerHeight && r.bottom > 0, ver: document.querySelector('.hdr-ver') && document.querySelector('.hdr-ver').textContent }; });
-  ok(cl.path === '/guide.html#changelog' && cl.inView && cl.first === cl.ver.trim() && cl.date === '2026/10/16', '「📰 更新情報」で guide.html の更新情報へ・先頭が今の版 ' + JSON.stringify(cl));
+  ok(cl.path === '/guide.html#changelog' && cl.inView && cl.first === cl.ver.trim() && cl.date === LAST_CL_DATE, '「📰 更新情報」で guide.html の更新情報へ・先頭が今の版 ' + JSON.stringify(cl));
   // 選手モード：記録・大会準備・照合・大会予定・チーム・更新情報は出さない（≡ メニューとモードの切りかえは出す）
   await setMode(p, 'player');
   for (const [W, mob] of [[1280, false], [390, true]]) {

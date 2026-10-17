@@ -2955,7 +2955,7 @@
       pbs.sort(function (a, b) { return cmp(R.nk(a.name), R.nk(b.name)) || cmp(R.normEvent(a.event), R.normEvent(b.event)); });
       h += '<div class="card meetcard" role="link" tabindex="0" data-gomeet="' + esc(k) + '" aria-label="' + esc(list[0].meet + '（' + list[0].date + '）を大会別で見る') + '"><div class="card-h"><span class="tag">' + (i ? 'その前の大会' : '最新の大会') + '</span><b>' + esc(list[0].meet) + '</b><span class="small muted">' + esc(list[0].date) + '・' + list.length + '件</span><span class="mc-go">この大会を見る →</span></div>' +
         '<p class="small">自己ベスト更新 <b class="big-n">' + pbs.length + '</b>件' + (firsts.length ? '　初記録 ' + firsts.length + '件' : '') + '</p>' +
-        (pbs.length ? '<ul class="pblist">' + pbs.map(function (r) { var p = pd[r.id]; return '<li>' + athLink(R.athleteKey(r), r.name || r.kana) + '<span class="ev">' + esc(evName(r)) + '</span><span class="lmk"><b>' + esc(smk(r)) + '</b><span class="pb">PB</span></span><span class="prev">前のベスト ' + esc(smk(p.prev)) + '<b class="up">' + esc(R.fmtImprovement(p.diff, p.lower)) + '</b></span></li>'; }).join('') + '</ul>' : '<p class="small muted">この大会では自己ベストの更新はありませんでした。</p>') + '</div>';
+        (pbs.length ? '<ul class="pblist">' + pbs.map(function (r) { var p = pd[r.id]; return '<li>' + athLink(R.athleteKey(r), r.name || r.kana) + '<span class="ev">' + esc(evName(r)) + '</span><span class="lmk"><b>' + esc(smk(r)) + '</b><span class="pb">PB</span></span><span class="prev">前のベスト ' + esc(smk(p.prev)) + '<b class="up">' + esc(R.fmtImprovement(p.diff, p.lower, p.long)) + '</b></span></li>'; }).join('') + '</ul>' : '<p class="small muted">この大会では自己ベストの更新はありませんでした。</p>') + '</div>';
     });
     return h + relayHome() + rosterHome();   // v0.26.11・v0.26.12
   }

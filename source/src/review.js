@@ -41,7 +41,7 @@ var LaneReview = (function () {
     });
     return best && best.r;
   }
-  function gap(R, d, lower) { return lower ? R.fmtSecDiff(d) : d.toFixed(2) + 'm'; }   // v0.26.61：時間は R.fmtSecDiff（60秒以上は「2分23秒35」）
+  function gap(R, d, lower, long) { return lower ? R.fmtSecDiff(d, long) : d.toFixed(2) + 'm'; }   // v0.26.66 long：分で書く種目は「14秒40」   // v0.26.61：時間は R.fmtSecDiff（60秒以上は「2分23秒35」）
   // 走順の名前と選手の照合：名前が同じ（空白・旧字の違いは無視）。走順が名字だけのときは、その期間・同じ学校・同じ区分に同じ名字の選手が1人だけのときに限る
   function relaysFor(R, all, pf, from, to) {
     var me = R.nameKey(pf.name), sur = String(R.nk(pf.name)).trim().split(/[\s　]+/)[0], surK = R.nameKey(sur), base = R.schoolBase(pf.team || ''), div = pf.div || '';
@@ -106,12 +106,12 @@ var LaneReview = (function () {
   function windTxt(R, r) { var w = R.shownWind(r); return w ? '風' + w : ''; }
   function vsCell(R, e) {
     if (!e.best) return e.ref ? '<span class="rv-muted">公認の記録はまだありません</span>' : '<span class="rv-muted">記録なし</span>';
-    var lower = (R.markValue(e.best.mark, e.best.event) || {}).lower;
+    var lower = (R.markValue(e.best.mark, e.best.event) || {}).lower, long = e.prev && R.minuteStyle(e.best.event, e.prev.mark, e.best.mark);
     if (e.prev) {   // v0.26.55 「今シーズンの伸び」→ v0.26.56「昨年度からの伸び」：昨年度まで（期間より前）の公認ベスト → 伸び。数字は前と同じ計算
       var was = '昨年度まで ' + esc(R.showMark(e.prev.mark, e.prev.event));
-      if (e.diff > 0) return '<span class="rv-up">' + was + ' → ' + esc(gap(R, e.diff, lower)) + 'アップ</span><small>自己ベスト更新（前は ' + esc(sd(e.prev.date)) + '）</small>';
+      if (e.diff > 0) return '<span class="rv-up">' + was + ' → ' + esc(gap(R, e.diff, lower, long)) + 'アップ</span><small>自己ベスト更新（前は ' + esc(sd(e.prev.date)) + '）</small>';
       if (e.diff === 0) return '<span class="rv-eq">' + was + '　自己ベストと同じ記録</span>';
-      return '<span>' + was + '　自己ベストまで あと ' + esc(gap(R, -e.diff, lower)) + '</span><small>（' + esc(sd(e.prev.date)) + '）</small>';
+      return '<span>' + was + '　自己ベストまで あと ' + esc(gap(R, -e.diff, lower, long)) + '</span><small>（' + esc(sd(e.prev.date)) + '）</small>';
     }
     return '<span class="rv-new">' + (e.before ? '昨年度までの公認記録なし' : '昨年度までの記録なし') + '</span>';
   }

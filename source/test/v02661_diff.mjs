@@ -31,11 +31,12 @@ const LONG = () => [
 await check('大会まとめ（印刷）：PB更新の伸びとPBの印も同じ形（距離はそのまま）', () => {
   const all = LONG(), recs = all.filter(r => r.meet === '架空区大会');
   const s = P.meetSheet(R, recs, all, { meet: '架空区大会', meetDate: '2026-09-20' });
-  assert.match(s, /lp-up">−2分23秒35</); assert.match(s, /lp-up">−1分00秒00</); assert.match(s, /lp-up">−59\.99秒</); assert.match(s, /lp-up">−0\.27秒</); assert.match(s, /lp-up">\+0\.20m</);
+  assert.match(s, /lp-up">−2分23秒35</); assert.match(s, /lp-up">−1分00秒00</); assert.match(s, /lp-up">−59秒99</);   // v0.26.66：800m は分で書く種目なので「59秒99」
+  assert.match(s, /PB −59秒99</); assert.match(s, /lp-up">−0\.27秒</); assert.match(s, /lp-up">\+0\.20m</);
   assert.match(s, /PB −2分23秒35</); assert.match(s, /PB −0\.27</); assert.match(s, /PB \+0\.20m</);
   assert.doesNotMatch(s, /143\.35|60\.00秒/);
 });
-await check('ふりかえり「昨年度からの伸び」：「2分23秒35アップ」「59.99秒アップ」「あと 1分00秒00」・距離は「0.20mアップ」', () => {
+await check('ふりかえり「昨年度からの伸び」：「2分23秒35アップ」「59秒99アップ」（800m・v0.26.66）「あと 1分00秒00」・距離は「0.20mアップ」', () => {
   const all = [
     rec({ event: '男子5000m', mark: '20:38.05', date: '2025-09-01', meet: '去年の大会' }), rec({ event: '男子5000m', mark: '18:14.70' }),
     rec({ event: '男子800m', mark: '2:59.99', date: '2025-09-01', meet: '去年の大会' }), rec({ event: '男子800m', mark: '2:00.00' }),
@@ -43,7 +44,7 @@ await check('ふりかえり「昨年度からの伸び」：「2分23秒35ア�
     rec({ event: '男子100m', mark: '12.67', date: '2025-09-01', meet: '去年の大会' }), rec({ event: '男子100m', mark: '12.94' }),
     rec({ event: '男子走幅跳', mark: '5.80', date: '2025-09-01', meet: '去年の大会' }), rec({ event: '男子走幅跳', mark: '6.00' })];
   const g = V.seasonRange(2026), d = V.build(R, all, R.athleteKey(all[0]), { from: g[0], to: g[1] }), s = V.sheet(R, d, {});
-  assert.match(s, /昨年度まで 20:38\.05 → 2分23秒35アップ/); assert.match(s, /昨年度まで 2:59\.99 → 59\.99秒アップ/);
+  assert.match(s, /昨年度まで 20:38\.05 → 2分23秒35アップ/); assert.match(s, /昨年度まで 2:59\.99 → 59秒99アップ/);   // v0.26.66：800m は「59秒99」
   assert.match(s, /昨年度まで 4:10\.00　自己ベストまで あと 1分00秒00/); assert.match(s, /昨年度まで 12\.67　自己ベストまで あと 0\.27秒/);
   assert.match(s, /昨年度まで 5\.80m → 0\.20mアップ/); assert.doesNotMatch(s, /143\.35|60\.00秒/);
 });
@@ -53,7 +54,7 @@ const srv = http.createServer((q, s) => { let f = decodeURIComponent(q.url.split
 await new Promise(r => srv.listen(0, '127.0.0.1', r)); const B = 'http://127.0.0.1:' + srv.address().port + '/';
 const b = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox', '--disable-gpu'] });
 try {
-  await check('記録のページ：ホームのPB更新「前のベスト 20:38.05 −2分23秒35」・「−59.99秒」「−1分00秒00」「−0.27秒」・走幅跳は「5.80m」「+0.20m」', async () => {
+  await check('記録のページ：ホームのPB更新「前のベスト 20:38.05 −2分23秒35」・「−59秒99」（800m・v0.26.66）「−1分00秒00」「−0.27秒」・走幅跳は「5.80m」「+0.20m」', async () => {
     const p = await b.newPage(); await p.setViewport({ width: 1280, height: 800 });
     await p.setRequestInterception(true); p.on('request', r => r.url().startsWith(B) || /^(data|blob):/.test(r.url()) ? r.continue() : r.abort());
     await p.evaluateOnNewDocument(() => { if (!sessionStorage.getItem('__i')) { localStorage.clear(); sessionStorage.setItem('__i', '1'); } localStorage.setItem('lanenote.mode.v1', 'coach'); localStorage.setItem('lanenote.xnews.v1', '1'); });
@@ -62,7 +63,7 @@ try {
     const f = path.join(fs.mkdtempSync('/tmp/v02661-'), 'synth.json'); fs.writeFileSync(f, JSON.stringify({ records: LONG() }));
     await (await p.$('#rbImport')).uploadFile(f); await p.waitForFunction(() => document.querySelectorAll('.pblist li').length >= 5, { timeout: 15000 });
     const L = await p.evaluate(() => [...document.querySelectorAll('.pblist li .prev')].map(e => e.textContent.trim()));
-    for (const t of ['前のベスト 20:38.05−2分23秒35', '前のベスト 5:10.00−1分00秒00', '前のベスト 2:59.99−59.99秒', '前のベスト 12.67−0.27秒', '前のベスト 5.80m+0.20m']) assert(L.includes(t), t + ' / ' + JSON.stringify(L));
+    for (const t of ['前のベスト 20:38.05−2分23秒35', '前のベスト 5:10.00−1分00秒00', '前のベスト 2:59.99−59秒99', '前のベスト 12.67−0.27秒', '前のベスト 5.80m+0.20m']) assert(L.includes(t), t + ' / ' + JSON.stringify(L));
     if (SHOT) { await p.evaluate(() => { const e = document.querySelector('.pblist'); e.scrollIntoView({ block: 'center' }); }); await new Promise(r => setTimeout(r, 300)); await p.screenshot({ path: SHOT }); }
     await p.close();
   });

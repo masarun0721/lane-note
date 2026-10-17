@@ -733,14 +733,27 @@ var ResultParser = (function () {
     return Math.round((a.lower ? a.v - b.v : b.v - a.v) * 100) / 100;
   }
   // v0.26.61：時間の差（秒）の表し方を1か所に。60秒より短ければ今まで通り「0.27秒」、60秒以上は分から「2分23秒35」（秒は2けた）
-  function fmtSecDiff(d) {
+  //   v0.26.66：long（分を使って書く種目＝800m以上・障害・競歩など）は60秒より短くても「14秒40」「0秒04」（秒の整数＋秒＋2けた）。短距離・ハードルは今まで通り「0.07秒」
+  function fmtSecDiff(d, long) {
     if (d == null || !isFinite(d)) return '';
     var c = Math.round(Math.abs(d) * 100), sg = d < 0 && c ? '-' : '';
-    if (c < 6000) return sg + (c / 100).toFixed(2) + '秒';
+    if (c < 6000) return long ? sg + Math.floor(c / 100) + '秒' + (c % 100 < 10 ? '0' : '') + c % 100 : sg + (c / 100).toFixed(2) + '秒';
     var m = Math.floor(c / 6000), ss = Math.floor(c % 6000 / 100), cc = c % 100;
     return sg + m + '分' + (ss < 10 ? '0' : '') + ss + '秒' + (cc < 10 ? '0' : '') + cc;
   }
-  function fmtImprovement(d, lower) { if (d == null) return ''; return (lower ? '−' + fmtSecDiff(d) : '+' + d.toFixed(2) + 'm'); }   // v0.26.62 距離は「+0.20m」
+  function fmtImprovement(d, lower, long) { if (d == null) return ''; return (lower ? '−' + fmtSecDiff(d, long) : '+' + d.toFixed(2) + 'm'); }
+  // v0.26.66：記録を分で書く種目か（差を「14秒40」で出すか）。種目で決める：競歩・障害（SC）・ロード → はい、ハードル・400m以下 → いいえ、800m以上 → はい。
+  //   リレー・600mなど・種目がわからないときは、どちらかの記録に「:」があるか（4×400mR は「3:25.12」なので、はい）
+  function minuteStyle(ev, a, b) {
+    var s = normEvent(ev || '').replace(/^(男子|女子)/, ''), km = s.match(/(\d+(?:\.\d+)?)\s*km/i), m = s.match(/(\d+(?:,\d{3})*)\s*m/), dist = km ? +km[1] * 1000 : m ? +m[1].replace(/,/g, '') : 0;
+    var colon = /:/.test(String(a == null ? '' : a)) || /:/.test(String(b == null ? '' : b));
+    if (isRelay(s)) return colon;
+    if (/競歩|W$|\dmW|SC|障害|マラソン|駅伝|ロード/.test(s)) return true;
+    if (/H|ハードル/.test(s) && dist) return false;
+    if (dist >= 800) return true;
+    if (dist && dist <= 400) return false;
+    return colon;
+  }   // v0.26.62 距離は「+0.20m」
   // 各記録の PB 情報：{ flag:'PB'|'初', prev: 直前の公認ベストの記録, diff: 改善幅 }
   function pbDetails(recs) {
     var groups = {}, out = {};
@@ -751,7 +764,7 @@ var ResultParser = (function () {
         if (!isOfficial(r)) return;
         var mv = recValue(r);
         if (isBetter(mv, best && best.mv)) {
-          out[r.id] = best ? { flag: 'PB', prev: best.r, diff: improvement(best.r.mark, r.mark, r.event), lower: mv.lower } : { flag: '初', prev: null, diff: null, lower: mv.lower };
+          out[r.id] = best ? { flag: 'PB', prev: best.r, diff: improvement(best.r.mark, r.mark, r.event), lower: mv.lower, long: minuteStyle(r.event, best.r.mark, r.mark) } : { flag: '初', prev: null, diff: null, lower: mv.lower };
           best = { r: r, mv: mv };
         }
       });
@@ -1529,7 +1542,7 @@ var ResultParser = (function () {
   }
   return { dayHead: dayHead, parsePdf: parsePdf, parseCells: parseCells, goldMobileStream: goldMobileStream, parsePlain: parsePlain, textToStream: textToStream, normEvent: normEvent, markValue: markValue, recValue: recValue, padTime: padTime, viewRecord: viewRecord, windApplies: windApplies, windClass: windClass, windNum: windNum,
     computeBests: computeBests, baseEvent: baseEvent, learnGenders: learnGenders, isRelay: isRelay, relayEvent: relayEvent, relayMeta: relayMeta, relaySaveEvent: relaySaveEvent, relayTeamBase: relayTeamBase, matchRelayTeam: matchRelayTeam, parseRelayGold: parseRelayGold, parseRelayPdf: parseRelayPdf, mergeRelays: mergeRelays, legsText: legsText, parseLegs: parseLegs, relayRecord: relayRecord, pbLookup: pbLookup, nameKey: nameKey, athleteKey: athleteKey, matchSchool: matchSchool, schoolLoose: schoolLoose, cleanMark: cleanMark, isTag: isTag, canonSchool: canonSchool, cyuTeam: cyuTeam, eventShown: eventShown, teamLabel: teamLabel, teamOf: teamOf, recId: recId, recIdLegacy: recIdLegacy, recIdV6: recIdV6, identityKey: identityKey, fullIdentity: fullIdentity, looseIdentity: looseIdentity, manualRecord: manualRecord, sanitizeRecord: sanitizeRecord, validDate: validDate, normManualWind: normManualWind, dedupe: dedupe, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
-    guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, fmtSecDiff: fmtSecDiff, showMark: showMark, distMark: distMark, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText,
+    guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, fmtSecDiff: fmtSecDiff, minuteStyle: minuteStyle, showMark: showMark, distMark: distMark, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText,
     eventCat: eventCat, divisionOf: divisionOf, divLabel: divLabel, eventKey: eventKey, eventKeyLabel: eventKeyLabel, shownWind: shownWind, hasMark: hasMark, sortAthletes: sortAthletes, kanaKey: kanaKey,
     setGenderDefault: setGenderDefault, setDivisionHints: setDivisionHints, setMeetDivs: setMeetDivs, divSource: divSource, divisionWhy: divisionWhy, splitTeamGrade: splitTeamGrade, setPersonDivs: setPersonDivs, setRosterDivs: setRosterDivs, divConflicts: divConflicts, gradeFromEvent: gradeFromEvent, fixRecord: fixRecord, jhOnlyEvent: jhOnlyEvent, rawDivisionOf: rawDivisionOf, genderOf: genderOf, divGroup: divGroup, disciplineOrder: disciplineOrder, groupEvents: groupEvents, gendersIn: gendersIn, GROUPS: GROUPS,
     personKey: personKey, inferDivisions: inferDivisions, mapHeaders: mapHeaders, findHeaderRow: findHeaderRow, parseDateCell: parseDateCell, normImportMark: normImportMark, dupCheck: dupCheck, parseMeetPlan: parseMeetPlan, parseIcs: parseIcs, icsBytesToText: icsBytesToText, guessDiv: guessDiv, meetClass: meetClass, splitVenue: splitVenue, meetNorm: meetNorm, planKey: planKey, PLAN_TEMPLATE: PLAN_TEMPLATE, sheetEvent: sheetEvent, sheetBlocks: sheetBlocks, importBlock: importBlock, importWorkbook: importWorkbook, importRows: importRows, splitTable: splitTable, isTable: isTable, FIELD_LABELS: FIELD_LABELS, isFieldEvent: isFieldEvent };

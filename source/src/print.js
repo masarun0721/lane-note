@@ -100,13 +100,13 @@ var LanePrint = (function () {
     var evs = []; recs.forEach(function (r) { var k = R.eventKey(r); if (evs.indexOf(k) < 0) evs.push(k); });
     var body = '<div class="lp-sum"><div class="lp-kpi"><b>' + Object.keys(names).length + '</b><span>出場人数</span></div><div class="lp-kpi"><b>' + recs.length + '</b><span>記録数</span></div><div class="lp-kpi lp-kpb"><b>' + nPB + '</b><span>PB更新</span></div><div class="lp-kpi"><b>' + nFirst + '</b><span>初記録</span></div></div>';
     // v0.9.4：PB更新の一覧は通常のみ（1枚モードは表のPB印で足りる）
-    if (hl.length && !o.one) body += '<div class="lp-hl"><div class="lp-h3"><span>🔥 PB更新</span><em>' + hl.length + '件</em></div><ul>' + hl.map(function (h) { return '<li><b>' + esc(h.r.name) + '</b> ' + esc(R.eventKeyLabel(h.r, o.nog)) + ' <span class="lp-mk">' + esc(smk(R, h.r)) + '</span>' + (h.p.diff != null ? ' <span class="lp-up">' + esc(R.fmtImprovement(h.p.diff, h.p.lower)) + '</span>' : '') + (h.p.prev ? ' <small>（前のPB ' + esc(smk(R, h.p.prev)) + '）</small>' : '') + '</li>'; }).join('') + '</ul></div>';
+    if (hl.length && !o.one) body += '<div class="lp-hl"><div class="lp-h3"><span>🔥 PB更新</span><em>' + hl.length + '件</em></div><ul>' + hl.map(function (h) { return '<li><b>' + esc(h.r.name) + '</b> ' + esc(R.eventKeyLabel(h.r, o.nog)) + ' <span class="lp-mk">' + esc(smk(R, h.r)) + '</span>' + (h.p.diff != null ? ' <span class="lp-up">' + esc(R.fmtImprovement(h.p.diff, h.p.lower, h.p.long)) + '</span>' : '') + (h.p.prev ? ' <small>（前のPB ' + esc(smk(R, h.p.prev)) + '）</small>' : '') + '</li>'; }).join('') + '</ul></div>';
     if (!recs.length) body += '<p class="lp-empty">この条件の記録はありません。</p>';
     // v0.9.5：種目ごとの枠（紺の見出し＋氏名・学年・記録・風・順位の小さな表）を2段で流す。PBは記録の横に「PB −0.21」、初記録は「初」
     function bdg(p) {
       if (!p) return '';
       if (p.flag !== 'PB') return ' <span class="lp-bdg lp-bfs">初</span>';
-      return ' <span class="lp-bdg lp-bpb">PB' + (p.diff != null ? ' ' + esc(String(R.fmtImprovement(p.diff, p.lower)).replace(/秒$/, '')) : '') + '</span>';
+      return ' <span class="lp-bdg lp-bpb">PB' + (p.diff != null ? ' ' + esc(String(R.fmtImprovement(p.diff, p.lower, p.long)).replace(/秒$/, '')) : '') + '</span>';
     }
     if (recs.length) {
       body += '<div class="lp-cols">';
