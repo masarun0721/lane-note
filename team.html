@@ -1076,6 +1076,9 @@ tr.rc.editing td{background:#fff3ec!important}
 .tm-ht{font-variant-numeric:tabular-nums;color:#566}.xnews{display:flex;align-items:center;gap:8px;max-width:1100px;margin:6px auto 0;padding:8px 10px 8px 14px;background:#fff;border:1.5px solid #14213d;border-radius:12px;font-size:14px;line-height:1.5;box-sizing:border-box;width:calc(100% - 20px)}.xnews a{flex:1;color:#14213d;text-decoration:none}.xnews a b{color:#c8452b}.xnews-x{flex:0 0 auto;border:0;background:none;font-size:22px;line-height:1;padding:4px 8px;cursor:pointer;color:#566}.xnews[hidden]{display:none}.tm-code{margin:8px 0}.tm-sum{background:#14213d;color:#fff;border-radius:12px;padding:10px 12px;margin:6px 0}.tm-sum-n{font-size:18px;font-weight:800}.tm-sum-c{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.tm-chip{display:inline-block;font-size:12.5px;font-weight:700;border-radius:999px;padding:2px 10px;background:#eef2f8;color:#14213d;border:1px solid #cfd6e3}.tm-chip.on{background:#e6f4ea;border-color:#9fd0ad;color:#1d5b2c}.tm-chip.warn{background:#fff4e0;border-color:#e8c27a;color:#7a4d00}.tm-sum .tm-chip{background:#fff}.tm-steps{margin:6px 0 8px;padding-left:1.6em;font-size:14px}.tm-steps li{margin:3px 0}.tm-invs{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));margin:8px 0}.tm-inv{border:1px solid #d9dfe8;border-radius:12px;padding:12px;background:#fff}.tm-inv-h{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;justify-content:space-between;font-size:16px}.tm-inv p{margin:6px 0}.tm-big{display:block;width:100%;font-size:17px;padding:12px;margin:8px 0 6px}.tm-share{display:flex;gap:8px}.tm-share .btn{flex:1;text-align:center}.tm-raw code{display:block;word-break:break-all;font-size:12px;background:#f6f8fb;border:1px solid #d9dfe8;border-radius:6px;padding:6px;margin-top:4px}.tm-adv{margin-top:8px;border-top:1px dashed #cfd6e3;padding-top:6px}.tm-f{display:flex;flex-direction:column;gap:2px;font-size:13px;margin:8px 0}.tm-f input[type=date],.tm-f input[type=number]{font-size:16px;padding:6px;max-width:12em}.tm-f.tm-chk{flex-direction:row;align-items:center;gap:6px}.tm-danger{background:#fff!important;color:#b3261e!important;border:1.5px solid #b3261e!important;margin-top:6px}.tm-code code{display:inline-block;word-break:break-all;background:#fff;border:1px solid #d9dfe8;border-radius:6px;padding:4px 6px;font-size:13px;user-select:all}
 .rb-team .btn.tm-x{color:#b42318;background:#fff;border:1px solid #e5b4ae}
 /* v0.26.29 今後の大会・カレンダー */
+.lp-dl{display:inline-block;margin:0 10px 0 2px;padding:1px 8px;border-radius:999px;font-size:12px;background:#eef2f8;color:#1f3a68}.lp-dl.dl-soon{background:#fde8e8;color:#a11;font-weight:700}.lp-dl.dl-over{background:#a11;color:#fff;font-weight:700}.lp-dl.dl-muted{background:none;color:#8a93a3}.lp-dl.dl-warn{background:#fff6e5;color:#7a4b00}
+.lp-via{display:inline-block;margin:0 2px 0 4px;padding:1px 6px;border-radius:4px;font-size:12px;font-weight:700;background:#1f3a68;color:#fff;word-break:break-all}.lp-via.dl-muted{background:#d6dbe3;color:#59616e}.lp-via.dl-warn{background:#fff6e5;color:#7a4b00;font-weight:400}
+.lp-ckr{display:block;margin:2px 0}.lp-cal th{position:static}.lp-cal .lp-dk{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;font-size:9px;line-height:1.2;margin-top:1px;padding:0 2px;border-left:3px solid #c0392b;background:#fdecea;color:#a11;text-align:left;overflow:hidden;word-break:break-all}.lp-cal .lp-dk.k-pay{border-left-color:#b7791f;background:#fff5e0;color:#7a4b00}.lp-cal .lp-dk.done{border-left-color:#c9ced6;background:none;color:#9aa1ad;text-decoration:line-through}
 .lp-list{list-style:none;margin:8px 0;padding:0}.lp-list>li{padding:8px 4px;border-bottom:1px solid #e3e7ee;line-height:1.5}
 .lp-left{display:inline-block;min-width:4.5em;text-align:center;font-weight:bold;font-size:12px;background:#eef3fb;color:#1d3b6b;border-radius:10px;padding:1px 8px}.lp-left.soon{background:#fde9e2;color:#a33a14}
 .lp-div{border:1px solid #c9d2e0;border-radius:6px;padding:0 4px}.lp-acts{display:flex;gap:6px;justify-content:flex-end;margin-top:2px}.lp-acts .btn{width:auto;flex:0 0 auto;padding:3px 10px;font-size:12px;min-height:0}
@@ -1518,19 +1521,22 @@ var LanePlans = (function () {
     return n > 0 ? 'エントリー締切 ' + md(p.deadline) + '（あと' + n + '日）' : n === 0 ? 'エントリー締切は今日' : 'エントリー締切 ' + md(p.deadline) + '（過ぎました）';
   }
   // 1か月のカレンダー（ym='2026-10'）。大会の日（複数日はその間すべて）と締切の日に印
-  function monthHtml(list, ym, td) {
+  function monthHtml(list, ym, td, extra) {
     td = td || today(); var y = +ym.slice(0, 4), m = +ym.slice(5, 7), first = new Date(Date.UTC(y, m - 1, 1)), n = new Date(Date.UTC(y, m, 0)).getUTCDate(), on = {}, dl = {}, pd = {};
     (list || []).forEach(function (p) {
       for (var d = p.date; d <= (p.end || p.date); d = new Date(Date.parse(d + 'T00:00:00Z') + 864e5).toISOString().slice(0, 10)) (on[d] = on[d] || []).push(p.meet);
+      if (extra) return;   // v0.28.1 締切は extra（手入力と要項から読んだもの）で出す
       if (p.deadline) (dl[p.deadline] = dl[p.deadline] || []).push(p.meet);
       if (p.payDue) (pd[p.payDue] = pd[p.payDue] || []).push(p.meet);
     });
+    var xk = {}; (extra || []).forEach(function (x) { if (isDay(x.day)) (xk[x.day] = xk[x.day] || []).push(x); });
     var h = '<table class="lp-cal" aria-label="' + y + '年' + m + '月"><tr>' + WD.map(function (w, i) { return '<th' + (i === 0 ? ' class="sun"' : i === 6 ? ' class="sat"' : '') + '>' + w + '</th>'; }).join('') + '</tr><tr>';
     var c = first.getUTCDay(); for (var i = 0; i < c; i++) h += '<td></td>';
     for (var dd = 1; dd <= n; dd++) {
       var day = ym + '-' + (dd < 10 ? '0' : '') + dd, ev = on[day] || [], dz = dl[day] || [], pz = pd[day] || [];
-      h += '<td class="' + (day === td ? 'today ' : '') + (ev.length ? 'meet ' : '') + (dz.length || pz.length ? 'dl' : '') + '"' + (ev.length || dz.length || pz.length ? ' title="' + esc(ev.concat(dz.map(function (x) { return '締切：' + x; }), pz.map(function (x) { return '振込締切：' + x; })).join('\n')) + '"' : '') + '><b>' + dd + '</b>' +
-        ev.slice(0, 2).map(function (x) { return '<span class="lp-ev">' + esc(x.slice(0, 8)) + '</span>'; }).join('') + (ev.length > 2 ? '<span class="lp-ev">ほか' + (ev.length - 2) + '</span>' : '') + (dz.length ? '<span class="lp-dl">締切</span>' : '') + (pz.length ? '<span class="lp-dl lp-pd">振込</span>' : '') + '</td>';
+      h += '<td class="' + (day === td ? 'today ' : '') + (ev.length ? 'meet ' : '') + (dz.length || pz.length || (xk[day] || []).length ? 'dl' : '') + '"' + (ev.length || dz.length || pz.length ? ' title="' + esc(ev.concat(dz.map(function (x) { return '締切：' + x; }), pz.map(function (x) { return '振込締切：' + x; })).join('\n')) + '"' : '') + '><b>' + dd + '</b>' +
+        ev.slice(0, 2).map(function (x) { return '<span class="lp-ev">' + esc(x.slice(0, 8)) + '</span>'; }).join('') + (ev.length > 2 ? '<span class="lp-ev">ほか' + (ev.length - 2) + '</span>' : '') + (dz.length ? '<span class="lp-dl">締切</span>' : '') + (pz.length ? '<span class="lp-dl lp-pd">振込</span>' : '') +
+        (xk[day] || []).map(function (x) { return '<span class="lp-dk k-' + x.k + (x.done ? ' done' : '') + '" data-dk="' + x.k + '" title="' + esc((x.k === 'pay' ? '振込締切：' : 'エントリー締切：') + x.meet + (x.done ? '（済）' : '')) + '">〆' + (x.k === 'pay' ? '振込' : 'エントリー') + ' ' + esc(x.meet.slice(0, 6)) + '</span>'; }).join('') + '</td>';
       if ((c + dd) % 7 === 0 && dd < n) h += '</tr><tr>';
     }
     return h + '</tr></table>';
@@ -1549,6 +1555,93 @@ var LanePlans = (function () {
   return { team: team, stage: stage, isDay: isDay, KEY: KEY, toSc: toSc, fromSc: fromSc, scHtml: scHtml, clean: clean, fromMets: fromMets, save: save, load: load, upcoming: upcoming, past: past, daysLeft: daysLeft, jp: jp, jpRange: jpRange, md: md, range: range, leftLabel: leftLabel, deadlineLabel: deadlineLabel, monthHtml: monthHtml, addMonth: addMonth, today: today, esc: esc };
 })();
 if (typeof module !== 'undefined') module.exports = LanePlans;
+
+/* v0.28.1 要項の締切（エントリー締切・参加料の振込締切・A票などの提出締切）を、読み込んだ要項の文字から読む。
+   推測しない：見つからない・日付が2つ以上でどれか決められないときは空にする（画面で「締切を読めませんでした」） */
+var LaneDeadline = (function () {
+  var KIND = {
+    entry: /(エントリー|申込|申し込み|ＪＡＡＦ|JAAF|スタートライン|STARTLINE|登録システム)/i,
+    pay: /(参加料|振込|振り込み|払込|払い込み|納入)/,
+    slip: /([AＡBＢ]票|申込書|申込用紙|申込一覧|一覧表)/
+  };
+  var DUE = /(締切|締め切|〆切|期限|必着|まで|迄|期間|受付|提出|〜|～|~)/, NG = /(大会期日|開催日|期日[:：]|競技日|日時[:：]|会期)/;
+  function nk(s) { return String(s || '').normalize('NFKC').replace(/[\u3000\t]/g, ' '); }
+  function pad(n) { return ('0' + n).slice(-2); }
+  function valid(y, m, d) { var t = new Date(Date.UTC(y, m - 1, d)); return m >= 1 && m <= 12 && t.getUTCMonth() === m - 1 && t.getUTCDate() === d; }
+  // 行の中の日付（年があればその年）：2026年10月23日・10月23日（金）・10/23・R8.10.23 は対象外。後ろの時刻（17:00・17時）も
+  var DRE = /(?:(20\d\d)\s*年\s*)?(\d{1,2})\s*(?:月\s*(\d{1,2})\s*日|\/\s*(\d{1,2}))(?!\d)\s*(?:[(（][月火水木金土日・祝休]{1,3}[)）])?\s*(?:(\d{1,2})\s*(?::|時)\s*(\d{2})?\s*分?)?/g;
+  function datesIn(line, refY, meetDay) {
+    var out = [], m; DRE.lastIndex = 0;
+    while ((m = DRE.exec(line))) {
+      var mo = +m[2], d = +(m[3] || m[4]), y = m[1] ? +m[1] : refY;
+      if (!valid(y, mo, d)) continue;
+      var day = y + '-' + pad(mo) + '-' + pad(d);
+      if (!m[1] && meetDay && day > meetDay) { y--; if (!valid(y, mo, d)) continue; day = y + '-' + pad(mo) + '-' + pad(d); }   // 締切は大会より前
+      var hh = m[5] != null && +m[5] <= 24 ? +m[5] : null;
+      out.push({ date: day, time: hh != null ? pad(hh) + ':' + pad(m[6] ? +m[6] : 0) : '', at: m.index });
+    }
+    return out;
+  }
+  // 1つの種類の締切：その言葉がある行（日付が無ければ次の行も）の、範囲なら最後の日付。ちがう日付が2つ以上なら決めない
+  function one(lines, re, refY, meetDay, other) {
+    var got = [];
+    lines.forEach(function (l, i) {
+      if (!re.test(l) || NG.test(l)) return;
+      if (other && l.replace(other, '') !== l && !re.test(l.replace(other, ''))) return;   // 「申込書」「A票・参加料」だけの行はエントリーに数えない
+      var ds = datesIn(l, refY, meetDay), src = l;
+      if (!ds.length && lines[i + 1] && !Object.keys(KIND).some(function (k) { return KIND[k].test(lines[i + 1]); })) { ds = datesIn(lines[i + 1], refY, meetDay); src = l + ' ' + lines[i + 1]; }
+      if (!ds.length || !DUE.test(src)) return;
+      var last = ds[ds.length - 1]; got.push({ date: last, from: ds.length > 1 ? ds[0].date : '', src: src.trim().slice(0, 80) });
+    });
+    var uniq = {}; got.forEach(function (g) { uniq[g.date.date + ' ' + g.date.time] = g; });
+    var ks = Object.keys(uniq); if (!ks.length) return null;
+    var days = {}; ks.forEach(function (k) { days[k.slice(0, 10)] = 1; });
+    if (Object.keys(days).length > 1) return { amb: true };
+    var best = ks.map(function (k) { return uniq[k]; }).sort(function (a, b) { return b.date.time.length - a.date.time.length; })[0];
+    return { date: best.date.date, time: best.date.time, from: best.from, src: best.src };
+  }
+  // text：要項の文字（行ごと）。meetDay：大会の日（YYYY-MM-DD・年を決める）
+  function parse(text, meetDay) {
+    var lines = nk(text).split(/\n+/).map(function (l) { return l.replace(/\s+/g, ' ').trim(); }).filter(Boolean);
+    var refY = /^\d{4}/.test(meetDay || '') ? +meetDay.slice(0, 4) : new Date().getFullYear();
+    var r = {
+      entry: one(lines, KIND.entry, refY, meetDay, /(参加料|振込|振り込み|払込|払い込み|納入|[AＡBＢ]票|申込書|申込用紙|申込一覧|一覧表)/g),
+      pay: one(lines, KIND.pay, refY, meetDay),
+      slip: one(lines, KIND.slip, refY, meetDay)
+    };
+    Object.keys(r).forEach(function (k) { if (!r[k] || r[k].amb) r[k] = r[k] && r[k].amb ? { amb: true } : null; });
+    r.via = via(lines);
+    return r;
+  }
+  /* v0.28.1 エントリーの出し方。要項にはっきり書いてある言葉だけで決める（推測しない）。
+     jaaf：JAAF・STARTLINE・スタートライン／nishi：NISHI・NANS21V・NANS／mail：申込・エントリー・送付・提出の行に「メール」「E-mail」かアドレス。
+     ちがう出し方が2つ以上出たら {amb:true}。どれも無ければ null。アドレスは要項に書いてあるときだけ */
+  var VIA = { jaaf: /JAAF|STARTLINE|スタートライン/i, nishi: /NISHI|NANS21V|NANS ?21|NANS/i, mail: /メール|E-?mail|[\w.+-]+@[\w-]+(\.[\w-]+)+/i };
+  var VIA_LABEL = { jaaf: 'JAAF', nishi: 'NISHI', mail: 'メール', other: 'その他' };
+  function via(lines) {
+    if (typeof lines === 'string') lines = nk(lines).split(/\n+/);
+    var got = {}, mail = '';
+    lines.forEach(function (l) {
+      if (VIA.jaaf.test(l)) got.jaaf = 1;
+      if (VIA.nishi.test(l)) got.nishi = 1;
+      if (VIA.mail.test(l) && /申込|申し込|エントリー|送付|送信|提出|添付/.test(l) && !/問い?合わ?せ/.test(l)) { got.mail = 1; var m = /[\w.+-]+@[\w-]+(\.[\w-]+)+/.exec(l); if (m && !mail) mail = m[0]; }
+    });
+    var ks = Object.keys(got); if (!ks.length) return null; if (ks.length > 1) return { amb: true };
+    return ks[0] === 'mail' ? { via: 'mail', mail: mail } : { via: ks[0] };
+  }
+  function daysLeft(day, today) { return Math.round((Date.parse(day + 'T00:00:00Z') - Date.parse(today + 'T00:00:00Z')) / 864e5); }
+  function md(day) { var m = /^\d{4}-(\d{2})-(\d{2})$/.exec(day || ''); return m ? +m[1] + '/' + +m[2] : ''; }
+  // 画面の小さい札：{t, c}。c は soon（3日以内）・over（過ぎた）・muted（チェック済み）・''（ふつう）・warn（読めない）
+  function chip(d, today, done) {
+    if (!d) return null;
+    if (d.amb || !d.date) return { t: '締切を読めませんでした', c: 'warn' };
+    var n = daysLeft(d.date, today), t = '〆 ' + md(d.date) + '(' + '日月火水木金土'.charAt(new Date(d.date + 'T00:00:00Z').getUTCDay()) + ')' + (d.time || '');
+    if (done) return { t: t, c: 'muted' };
+    return { t: t + (n > 0 ? '（あと' + n + '日）' : n === 0 ? '（今日）' : '（過ぎました）'), c: n < 0 ? 'over' : n <= 3 ? 'soon' : '' };
+  }
+  return { parse: parse, via: via, VIA_LABEL: VIA_LABEL, chip: chip, daysLeft: daysLeft, md: md, datesIn: datesIn };
+})();
+if (typeof module !== 'undefined') module.exports = LaneDeadline;
 
 document.addEventListener('DOMContentLoaded', function () { LaneMode.init(); });
 </script>
@@ -3330,7 +3423,7 @@ if (typeof module !== 'undefined') module.exports = LaneRoster;
 
 </script>
 <script>
-var APP_VERSION = "v0.28.0", REC_VERSION = "v0.11.1";
+var APP_VERSION = "v0.28.1", REC_VERSION = "v0.11.1";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>
@@ -8431,7 +8524,7 @@ var LanePdf = (function () {
   /* ---------- v0.5：大会ごとの天気（users/{uid}/meets/{大会}）・中学/高校を手で選んだ選手（users/{uid}/settings/divOverrides） ---------- */
   var METS = {}, DIV_OV = {}, REVIEW = [];
   // v0.26.31 大会予定の欄：会場・終了日・区分・締切＋進み具合（エントリー済・振込済の日、振込締切、金額、メモ、結果のURL、結果取込済）
-  var PF = ['venue', 'end', 'div', 'plan', 'deadline', 'entryAt', 'payAt', 'payDue', 'fee', 'memo', 'resultUrl', 'importedAt', 'importedN', 'prep'], EF = PF.filter(function (k) { return k !== 'plan'; });
+  var PF = ['venue', 'end', 'div', 'plan', 'deadline', 'entryAt', 'payAt', 'payDue', 'deadlineTime', 'payDueTime', 'entryVia', 'entryMail', 'fee', 'memo', 'resultUrl', 'importedAt', 'importedN', 'prep'], EF = PF.filter(function (k) { return k !== 'plan'; });
   function lsGet(k, d) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
   function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } }
   function metsKey(uid) { return uid ? 'lanenote-rec-meets-' + uid : 'lanenote-rec-meets'; }
@@ -8504,32 +8597,49 @@ var LanePdf = (function () {
     var box = $('lpHome'); if (!box || typeof LanePlans === 'undefined') return;
     var P = LanePlans, all = P.fromMets(METS), td = P.today(), up = P.upcoming(all, td), keyOf = function (p) { return p.date + '|' + p.meet; };
     P.save(all, scope().uid || '', scope().team ? scope().team.id : '');
-    if (!LP.ym) LP.ym = (up[0] ? (up[0].date < td ? td : up[0].date) : td).slice(0, 7);
+    if (!LP.ym) {   // v0.28.1 まだ済んでいない締切が最初の大会より前にあれば、その月から
+      var fd = up[0] ? (up[0].date < td ? td : up[0].date) : td;
+      up.forEach(function (q) { var kk = keyOf(q), d = planDl(kk, q), MM = METS[kk] || {}; [[d.entry, MM.entryAt], [d.pay, MM.payAt]].forEach(function (x) { if (x[0] && x[0].date && !x[1] && x[0].date >= td && x[0].date < fd) fd = x[0].date; }); });
+      LP.ym = fd.slice(0, 7);
+    }
     var e = LP.edit && METS[LP.edit] ? METS[LP.edit] : null;
     var row = function (p) {
       var k = keyOf(p), n = P.daysLeft(p.date, td);
       if (e && LP.edit === k) return '<li class="lp-edit" data-lpk="' + esc(k) + '"><div class="mgrid">' +
         '<label>大会名 <input data-lpf="meet" maxlength="100" value="' + esc(p.meet) + '"></label><label>日付 <input type="date" data-lpf="date" value="' + esc(p.date) + '"></label><label>終了日（2日以上） <input type="date" data-lpf="end" value="' + esc(p.end || '') + '"></label>' +
-        '<label>会場 <input data-lpf="venue" maxlength="100" value="' + esc(p.venue || '') + '"></label><label>区分 <select data-lpf="div"><option value="">（なし）</option><option' + (p.div === '中学' ? ' selected' : '') + '>中学</option><option' + (p.div === '高校' ? ' selected' : '') + '>高校</option></select></label><label>エントリー締切 <input type="date" data-lpf="deadline" value="' + esc(p.deadline || '') + '"></label>' +
-        '<label>エントリーした日 <input type="date" data-lpf="entryAt" value="' + esc(e.entryAt || '') + '"></label><label>振込締切 <input type="date" data-lpf="payDue" value="' + esc(e.payDue || '') + '"></label><label>振り込んだ日 <input type="date" data-lpf="payAt" value="' + esc(e.payAt || '') + '"></label>' +
+        '<label>会場 <input data-lpf="venue" maxlength="100" value="' + esc(p.venue || '') + '"></label><label>区分 <select data-lpf="div"><option value="">（なし）</option><option' + (p.div === '中学' ? ' selected' : '') + '>中学</option><option' + (p.div === '高校' ? ' selected' : '') + '>高校</option></select></label><label>エントリー締切 <input type="date" data-lpf="deadline" value="' + esc(p.deadline || ((planDl(k, p).entry || {}).date) || '') + '"></label><label>エントリー締切の時刻（任意） <input type="time" data-lpf="deadlineTime" value="' + esc(e.deadlineTime || (!p.deadline && (planDl(k, p).entry || {}).time) || '') + '"></label>' +
+        (function () { var v = planDl(k, p).via || {}, cur = e.entryVia || v.via || ''; return '<label>エントリーの出し方 <select data-lpf="entryVia"><option value="">（えらぶ）</option>' + ['jaaf', 'nishi', 'mail', 'other'].map(function (x) { return '<option value="' + x + '"' + (cur === x ? ' selected' : '') + '>' + { jaaf: 'JAAFエントリーシステム', nishi: 'NISHI（NANS21V）', mail: 'メール', other: 'その他' }[x] + '</option>'; }).join('') + '</select></label><label>メールの宛先（メールのとき・任意） <input type="email" data-lpf="entryMail" maxlength="200" value="' + esc(e.entryMail || (!e.entryVia && v.mail) || '') + '"></label>'; })() +
+        '<label>エントリーした日 <input type="date" data-lpf="entryAt" value="' + esc(e.entryAt || '') + '"></label><label>振込締切 <input type="date" data-lpf="payDue" value="' + esc(e.payDue || ((planDl(k, p).pay || {}).date) || '') + '"></label><label>振込締切の時刻（任意） <input type="time" data-lpf="payDueTime" value="' + esc(e.payDueTime || (!e.payDue && (planDl(k, p).pay || {}).time) || '') + '"></label><label>振り込んだ日 <input type="date" data-lpf="payAt" value="' + esc(e.payAt || '') + '"></label>' +
         '<label>金額（任意） <input data-lpf="fee" maxlength="30" value="' + esc(e.fee || '') + '" placeholder="例：12,000円"></label><label>メモ（任意） <input data-lpf="memo" maxlength="300" value="' + esc(e.memo || '') + '"></label><label>速報・結果のURL <input type="url" data-lpf="resultUrl" maxlength="1000" value="' + esc(e.resultUrl || '') + '" placeholder="https://"></label></div>' +
         '<div class="rb-row"><button class="btn" type="button" data-lpsave="1">保存</button><button class="btn sub" type="button" data-lpcancel="1">やめる</button></div><div class="status" id="lpStatus"></div></li>';
-      var M = METS[k] || {}, sg = P.stage(M, td, recCount(p)), ck = function (f, t) { return '<label class="lp-ck"><input type="checkbox" data-lpck="' + f + '"' + (M[f] ? ' checked' : '') + '> ' + t + (M[f] ? ' <small class="muted">' + esc(P.md(M[f])) + '</small>' : '') + '</label>'; };
+      var M = METS[k] || {}, sg = P.stage(M, td, recCount(p)), dl = planDl(k, p), ck = function (f, t, d, vi) { var c = d && typeof LaneDeadline !== 'undefined' ? LaneDeadline.chip(d, td, !!M[f]) : null; return '<span class="lp-ckr"><label class="lp-ck"><input type="checkbox" data-lpck="' + f + '"' + (M[f] ? ' checked' : '') + '> ' + t + (M[f] ? ' <small class="muted">' + esc(P.md(M[f])) + '</small>' : '') + '</label>' + (vi ? (vi.amb ? '<small class="lp-via dl-warn" data-via="?">⚠ 出し方を読めませんでした</small>' : '<small class="lp-via' + (M[f] ? ' dl-muted' : '') + '" data-via="' + esc(vi.via) + '"' + (vi.mail ? ' title="' + esc(vi.mail) + '"' : '') + '>' + esc(LaneDeadline.VIA_LABEL[vi.via] || '') + (vi.via === 'mail' && vi.mail ? ' ' + esc(vi.mail) : '') + '</small>') : '') + (c ? '<small class="lp-dl dl-' + (c.c || 'ok') + '" data-dl="' + f + '"' + (d.src ? ' title="' + esc(d.man ? '手で入れた締切' : '要項：' + d.src) + '"' : '') + '>' + (c.c === 'warn' ? '⚠ ' : '⏰ ') + esc(c.t) + '</small>' : '') + '</span>'; };
       return '<li data-lpk="' + esc(k) + '"><span class="lp-st st-' + sg.c + '" data-stage="' + sg.k + '">' + esc(sg.t) + '</span> <span class="lp-left' + (n <= 7 ? ' soon' : '') + '">' + esc(P.leftLabel(p, td)) + '</span> <b>' + esc(P.range(p)) + '</b> ' + esc(p.meet) + (p.div ? ' <small class="lp-div">' + esc(p.div) + '</small>' : '') + (p.venue ? '<br><small class="muted">📍 ' + esc(p.venue) + '</small>' : '') +
         (p.deadline ? '<br><small class="' + (P.daysLeft(p.deadline, td) <= 7 && P.daysLeft(p.deadline, td) >= 0 && !M.entryAt ? 'ng' : 'muted') + '">⏰ ' + esc(P.deadlineLabel(p, td)) + '</small>' : '') +
         (p.payDue ? '<br><small class="' + (P.daysLeft(p.payDue, td) <= 7 && P.daysLeft(p.payDue, td) >= 0 && !M.payAt ? 'ng' : 'muted') + '">💴 振込締切 ' + esc(P.md(p.payDue)) + (P.daysLeft(p.payDue, td) >= 0 ? '（あと' + P.daysLeft(p.payDue, td) + '日）' : '（過ぎました）') + '</small>' : '') +
         (M.fee || M.memo ? '<br><small class="muted">' + (M.fee ? '💰 ' + esc(M.fee) : '') + (M.fee && M.memo ? '　' : '') + (M.memo ? '📝 ' + esc(M.memo) : '') + '</small>' : '') +
         (M.resultUrl ? '<br><small>🔗 <a href="' + esc(M.resultUrl) + '" target="_blank" rel="noopener noreferrer">速報・結果のページ</a></small>' : '') +
-        '<div class="lp-cks">' + ck('entryAt', 'エントリー済') + ck('payAt', '振込済') + '</div>' + prepBadges(k, M) +
+        '<div class="lp-cks">' + ck('entryAt', 'エントリー済', dl.entry, dl.via) + ck('payAt', '振込済', dl.pay) + '</div>' + ((dl.entry && !dl.entry.date) || (dl.pay && !dl.pay.date) || (dl.via && dl.via.amb) ? '<div class="lp-cks"><button class="btn sub small" type="button" data-lpedit="' + esc(k) + '" data-dlfix="1">✏️ 締切を入力</button></div>' : '') + (dl.slip && dl.slip.date ? '<div class="lp-cks">' + (function () { var c = LaneDeadline.chip(dl.slip, td, !!M.payAt); return '<small class="lp-dl dl-' + (c.c || 'ok') + '" data-dl="slip" title="' + esc('要項：' + dl.slip.src) + '">📝 A票など提出 ' + esc(c.t) + '</small>'; })() + '</div>' : '') + prepBadges(k, M) +
         ' <span class="lp-acts">' + (p.date <= td ? '<a class="btn small lp-imp" href="records.html?imp=' + encodeURIComponent(k) + '">📥 結果を取り込む</a>' : '') + '<a class="btn sub small" href="index.html?plan=' + encodeURIComponent(k) + '">📋 大会準備へ</a><button class="btn sub small" type="button" data-lpedit="' + esc(k) + '">✏️ 直す</button><button class="btn sub small danger-t" type="button" data-lpdel="' + esc(k) + '">🗑 消す</button></span></li>';
     };
     var y = +LP.ym.slice(0, 4), m = +LP.ym.slice(5, 7);
     box.innerHTML = '<h2>📅 今後の大会 <small class="muted">' + (up.length ? up.length + '件' : '') + '</small></h2>' +
       (P.past(all, td).length ? '<p class="lp-yb"><a class="btn sub small" href="records.html?year=1">📚 1年分の記録をまとめる</a> <small class="muted" data-xp="">終わった大会の結果を、まとめてさがして取り込みます</small></p>' : '') +   // v0.26.50
       (up.length ? '<ul class="lp-list">' + up.slice(0, 40).map(row).join('') + '</ul>' : '<p class="small muted">まだありません。下の「📅 大会予定をまとめて追加」から入れられます。</p>') +
-      (all.length ? '<div class="lp-calbox"><div class="rb-row lp-nav"><button class="btn sub small" type="button" data-lpm="-1" aria-label="前の月">◀</button><b>' + y + '年' + m + '月</b><button class="btn sub small" type="button" data-lpm="1" aria-label="次の月">▶</button></div>' + P.monthHtml(all, LP.ym, td) + '</div>' : '') +
+      (all.length ? '<div class="lp-calbox"><div class="rb-row lp-nav"><button class="btn sub small" type="button" data-lpm="-1" aria-label="前の月">◀</button><b>' + y + '年' + m + '月</b><button class="btn sub small" type="button" data-lpm="1" aria-label="次の月">▶</button></div>' + P.monthHtml(all, LP.ym, td, all.map(function (q) { var kk = keyOf(q), d = planDl(kk, q), MM = METS[kk] || {}; return [d.entry && d.entry.date ? { day: d.entry.date, k: 'entry', meet: q.meet, done: !!MM.entryAt } : null, d.pay && d.pay.date ? { day: d.pay.date, k: 'pay', meet: q.meet, done: !!MM.payAt } : null]; }).reduce(function (a, b) { return a.concat(b); }, []).filter(Boolean)) + '</div>' : '') +
       (P.past(all, td).length ? '<details class="small"><summary>終わった予定 ' + P.past(all, td).length + '件</summary><ul class="lp-list">' + P.past(all, td).slice(0, 60).map(row).join('') + '</ul></details>' : '');
     box.hidden = false;
+  }
+  /* v0.28.1 チェックの横の締切。手で入れた締切（エントリー締切・振込締切）が先、なければ読み込んだ要項から読んだもの（この端末の控え）。
+     要項を読み込んだのに読めなかった種類は「締切を読めませんでした」。要項が無い大会は何も出さない */
+  function planDl(k, p) {
+    var l = (lsGet(PREP_IDX, {})[prepOwner()] || {})[k], y = l && l.kinds && l.kinds.yoko ? (l.dl || {}) : null, o = {};
+    var M = METS[k] || {}, man = function (day, tm) { return day ? { date: day, time: /^\d{2}:\d{2}$/.test(tm || '') ? tm : '', man: true, src: '手入力' } : null; };
+    o.entry = man(p.deadline || M.deadline, M.deadlineTime) || (y ? (y.entry || { amb: true }) : null);
+    o.pay = man(p.payDue || M.payDue, M.payDueTime) || (y ? (y.pay || { amb: true }) : null);
+    o.slip = y && y.slip && y.slip.date ? y.slip : null;
+    // v0.28.1 エントリーの出し方：手で選んだものが先、なければ要項から（読めなければ amb）。要項も手入力も無ければ null
+    o.via = M.entryVia ? { via: M.entryVia, mail: M.entryMail || '', man: true } : (y ? (y.via && y.via.via ? y.via : { amb: true }) : null);
+    return o;
   }
   /* v0.26.33 大会準備の進み具合（どの資料を読み込んだか）：クラウドの印（URLから読んだもの・ログイン時）＋この端末の控え */
   var PREP_IDX = 'lanenote.prep.idx.v1', PREP_KINDS = [['yoko', '要項'], ['sl', 'スタートリスト'], ['tt', 'タイムテーブル'], ['note', '注意事項']];
@@ -8620,11 +8730,15 @@ var LanePdf = (function () {
     var err = [];
     if (!v.meet) err.push('大会名を入れてください'); if (!/^\d{4}-\d{2}-\d{2}$/.test(v.date)) err.push('日付を入れてください');
     if (v.end && v.end < v.date) err.push('終了日が日付より前です');
+    ['deadlineTime', 'payDueTime'].forEach(function (f) { v[f] = v[f] || ''; if (v[f] && !/^\d{2}:\d{2}$/.test(v[f])) err.push('時刻は 17:00 のように入れてください'); });
+    if (v.deadlineTime && !v.deadline) err.push('エントリー締切の日付も入れてください'); if (v.payDueTime && !v.payDue) err.push('振込締切の日付も入れてください');
+    v.entryVia = /^(jaaf|nishi|mail|other)$/.test(v.entryVia || '') ? v.entryVia : ''; v.entryMail = v.entryVia === 'mail' ? (v.entryMail || '').slice(0, 200) : '';
+    if (v.entryMail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.entryMail)) err.push('メールの宛先の書き方を確かめてください');
     if (v.resultUrl && !/^https?:\/\/\S+$/i.test(v.resultUrl)) err.push('結果のURLは http(s):// で始まるアドレスにしてください');
     var key = R.planKey(v.date, v.meet);
     if (!err.length && key !== old && METS[key] && METS[key].plan) err.push('同じ日・同じ名前の大会がもうあります');
     if (err.length) { st.className = 'status ng'; st.textContent = '✖ ' + err.join('・'); return; }
-    var m = METS[old] || {}, w = { weather: m.weather || '', temp: m.temp == null ? '' : m.temp, humidity: m.humidity == null ? '' : m.humidity, venue: v.venue.slice(0, 100), end: v.end && v.end !== v.date ? v.end : '', div: v.div, deadline: v.deadline, entryAt: v.entryAt, payAt: v.payAt, payDue: v.payDue, fee: v.fee.slice(0, 30), memo: v.memo.slice(0, 300), resultUrl: v.resultUrl.slice(0, 1000), importedAt: m.importedAt || '', importedN: m.importedN || '', prep: m.prep || '', plan: true };
+    var m = METS[old] || {}, w = { weather: m.weather || '', temp: m.temp == null ? '' : m.temp, humidity: m.humidity == null ? '' : m.humidity, venue: v.venue.slice(0, 100), end: v.end && v.end !== v.date ? v.end : '', div: v.div, deadline: v.deadline, entryAt: v.entryAt, payAt: v.payAt, payDue: v.payDue, deadlineTime: v.deadlineTime, payDueTime: v.payDueTime, entryVia: v.entryVia, entryMail: v.entryMail, fee: v.fee.slice(0, 30), memo: v.memo.slice(0, 300), resultUrl: v.resultUrl.slice(0, 1000), importedAt: m.importedAt || '', importedN: m.importedN || '', prep: m.prep || '', plan: true };
     try {
       if (key !== old) await planDelete(old);
       var prev = METS[key]; if (prev) { EF.forEach(function (k) { delete prev[k]; }); }

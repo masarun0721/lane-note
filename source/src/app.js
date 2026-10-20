@@ -2050,7 +2050,10 @@
       if (!prepLive(p)) return;
       var rec = { id: prepOwnerStr(p.owner) + '|' + p.key, owner: prepOwnerStr(p.owner), key: p.key, end: p.p.end || p.p.date, at: Date.now(), docs: p.docs, snap: ssSnap() };
       prepDb('readwrite', function (st) { return st.put(rec); }).catch(function () { });
-      prepIdx(function (o) { var w = o[rec.owner] = o[rec.owner] || {}, k = {}; PREP_KINDS.forEach(function (x) { if (p.docs[x]) k[x] = 1; }); w[p.key] = { kinds: k, end: rec.end, at: rec.at }; });
+      // v0.28.1：要項を読み込んでいれば、その文字から締切を読む（読めないときは空。文字が無い＝続きから開いたときは前の結果のまま）
+      var yt = p.docs.yoko && state.docText && state.docText.yoko, dl = null;
+      try { if (yt && typeof LaneDeadline !== 'undefined') dl = LaneDeadline.parse(yt, p.p.date); } catch (e) { dl = null; }
+      prepIdx(function (o) { var w = o[rec.owner] = o[rec.owner] || {}, k = {}, old = w[p.key]; PREP_KINDS.forEach(function (x) { if (p.docs[x]) k[x] = 1; }); w[p.key] = { kinds: k, end: rec.end, at: rec.at }; if (k.yoko) { var v = dl || (old && old.dl); if (v) w[p.key].dl = v; } });
     };
     if (now) go(); else prepTimer = setTimeout(go, 300);
   }

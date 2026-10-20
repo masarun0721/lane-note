@@ -53,19 +53,22 @@ var LanePlans = (function () {
     return n > 0 ? 'エントリー締切 ' + md(p.deadline) + '（あと' + n + '日）' : n === 0 ? 'エントリー締切は今日' : 'エントリー締切 ' + md(p.deadline) + '（過ぎました）';
   }
   // 1か月のカレンダー（ym='2026-10'）。大会の日（複数日はその間すべて）と締切の日に印
-  function monthHtml(list, ym, td) {
+  function monthHtml(list, ym, td, extra) {
     td = td || today(); var y = +ym.slice(0, 4), m = +ym.slice(5, 7), first = new Date(Date.UTC(y, m - 1, 1)), n = new Date(Date.UTC(y, m, 0)).getUTCDate(), on = {}, dl = {}, pd = {};
     (list || []).forEach(function (p) {
       for (var d = p.date; d <= (p.end || p.date); d = new Date(Date.parse(d + 'T00:00:00Z') + 864e5).toISOString().slice(0, 10)) (on[d] = on[d] || []).push(p.meet);
+      if (extra) return;   // v0.28.1 締切は extra（手入力と要項から読んだもの）で出す
       if (p.deadline) (dl[p.deadline] = dl[p.deadline] || []).push(p.meet);
       if (p.payDue) (pd[p.payDue] = pd[p.payDue] || []).push(p.meet);
     });
+    var xk = {}; (extra || []).forEach(function (x) { if (isDay(x.day)) (xk[x.day] = xk[x.day] || []).push(x); });
     var h = '<table class="lp-cal" aria-label="' + y + '年' + m + '月"><tr>' + WD.map(function (w, i) { return '<th' + (i === 0 ? ' class="sun"' : i === 6 ? ' class="sat"' : '') + '>' + w + '</th>'; }).join('') + '</tr><tr>';
     var c = first.getUTCDay(); for (var i = 0; i < c; i++) h += '<td></td>';
     for (var dd = 1; dd <= n; dd++) {
       var day = ym + '-' + (dd < 10 ? '0' : '') + dd, ev = on[day] || [], dz = dl[day] || [], pz = pd[day] || [];
-      h += '<td class="' + (day === td ? 'today ' : '') + (ev.length ? 'meet ' : '') + (dz.length || pz.length ? 'dl' : '') + '"' + (ev.length || dz.length || pz.length ? ' title="' + esc(ev.concat(dz.map(function (x) { return '締切：' + x; }), pz.map(function (x) { return '振込締切：' + x; })).join('\n')) + '"' : '') + '><b>' + dd + '</b>' +
-        ev.slice(0, 2).map(function (x) { return '<span class="lp-ev">' + esc(x.slice(0, 8)) + '</span>'; }).join('') + (ev.length > 2 ? '<span class="lp-ev">ほか' + (ev.length - 2) + '</span>' : '') + (dz.length ? '<span class="lp-dl">締切</span>' : '') + (pz.length ? '<span class="lp-dl lp-pd">振込</span>' : '') + '</td>';
+      h += '<td class="' + (day === td ? 'today ' : '') + (ev.length ? 'meet ' : '') + (dz.length || pz.length || (xk[day] || []).length ? 'dl' : '') + '"' + (ev.length || dz.length || pz.length ? ' title="' + esc(ev.concat(dz.map(function (x) { return '締切：' + x; }), pz.map(function (x) { return '振込締切：' + x; })).join('\n')) + '"' : '') + '><b>' + dd + '</b>' +
+        ev.slice(0, 2).map(function (x) { return '<span class="lp-ev">' + esc(x.slice(0, 8)) + '</span>'; }).join('') + (ev.length > 2 ? '<span class="lp-ev">ほか' + (ev.length - 2) + '</span>' : '') + (dz.length ? '<span class="lp-dl">締切</span>' : '') + (pz.length ? '<span class="lp-dl lp-pd">振込</span>' : '') +
+        (xk[day] || []).map(function (x) { return '<span class="lp-dk k-' + x.k + (x.done ? ' done' : '') + '" data-dk="' + x.k + '" title="' + esc((x.k === 'pay' ? '振込締切：' : 'エントリー締切：') + x.meet + (x.done ? '（済）' : '')) + '">〆' + (x.k === 'pay' ? '振込' : 'エントリー') + ' ' + esc(x.meet.slice(0, 6)) + '</span>'; }).join('') + '</td>';
       if ((c + dd) % 7 === 0 && dd < n) h += '</tr><tr>';
     }
     return h + '</tr></table>';

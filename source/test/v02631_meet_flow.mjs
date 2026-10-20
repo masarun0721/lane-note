@@ -66,7 +66,7 @@ await check('直す：エントリーした日・振込締切・振り込んだ�
   const m = w.__t.mets()['2026-11-03|架空秋季大会'];
   assert.deepEqual([m.entryAt, m.payDue, m.payAt, m.fee, m.memo, m.resultUrl, m.venue, m.deadline, m.plan], ['2026-10-12', '2026-10-31', '2026-10-13', '9,000円', '架空のメモ', 'https://kaku.example/result/', '見本公園', '2026-10-28', true]);
   assert.equal(st('2026-11-03|架空秋季大会').textContent, '準備OK'); const t = li('2026-11-03|架空秋季大会').textContent; assert(/9,000円/.test(t) && /架空のメモ/.test(t) && /振込締切 10\/31/.test(t) && /速報・結果のページ/.test(t));
-  assert(doc.querySelector('#lpHome .lp-pd'), 'カレンダーに振込の印がない');
+  assert(doc.querySelector('#lpHome .lp-pd, #lpHome .lp-dk.k-pay'), 'カレンダーに振込の印がない');
 });
 await check('天気を直しても、進み具合は残る（saveMeet は大会予定の欄をまとめて残す）／予定を消すと進み具合も消える（記録は残す）', () => {
   const js = src('records_app.js'); assert.match(js, /var prev = METS\[key\] \|\| \{\}; PF\.forEach/); assert.match(js, /if \(PF\.indexOf\(k\) < 0\) o\[k\] = [mx]\[k\]/);
