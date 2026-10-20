@@ -17,6 +17,7 @@ rules_version = '2';
 //   記録（teams/{T}/records）は書くたびに変更履歴（teams/{T}/hist）を同じまとめ書きで残す（前と後の中身をルールで照合）。消すのは「削除の印」だけ。
 //   マネージャーが書いた記録は必ず「未確認」（_st:'pending'）。「確認済み」（'ok'）にできるのは顧問だけ。
 //   チームの持ち主（ownerUid）を変えられるのは持ち主だけで、渡す相手はチームの顧問だけ。
+// ・v0.28.0 surveys/{sid}（エントリー調査）：選手はログインなしで、受付中・締切前だけ調査を読み、名簿の番号の回答だけ書ける。回答を読む・消すのは持ち主とチームの顧問だけ（下の「エントリー調査」）
 // ・v0.26.38 pubResults/{id}：みんなの結果（結果のURLと大会の情報だけ。選手のデータは入れない）。作りはみんなの要項（pubMeets）と同じ
 // ・v0.26.64 teams の一覧（list）：管理者（admins/{uid}）だけ。チーム名を見るため（文書は v・name・ownerUid・createdAt だけ。中の members・records・codes は読めない）
 // ・v0.26.33 teams/{T}/meets/{k}/pdf/{c}：大会準備のPDF（4種類）をチームで共有。ファイルで入れたものだけ・メンバーだけ・大会終了の1か月後まで読める・5MBまで・一覧不可
@@ -704,6 +705,114 @@ service cloud.firestore {
       }
     }
     // v0.26.38 みんなの結果 ここまで
+    // v0.28.0 エントリー調査 ここから（監査待ち）
+    // ・surveys/{sid}：顧問が作る「エントリー調査」。sid は推測できない24文字。ログインなしでも、受付中（open）かつ締切前だけ get できる。一覧は不可。
+    //   中身は大会名・締切・名簿（名前・学年・男女）・選べる種目とリレーだけ。持ち主の uid・チーム・選手のキー（akeys）は surveyAdmins/{sid}（非公開）に置く。
+    // ・surveys/{sid}/answers/r<番号>：選手（ログインなし）は受付中・締切前だけ、名簿の番号の回答を作る・書き換える（決まった項目だけ・大きさを検査・5秒に1回）。
+    //   回答を読む・一覧・消すのは、持ち主とチームの顧問だけ（マネージャー・ほかの人・選手は不可）。
+    // ・expireAt：あとで TTL（自動削除）に使う日時。締切から60日まで。回答と surveyAdmins の expireAt は調査と同じ
+    function validSurveyId(id) {
+      return id.matches('^[A-Za-z0-9]{24}$');
+    }
+    function surveyPath(sid) {
+      return /databases/$(database)/documents/surveys/$(sid);
+    }
+    function surveyAdminPath(sid) {
+      return /databases/$(database)/documents/surveyAdmins/$(sid);
+    }
+    // 持ち主、またはチームに付けた調査ならそのチームの顧問（Google ログイン）
+    function surveyBoss(a) {
+      return googleUser()
+        && (a.ownerUid == request.auth.uid || (a.team != '' && isCoach(a.team)));
+    }
+    function surveyBossOf(sid) {
+      return exists(surveyAdminPath(sid)) && surveyBoss(get(surveyAdminPath(sid)).data);
+    }
+    function surveyOpen(s) {
+      return s.v == 1 && s.open == true && s.deadline is timestamp && request.time < s.deadline;
+    }
+    function validSurvey(d) {
+      return d.keys().hasAll(['v', 'meet', 'sexes', 'roster', 'n', 'evs', 'rels', 'open', 'deadline', 'expireAt', 'updatedAt'])
+        && d.keys().hasOnly(['v', 'meet', 'sexes', 'roster', 'n', 'evs', 'rels', 'open', 'deadline', 'expireAt', 'updatedAt'])
+        && d.v == 1
+        && d.meet is string && d.meet.size() >= 1 && d.meet.size() <= 80
+        && d.sexes in ['m', 'f', 'mf']
+        && d.roster is list && d.roster.size() >= 1 && d.roster.size() <= 150
+        && d.n is int && d.n == d.roster.size()
+        && d.evs is list && d.evs.size() >= 1 && d.evs.size() <= 40
+        && d.rels is list && d.rels.size() <= 6
+        && d.open is bool
+        && d.deadline is timestamp
+        && d.deadline <= request.time + duration.value(120, 'd')
+        && d.expireAt is timestamp
+        && d.expireAt >= d.deadline
+        && d.expireAt <= d.deadline + duration.value(60, 'd')
+        && d.updatedAt == request.time;
+    }
+    function validSurveyAdmin(sid, d) {
+      return d.keys().hasAll(['ownerUid', 'team', 'meet', 'akeys', 'createdAt', 'expireAt'])
+        && d.keys().hasOnly(['ownerUid', 'team', 'meet', 'akeys', 'createdAt', 'expireAt'])
+        && d.ownerUid == request.auth.uid
+        && d.team is string
+        && (d.team == '' || (validTeamId(d.team) && isCoach(d.team)))
+        && d.meet is string && d.meet.size() >= 1 && d.meet.size() <= 80
+        && d.akeys is list && d.akeys.size() == getAfter(surveyPath(sid)).data.n
+        && d.createdAt == request.time
+        && d.expireAt == getAfter(surveyPath(sid)).data.expireAt;
+    }
+    // 回答：第1・第2希望は選べる種目から（第2は空か第1とちがう種目）・リレーは可/不可（どのリレーかは任意）・ひとことは100文字まで
+    function validAnswer(rid, d, s) {
+      return rid.matches('^r[0-9]{1,3}$')
+        && int(rid.replace('^r', '')) < s.n
+        && d.keys().hasAll(['ev1', 'ev2', 'relay', 'rel', 'cm', 'at', 'expireAt'])
+        && d.keys().hasOnly(['ev1', 'ev2', 'relay', 'rel', 'cm', 'at', 'expireAt'])
+        && d.ev1 is string && (d.ev1 == '' || d.ev1 in s.evs)
+        && d.ev2 is string && (d.ev2 == '' || (d.ev2 in s.evs && d.ev2 != d.ev1 && d.ev1 != ''))
+        && d.relay in ['ok', 'no', '']
+        && (d.relay == '' || s.rels.size() > 0)
+        && d.rel is string && (d.rel == '' || (d.relay == 'ok' && d.rel in s.rels))
+        && d.cm is string && d.cm.size() <= 100
+        && (d.ev1 != '' || d.relay != '' || d.cm != '')
+        && d.at == request.time
+        && d.expireAt == s.expireAt;
+    }
+    match /surveyAdmins/{sid} {
+      allow get, list: if surveyBoss(resource.data);
+      allow create: if googleUser() && validSurveyId(sid)
+        && validSurveyAdmin(sid, request.resource.data)
+        && !exists(surveyPath(sid)) && existsAfter(surveyPath(sid));
+      allow update: if surveyBoss(resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['expireAt'])
+        && request.resource.data.expireAt == getAfter(surveyPath(sid)).data.expireAt;
+      allow delete: if surveyBoss(resource.data) && !existsAfter(surveyPath(sid));
+    }
+    match /surveys/{sid} {
+      allow get: if validSurveyId(sid) && (surveyOpen(resource.data) || surveyBossOf(sid));
+      allow list: if false;
+      allow create: if googleUser() && validSurveyId(sid)
+        && validSurvey(request.resource.data)
+        && request.resource.data.deadline > request.time
+        && !exists(surveyAdminPath(sid))
+        && getAfter(surveyAdminPath(sid)).data.ownerUid == request.auth.uid;
+      allow update: if surveyBossOf(sid)
+        && validSurvey(request.resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['open', 'deadline', 'expireAt', 'updatedAt'])
+        && (request.resource.data.deadline == resource.data.deadline || request.resource.data.deadline > request.time)
+        && getAfter(surveyAdminPath(sid)).data.expireAt == request.resource.data.expireAt;
+      allow delete: if surveyBossOf(sid);
+      match /answers/{rid} {
+        allow get, list: if surveyBossOf(sid);
+        allow create: if validSurveyId(sid)
+          && surveyOpen(get(surveyPath(sid)).data)
+          && validAnswer(rid, request.resource.data, get(surveyPath(sid)).data);
+        allow update: if validSurveyId(sid)
+          && surveyOpen(get(surveyPath(sid)).data)
+          && validAnswer(rid, request.resource.data, get(surveyPath(sid)).data)
+          && request.time > resource.data.at + duration.value(5, 's');
+        allow delete: if surveyBossOf(sid);
+      }
+    }
+    // v0.28.0 エントリー調査 ここまで
     match /feedback/{id} {
       // Behaviour change: signed-out and Firebase-anonymous users cannot submit.
       allow create: if googleUser() && validFeedback(request.resource.data);

@@ -96,7 +96,15 @@ body.personal-on .tabs button[data-v="rank"],body.personal-on .tabs button[data-
 .en-scroll{overflow-x:auto}.en-t{width:100%;border-collapse:collapse;font-size:14px;background:#fff}.en-t th,.en-t td{border-bottom:1px solid #e3e7ef;padding:6px 8px;text-align:left;vertical-align:top}.en-t .lp-r{text-align:right}.en-mk{font-weight:700;white-space:nowrap}.en-none{color:#8a93a3;font-weight:400;font-size:12px}.en-mem{font-size:12px;color:#5a6577}
 .en-fee{margin:8px 0 0 auto;border-collapse:collapse;font-size:14px}.en-fee td{padding:3px 8px}.en-fee .lp-r{text-align:right}.en-tot td{border-top:2px solid #1f3a68}
 body.personal-on #rbEntryBox,body.personal-on #rbEntry{display:none!important}
-#rbEntry .en-t th{position:static;top:auto}.en-line{margin:4px 0 0;font-size:13px;color:#5a6577}
+#rbEntry .en-t th{position:static;top:auto}
+.sv-box{margin-top:14px;padding-top:10px;border-top:2px solid #e3e7ef}.sv-list{display:flex;flex-direction:column;gap:6px;margin:6px 0}
+.sv-item{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;border:1px solid #d6dce7;border-radius:10px;background:#fff;padding:8px 12px;cursor:pointer;min-height:44px}.sv-item:hover,#rbEntry .en-chip:hover,#rbEntry .btn:hover{box-shadow:0 0 0 3px rgba(31,58,104,.15)}.sv-item small{color:#5a6577}
+.sv-form{background:#f8f9fc;border-radius:12px;padding:8px 12px;margin:6px 0}.sv-f{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0;font-size:14px}.sv-f input[type=text]{flex:1;min-width:12em;min-height:36px}.sv-f input[type=date]{min-height:36px;cursor:pointer}.sv-chk{cursor:pointer}
+.sv-add{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}.sv-add input{flex:1;min-width:10em;min-height:36px}.sv-add select{min-height:36px;cursor:pointer}
+.sv-cur{background:#fff;border:1px solid #d6dce7;border-radius:12px;padding:10px 12px;margin:6px 0}.sv-cur-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}.sv-cur-h button{margin-left:auto}
+.sv-state{border-radius:999px;padding:2px 10px;font-size:12px;font-weight:700}.sv-state.on{background:#e9f7ee;color:#135b2c}.sv-state.off{background:#f1f2f5;color:#5a6577}
+.sv-qr{max-width:220px;margin:6px 0}.sv-qr svg{width:100%;height:auto}.sv-cm{max-width:16em;word-break:break-word}.sv-del{color:#a11!important}.sv-dl{margin:0}
+#rbEntry .en-chips{display:flex;gap:6px;flex-wrap:wrap}.en-line{margin:4px 0 0;font-size:13px;color:#5a6577}
 @media(max-width:600px){#rbEntry .en-t thead{display:none}#rbEntry .en-t,#rbEntry .en-t tbody{display:block}#rbEntry .en-t tr{display:flex;flex-wrap:wrap;gap:2px 10px;padding:6px 4px;border-bottom:1px solid #e3e7ef}#rbEntry .en-t td{border:0;padding:0}#rbEntry .en-t td:nth-child(1){flex:1 1 100%;font-weight:700}#rbEntry .en-t td:nth-child(4){margin-left:auto}#rbEntry .en-t td:nth-child(5){flex:1 1 100%;font-size:12px;color:#5a6577}#rbEntry .en-t td:nth-child(5) br{display:none}#rbEntry .en-t td:nth-child(5) small{margin-left:6px}#rbEntry .en-fee{width:100%}}
 .sus-h{margin:12px 0 4px;font-size:14px}.sus-h small{margin-left:6px;background:#eef2f8;border-radius:10px;padding:0 7px;font-weight:700}
 .sus-list{list-style:none;margin:0;padding:0}
@@ -610,6 +618,10 @@ var SHARE_BASE = "__SHARE_BASE__";
 <script>
 __PERSONAL__
 __TALK__
+</script>
+<script>
+/* QR Code Generator for JavaScript (c) 2009 Kazuhiko Arase, MIT license — 同梱（外部から読み込まない）。v0.28.0 エントリー調査リンクのQR */
+__QRCODE__
 </script>
 <script>
 __TEAM__

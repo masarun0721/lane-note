@@ -545,6 +545,22 @@ footer a{color:var(--navy)}
   /* v0.24：選手とのやり取り */
   body.talk-mode>header,body.talk-mode main>:not(#talkView),body.talk-mode>footer,body.talk-mode .topbar,body.talk-mode .beta-line{display:none!important}
   body.talk-mode{background:#f3f6fb}#talkView{max-width:560px;margin:0 auto;padding:10px 2px 30px;font-size:16px}
+  /* v0.28.0 エントリー調査（選手・ログインなし）：見出しの試作版・Presented by Sakata・標語・注意書き（免責）は残す。ページの切り替えとほかの欄は出さない */
+  body.survey-mode main>:not(#surveyView),body.survey-mode .pagenav,body.survey-mode .topbar,body.survey-mode .hdr-msg{display:none!important}
+  body.survey-mode{background:#f3f6fb}#surveyView{max-width:560px;margin:0 auto;padding:8px 4px 24px;font-size:16px}
+  .sv-hero h2{margin:2px 0 4px;font-size:20px;line-height:1.35;word-break:break-word}.sv-hero p{margin:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .sv-q{width:30px;height:30px;border-radius:50%;border:2px solid #fff;background:transparent;color:#fff;font-weight:800;cursor:pointer;padding:0;margin-left:auto}.sv-q:hover{background:rgba(255,255,255,.18)}
+  .sv-help{background:#fff;border:1px solid #d6dce7;border-radius:12px;padding:10px 12px;margin:0 0 10px;font-size:14px;line-height:1.7}
+  .sv-card{background:#fff;border:1px solid #d6dce7;border-radius:14px;padding:10px 12px;margin:0 0 10px}.sv-card h3{margin:0 0 8px;font-size:16px;display:flex;align-items:center;gap:8px}.sv-card h3 small{font-weight:400;color:#5a6577;font-size:12px}
+  .sv-n{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--navy,#1f3a68);color:#fff;font-size:13px}
+  .sv-sex{display:flex;gap:6px;margin-bottom:8px}.sv-tab{flex:1;min-height:44px;border:2px solid #1f3a68;border-radius:10px;background:#fff;color:#1f3a68;font-weight:700;font-size:16px;cursor:pointer}.sv-tab[aria-pressed="true"]{background:#1f3a68;color:#fff}
+  .sv-names{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}.sv-name{min-height:48px;border:1px solid #b9c3d6;border-radius:10px;background:#fff;color:#16203a;font-size:16px;cursor:pointer;padding:6px 8px;text-align:left}.sv-name small{margin-left:6px;color:#5a6577;font-size:12px}
+  .sv-chips{display:flex;flex-wrap:wrap;gap:6px}.sv-sub{margin-top:8px;padding-top:8px;border-top:1px dashed #d6dce7}.sv-chip{min-height:44px;border:1px solid #1f3a68;border-radius:999px;background:#fff;color:#1f3a68;font-size:15px;padding:6px 14px;cursor:pointer}
+  .sv-name:hover,.sv-chip:hover:not([disabled]),.sv-tab:hover{box-shadow:0 0 0 3px rgba(31,58,104,.15)}.sv-name[aria-pressed="true"],.sv-chip[aria-pressed="true"]{background:#1f3a68;color:#fff;border-color:#1f3a68}.sv-name[aria-pressed="true"] small{color:#dfe6f3}.sv-chip[disabled]{opacity:.35;cursor:not-allowed}
+  #svCm{width:100%;box-sizing:border-box;font-size:16px;border:1px solid #b9c3d6;border-radius:10px;padding:8px}.sv-cnt{text-align:right;font-size:12px;color:#5a6577}
+  .sv-send{width:100%;min-height:52px;font-size:18px;cursor:pointer}.sv-send[disabled]{cursor:wait}
+  .sv-msg{border-radius:12px;padding:10px 12px;margin:0 0 10px;font-size:15px}.sv-msg.ok{background:#e9f7ee;border:1px solid #8fd0a7;color:#135b2c}.sv-msg.err{background:#fdecec;border:1px solid #f0a5a5;color:#8a1c1c}
+  .sv-gone,.sv-wait{background:#fff;border:1px solid #d6dce7;border-radius:14px;padding:14px;line-height:1.7}
   .tk-card h3{margin:0 0 8px;font-size:17px}.tk-card{background:#fff;border-radius:18px;padding:14px 16px;margin:12px 0;box-shadow:var(--shadow)}
   .tk-note{background:#fff6e5;border-left:4px solid #e0a100;border-radius:10px;padding:8px 12px;margin-bottom:10px}.tk-note small{font-size:12px;color:#8a5a00;font-weight:700}.tk-note p{margin:2px 0 0;white-space:pre-wrap}
   .tk-msgs{list-style:none;margin:0 0 10px;padding:0;display:flex;flex-direction:column;gap:8px;max-height:420px;overflow:auto}
@@ -778,7 +794,15 @@ body.personal-on .tabs button[data-v="rank"],body.personal-on .tabs button[data-
 .en-scroll{overflow-x:auto}.en-t{width:100%;border-collapse:collapse;font-size:14px;background:#fff}.en-t th,.en-t td{border-bottom:1px solid #e3e7ef;padding:6px 8px;text-align:left;vertical-align:top}.en-t .lp-r{text-align:right}.en-mk{font-weight:700;white-space:nowrap}.en-none{color:#8a93a3;font-weight:400;font-size:12px}.en-mem{font-size:12px;color:#5a6577}
 .en-fee{margin:8px 0 0 auto;border-collapse:collapse;font-size:14px}.en-fee td{padding:3px 8px}.en-fee .lp-r{text-align:right}.en-tot td{border-top:2px solid #1f3a68}
 body.personal-on #rbEntryBox,body.personal-on #rbEntry{display:none!important}
-#rbEntry .en-t th{position:static;top:auto}.en-line{margin:4px 0 0;font-size:13px;color:#5a6577}
+#rbEntry .en-t th{position:static;top:auto}
+.sv-box{margin-top:14px;padding-top:10px;border-top:2px solid #e3e7ef}.sv-list{display:flex;flex-direction:column;gap:6px;margin:6px 0}
+.sv-item{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;border:1px solid #d6dce7;border-radius:10px;background:#fff;padding:8px 12px;cursor:pointer;min-height:44px}.sv-item:hover,#rbEntry .en-chip:hover,#rbEntry .btn:hover{box-shadow:0 0 0 3px rgba(31,58,104,.15)}.sv-item small{color:#5a6577}
+.sv-form{background:#f8f9fc;border-radius:12px;padding:8px 12px;margin:6px 0}.sv-f{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0;font-size:14px}.sv-f input[type=text]{flex:1;min-width:12em;min-height:36px}.sv-f input[type=date]{min-height:36px;cursor:pointer}.sv-chk{cursor:pointer}
+.sv-add{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}.sv-add input{flex:1;min-width:10em;min-height:36px}.sv-add select{min-height:36px;cursor:pointer}
+.sv-cur{background:#fff;border:1px solid #d6dce7;border-radius:12px;padding:10px 12px;margin:6px 0}.sv-cur-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}.sv-cur-h button{margin-left:auto}
+.sv-state{border-radius:999px;padding:2px 10px;font-size:12px;font-weight:700}.sv-state.on{background:#e9f7ee;color:#135b2c}.sv-state.off{background:#f1f2f5;color:#5a6577}
+.sv-qr{max-width:220px;margin:6px 0}.sv-qr svg{width:100%;height:auto}.sv-cm{max-width:16em;word-break:break-word}.sv-del{color:#a11!important}.sv-dl{margin:0}
+#rbEntry .en-chips{display:flex;gap:6px;flex-wrap:wrap}.en-line{margin:4px 0 0;font-size:13px;color:#5a6577}
 @media(max-width:600px){#rbEntry .en-t thead{display:none}#rbEntry .en-t,#rbEntry .en-t tbody{display:block}#rbEntry .en-t tr{display:flex;flex-wrap:wrap;gap:2px 10px;padding:6px 4px;border-bottom:1px solid #e3e7ef}#rbEntry .en-t td{border:0;padding:0}#rbEntry .en-t td:nth-child(1){flex:1 1 100%;font-weight:700}#rbEntry .en-t td:nth-child(4){margin-left:auto}#rbEntry .en-t td:nth-child(5){flex:1 1 100%;font-size:12px;color:#5a6577}#rbEntry .en-t td:nth-child(5) br{display:none}#rbEntry .en-t td:nth-child(5) small{margin-left:6px}#rbEntry .en-fee{width:100%}}
 .sus-h{margin:12px 0 4px;font-size:14px}.sus-h small{margin-left:6px;background:#eef2f8;border-radius:10px;padding:0 7px;font-weight:700}
 .sus-list{list-style:none;margin:0;padding:0}
@@ -1271,7 +1295,7 @@ var LaneMode = (function () {
   function set(m) { try { if (m === 'coach' || m === 'player') localStorage.setItem(KEY, m); } catch (e) { } }
   // v0.26.20：招待リンク（team.html#join=）で来た人には、はじめてのモードの質問を出さない（参加の画面を先に）
   function inviteView() { if (!document.body.classList.contains('team-page')) return false; if (/^#join=/.test(location.hash)) return true; try { return !!sessionStorage.getItem('lanenote.join.v1'); } catch (e) { return false; } }
-  function sharedView() { return /^#[dpt]=/.test(location.hash) || /[?&][st]=/.test(location.search); }
+  function sharedView() { return /^#[dpt]=/.test(location.hash) || /[?&][stq]=/.test(location.search); }
   function base() { return /^https?:$/.test(location.protocol) ? location.origin + location.pathname.replace(/[^\/]*$/, '') : (window.LANE_SHARE_BASE || './'); }
   /* この端末に保存されている、もらったリンク（大会当日の予定＝p・個人ページ＝pp） */
   function savedLinks() {
@@ -3306,7 +3330,7 @@ if (typeof module !== 'undefined') module.exports = LaneRoster;
 
 </script>
 <script>
-var APP_VERSION = "v0.27.0", REC_VERSION = "v0.11.1";
+var APP_VERSION = "v0.28.0", REC_VERSION = "v0.11.1";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>
@@ -3736,6 +3760,2549 @@ var LaneTalk = (function () {
   return { clearDevice: clearDevice, postMsg: postMsg, readTalk: readTalk, PAGE: PAGE, validId: validId, newId: newId, linkFor: linkFor, remember: remember, forget: forget, saved: saved, renderPlayer: renderPlayer, renderHomeCard: renderHomeCard, initLink: initLink, msgsHtml: msgsHtml, condText: condText, teacher: T, setFirebase: setFirebase, WARN: WARN, DAYS: DAYS, esc: esc, when: when };
 })();
 if (typeof module !== 'undefined') module.exports = LaneTalk;
+
+/* ===== v0.28.0：📮 エントリー調査リンク
+   ・大会ごとに、顧問が1つの調査リンクを作って LINE などで送る。選手はログインなしで開き、名簿から自分の名前を選び、
+     第1・第2希望の種目・リレーに出られるか（可／不可）・ひとこと（100文字まで）を送る。送り直すと新しい答えに置きかわる
+   ・Firestore：surveys/{sid}（公開：大会名・締切・名簿の名前と学年・男女・選べる種目とリレーだけ）、
+     surveyAdmins/{sid}（非公開：持ち主の uid・チーム・選手のキー）、surveys/{sid}/answers/r<番号>（顧問とチームの顧問だけが読める）
+   ・sid は推測できない24文字。締切を過ぎる・止める・消すと、受け付けない（ルールで止める）。expireAt はあとで TTL に使う
+   ・記録や連絡先は入れない。名簿は顧問が選んだ名前と学年だけ */
+var LaneSurvey = (function () {
+  'use strict';
+  var FB_VER = '10.14.1', CMMAX = 100, DAYS = 14, KEEP = 30, LKEY = 'lanenote.survey.v1';
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function validId(s) { return /^[A-Za-z0-9]{24}$/.test(String(s || '')); }
+  function newId() { var A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789', out = '', b = new Uint8Array(1); while (out.length < 24) { crypto.getRandomValues(b); if (b[0] < 248) out += A[b[0] % 62]; } return out; }
+  function base() { return /^https?:$/.test(location.protocol) ? location.origin + location.pathname.replace(/[^\/]*$/, '') : (window.SHARE_BASE || './'); }
+  function linkFor(sid) { return base() + '?q=' + sid; }
+  function ms(t) { return t && t.toMillis ? t.toMillis() : (typeof t === 'number' ? t : 0); }
+  function isDay(s) { return /^\d{4}-\d{2}-\d{2}$/.test(String(s || '')); }
+  function jstDay(msv) { return new Date(msv + 9 * 36e5).toISOString().slice(0, 10); }
+  // 締切の日（日本時間）の 23:59:59 まで
+  function dayEnd(day) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3], 14, 59, 59) : 0; }
+  // 既定の締切：大会のエントリー締切（今日より後なら）、なければ今日から14日
+  function defaultDeadline(planDeadline, now) {
+    now = now || Date.now(); var td = jstDay(now);
+    if (isDay(planDeadline) && planDeadline >= td && dayEnd(planDeadline) <= now + 119 * 864e5) return planDeadline;
+    return jstDay(now + DAYS * 864e5);
+  }
+  function when(t) { var m = ms(t); if (!m) return ''; var d = new Date(m + 9 * 36e5); return (d.getUTCMonth() + 1) + '/' + d.getUTCDate() + ' ' + d.getUTCHours() + ':' + ('0' + d.getUTCMinutes()).slice(-2); }
+  function dayLabel(t) { var m = ms(t); if (!m) return ''; var d = new Date(m + 9 * 36e5); return (d.getUTCMonth() + 1) + '/' + d.getUTCDate() + '（' + '日月火水木金土'[d.getUTCDay()] + '）'; }
+  function sexName(s) { return s === 'f' ? '女子' : s === 'm' ? '男子' : ''; }
+  function sexOfLabel(s) { return /^女子/.test(s) ? 'f' : /^男子/.test(s) ? 'm' : ''; }
+  function evShort(s) { return String(s || '').replace(/^(男子|女子)\s*/, ''); }
+  function cut(s, n) { return String(s == null ? '' : s).replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, n); }
+
+  /* ---------- 調査の中身（純粋な関数・テスト用にも使う） ---------- */
+  // o = { meet, team, sexes:'m'|'f'|'mf', roster:[{n,g,s,key}], evs:['男子100m',...], rels:['男子4×100mR'], deadline:'YYYY-MM-DD' }
+  function buildDocs(o, now) {
+    now = now || Date.now();
+    var roster = (o.roster || []).slice(0, 150).map(function (r) { return { n: cut(r.n, 40), g: cut(r.g, 4), s: r.s === 'f' ? 'f' : 'm' }; });
+    var akeys = (o.roster || []).slice(0, 150).map(function (r) { return cut(r.key, 200); });
+    var uniq = function (l, n) { var seen = {}, out = []; (l || []).forEach(function (x) { x = cut(x, 40); if (x && !seen[x]) { seen[x] = 1; out.push(x); } }); return out.slice(0, n); };
+    var evs = uniq(o.evs, 40), rels = uniq(o.rels, 6), dl = dayEnd(o.deadline);
+    if (!roster.length) throw new Error('名簿に1人以上入れてください');
+    if (!evs.length) throw new Error('選べる種目を1つ以上入れてください');
+    if (!dl || dl <= now) throw new Error('締切は今日より後の日にしてください');
+    if (dl > now + 119 * 864e5) throw new Error('締切は119日以内にしてください');
+    var meet = cut(o.meet, 80); if (!meet) throw new Error('大会名を入れてください');
+    var sexes = o.sexes === 'f' || o.sexes === 'mf' ? o.sexes : 'm';
+    return { pub: { v: 1, meet: meet, sexes: sexes, roster: roster, n: roster.length, evs: evs, rels: rels, open: true, deadlineMs: dl, expireMs: dl + KEEP * 864e5 },
+      admin: { team: cut(o.team, 20), meet: meet, akeys: akeys, expireMs: dl + KEEP * 864e5 } };
+  }
+  // 選手の答えをきれいにする（ルールと同じ条件。だめなら理由を返す）
+  function cleanAnswer(a, s) {
+    a = a || {}; var evs = (s && s.evs) || [], rels = (s && s.rels) || [];
+    var o = { ev1: cut(a.ev1, 40), ev2: cut(a.ev2, 40), relay: a.relay === 'ok' || a.relay === 'no' ? a.relay : '', rel: cut(a.rel, 40), cm: cut(a.cm, CMMAX) };
+    if (o.ev1 && evs.indexOf(o.ev1) < 0) return { err: '第1希望の種目が選べる種目にありません' };
+    if (!o.ev1) o.ev2 = '';
+    if (o.ev2 && (evs.indexOf(o.ev2) < 0 || o.ev2 === o.ev1)) return { err: '第2希望は第1希望とちがう種目にしてください' };
+    if (!rels.length) { o.relay = ''; o.rel = ''; }
+    if (o.relay !== 'ok') o.rel = '';
+    if (o.rel && rels.indexOf(o.rel) < 0) o.rel = '';
+    if (!o.ev1 && !o.relay && !o.cm) return { err: '種目かリレーのどちらかを選んでください' };
+    return { ok: o };
+  }
+
+  /* ---------- Firebase ---------- */
+  var FBP = null;
+  async function fb() {   // 選手側：ログインなしで Firestore だけ使う
+    if (FBP) return FBP;
+    var CFG = window.LANE_FIREBASE_CONFIG; if (!CFG || !CFG.apiKey || /^YOUR_|^__/.test(CFG.apiKey)) throw new Error('クラウドが設定されていません');
+    var b = 'https://www.gstatic.com/firebasejs/' + FB_VER + '/';
+    var m = await Promise.all([import(b + 'firebase-app.js'), import(b + 'firebase-firestore.js')]);
+    var app = m[0].getApps().length ? m[0].getApp() : m[0].initializeApp(CFG);
+    FBP = { F: m[1], fs: m[1].getFirestore(app) };
+    return FBP;
+  }
+  function setFirebase(x) { FBP = x; }   // テスト用
+
+  // 顧問側：FB={F,fs}・uid（Google ログイン）・check() は呼ぶ側の「アカウントが変わっていないか」の確認
+  function coach(FB, uid, check) {
+    if (!uid) throw new Error('Googleでログインすると使えます');
+    var F = FB.F, fs = FB.fs, ok = check || function () { };
+    var TS = function (m) { return F.Timestamp.fromMillis(m); };
+    async function answers(sid) {
+      var s = await F.getDocs(F.collection(fs, 'surveys', sid, 'answers')); ok(); var out = {};
+      s.forEach(function (d) { var m = /^r(\d{1,3})$/.exec(d.id); if (!m) return; var v = d.data() || {}; out[+m[1]] = { ev1: String(v.ev1 || ''), ev2: String(v.ev2 || ''), relay: String(v.relay || ''), rel: String(v.rel || ''), cm: String(v.cm || ''), at: ms(v.at) }; });
+      return out;
+    }
+    return {
+      create: async function (o) {
+        var D = buildDocs(o), sid = newId(), b = F.writeBatch(fs), p = D.pub;
+        b.set(F.doc(fs, 'surveys', sid), { v: 1, meet: p.meet, sexes: p.sexes, roster: p.roster, n: p.n, evs: p.evs, rels: p.rels, open: true, deadline: TS(p.deadlineMs), expireAt: TS(p.expireMs), updatedAt: F.serverTimestamp() });
+        b.set(F.doc(fs, 'surveyAdmins', sid), { ownerUid: uid, team: D.admin.team, meet: p.meet, akeys: D.admin.akeys, createdAt: F.serverTimestamp(), expireAt: TS(p.expireMs) });
+        ok(); await b.commit(); ok(); return sid;
+      },
+      // 自分の調査と、チームの調査（teamId があれば）
+      list: async function (teamId) {
+        var qs = [F.query(F.collection(fs, 'surveyAdmins'), F.where('ownerUid', '==', uid))];
+        if (teamId) qs.push(F.query(F.collection(fs, 'surveyAdmins'), F.where('team', '==', teamId)));
+        var rs = await Promise.all(qs.map(function (q) { return F.getDocs(q); })); ok();
+        var seen = {}, out = [];
+        rs.forEach(function (s) { s.forEach(function (d) { if (seen[d.id]) return; seen[d.id] = 1; var v = d.data() || {}; out.push({ id: d.id, meet: String(v.meet || ''), team: String(v.team || ''), mine: v.ownerUid === uid, at: ms(v.createdAt), exp: ms(v.expireAt) }); }); });
+        return out.sort(function (a, b) { return b.at - a.at; });
+      },
+      load: async function (sid) {
+        var r = await Promise.all([F.getDoc(F.doc(fs, 'surveys', sid)), F.getDoc(F.doc(fs, 'surveyAdmins', sid))]); ok();
+        if (!r[0].exists() || !r[1].exists()) return null;
+        var s = r[0].data() || {}, a = r[1].data() || {};
+        return { id: sid, meet: String(s.meet || ''), sexes: s.sexes, roster: s.roster || [], evs: s.evs || [], rels: s.rels || [], open: !!s.open, deadline: ms(s.deadline), expireAt: ms(s.expireAt), akeys: a.akeys || [], team: String(a.team || ''), mine: a.ownerUid === uid };
+      },
+      answers: answers,
+      setOpen: async function (sid, on) { await F.updateDoc(F.doc(fs, 'surveys', sid), { open: !!on, updatedAt: F.serverTimestamp() }); ok(); },
+      setDeadline: async function (sid, day) {
+        var dl = dayEnd(day); if (!dl || dl <= Date.now()) throw new Error('締切は今日より後の日にしてください');
+        if (dl > Date.now() + 119 * 864e5) throw new Error('締切は119日以内にしてください');
+        var b = F.writeBatch(fs);
+        b.update(F.doc(fs, 'surveys', sid), { deadline: TS(dl), expireAt: TS(dl + KEEP * 864e5), updatedAt: F.serverTimestamp() });
+        b.update(F.doc(fs, 'surveyAdmins', sid), { expireAt: TS(dl + KEEP * 864e5) });
+        ok(); await b.commit(); ok();
+      },
+      // 消す：回答 → 調査 → 管理の文書を1回のまとめ書きで（名簿150人＋2で500件の上限より小さい）
+      remove: async function (sid) {
+        var s = await F.getDocs(F.collection(fs, 'surveys', sid, 'answers')); ok();
+        var b = F.writeBatch(fs);
+        s.forEach(function (d) { b.delete(d.ref || F.doc(fs, 'surveys', sid, 'answers', d.id)); });
+        b.delete(F.doc(fs, 'surveys', sid)); b.delete(F.doc(fs, 'surveyAdmins', sid));
+        await b.commit(); ok();
+      }
+    };
+  }
+  // 選手側：調査を読む（受付中・締切前だけ読める）・答えを送る（同じ番号に上書き＝新しい答えに置きかわる）
+  function student(FB) {
+    var F = FB.F, fs = FB.fs;
+    return {
+      load: async function (sid) {
+        if (!validId(sid)) return null;
+        var d; try { d = await F.getDoc(F.doc(fs, 'surveys', sid)); } catch (e) { if (e && e.code === 'permission-denied') return null; throw e; }
+        if (!d.exists()) return null;
+        var s = d.data() || {}; if (!s.open || ms(s.deadline) <= Date.now()) return null;
+        return { id: sid, meet: String(s.meet || ''), sexes: s.sexes, roster: (s.roster || []).map(function (r) { return { n: String(r && r.n || ''), g: String(r && r.g || ''), s: r && r.s === 'f' ? 'f' : 'm' }; }), evs: (s.evs || []).map(String), rels: (s.rels || []).map(String), deadline: ms(s.deadline), expireAt: s.expireAt };
+      },
+      send: async function (s, idx, a) {
+        var c = cleanAnswer(a, s); if (c.err) { var e = new Error(c.err); e.code = 'invalid'; throw e; }
+        if (!(idx >= 0 && idx < s.roster.length)) { var e2 = new Error('名前を選んでください'); e2.code = 'invalid'; throw e2; }
+        var o = c.ok; await F.setDoc(F.doc(fs, 'surveys', s.id, 'answers', 'r' + idx), { ev1: o.ev1, ev2: o.ev2, relay: o.relay, rel: o.rel, cm: o.cm, at: F.serverTimestamp(), expireAt: s.expireAt });
+        return o;
+      }
+    };
+  }
+
+  /* ---------- 答えをエントリー下書きに入れる（下書きのルールと警告はそのまま） ---------- */
+  // E=LaneEntry, d=E.data(...), plan, sv={roster,akeys,evs,rels}, ans={idx:answer}
+  function apply(E, d, plan, sv, ans) {
+    var res = { picks: 0, relay: 0, skip: [] }, maxLeg = (plan.rules && plan.rules.maxLeg) || 6;
+    var evKey = function (a, label) {
+      var own = a.events.filter(function (e) { return sexName(a.sex || e.sex) + e.label === label; })[0]; if (own) return own.ev;
+      var g = d.events.filter(function (e) { return sexName(e.sex) + e.label === label; })[0]; return g ? g.ev : '';
+    };
+    Object.keys(ans || {}).forEach(function (i) {
+      var x = ans[i], k = (sv.akeys || [])[+i], a = k && d.byKey[k], nm = ((sv.roster || [])[+i] || {}).n || '';
+      if (!a) { res.skip.push(nm + '：記録帳に見つかりません'); return; }
+      [x.ev1, x.ev2].forEach(function (lb) {
+        if (!lb) return; var ev = evKey(a, lb);
+        if (!ev) { res.skip.push(nm + '：' + evShort(lb) + 'は記録帳に無い種目です（手で入れてください）'); return; }
+        var pk = plan.picks[a.key] || (plan.picks[a.key] = []); if (pk.indexOf(ev) < 0) { pk.push(ev); res.picks++; }
+      });
+      if (x.relay !== 'ok') return;
+      var rl = d.relays.filter(function (r) { return x.rel ? sexName(r.sex) + r.label === x.rel : r.sex === a.sex; });
+      if (rl.length !== 1) { res.skip.push(nm + '：リレー（' + (x.rel ? evShort(x.rel) : 'どのリレーか未定') + '）は手で入れてください'); return; }
+      var ts = plan.relays[rl[0].ev] || (plan.relays[rl[0].ev] = []);
+      if (ts.some(function (t) { return (t.members || []).indexOf(a.key) >= 0; })) return;
+      var t = ts.filter(function (t) { return (t.members || []).filter(Boolean).length < maxLeg; })[0];
+      if (!t) { t = { label: String.fromCharCode(65 + ts.length), members: [] }; ts.push(t); }
+      var j = t.members.indexOf(''); if (j >= 0 && j < maxLeg) t.members[j] = a.key; else t.members.push(a.key);
+      res.relay++;
+    });
+    return res;
+  }
+
+  /* ---------- 選手の画面（index.html?q=<sid>） ---------- */
+  function lsGet() { try { var o = JSON.parse(localStorage.getItem(LKEY) || '{}'); return o && typeof o === 'object' ? o : {}; } catch (e) { return {}; } }
+  function lsSet(sid, i) { try { var o = lsGet(); o[sid] = { i: i, at: Date.now() }; Object.keys(o).forEach(function (k) { if (!validId(k) || Date.now() - (o[k].at || 0) > 120 * 864e5) delete o[k]; }); localStorage.setItem(LKEY, JSON.stringify(o)); } catch (e) { } }
+  function renderStudent(box, s, st) {
+    var me = st.i != null ? s.roster[st.i] : null, sx = me ? me.s : '', h = '';
+    h += '<div class="ph-hero sv-hero"><small>LANE NOTE ・ エントリー調査</small><h2>' + esc(s.meet) + '</h2><p>締切 ' + esc(dayLabel(s.deadline)) + ' ' + esc(when(s.deadline)) + 'まで <button type="button" class="sv-q" data-sv="help" aria-expanded="' + !!st.help + '" title="使い方">?</button></p></div>';
+    if (st.help) h += '<div class="sv-help">自分の名前を選んで、出たい種目（第1・第2希望）とリレーに出られるかを送ります。ログインは要りません。送り直すと、新しい答えに置きかわります。最後は先生が決めます。答えは先生だけが見られます。</div>';
+    if (st.msg) h += '<div class="sv-msg ' + (st.cls || '') + '" role="status">' + esc(st.msg) + '</div>';
+    h += '<section class="sv-card"><h3><span class="sv-n">1</span>名前</h3>';
+    if (s.sexes === 'mf') h += '<div class="sv-sex">' + ['m', 'f'].map(function (x) { return '<button type="button" class="sv-tab" data-svsex="' + x + '" aria-pressed="' + ((st.sex || 'm') === x) + '">' + sexName(x) + '</button>'; }).join('') + '</div>';
+    var showSex = s.sexes === 'mf' ? (st.sex || 'm') : s.sexes;
+    h += '<div class="sv-names">' + s.roster.map(function (r, i) { return r.s !== showSex ? '' : '<button type="button" class="sv-name" data-svme="' + i + '" aria-pressed="' + (st.i === i) + '">' + esc(r.n) + (r.g ? '<small>' + esc(r.g) + '年</small>' : '') + '</button>'; }).join('') + '</div></section>';
+    if (me) {
+      var evs = s.evs.filter(function (e) { return !sexOfLabel(e) || sexOfLabel(e) === sx; }), rels = s.rels.filter(function (e) { return !sexOfLabel(e) || sexOfLabel(e) === sx; });
+      var chips = function (k, cur, dis) { return '<div class="sv-chips">' + evs.map(function (e) { return '<button type="button" class="sv-chip" data-sv' + k + '="' + esc(e) + '" aria-pressed="' + (cur === e) + '"' + (dis === e ? ' disabled' : '') + '>' + esc(evShort(e)) + '</button>'; }).join('') + '</div>'; };
+      h += '<section class="sv-card"><h3><span class="sv-n">2</span>第1希望</h3>' + chips('ev1', st.ev1) + '</section>';
+      if (st.ev1) h += '<section class="sv-card"><h3><span class="sv-n">3</span>第2希望 <small>（なければ空のまま）</small></h3>' + chips('ev2', st.ev2, st.ev1) + '</section>';
+      if (rels.length) {
+        h += '<section class="sv-card"><h3><span class="sv-n">' + (st.ev1 ? 4 : 3) + '</span>リレー</h3><div class="sv-chips">' + [['ok', '出られる（可）'], ['no', '出られない（不可）']].map(function (x) { return '<button type="button" class="sv-chip" data-svrelay="' + x[0] + '" aria-pressed="' + (st.relay === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>';
+        if (st.relay === 'ok' && rels.length > 1) h += '<div class="sv-chips sv-sub">' + rels.map(function (e) { return '<button type="button" class="sv-chip" data-svrel="' + esc(e) + '" aria-pressed="' + (st.rel === e) + '">' + esc(evShort(e)) + '</button>'; }).join('') + '</div>';
+        h += '</section>';
+      }
+      h += '<section class="sv-card"><h3>ひとこと <small>（なくてOK・' + CMMAX + '文字まで）</small></h3><textarea id="svCm" maxlength="' + CMMAX + '" rows="2" placeholder="例：800mも考えています">' + esc(st.cm || '') + '</textarea><div class="sv-cnt"><span id="svCnt">' + (st.cm || '').length + '</span>/' + CMMAX + '</div></section>';
+      h += '<button type="button" class="btn sv-send" data-sv="send"' + (st.busy ? ' disabled' : '') + '>' + (st.sent ? '📮 送り直す' : '📮 送る') + '</button>';
+    }
+    box.innerHTML = h;
+  }
+  function initLink() {
+    var m = /[?&]q=([A-Za-z0-9]{24})(?:&|$)/.exec(location.search), sec = document.getElementById('surveyView');
+    if (!m || !sec) return false;
+    var sid = m[1], box = document.getElementById('svBody'), st = { help: false }, S = null;
+    document.body.classList.add('survey-mode'); sec.hidden = false; document.title = 'エントリー調査';
+    box.innerHTML = '<p class="sv-wait">読み込んでいます…</p>';
+    var gone = function () { box.innerHTML = '<div class="sv-gone"><b>この調査は今は受け付けていません。</b><br>締切を過ぎたか、先生が止めたか、削除されました。必要なら先生に聞いてください。</div>'; };
+    var draw = function () { renderStudent(box, S, st); };
+    (async function () {
+      try { var api = student(await fb()); S = await api.load(sid); if (!S) { gone(); return; } var keep = lsGet()[sid]; if (keep && keep.i >= 0 && keep.i < S.roster.length) { st.i = keep.i; st.sex = S.roster[keep.i].s; } draw(); sec.__api = api; }
+      catch (e) { box.innerHTML = '<div class="sv-gone"><b>読み込めませんでした。</b><br>電波のよいところで、もう一度開いてください。</div>'; }
+    })();
+    box.addEventListener('input', function (e) { if (e.target.id === 'svCm') { st.cm = e.target.value.slice(0, CMMAX); var c = document.getElementById('svCnt'); if (c) c.textContent = st.cm.length; } });
+    box.addEventListener('click', async function (e) {
+      var t = e.target.closest ? e.target.closest('button') : null; if (!t || !S) return;
+      var g = function (k) { return t.getAttribute(k); };
+      if (g('data-sv') === 'help') { st.help = !st.help; draw(); return; }
+      if (g('data-svsex')) { st.sex = g('data-svsex'); draw(); return; }
+      if (g('data-svme') != null) { var i = +g('data-svme'); if (st.i !== i) { st.i = i; st.ev1 = st.ev2 = st.relay = st.rel = ''; st.sent = false; } st.msg = ''; draw(); return; }
+      if (g('data-svev1') != null) { st.ev1 = st.ev1 === g('data-svev1') ? '' : g('data-svev1'); if (st.ev2 === st.ev1 || !st.ev1) st.ev2 = ''; draw(); return; }
+      if (g('data-svev2') != null) { st.ev2 = st.ev2 === g('data-svev2') ? '' : g('data-svev2'); draw(); return; }
+      if (g('data-svrelay')) { st.relay = st.relay === g('data-svrelay') ? '' : g('data-svrelay'); if (st.relay !== 'ok') st.rel = ''; draw(); return; }
+      if (g('data-svrel') != null) { st.rel = st.rel === g('data-svrel') ? '' : g('data-svrel'); draw(); return; }
+      if (g('data-sv') === 'send') {
+        st.busy = true; st.msg = ''; draw();
+        try { await sec.__api.send(S, st.i, { ev1: st.ev1, ev2: st.ev2, relay: st.relay, rel: st.rel, cm: st.cm }); lsSet(sid, st.i); st.sent = true; st.msg = '✔ 送りました（' + when(Date.now()) + '）。直したいときは、もう一度送ると新しい答えに置きかわります。'; st.cls = 'ok'; }
+        catch (er) { st.msg = er && er.code === 'invalid' ? er.message : er && er.code === 'permission-denied' ? '送れませんでした。締切を過ぎたか、続けて送りすぎです（5秒あけてください）。' : '送れませんでした。電波のよいところで、もう一度押してください。'; st.cls = 'err'; }
+        st.busy = false; draw(); var mm = box.querySelector('.sv-msg'); if (mm && mm.scrollIntoView) mm.scrollIntoView({ block: 'nearest' });
+      }
+    });
+    return true;
+  }
+  return { validId: validId, newId: newId, linkFor: linkFor, buildDocs: buildDocs, cleanAnswer: cleanAnswer, coach: coach, student: student, apply: apply, fb: fb, setFirebase: setFirebase, initLink: initLink, renderStudent: renderStudent,
+    defaultDeadline: defaultDeadline, dayEnd: dayEnd, jstDay: jstDay, when: when, dayLabel: dayLabel, sexName: sexName, evShort: evShort, esc: esc, CMMAX: CMMAX, KEEP: KEEP };
+})();
+if (typeof module !== 'undefined') module.exports = LaneSurvey;
+
+</script>
+<script>
+/* QR Code Generator for JavaScript (c) 2009 Kazuhiko Arase, MIT license — 同梱（外部から読み込まない）。v0.28.0 エントリー調査リンクのQR */
+//---------------------------------------------------------------------
+//
+// QR Code Generator for JavaScript
+//
+// Copyright (c) 2009 Kazuhiko Arase
+//
+// URL: http://www.d-project.com/
+//
+// Licensed under the MIT license:
+//  http://www.opensource.org/licenses/mit-license.php
+//
+// The word 'QR Code' is registered trademark of
+// DENSO WAVE INCORPORATED
+//  http://www.denso-wave.com/qrcode/faqpatent-e.html
+//
+//---------------------------------------------------------------------
+
+var qrcode = function() {
+
+  //---------------------------------------------------------------------
+  // qrcode
+  //---------------------------------------------------------------------
+
+  /**
+   * qrcode
+   * @param typeNumber 1 to 40
+   * @param errorCorrectionLevel 'L','M','Q','H'
+   */
+  var qrcode = function(typeNumber, errorCorrectionLevel) {
+
+    var PAD0 = 0xEC;
+    var PAD1 = 0x11;
+
+    var _typeNumber = typeNumber;
+    var _errorCorrectionLevel = QRErrorCorrectionLevel[errorCorrectionLevel];
+    var _modules = null;
+    var _moduleCount = 0;
+    var _dataCache = null;
+    var _dataList = [];
+
+    var _this = {};
+
+    var makeImpl = function(test, maskPattern) {
+
+      _moduleCount = _typeNumber * 4 + 17;
+      _modules = function(moduleCount) {
+        var modules = new Array(moduleCount);
+        for (var row = 0; row < moduleCount; row += 1) {
+          modules[row] = new Array(moduleCount);
+          for (var col = 0; col < moduleCount; col += 1) {
+            modules[row][col] = null;
+          }
+        }
+        return modules;
+      }(_moduleCount);
+
+      setupPositionProbePattern(0, 0);
+      setupPositionProbePattern(_moduleCount - 7, 0);
+      setupPositionProbePattern(0, _moduleCount - 7);
+      setupPositionAdjustPattern();
+      setupTimingPattern();
+      setupTypeInfo(test, maskPattern);
+
+      if (_typeNumber >= 7) {
+        setupTypeNumber(test);
+      }
+
+      if (_dataCache == null) {
+        _dataCache = createData(_typeNumber, _errorCorrectionLevel, _dataList);
+      }
+
+      mapData(_dataCache, maskPattern);
+    };
+
+    var setupPositionProbePattern = function(row, col) {
+
+      for (var r = -1; r <= 7; r += 1) {
+
+        if (row + r <= -1 || _moduleCount <= row + r) continue;
+
+        for (var c = -1; c <= 7; c += 1) {
+
+          if (col + c <= -1 || _moduleCount <= col + c) continue;
+
+          if ( (0 <= r && r <= 6 && (c == 0 || c == 6) )
+              || (0 <= c && c <= 6 && (r == 0 || r == 6) )
+              || (2 <= r && r <= 4 && 2 <= c && c <= 4) ) {
+            _modules[row + r][col + c] = true;
+          } else {
+            _modules[row + r][col + c] = false;
+          }
+        }
+      }
+    };
+
+    var getBestMaskPattern = function() {
+
+      var minLostPoint = 0;
+      var pattern = 0;
+
+      for (var i = 0; i < 8; i += 1) {
+
+        makeImpl(true, i);
+
+        var lostPoint = QRUtil.getLostPoint(_this);
+
+        if (i == 0 || minLostPoint > lostPoint) {
+          minLostPoint = lostPoint;
+          pattern = i;
+        }
+      }
+
+      return pattern;
+    };
+
+    var setupTimingPattern = function() {
+
+      for (var r = 8; r < _moduleCount - 8; r += 1) {
+        if (_modules[r][6] != null) {
+          continue;
+        }
+        _modules[r][6] = (r % 2 == 0);
+      }
+
+      for (var c = 8; c < _moduleCount - 8; c += 1) {
+        if (_modules[6][c] != null) {
+          continue;
+        }
+        _modules[6][c] = (c % 2 == 0);
+      }
+    };
+
+    var setupPositionAdjustPattern = function() {
+
+      var pos = QRUtil.getPatternPosition(_typeNumber);
+
+      for (var i = 0; i < pos.length; i += 1) {
+
+        for (var j = 0; j < pos.length; j += 1) {
+
+          var row = pos[i];
+          var col = pos[j];
+
+          if (_modules[row][col] != null) {
+            continue;
+          }
+
+          for (var r = -2; r <= 2; r += 1) {
+
+            for (var c = -2; c <= 2; c += 1) {
+
+              if (r == -2 || r == 2 || c == -2 || c == 2
+                  || (r == 0 && c == 0) ) {
+                _modules[row + r][col + c] = true;
+              } else {
+                _modules[row + r][col + c] = false;
+              }
+            }
+          }
+        }
+      }
+    };
+
+    var setupTypeNumber = function(test) {
+
+      var bits = QRUtil.getBCHTypeNumber(_typeNumber);
+
+      for (var i = 0; i < 18; i += 1) {
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+        _modules[Math.floor(i / 3)][i % 3 + _moduleCount - 8 - 3] = mod;
+      }
+
+      for (var i = 0; i < 18; i += 1) {
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+        _modules[i % 3 + _moduleCount - 8 - 3][Math.floor(i / 3)] = mod;
+      }
+    };
+
+    var setupTypeInfo = function(test, maskPattern) {
+
+      var data = (_errorCorrectionLevel << 3) | maskPattern;
+      var bits = QRUtil.getBCHTypeInfo(data);
+
+      // vertical
+      for (var i = 0; i < 15; i += 1) {
+
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+
+        if (i < 6) {
+          _modules[i][8] = mod;
+        } else if (i < 8) {
+          _modules[i + 1][8] = mod;
+        } else {
+          _modules[_moduleCount - 15 + i][8] = mod;
+        }
+      }
+
+      // horizontal
+      for (var i = 0; i < 15; i += 1) {
+
+        var mod = (!test && ( (bits >> i) & 1) == 1);
+
+        if (i < 8) {
+          _modules[8][_moduleCount - i - 1] = mod;
+        } else if (i < 9) {
+          _modules[8][15 - i - 1 + 1] = mod;
+        } else {
+          _modules[8][15 - i - 1] = mod;
+        }
+      }
+
+      // fixed module
+      _modules[_moduleCount - 8][8] = (!test);
+    };
+
+    var mapData = function(data, maskPattern) {
+
+      var inc = -1;
+      var row = _moduleCount - 1;
+      var bitIndex = 7;
+      var byteIndex = 0;
+      var maskFunc = QRUtil.getMaskFunction(maskPattern);
+
+      for (var col = _moduleCount - 1; col > 0; col -= 2) {
+
+        if (col == 6) col -= 1;
+
+        while (true) {
+
+          for (var c = 0; c < 2; c += 1) {
+
+            if (_modules[row][col - c] == null) {
+
+              var dark = false;
+
+              if (byteIndex < data.length) {
+                dark = ( ( (data[byteIndex] >>> bitIndex) & 1) == 1);
+              }
+
+              var mask = maskFunc(row, col - c);
+
+              if (mask) {
+                dark = !dark;
+              }
+
+              _modules[row][col - c] = dark;
+              bitIndex -= 1;
+
+              if (bitIndex == -1) {
+                byteIndex += 1;
+                bitIndex = 7;
+              }
+            }
+          }
+
+          row += inc;
+
+          if (row < 0 || _moduleCount <= row) {
+            row -= inc;
+            inc = -inc;
+            break;
+          }
+        }
+      }
+    };
+
+    var createBytes = function(buffer, rsBlocks) {
+
+      var offset = 0;
+
+      var maxDcCount = 0;
+      var maxEcCount = 0;
+
+      var dcdata = new Array(rsBlocks.length);
+      var ecdata = new Array(rsBlocks.length);
+
+      for (var r = 0; r < rsBlocks.length; r += 1) {
+
+        var dcCount = rsBlocks[r].dataCount;
+        var ecCount = rsBlocks[r].totalCount - dcCount;
+
+        maxDcCount = Math.max(maxDcCount, dcCount);
+        maxEcCount = Math.max(maxEcCount, ecCount);
+
+        dcdata[r] = new Array(dcCount);
+
+        for (var i = 0; i < dcdata[r].length; i += 1) {
+          dcdata[r][i] = 0xff & buffer.getBuffer()[i + offset];
+        }
+        offset += dcCount;
+
+        var rsPoly = QRUtil.getErrorCorrectPolynomial(ecCount);
+        var rawPoly = qrPolynomial(dcdata[r], rsPoly.getLength() - 1);
+
+        var modPoly = rawPoly.mod(rsPoly);
+        ecdata[r] = new Array(rsPoly.getLength() - 1);
+        for (var i = 0; i < ecdata[r].length; i += 1) {
+          var modIndex = i + modPoly.getLength() - ecdata[r].length;
+          ecdata[r][i] = (modIndex >= 0)? modPoly.getAt(modIndex) : 0;
+        }
+      }
+
+      var totalCodeCount = 0;
+      for (var i = 0; i < rsBlocks.length; i += 1) {
+        totalCodeCount += rsBlocks[i].totalCount;
+      }
+
+      var data = new Array(totalCodeCount);
+      var index = 0;
+
+      for (var i = 0; i < maxDcCount; i += 1) {
+        for (var r = 0; r < rsBlocks.length; r += 1) {
+          if (i < dcdata[r].length) {
+            data[index] = dcdata[r][i];
+            index += 1;
+          }
+        }
+      }
+
+      for (var i = 0; i < maxEcCount; i += 1) {
+        for (var r = 0; r < rsBlocks.length; r += 1) {
+          if (i < ecdata[r].length) {
+            data[index] = ecdata[r][i];
+            index += 1;
+          }
+        }
+      }
+
+      return data;
+    };
+
+    var createData = function(typeNumber, errorCorrectionLevel, dataList) {
+
+      var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, errorCorrectionLevel);
+
+      var buffer = qrBitBuffer();
+
+      for (var i = 0; i < dataList.length; i += 1) {
+        var data = dataList[i];
+        buffer.put(data.getMode(), 4);
+        buffer.put(data.getLength(), QRUtil.getLengthInBits(data.getMode(), typeNumber) );
+        data.write(buffer);
+      }
+
+      // calc num max data.
+      var totalDataCount = 0;
+      for (var i = 0; i < rsBlocks.length; i += 1) {
+        totalDataCount += rsBlocks[i].dataCount;
+      }
+
+      if (buffer.getLengthInBits() > totalDataCount * 8) {
+        throw 'code length overflow. ('
+          + buffer.getLengthInBits()
+          + '>'
+          + totalDataCount * 8
+          + ')';
+      }
+
+      // end code
+      if (buffer.getLengthInBits() + 4 <= totalDataCount * 8) {
+        buffer.put(0, 4);
+      }
+
+      // padding
+      while (buffer.getLengthInBits() % 8 != 0) {
+        buffer.putBit(false);
+      }
+
+      // padding
+      while (true) {
+
+        if (buffer.getLengthInBits() >= totalDataCount * 8) {
+          break;
+        }
+        buffer.put(PAD0, 8);
+
+        if (buffer.getLengthInBits() >= totalDataCount * 8) {
+          break;
+        }
+        buffer.put(PAD1, 8);
+      }
+
+      return createBytes(buffer, rsBlocks);
+    };
+
+    _this.addData = function(data, mode) {
+
+      mode = mode || 'Byte';
+
+      var newData = null;
+
+      switch(mode) {
+      case 'Numeric' :
+        newData = qrNumber(data);
+        break;
+      case 'Alphanumeric' :
+        newData = qrAlphaNum(data);
+        break;
+      case 'Byte' :
+        newData = qr8BitByte(data);
+        break;
+      case 'Kanji' :
+        newData = qrKanji(data);
+        break;
+      default :
+        throw 'mode:' + mode;
+      }
+
+      _dataList.push(newData);
+      _dataCache = null;
+    };
+
+    _this.isDark = function(row, col) {
+      if (row < 0 || _moduleCount <= row || col < 0 || _moduleCount <= col) {
+        throw row + ',' + col;
+      }
+      return _modules[row][col];
+    };
+
+    _this.getModuleCount = function() {
+      return _moduleCount;
+    };
+
+    _this.make = function() {
+      if (_typeNumber < 1) {
+        var typeNumber = 1;
+
+        for (; typeNumber < 40; typeNumber++) {
+          var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, _errorCorrectionLevel);
+          var buffer = qrBitBuffer();
+
+          for (var i = 0; i < _dataList.length; i++) {
+            var data = _dataList[i];
+            buffer.put(data.getMode(), 4);
+            buffer.put(data.getLength(), QRUtil.getLengthInBits(data.getMode(), typeNumber) );
+            data.write(buffer);
+          }
+
+          var totalDataCount = 0;
+          for (var i = 0; i < rsBlocks.length; i++) {
+            totalDataCount += rsBlocks[i].dataCount;
+          }
+
+          if (buffer.getLengthInBits() <= totalDataCount * 8) {
+            break;
+          }
+        }
+
+        _typeNumber = typeNumber;
+      }
+
+      makeImpl(false, getBestMaskPattern() );
+    };
+
+    _this.createTableTag = function(cellSize, margin) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var qrHtml = '';
+
+      qrHtml += '<table style="';
+      qrHtml += ' border-width: 0px; border-style: none;';
+      qrHtml += ' border-collapse: collapse;';
+      qrHtml += ' padding: 0px; margin: ' + margin + 'px;';
+      qrHtml += '">';
+      qrHtml += '<tbody>';
+
+      for (var r = 0; r < _this.getModuleCount(); r += 1) {
+
+        qrHtml += '<tr>';
+
+        for (var c = 0; c < _this.getModuleCount(); c += 1) {
+          qrHtml += '<td style="';
+          qrHtml += ' border-width: 0px; border-style: none;';
+          qrHtml += ' border-collapse: collapse;';
+          qrHtml += ' padding: 0px; margin: 0px;';
+          qrHtml += ' width: ' + cellSize + 'px;';
+          qrHtml += ' height: ' + cellSize + 'px;';
+          qrHtml += ' background-color: ';
+          qrHtml += _this.isDark(r, c)? '#000000' : '#ffffff';
+          qrHtml += ';';
+          qrHtml += '"/>';
+        }
+
+        qrHtml += '</tr>';
+      }
+
+      qrHtml += '</tbody>';
+      qrHtml += '</table>';
+
+      return qrHtml;
+    };
+
+    _this.createSvgTag = function(cellSize, margin, alt, title) {
+
+      var opts = {};
+      if (typeof arguments[0] == 'object') {
+        // Called by options.
+        opts = arguments[0];
+        // overwrite cellSize and margin.
+        cellSize = opts.cellSize;
+        margin = opts.margin;
+        alt = opts.alt;
+        title = opts.title;
+      }
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      // Compose alt property surrogate
+      alt = (typeof alt === 'string') ? {text: alt} : alt || {};
+      alt.text = alt.text || null;
+      alt.id = (alt.text) ? alt.id || 'qrcode-description' : null;
+
+      // Compose title property surrogate
+      title = (typeof title === 'string') ? {text: title} : title || {};
+      title.text = title.text || null;
+      title.id = (title.text) ? title.id || 'qrcode-title' : null;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var c, mc, r, mr, qrSvg='', rect;
+
+      rect = 'l' + cellSize + ',0 0,' + cellSize +
+        ' -' + cellSize + ',0 0,-' + cellSize + 'z ';
+
+      qrSvg += '<svg version="1.1" xmlns="http://www.w3.org/2000/svg"';
+      qrSvg += !opts.scalable ? ' width="' + size + 'px" height="' + size + 'px"' : '';
+      qrSvg += ' viewBox="0 0 ' + size + ' ' + size + '" ';
+      qrSvg += ' preserveAspectRatio="xMinYMin meet"';
+      qrSvg += (title.text || alt.text) ? ' role="img" aria-labelledby="' +
+          escapeXml([title.id, alt.id].join(' ').trim() ) + '"' : '';
+      qrSvg += '>';
+      qrSvg += (title.text) ? '<title id="' + escapeXml(title.id) + '">' +
+          escapeXml(title.text) + '</title>' : '';
+      qrSvg += (alt.text) ? '<description id="' + escapeXml(alt.id) + '">' +
+          escapeXml(alt.text) + '</description>' : '';
+      qrSvg += '<rect width="100%" height="100%" fill="white" cx="0" cy="0"/>';
+      qrSvg += '<path d="';
+
+      for (r = 0; r < _this.getModuleCount(); r += 1) {
+        mr = r * cellSize + margin;
+        for (c = 0; c < _this.getModuleCount(); c += 1) {
+          if (_this.isDark(r, c) ) {
+            mc = c*cellSize+margin;
+            qrSvg += 'M' + mc + ',' + mr + rect;
+          }
+        }
+      }
+
+      qrSvg += '" stroke="transparent" fill="black"/>';
+      qrSvg += '</svg>';
+
+      return qrSvg;
+    };
+
+    _this.createDataURL = function(cellSize, margin) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      return createDataURL(size, size, function(x, y) {
+        if (min <= x && x < max && min <= y && y < max) {
+          var c = Math.floor( (x - min) / cellSize);
+          var r = Math.floor( (y - min) / cellSize);
+          return _this.isDark(r, c)? 0 : 1;
+        } else {
+          return 1;
+        }
+      } );
+    };
+
+    _this.createImgTag = function(cellSize, margin, alt) {
+
+      cellSize = cellSize || 2;
+      margin = (typeof margin == 'undefined')? cellSize * 4 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+
+      var img = '';
+      img += '<img';
+      img += '\u0020src="';
+      img += _this.createDataURL(cellSize, margin);
+      img += '"';
+      img += '\u0020width="';
+      img += size;
+      img += '"';
+      img += '\u0020height="';
+      img += size;
+      img += '"';
+      if (alt) {
+        img += '\u0020alt="';
+        img += escapeXml(alt);
+        img += '"';
+      }
+      img += '/>';
+
+      return img;
+    };
+
+    var escapeXml = function(s) {
+      var escaped = '';
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charAt(i);
+        switch(c) {
+        case '<': escaped += '&lt;'; break;
+        case '>': escaped += '&gt;'; break;
+        case '&': escaped += '&amp;'; break;
+        case '"': escaped += '&quot;'; break;
+        default : escaped += c; break;
+        }
+      }
+      return escaped;
+    };
+
+    var _createHalfASCII = function(margin) {
+      var cellSize = 1;
+      margin = (typeof margin == 'undefined')? cellSize * 2 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      var y, x, r1, r2, p;
+
+      var blocks = {
+        '██': '█',
+        '█ ': '▀',
+        ' █': '▄',
+        '  ': ' '
+      };
+
+      var blocksLastLineNoMargin = {
+        '██': '▀',
+        '█ ': '▀',
+        ' █': ' ',
+        '  ': ' '
+      };
+
+      var ascii = '';
+      for (y = 0; y < size; y += 2) {
+        r1 = Math.floor((y - min) / cellSize);
+        r2 = Math.floor((y + 1 - min) / cellSize);
+        for (x = 0; x < size; x += 1) {
+          p = '█';
+
+          if (min <= x && x < max && min <= y && y < max && _this.isDark(r1, Math.floor((x - min) / cellSize))) {
+            p = ' ';
+          }
+
+          if (min <= x && x < max && min <= y+1 && y+1 < max && _this.isDark(r2, Math.floor((x - min) / cellSize))) {
+            p += ' ';
+          }
+          else {
+            p += '█';
+          }
+
+          // Output 2 characters per pixel, to create full square. 1 character per pixels gives only half width of square.
+          ascii += (margin < 1 && y+1 >= max) ? blocksLastLineNoMargin[p] : blocks[p];
+        }
+
+        ascii += '\n';
+      }
+
+      if (size % 2 && margin > 0) {
+        return ascii.substring(0, ascii.length - size - 1) + Array(size+1).join('▀');
+      }
+
+      return ascii.substring(0, ascii.length-1);
+    };
+
+    _this.createASCII = function(cellSize, margin) {
+      cellSize = cellSize || 1;
+
+      if (cellSize < 2) {
+        return _createHalfASCII(margin);
+      }
+
+      cellSize -= 1;
+      margin = (typeof margin == 'undefined')? cellSize * 2 : margin;
+
+      var size = _this.getModuleCount() * cellSize + margin * 2;
+      var min = margin;
+      var max = size - margin;
+
+      var y, x, r, p;
+
+      var white = Array(cellSize+1).join('██');
+      var black = Array(cellSize+1).join('  ');
+
+      var ascii = '';
+      var line = '';
+      for (y = 0; y < size; y += 1) {
+        r = Math.floor( (y - min) / cellSize);
+        line = '';
+        for (x = 0; x < size; x += 1) {
+          p = 1;
+
+          if (min <= x && x < max && min <= y && y < max && _this.isDark(r, Math.floor((x - min) / cellSize))) {
+            p = 0;
+          }
+
+          // Output 2 characters per pixel, to create full square. 1 character per pixels gives only half width of square.
+          line += p ? white : black;
+        }
+
+        for (r = 0; r < cellSize; r += 1) {
+          ascii += line + '\n';
+        }
+      }
+
+      return ascii.substring(0, ascii.length-1);
+    };
+
+    _this.renderTo2dContext = function(context, cellSize) {
+      cellSize = cellSize || 2;
+      var length = _this.getModuleCount();
+      for (var row = 0; row < length; row++) {
+        for (var col = 0; col < length; col++) {
+          context.fillStyle = _this.isDark(row, col) ? 'black' : 'white';
+          context.fillRect(row * cellSize, col * cellSize, cellSize, cellSize);
+        }
+      }
+    }
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrcode.stringToBytes
+  //---------------------------------------------------------------------
+
+  qrcode.stringToBytesFuncs = {
+    'default' : function(s) {
+      var bytes = [];
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charCodeAt(i);
+        bytes.push(c & 0xff);
+      }
+      return bytes;
+    }
+  };
+
+  qrcode.stringToBytes = qrcode.stringToBytesFuncs['default'];
+
+  //---------------------------------------------------------------------
+  // qrcode.createStringToBytes
+  //---------------------------------------------------------------------
+
+  /**
+   * @param unicodeData base64 string of byte array.
+   * [16bit Unicode],[16bit Bytes], ...
+   * @param numChars
+   */
+  qrcode.createStringToBytes = function(unicodeData, numChars) {
+
+    // create conversion map.
+
+    var unicodeMap = function() {
+
+      var bin = base64DecodeInputStream(unicodeData);
+      var read = function() {
+        var b = bin.read();
+        if (b == -1) throw 'eof';
+        return b;
+      };
+
+      var count = 0;
+      var unicodeMap = {};
+      while (true) {
+        var b0 = bin.read();
+        if (b0 == -1) break;
+        var b1 = read();
+        var b2 = read();
+        var b3 = read();
+        var k = String.fromCharCode( (b0 << 8) | b1);
+        var v = (b2 << 8) | b3;
+        unicodeMap[k] = v;
+        count += 1;
+      }
+      if (count != numChars) {
+        throw count + ' != ' + numChars;
+      }
+
+      return unicodeMap;
+    }();
+
+    var unknownChar = '?'.charCodeAt(0);
+
+    return function(s) {
+      var bytes = [];
+      for (var i = 0; i < s.length; i += 1) {
+        var c = s.charCodeAt(i);
+        if (c < 128) {
+          bytes.push(c);
+        } else {
+          var b = unicodeMap[s.charAt(i)];
+          if (typeof b == 'number') {
+            if ( (b & 0xff) == b) {
+              // 1byte
+              bytes.push(b);
+            } else {
+              // 2bytes
+              bytes.push(b >>> 8);
+              bytes.push(b & 0xff);
+            }
+          } else {
+            bytes.push(unknownChar);
+          }
+        }
+      }
+      return bytes;
+    };
+  };
+
+  //---------------------------------------------------------------------
+  // QRMode
+  //---------------------------------------------------------------------
+
+  var QRMode = {
+    MODE_NUMBER :    1 << 0,
+    MODE_ALPHA_NUM : 1 << 1,
+    MODE_8BIT_BYTE : 1 << 2,
+    MODE_KANJI :     1 << 3
+  };
+
+  //---------------------------------------------------------------------
+  // QRErrorCorrectionLevel
+  //---------------------------------------------------------------------
+
+  var QRErrorCorrectionLevel = {
+    L : 1,
+    M : 0,
+    Q : 3,
+    H : 2
+  };
+
+  //---------------------------------------------------------------------
+  // QRMaskPattern
+  //---------------------------------------------------------------------
+
+  var QRMaskPattern = {
+    PATTERN000 : 0,
+    PATTERN001 : 1,
+    PATTERN010 : 2,
+    PATTERN011 : 3,
+    PATTERN100 : 4,
+    PATTERN101 : 5,
+    PATTERN110 : 6,
+    PATTERN111 : 7
+  };
+
+  //---------------------------------------------------------------------
+  // QRUtil
+  //---------------------------------------------------------------------
+
+  var QRUtil = function() {
+
+    var PATTERN_POSITION_TABLE = [
+      [],
+      [6, 18],
+      [6, 22],
+      [6, 26],
+      [6, 30],
+      [6, 34],
+      [6, 22, 38],
+      [6, 24, 42],
+      [6, 26, 46],
+      [6, 28, 50],
+      [6, 30, 54],
+      [6, 32, 58],
+      [6, 34, 62],
+      [6, 26, 46, 66],
+      [6, 26, 48, 70],
+      [6, 26, 50, 74],
+      [6, 30, 54, 78],
+      [6, 30, 56, 82],
+      [6, 30, 58, 86],
+      [6, 34, 62, 90],
+      [6, 28, 50, 72, 94],
+      [6, 26, 50, 74, 98],
+      [6, 30, 54, 78, 102],
+      [6, 28, 54, 80, 106],
+      [6, 32, 58, 84, 110],
+      [6, 30, 58, 86, 114],
+      [6, 34, 62, 90, 118],
+      [6, 26, 50, 74, 98, 122],
+      [6, 30, 54, 78, 102, 126],
+      [6, 26, 52, 78, 104, 130],
+      [6, 30, 56, 82, 108, 134],
+      [6, 34, 60, 86, 112, 138],
+      [6, 30, 58, 86, 114, 142],
+      [6, 34, 62, 90, 118, 146],
+      [6, 30, 54, 78, 102, 126, 150],
+      [6, 24, 50, 76, 102, 128, 154],
+      [6, 28, 54, 80, 106, 132, 158],
+      [6, 32, 58, 84, 110, 136, 162],
+      [6, 26, 54, 82, 110, 138, 166],
+      [6, 30, 58, 86, 114, 142, 170]
+    ];
+    var G15 = (1 << 10) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 2) | (1 << 1) | (1 << 0);
+    var G18 = (1 << 12) | (1 << 11) | (1 << 10) | (1 << 9) | (1 << 8) | (1 << 5) | (1 << 2) | (1 << 0);
+    var G15_MASK = (1 << 14) | (1 << 12) | (1 << 10) | (1 << 4) | (1 << 1);
+
+    var _this = {};
+
+    var getBCHDigit = function(data) {
+      var digit = 0;
+      while (data != 0) {
+        digit += 1;
+        data >>>= 1;
+      }
+      return digit;
+    };
+
+    _this.getBCHTypeInfo = function(data) {
+      var d = data << 10;
+      while (getBCHDigit(d) - getBCHDigit(G15) >= 0) {
+        d ^= (G15 << (getBCHDigit(d) - getBCHDigit(G15) ) );
+      }
+      return ( (data << 10) | d) ^ G15_MASK;
+    };
+
+    _this.getBCHTypeNumber = function(data) {
+      var d = data << 12;
+      while (getBCHDigit(d) - getBCHDigit(G18) >= 0) {
+        d ^= (G18 << (getBCHDigit(d) - getBCHDigit(G18) ) );
+      }
+      return (data << 12) | d;
+    };
+
+    _this.getPatternPosition = function(typeNumber) {
+      return PATTERN_POSITION_TABLE[typeNumber - 1];
+    };
+
+    _this.getMaskFunction = function(maskPattern) {
+
+      switch (maskPattern) {
+
+      case QRMaskPattern.PATTERN000 :
+        return function(i, j) { return (i + j) % 2 == 0; };
+      case QRMaskPattern.PATTERN001 :
+        return function(i, j) { return i % 2 == 0; };
+      case QRMaskPattern.PATTERN010 :
+        return function(i, j) { return j % 3 == 0; };
+      case QRMaskPattern.PATTERN011 :
+        return function(i, j) { return (i + j) % 3 == 0; };
+      case QRMaskPattern.PATTERN100 :
+        return function(i, j) { return (Math.floor(i / 2) + Math.floor(j / 3) ) % 2 == 0; };
+      case QRMaskPattern.PATTERN101 :
+        return function(i, j) { return (i * j) % 2 + (i * j) % 3 == 0; };
+      case QRMaskPattern.PATTERN110 :
+        return function(i, j) { return ( (i * j) % 2 + (i * j) % 3) % 2 == 0; };
+      case QRMaskPattern.PATTERN111 :
+        return function(i, j) { return ( (i * j) % 3 + (i + j) % 2) % 2 == 0; };
+
+      default :
+        throw 'bad maskPattern:' + maskPattern;
+      }
+    };
+
+    _this.getErrorCorrectPolynomial = function(errorCorrectLength) {
+      var a = qrPolynomial([1], 0);
+      for (var i = 0; i < errorCorrectLength; i += 1) {
+        a = a.multiply(qrPolynomial([1, QRMath.gexp(i)], 0) );
+      }
+      return a;
+    };
+
+    _this.getLengthInBits = function(mode, type) {
+
+      if (1 <= type && type < 10) {
+
+        // 1 - 9
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 10;
+        case QRMode.MODE_ALPHA_NUM : return 9;
+        case QRMode.MODE_8BIT_BYTE : return 8;
+        case QRMode.MODE_KANJI     : return 8;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else if (type < 27) {
+
+        // 10 - 26
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 12;
+        case QRMode.MODE_ALPHA_NUM : return 11;
+        case QRMode.MODE_8BIT_BYTE : return 16;
+        case QRMode.MODE_KANJI     : return 10;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else if (type < 41) {
+
+        // 27 - 40
+
+        switch(mode) {
+        case QRMode.MODE_NUMBER    : return 14;
+        case QRMode.MODE_ALPHA_NUM : return 13;
+        case QRMode.MODE_8BIT_BYTE : return 16;
+        case QRMode.MODE_KANJI     : return 12;
+        default :
+          throw 'mode:' + mode;
+        }
+
+      } else {
+        throw 'type:' + type;
+      }
+    };
+
+    _this.getLostPoint = function(qrcode) {
+
+      var moduleCount = qrcode.getModuleCount();
+
+      var lostPoint = 0;
+
+      // LEVEL1
+
+      for (var row = 0; row < moduleCount; row += 1) {
+        for (var col = 0; col < moduleCount; col += 1) {
+
+          var sameCount = 0;
+          var dark = qrcode.isDark(row, col);
+
+          for (var r = -1; r <= 1; r += 1) {
+
+            if (row + r < 0 || moduleCount <= row + r) {
+              continue;
+            }
+
+            for (var c = -1; c <= 1; c += 1) {
+
+              if (col + c < 0 || moduleCount <= col + c) {
+                continue;
+              }
+
+              if (r == 0 && c == 0) {
+                continue;
+              }
+
+              if (dark == qrcode.isDark(row + r, col + c) ) {
+                sameCount += 1;
+              }
+            }
+          }
+
+          if (sameCount > 5) {
+            lostPoint += (3 + sameCount - 5);
+          }
+        }
+      };
+
+      // LEVEL2
+
+      for (var row = 0; row < moduleCount - 1; row += 1) {
+        for (var col = 0; col < moduleCount - 1; col += 1) {
+          var count = 0;
+          if (qrcode.isDark(row, col) ) count += 1;
+          if (qrcode.isDark(row + 1, col) ) count += 1;
+          if (qrcode.isDark(row, col + 1) ) count += 1;
+          if (qrcode.isDark(row + 1, col + 1) ) count += 1;
+          if (count == 0 || count == 4) {
+            lostPoint += 3;
+          }
+        }
+      }
+
+      // LEVEL3
+
+      for (var row = 0; row < moduleCount; row += 1) {
+        for (var col = 0; col < moduleCount - 6; col += 1) {
+          if (qrcode.isDark(row, col)
+              && !qrcode.isDark(row, col + 1)
+              &&  qrcode.isDark(row, col + 2)
+              &&  qrcode.isDark(row, col + 3)
+              &&  qrcode.isDark(row, col + 4)
+              && !qrcode.isDark(row, col + 5)
+              &&  qrcode.isDark(row, col + 6) ) {
+            lostPoint += 40;
+          }
+        }
+      }
+
+      for (var col = 0; col < moduleCount; col += 1) {
+        for (var row = 0; row < moduleCount - 6; row += 1) {
+          if (qrcode.isDark(row, col)
+              && !qrcode.isDark(row + 1, col)
+              &&  qrcode.isDark(row + 2, col)
+              &&  qrcode.isDark(row + 3, col)
+              &&  qrcode.isDark(row + 4, col)
+              && !qrcode.isDark(row + 5, col)
+              &&  qrcode.isDark(row + 6, col) ) {
+            lostPoint += 40;
+          }
+        }
+      }
+
+      // LEVEL4
+
+      var darkCount = 0;
+
+      for (var col = 0; col < moduleCount; col += 1) {
+        for (var row = 0; row < moduleCount; row += 1) {
+          if (qrcode.isDark(row, col) ) {
+            darkCount += 1;
+          }
+        }
+      }
+
+      var ratio = Math.abs(100 * darkCount / moduleCount / moduleCount - 50) / 5;
+      lostPoint += ratio * 10;
+
+      return lostPoint;
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // QRMath
+  //---------------------------------------------------------------------
+
+  var QRMath = function() {
+
+    var EXP_TABLE = new Array(256);
+    var LOG_TABLE = new Array(256);
+
+    // initialize tables
+    for (var i = 0; i < 8; i += 1) {
+      EXP_TABLE[i] = 1 << i;
+    }
+    for (var i = 8; i < 256; i += 1) {
+      EXP_TABLE[i] = EXP_TABLE[i - 4]
+        ^ EXP_TABLE[i - 5]
+        ^ EXP_TABLE[i - 6]
+        ^ EXP_TABLE[i - 8];
+    }
+    for (var i = 0; i < 255; i += 1) {
+      LOG_TABLE[EXP_TABLE[i] ] = i;
+    }
+
+    var _this = {};
+
+    _this.glog = function(n) {
+
+      if (n < 1) {
+        throw 'glog(' + n + ')';
+      }
+
+      return LOG_TABLE[n];
+    };
+
+    _this.gexp = function(n) {
+
+      while (n < 0) {
+        n += 255;
+      }
+
+      while (n >= 256) {
+        n -= 255;
+      }
+
+      return EXP_TABLE[n];
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // qrPolynomial
+  //---------------------------------------------------------------------
+
+  function qrPolynomial(num, shift) {
+
+    if (typeof num.length == 'undefined') {
+      throw num.length + '/' + shift;
+    }
+
+    var _num = function() {
+      var offset = 0;
+      while (offset < num.length && num[offset] == 0) {
+        offset += 1;
+      }
+      var _num = new Array(num.length - offset + shift);
+      for (var i = 0; i < num.length - offset; i += 1) {
+        _num[i] = num[i + offset];
+      }
+      return _num;
+    }();
+
+    var _this = {};
+
+    _this.getAt = function(index) {
+      return _num[index];
+    };
+
+    _this.getLength = function() {
+      return _num.length;
+    };
+
+    _this.multiply = function(e) {
+
+      var num = new Array(_this.getLength() + e.getLength() - 1);
+
+      for (var i = 0; i < _this.getLength(); i += 1) {
+        for (var j = 0; j < e.getLength(); j += 1) {
+          num[i + j] ^= QRMath.gexp(QRMath.glog(_this.getAt(i) ) + QRMath.glog(e.getAt(j) ) );
+        }
+      }
+
+      return qrPolynomial(num, 0);
+    };
+
+    _this.mod = function(e) {
+
+      if (_this.getLength() - e.getLength() < 0) {
+        return _this;
+      }
+
+      var ratio = QRMath.glog(_this.getAt(0) ) - QRMath.glog(e.getAt(0) );
+
+      var num = new Array(_this.getLength() );
+      for (var i = 0; i < _this.getLength(); i += 1) {
+        num[i] = _this.getAt(i);
+      }
+
+      for (var i = 0; i < e.getLength(); i += 1) {
+        num[i] ^= QRMath.gexp(QRMath.glog(e.getAt(i) ) + ratio);
+      }
+
+      // recursive call
+      return qrPolynomial(num, 0).mod(e);
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // QRRSBlock
+  //---------------------------------------------------------------------
+
+  var QRRSBlock = function() {
+
+    var RS_BLOCK_TABLE = [
+
+      // L
+      // M
+      // Q
+      // H
+
+      // 1
+      [1, 26, 19],
+      [1, 26, 16],
+      [1, 26, 13],
+      [1, 26, 9],
+
+      // 2
+      [1, 44, 34],
+      [1, 44, 28],
+      [1, 44, 22],
+      [1, 44, 16],
+
+      // 3
+      [1, 70, 55],
+      [1, 70, 44],
+      [2, 35, 17],
+      [2, 35, 13],
+
+      // 4
+      [1, 100, 80],
+      [2, 50, 32],
+      [2, 50, 24],
+      [4, 25, 9],
+
+      // 5
+      [1, 134, 108],
+      [2, 67, 43],
+      [2, 33, 15, 2, 34, 16],
+      [2, 33, 11, 2, 34, 12],
+
+      // 6
+      [2, 86, 68],
+      [4, 43, 27],
+      [4, 43, 19],
+      [4, 43, 15],
+
+      // 7
+      [2, 98, 78],
+      [4, 49, 31],
+      [2, 32, 14, 4, 33, 15],
+      [4, 39, 13, 1, 40, 14],
+
+      // 8
+      [2, 121, 97],
+      [2, 60, 38, 2, 61, 39],
+      [4, 40, 18, 2, 41, 19],
+      [4, 40, 14, 2, 41, 15],
+
+      // 9
+      [2, 146, 116],
+      [3, 58, 36, 2, 59, 37],
+      [4, 36, 16, 4, 37, 17],
+      [4, 36, 12, 4, 37, 13],
+
+      // 10
+      [2, 86, 68, 2, 87, 69],
+      [4, 69, 43, 1, 70, 44],
+      [6, 43, 19, 2, 44, 20],
+      [6, 43, 15, 2, 44, 16],
+
+      // 11
+      [4, 101, 81],
+      [1, 80, 50, 4, 81, 51],
+      [4, 50, 22, 4, 51, 23],
+      [3, 36, 12, 8, 37, 13],
+
+      // 12
+      [2, 116, 92, 2, 117, 93],
+      [6, 58, 36, 2, 59, 37],
+      [4, 46, 20, 6, 47, 21],
+      [7, 42, 14, 4, 43, 15],
+
+      // 13
+      [4, 133, 107],
+      [8, 59, 37, 1, 60, 38],
+      [8, 44, 20, 4, 45, 21],
+      [12, 33, 11, 4, 34, 12],
+
+      // 14
+      [3, 145, 115, 1, 146, 116],
+      [4, 64, 40, 5, 65, 41],
+      [11, 36, 16, 5, 37, 17],
+      [11, 36, 12, 5, 37, 13],
+
+      // 15
+      [5, 109, 87, 1, 110, 88],
+      [5, 65, 41, 5, 66, 42],
+      [5, 54, 24, 7, 55, 25],
+      [11, 36, 12, 7, 37, 13],
+
+      // 16
+      [5, 122, 98, 1, 123, 99],
+      [7, 73, 45, 3, 74, 46],
+      [15, 43, 19, 2, 44, 20],
+      [3, 45, 15, 13, 46, 16],
+
+      // 17
+      [1, 135, 107, 5, 136, 108],
+      [10, 74, 46, 1, 75, 47],
+      [1, 50, 22, 15, 51, 23],
+      [2, 42, 14, 17, 43, 15],
+
+      // 18
+      [5, 150, 120, 1, 151, 121],
+      [9, 69, 43, 4, 70, 44],
+      [17, 50, 22, 1, 51, 23],
+      [2, 42, 14, 19, 43, 15],
+
+      // 19
+      [3, 141, 113, 4, 142, 114],
+      [3, 70, 44, 11, 71, 45],
+      [17, 47, 21, 4, 48, 22],
+      [9, 39, 13, 16, 40, 14],
+
+      // 20
+      [3, 135, 107, 5, 136, 108],
+      [3, 67, 41, 13, 68, 42],
+      [15, 54, 24, 5, 55, 25],
+      [15, 43, 15, 10, 44, 16],
+
+      // 21
+      [4, 144, 116, 4, 145, 117],
+      [17, 68, 42],
+      [17, 50, 22, 6, 51, 23],
+      [19, 46, 16, 6, 47, 17],
+
+      // 22
+      [2, 139, 111, 7, 140, 112],
+      [17, 74, 46],
+      [7, 54, 24, 16, 55, 25],
+      [34, 37, 13],
+
+      // 23
+      [4, 151, 121, 5, 152, 122],
+      [4, 75, 47, 14, 76, 48],
+      [11, 54, 24, 14, 55, 25],
+      [16, 45, 15, 14, 46, 16],
+
+      // 24
+      [6, 147, 117, 4, 148, 118],
+      [6, 73, 45, 14, 74, 46],
+      [11, 54, 24, 16, 55, 25],
+      [30, 46, 16, 2, 47, 17],
+
+      // 25
+      [8, 132, 106, 4, 133, 107],
+      [8, 75, 47, 13, 76, 48],
+      [7, 54, 24, 22, 55, 25],
+      [22, 45, 15, 13, 46, 16],
+
+      // 26
+      [10, 142, 114, 2, 143, 115],
+      [19, 74, 46, 4, 75, 47],
+      [28, 50, 22, 6, 51, 23],
+      [33, 46, 16, 4, 47, 17],
+
+      // 27
+      [8, 152, 122, 4, 153, 123],
+      [22, 73, 45, 3, 74, 46],
+      [8, 53, 23, 26, 54, 24],
+      [12, 45, 15, 28, 46, 16],
+
+      // 28
+      [3, 147, 117, 10, 148, 118],
+      [3, 73, 45, 23, 74, 46],
+      [4, 54, 24, 31, 55, 25],
+      [11, 45, 15, 31, 46, 16],
+
+      // 29
+      [7, 146, 116, 7, 147, 117],
+      [21, 73, 45, 7, 74, 46],
+      [1, 53, 23, 37, 54, 24],
+      [19, 45, 15, 26, 46, 16],
+
+      // 30
+      [5, 145, 115, 10, 146, 116],
+      [19, 75, 47, 10, 76, 48],
+      [15, 54, 24, 25, 55, 25],
+      [23, 45, 15, 25, 46, 16],
+
+      // 31
+      [13, 145, 115, 3, 146, 116],
+      [2, 74, 46, 29, 75, 47],
+      [42, 54, 24, 1, 55, 25],
+      [23, 45, 15, 28, 46, 16],
+
+      // 32
+      [17, 145, 115],
+      [10, 74, 46, 23, 75, 47],
+      [10, 54, 24, 35, 55, 25],
+      [19, 45, 15, 35, 46, 16],
+
+      // 33
+      [17, 145, 115, 1, 146, 116],
+      [14, 74, 46, 21, 75, 47],
+      [29, 54, 24, 19, 55, 25],
+      [11, 45, 15, 46, 46, 16],
+
+      // 34
+      [13, 145, 115, 6, 146, 116],
+      [14, 74, 46, 23, 75, 47],
+      [44, 54, 24, 7, 55, 25],
+      [59, 46, 16, 1, 47, 17],
+
+      // 35
+      [12, 151, 121, 7, 152, 122],
+      [12, 75, 47, 26, 76, 48],
+      [39, 54, 24, 14, 55, 25],
+      [22, 45, 15, 41, 46, 16],
+
+      // 36
+      [6, 151, 121, 14, 152, 122],
+      [6, 75, 47, 34, 76, 48],
+      [46, 54, 24, 10, 55, 25],
+      [2, 45, 15, 64, 46, 16],
+
+      // 37
+      [17, 152, 122, 4, 153, 123],
+      [29, 74, 46, 14, 75, 47],
+      [49, 54, 24, 10, 55, 25],
+      [24, 45, 15, 46, 46, 16],
+
+      // 38
+      [4, 152, 122, 18, 153, 123],
+      [13, 74, 46, 32, 75, 47],
+      [48, 54, 24, 14, 55, 25],
+      [42, 45, 15, 32, 46, 16],
+
+      // 39
+      [20, 147, 117, 4, 148, 118],
+      [40, 75, 47, 7, 76, 48],
+      [43, 54, 24, 22, 55, 25],
+      [10, 45, 15, 67, 46, 16],
+
+      // 40
+      [19, 148, 118, 6, 149, 119],
+      [18, 75, 47, 31, 76, 48],
+      [34, 54, 24, 34, 55, 25],
+      [20, 45, 15, 61, 46, 16]
+    ];
+
+    var qrRSBlock = function(totalCount, dataCount) {
+      var _this = {};
+      _this.totalCount = totalCount;
+      _this.dataCount = dataCount;
+      return _this;
+    };
+
+    var _this = {};
+
+    var getRsBlockTable = function(typeNumber, errorCorrectionLevel) {
+
+      switch(errorCorrectionLevel) {
+      case QRErrorCorrectionLevel.L :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 0];
+      case QRErrorCorrectionLevel.M :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 1];
+      case QRErrorCorrectionLevel.Q :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 2];
+      case QRErrorCorrectionLevel.H :
+        return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 3];
+      default :
+        return undefined;
+      }
+    };
+
+    _this.getRSBlocks = function(typeNumber, errorCorrectionLevel) {
+
+      var rsBlock = getRsBlockTable(typeNumber, errorCorrectionLevel);
+
+      if (typeof rsBlock == 'undefined') {
+        throw 'bad rs block @ typeNumber:' + typeNumber +
+            '/errorCorrectionLevel:' + errorCorrectionLevel;
+      }
+
+      var length = rsBlock.length / 3;
+
+      var list = [];
+
+      for (var i = 0; i < length; i += 1) {
+
+        var count = rsBlock[i * 3 + 0];
+        var totalCount = rsBlock[i * 3 + 1];
+        var dataCount = rsBlock[i * 3 + 2];
+
+        for (var j = 0; j < count; j += 1) {
+          list.push(qrRSBlock(totalCount, dataCount) );
+        }
+      }
+
+      return list;
+    };
+
+    return _this;
+  }();
+
+  //---------------------------------------------------------------------
+  // qrBitBuffer
+  //---------------------------------------------------------------------
+
+  var qrBitBuffer = function() {
+
+    var _buffer = [];
+    var _length = 0;
+
+    var _this = {};
+
+    _this.getBuffer = function() {
+      return _buffer;
+    };
+
+    _this.getAt = function(index) {
+      var bufIndex = Math.floor(index / 8);
+      return ( (_buffer[bufIndex] >>> (7 - index % 8) ) & 1) == 1;
+    };
+
+    _this.put = function(num, length) {
+      for (var i = 0; i < length; i += 1) {
+        _this.putBit( ( (num >>> (length - i - 1) ) & 1) == 1);
+      }
+    };
+
+    _this.getLengthInBits = function() {
+      return _length;
+    };
+
+    _this.putBit = function(bit) {
+
+      var bufIndex = Math.floor(_length / 8);
+      if (_buffer.length <= bufIndex) {
+        _buffer.push(0);
+      }
+
+      if (bit) {
+        _buffer[bufIndex] |= (0x80 >>> (_length % 8) );
+      }
+
+      _length += 1;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrNumber
+  //---------------------------------------------------------------------
+
+  var qrNumber = function(data) {
+
+    var _mode = QRMode.MODE_NUMBER;
+    var _data = data;
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _data.length;
+    };
+
+    _this.write = function(buffer) {
+
+      var data = _data;
+
+      var i = 0;
+
+      while (i + 2 < data.length) {
+        buffer.put(strToNum(data.substring(i, i + 3) ), 10);
+        i += 3;
+      }
+
+      if (i < data.length) {
+        if (data.length - i == 1) {
+          buffer.put(strToNum(data.substring(i, i + 1) ), 4);
+        } else if (data.length - i == 2) {
+          buffer.put(strToNum(data.substring(i, i + 2) ), 7);
+        }
+      }
+    };
+
+    var strToNum = function(s) {
+      var num = 0;
+      for (var i = 0; i < s.length; i += 1) {
+        num = num * 10 + chatToNum(s.charAt(i) );
+      }
+      return num;
+    };
+
+    var chatToNum = function(c) {
+      if ('0' <= c && c <= '9') {
+        return c.charCodeAt(0) - '0'.charCodeAt(0);
+      }
+      throw 'illegal char :' + c;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrAlphaNum
+  //---------------------------------------------------------------------
+
+  var qrAlphaNum = function(data) {
+
+    var _mode = QRMode.MODE_ALPHA_NUM;
+    var _data = data;
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _data.length;
+    };
+
+    _this.write = function(buffer) {
+
+      var s = _data;
+
+      var i = 0;
+
+      while (i + 1 < s.length) {
+        buffer.put(
+          getCode(s.charAt(i) ) * 45 +
+          getCode(s.charAt(i + 1) ), 11);
+        i += 2;
+      }
+
+      if (i < s.length) {
+        buffer.put(getCode(s.charAt(i) ), 6);
+      }
+    };
+
+    var getCode = function(c) {
+
+      if ('0' <= c && c <= '9') {
+        return c.charCodeAt(0) - '0'.charCodeAt(0);
+      } else if ('A' <= c && c <= 'Z') {
+        return c.charCodeAt(0) - 'A'.charCodeAt(0) + 10;
+      } else {
+        switch (c) {
+        case ' ' : return 36;
+        case '$' : return 37;
+        case '%' : return 38;
+        case '*' : return 39;
+        case '+' : return 40;
+        case '-' : return 41;
+        case '.' : return 42;
+        case '/' : return 43;
+        case ':' : return 44;
+        default :
+          throw 'illegal char :' + c;
+        }
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qr8BitByte
+  //---------------------------------------------------------------------
+
+  var qr8BitByte = function(data) {
+
+    var _mode = QRMode.MODE_8BIT_BYTE;
+    var _data = data;
+    var _bytes = qrcode.stringToBytes(data);
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return _bytes.length;
+    };
+
+    _this.write = function(buffer) {
+      for (var i = 0; i < _bytes.length; i += 1) {
+        buffer.put(_bytes[i], 8);
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // qrKanji
+  //---------------------------------------------------------------------
+
+  var qrKanji = function(data) {
+
+    var _mode = QRMode.MODE_KANJI;
+    var _data = data;
+
+    var stringToBytes = qrcode.stringToBytesFuncs['SJIS'];
+    if (!stringToBytes) {
+      throw 'sjis not supported.';
+    }
+    !function(c, code) {
+      // self test for sjis support.
+      var test = stringToBytes(c);
+      if (test.length != 2 || ( (test[0] << 8) | test[1]) != code) {
+        throw 'sjis not supported.';
+      }
+    }('\u53cb', 0x9746);
+
+    var _bytes = stringToBytes(data);
+
+    var _this = {};
+
+    _this.getMode = function() {
+      return _mode;
+    };
+
+    _this.getLength = function(buffer) {
+      return ~~(_bytes.length / 2);
+    };
+
+    _this.write = function(buffer) {
+
+      var data = _bytes;
+
+      var i = 0;
+
+      while (i + 1 < data.length) {
+
+        var c = ( (0xff & data[i]) << 8) | (0xff & data[i + 1]);
+
+        if (0x8140 <= c && c <= 0x9FFC) {
+          c -= 0x8140;
+        } else if (0xE040 <= c && c <= 0xEBBF) {
+          c -= 0xC140;
+        } else {
+          throw 'illegal char at ' + (i + 1) + '/' + c;
+        }
+
+        c = ( (c >>> 8) & 0xff) * 0xC0 + (c & 0xff);
+
+        buffer.put(c, 13);
+
+        i += 2;
+      }
+
+      if (i < data.length) {
+        throw 'illegal char at ' + (i + 1);
+      }
+    };
+
+    return _this;
+  };
+
+  //=====================================================================
+  // GIF Support etc.
+  //
+
+  //---------------------------------------------------------------------
+  // byteArrayOutputStream
+  //---------------------------------------------------------------------
+
+  var byteArrayOutputStream = function() {
+
+    var _bytes = [];
+
+    var _this = {};
+
+    _this.writeByte = function(b) {
+      _bytes.push(b & 0xff);
+    };
+
+    _this.writeShort = function(i) {
+      _this.writeByte(i);
+      _this.writeByte(i >>> 8);
+    };
+
+    _this.writeBytes = function(b, off, len) {
+      off = off || 0;
+      len = len || b.length;
+      for (var i = 0; i < len; i += 1) {
+        _this.writeByte(b[i + off]);
+      }
+    };
+
+    _this.writeString = function(s) {
+      for (var i = 0; i < s.length; i += 1) {
+        _this.writeByte(s.charCodeAt(i) );
+      }
+    };
+
+    _this.toByteArray = function() {
+      return _bytes;
+    };
+
+    _this.toString = function() {
+      var s = '';
+      s += '[';
+      for (var i = 0; i < _bytes.length; i += 1) {
+        if (i > 0) {
+          s += ',';
+        }
+        s += _bytes[i];
+      }
+      s += ']';
+      return s;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // base64EncodeOutputStream
+  //---------------------------------------------------------------------
+
+  var base64EncodeOutputStream = function() {
+
+    var _buffer = 0;
+    var _buflen = 0;
+    var _length = 0;
+    var _base64 = '';
+
+    var _this = {};
+
+    var writeEncoded = function(b) {
+      _base64 += String.fromCharCode(encode(b & 0x3f) );
+    };
+
+    var encode = function(n) {
+      if (n < 0) {
+        // error.
+      } else if (n < 26) {
+        return 0x41 + n;
+      } else if (n < 52) {
+        return 0x61 + (n - 26);
+      } else if (n < 62) {
+        return 0x30 + (n - 52);
+      } else if (n == 62) {
+        return 0x2b;
+      } else if (n == 63) {
+        return 0x2f;
+      }
+      throw 'n:' + n;
+    };
+
+    _this.writeByte = function(n) {
+
+      _buffer = (_buffer << 8) | (n & 0xff);
+      _buflen += 8;
+      _length += 1;
+
+      while (_buflen >= 6) {
+        writeEncoded(_buffer >>> (_buflen - 6) );
+        _buflen -= 6;
+      }
+    };
+
+    _this.flush = function() {
+
+      if (_buflen > 0) {
+        writeEncoded(_buffer << (6 - _buflen) );
+        _buffer = 0;
+        _buflen = 0;
+      }
+
+      if (_length % 3 != 0) {
+        // padding
+        var padlen = 3 - _length % 3;
+        for (var i = 0; i < padlen; i += 1) {
+          _base64 += '=';
+        }
+      }
+    };
+
+    _this.toString = function() {
+      return _base64;
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // base64DecodeInputStream
+  //---------------------------------------------------------------------
+
+  var base64DecodeInputStream = function(str) {
+
+    var _str = str;
+    var _pos = 0;
+    var _buffer = 0;
+    var _buflen = 0;
+
+    var _this = {};
+
+    _this.read = function() {
+
+      while (_buflen < 8) {
+
+        if (_pos >= _str.length) {
+          if (_buflen == 0) {
+            return -1;
+          }
+          throw 'unexpected end of file./' + _buflen;
+        }
+
+        var c = _str.charAt(_pos);
+        _pos += 1;
+
+        if (c == '=') {
+          _buflen = 0;
+          return -1;
+        } else if (c.match(/^\s$/) ) {
+          // ignore if whitespace.
+          continue;
+        }
+
+        _buffer = (_buffer << 6) | decode(c.charCodeAt(0) );
+        _buflen += 6;
+      }
+
+      var n = (_buffer >>> (_buflen - 8) ) & 0xff;
+      _buflen -= 8;
+      return n;
+    };
+
+    var decode = function(c) {
+      if (0x41 <= c && c <= 0x5a) {
+        return c - 0x41;
+      } else if (0x61 <= c && c <= 0x7a) {
+        return c - 0x61 + 26;
+      } else if (0x30 <= c && c <= 0x39) {
+        return c - 0x30 + 52;
+      } else if (c == 0x2b) {
+        return 62;
+      } else if (c == 0x2f) {
+        return 63;
+      } else {
+        throw 'c:' + c;
+      }
+    };
+
+    return _this;
+  };
+
+  //---------------------------------------------------------------------
+  // gifImage (B/W)
+  //---------------------------------------------------------------------
+
+  var gifImage = function(width, height) {
+
+    var _width = width;
+    var _height = height;
+    var _data = new Array(width * height);
+
+    var _this = {};
+
+    _this.setPixel = function(x, y, pixel) {
+      _data[y * _width + x] = pixel;
+    };
+
+    _this.write = function(out) {
+
+      //---------------------------------
+      // GIF Signature
+
+      out.writeString('GIF87a');
+
+      //---------------------------------
+      // Screen Descriptor
+
+      out.writeShort(_width);
+      out.writeShort(_height);
+
+      out.writeByte(0x80); // 2bit
+      out.writeByte(0);
+      out.writeByte(0);
+
+      //---------------------------------
+      // Global Color Map
+
+      // black
+      out.writeByte(0x00);
+      out.writeByte(0x00);
+      out.writeByte(0x00);
+
+      // white
+      out.writeByte(0xff);
+      out.writeByte(0xff);
+      out.writeByte(0xff);
+
+      //---------------------------------
+      // Image Descriptor
+
+      out.writeString(',');
+      out.writeShort(0);
+      out.writeShort(0);
+      out.writeShort(_width);
+      out.writeShort(_height);
+      out.writeByte(0);
+
+      //---------------------------------
+      // Local Color Map
+
+      //---------------------------------
+      // Raster Data
+
+      var lzwMinCodeSize = 2;
+      var raster = getLZWRaster(lzwMinCodeSize);
+
+      out.writeByte(lzwMinCodeSize);
+
+      var offset = 0;
+
+      while (raster.length - offset > 255) {
+        out.writeByte(255);
+        out.writeBytes(raster, offset, 255);
+        offset += 255;
+      }
+
+      out.writeByte(raster.length - offset);
+      out.writeBytes(raster, offset, raster.length - offset);
+      out.writeByte(0x00);
+
+      //---------------------------------
+      // GIF Terminator
+      out.writeString(';');
+    };
+
+    var bitOutputStream = function(out) {
+
+      var _out = out;
+      var _bitLength = 0;
+      var _bitBuffer = 0;
+
+      var _this = {};
+
+      _this.write = function(data, length) {
+
+        if ( (data >>> length) != 0) {
+          throw 'length over';
+        }
+
+        while (_bitLength + length >= 8) {
+          _out.writeByte(0xff & ( (data << _bitLength) | _bitBuffer) );
+          length -= (8 - _bitLength);
+          data >>>= (8 - _bitLength);
+          _bitBuffer = 0;
+          _bitLength = 0;
+        }
+
+        _bitBuffer = (data << _bitLength) | _bitBuffer;
+        _bitLength = _bitLength + length;
+      };
+
+      _this.flush = function() {
+        if (_bitLength > 0) {
+          _out.writeByte(_bitBuffer);
+        }
+      };
+
+      return _this;
+    };
+
+    var getLZWRaster = function(lzwMinCodeSize) {
+
+      var clearCode = 1 << lzwMinCodeSize;
+      var endCode = (1 << lzwMinCodeSize) + 1;
+      var bitLength = lzwMinCodeSize + 1;
+
+      // Setup LZWTable
+      var table = lzwTable();
+
+      for (var i = 0; i < clearCode; i += 1) {
+        table.add(String.fromCharCode(i) );
+      }
+      table.add(String.fromCharCode(clearCode) );
+      table.add(String.fromCharCode(endCode) );
+
+      var byteOut = byteArrayOutputStream();
+      var bitOut = bitOutputStream(byteOut);
+
+      // clear code
+      bitOut.write(clearCode, bitLength);
+
+      var dataIndex = 0;
+
+      var s = String.fromCharCode(_data[dataIndex]);
+      dataIndex += 1;
+
+      while (dataIndex < _data.length) {
+
+        var c = String.fromCharCode(_data[dataIndex]);
+        dataIndex += 1;
+
+        if (table.contains(s + c) ) {
+
+          s = s + c;
+
+        } else {
+
+          bitOut.write(table.indexOf(s), bitLength);
+
+          if (table.size() < 0xfff) {
+
+            if (table.size() == (1 << bitLength) ) {
+              bitLength += 1;
+            }
+
+            table.add(s + c);
+          }
+
+          s = c;
+        }
+      }
+
+      bitOut.write(table.indexOf(s), bitLength);
+
+      // end code
+      bitOut.write(endCode, bitLength);
+
+      bitOut.flush();
+
+      return byteOut.toByteArray();
+    };
+
+    var lzwTable = function() {
+
+      var _map = {};
+      var _size = 0;
+
+      var _this = {};
+
+      _this.add = function(key) {
+        if (_this.contains(key) ) {
+          throw 'dup key:' + key;
+        }
+        _map[key] = _size;
+        _size += 1;
+      };
+
+      _this.size = function() {
+        return _size;
+      };
+
+      _this.indexOf = function(key) {
+        return _map[key];
+      };
+
+      _this.contains = function(key) {
+        return typeof _map[key] != 'undefined';
+      };
+
+      return _this;
+    };
+
+    return _this;
+  };
+
+  var createDataURL = function(width, height, getPixel) {
+    var gif = gifImage(width, height);
+    for (var y = 0; y < height; y += 1) {
+      for (var x = 0; x < width; x += 1) {
+        gif.setPixel(x, y, getPixel(x, y) );
+      }
+    }
+
+    var b = byteArrayOutputStream();
+    gif.write(b);
+
+    var base64 = base64EncodeOutputStream();
+    var bytes = b.toByteArray();
+    for (var i = 0; i < bytes.length; i += 1) {
+      base64.writeByte(bytes[i]);
+    }
+    base64.flush();
+
+    return 'data:image/gif;base64,' + base64;
+  };
+
+  //---------------------------------------------------------------------
+  // returns qrcode function.
+
+  return qrcode;
+}();
+
+// multibyte support
+!function() {
+
+  qrcode.stringToBytesFuncs['UTF-8'] = function(s) {
+    // http://stackoverflow.com/questions/18729405/how-to-convert-utf8-string-to-byte-array
+    function toUTF8Array(str) {
+      var utf8 = [];
+      for (var i=0; i < str.length; i++) {
+        var charcode = str.charCodeAt(i);
+        if (charcode < 0x80) utf8.push(charcode);
+        else if (charcode < 0x800) {
+          utf8.push(0xc0 | (charcode >> 6),
+              0x80 | (charcode & 0x3f));
+        }
+        else if (charcode < 0xd800 || charcode >= 0xe000) {
+          utf8.push(0xe0 | (charcode >> 12),
+              0x80 | ((charcode>>6) & 0x3f),
+              0x80 | (charcode & 0x3f));
+        }
+        // surrogate pair
+        else {
+          i++;
+          // UTF-16 encodes 0x10000-0x10FFFF by
+          // subtracting 0x10000 and splitting the
+          // 20 bits of 0x0-0xFFFFF into two halves
+          charcode = 0x10000 + (((charcode & 0x3ff)<<10)
+            | (str.charCodeAt(i) & 0x3ff));
+          utf8.push(0xf0 | (charcode >>18),
+              0x80 | ((charcode>>12) & 0x3f),
+              0x80 | ((charcode>>6) & 0x3f),
+              0x80 | (charcode & 0x3f));
+        }
+      }
+      return utf8;
+    }
+    return toUTF8Array(s);
+  };
+
+}();
+
+(function (factory) {
+  if (typeof define === 'function' && define.amd) {
+      define([], factory);
+  } else if (typeof exports === 'object') {
+      module.exports = factory();
+  }
+}(function () {
+    return qrcode;
+}));
 
 </script>
 <script>
@@ -6894,6 +9461,7 @@ var LanePdf = (function () {
     renderBatches(); applyInference(); render();
   }
   function resetTeamState() {   // v0.26.1（C403）：前の人のチームの中身（コード・メンバー・履歴）をメモリと画面から消す
+    try { if (SV) { svReset(); SV.msg = ''; } } catch (e) { }   // v0.28.0：前のアカウントの調査・答えを画面に残さない
     TEAM = null; TEAMS = []; TEAM_LOST = ''; TEAM_LOST_WHY = ''; TEAM_WAIT = ''; SAFE = { open: false, data: null }; ADMIN = false; QUAR = []; TM = { members: null, codes: null, hist: null, banned: null, busy: false, open: {} }; renderPendBan();
     var bx = $('rbTeam'); if (bx) { bx.innerHTML = ''; bx.hidden = true; }
   }
@@ -8283,6 +10851,137 @@ var LanePdf = (function () {
   }
   /* v0.27.0：📝 エントリー下書き。JAAFのエントリーシステムへ手で打つための下書き（送信・自動入力はしない）。内容はこの画面の中だけ（保存しない） */
   var ENT = { open: false, sex: '', plan: null, help: false, rules: false, fee: false, add: {}, msg: '', cls: '', meet: '' };
+  /* v0.28.0：📮 エントリー調査リンク（エントリー下書きの中）。顧問が大会ごとに1つのリンクを作り、選手の希望を集めて下書きに入れる
+     Googleでログインした顧問（持ち主・チームの顧問）だけ。答えはこの画面で読むだけで、端末には保存しない */
+  var SV = { open: false, help: false, list: null, cur: null, ans: null, form: null, busy: false, msg: '', cls: '', qr: false, gen: 0 };
+  function svReset() { SV.list = null; SV.cur = null; SV.ans = null; SV.form = null; SV.busy = false; SV.qr = false; SV.gen++; }
+  function svSay(m, c) { SV.msg = m; SV.cls = c || 'ok'; }
+  function svToday() { return LaneSurvey.jstDay(Date.now()); }
+  function svPlans() { var td = svToday(); return susPlans().filter(function (p) { return (p.end || p.date) >= td; }).sort(function (a, b) { return a.date < b.date ? -1 : 1; }); }
+  function svApi(sc) { return LaneSurvey.coach(FB, sc.uid, function () { check(sc); }); }
+  async function svRun(fn, okMsg) {
+    var sc = scope(), g = ++SV.gen; SV.busy = true; SV.msg = ''; entRender();
+    try { await loadFirebase(); var r = await fn(svApi(sc), sc); if (g !== SV.gen) return; if (okMsg) svSay(typeof okMsg === 'function' ? okMsg(r) : okMsg); }
+    catch (e) { if (isAbort(e) || g !== SV.gen) return; svSay(e && e.code === 'permission-denied' ? '✖ できませんでした（権限がありません。持ち主かチームの顧問だけが使えます）' : '✖ ' + (e && e.message || 'できませんでした'), 'err'); }
+    if (g === SV.gen) { SV.busy = false; entRender(); }
+  }
+  function svLoadList() { return svRun(async function (api, sc) { SV.list = await api.list(sc.team && sc.team.role === 'coach' ? sc.team.id : ''); }); }
+  function svOpenOne(id) { return svRun(async function (api) { SV.cur = await api.load(id); SV.ans = SV.cur ? await api.answers(id) : null; SV.form = null; SV.qr = false; if (!SV.cur) { SV.list = null; throw new Error('この調査は見つかりません（削除されました）'); } }); }
+  function svNewForm(d) {
+    var P = svPlans()[0] || null, sx = []; d.athletes.forEach(function (a) { if (a.sex && sx.indexOf(a.sex) < 0) sx.push(a.sex); }); sx.sort();
+    var sexes = sx.length > 1 ? (ENT.sex || 'mf') : (sx[0] || 'm'), f = { meet: P ? P.meet : '', plan: P ? P.date + '|' + P.meet : '', deadline: LaneSurvey.defaultDeadline(P && P.deadline), sexes: sexes, off: {}, evOff: {}, relOff: {}, extra: [], team: !!(TEAM && TEAM.role === 'coach'), xsex: sx[0] || 'm' };
+    return f;
+  }
+  function svSexOk(f, s) { return f.sexes === 'mf' || f.sexes === s; }
+  function svPayload(d, f) {
+    var E = LaneEntry, nm = function (s, l) { return E.sexName(s) + l; };
+    var roster = d.athletes.filter(function (a) { return svSexOk(f, a.sex) && !f.off[a.key]; }).map(function (a) { return { n: a.name, g: a.grade || '', s: a.sex, key: a.key }; });
+    var evs = d.events.filter(function (e) { return svSexOk(f, e.sex) && !f.evOff[nm(e.sex, e.label)]; }).map(function (e) { return nm(e.sex, e.label); }).concat(f.extra);
+    var rels = d.relays.filter(function (x) { return svSexOk(f, x.sex) && !f.relOff[nm(x.sex, x.label)]; }).map(function (x) { return nm(x.sex, x.label); });
+    return { meet: f.meet, team: f.team && TEAM && TEAM.role === 'coach' ? TEAM.id : '', sexes: f.sexes, roster: roster, evs: evs, rels: rels, deadline: f.deadline };
+  }
+  function svHtml(d) {
+    var esc = LaneEntry.esc, S = LaneSurvey, h = '<div class="sv-box"><div class="en-tools"><button type="button" class="btn sub" data-sv="toggle" aria-expanded="' + SV.open + '">📮 エントリー調査リンク</button>' +
+      (SV.open ? '<button type="button" class="en-q" data-sv="help" aria-expanded="' + SV.help + '" title="エントリー調査リンクの使い方">?</button>' : '') + '</div>';
+    if (!SV.open) return h + '</div>';
+    if (SV.help) h += '<div class="en-help"><p>大会ごとに<b>1つのリンク</b>を作って、LINEなどで選手に送ります。選手はログインなしで開き、名簿から自分の名前を選んで、第1・第2希望の種目とリレーに出られるか（可／不可）・ひとことを送ります。送り直すと新しい答えに置きかわります。</p>' +
+      '<p>リンクで見えるのは、大会名・締切・選んだ名前と学年・選べる種目だけです（記録やほかの人の答えは見えません）。締切を過ぎる・止める・削除すると受け付けません。答えは、作った人とチームの顧問だけが見られます。</p>' +
+      '<p>「📥 希望を下書きに入れる」で、希望が上の下書きに入ります（1人2種目まで などのルールと警告はそのまま）。リンクを知っている人はだれでも、名簿のどの名前でも送れるので、おかしな答えは選手に確かめてください。</p></div>';
+    if (SV.msg) h += '<div class="status ' + SV.cls + '">' + esc(SV.msg) + '</div>';
+    if (!CLOUD_READY) return h + '<p class="small muted">この環境ではクラウドが使えないため、使えません。</p></div>';
+    if (!USER) return h + '<p class="en-line">Googleでログインすると使えます。</p><button type="button" class="btn" data-sv="login">Googleでログイン</button></div>';
+    if (SV.busy && !SV.list && !SV.cur) return h + '<p class="small muted">読み込んでいます…</p></div>';
+    if (SV.cur) return h + svCurHtml(d) + '</div>';
+    if (SV.form) return h + svFormHtml(d) + '</div>';
+    if (!SV.list) return h + '<p class="small muted">読み込んでいます…</p></div>';
+    h += '<div class="sv-list">' + (SV.list.length ? SV.list.map(function (x) { return '<button type="button" class="sv-item" data-svopen="' + esc(x.id) + '"><b>' + esc(x.meet) + '</b><small>' + (x.team ? 'チーム' : '自分') + ' ・ ' + esc(S.dayLabel(x.at)) + '作成</small></button>'; }).join('') : '<p class="small muted">まだ調査はありません。</p>') + '</div>';
+    h += '<div class="en-tools"><button type="button" class="btn" data-sv="new">＋ 新しい調査リンクを作る</button><button type="button" class="btn sub small" data-sv="reload">🔄 読み込み直す</button></div>';
+    return h + '</div>';
+  }
+  function svFormHtml(d) {
+    var esc = LaneEntry.esc, E = LaneEntry, f = SV.form, nm = function (s, l) { return E.sexName(s) + l; }, sx = [];
+    d.athletes.forEach(function (a) { if (a.sex && sx.indexOf(a.sex) < 0) sx.push(a.sex); }); sx.sort();
+    var pl = svPlans(), h = '<div class="sv-form">';
+    h += '<div class="en-step"><span class="en-n">1</span><b>大会</b></div>' + (pl.length ? '<div class="en-chips">' + pl.slice(0, 8).map(function (p) { var k = p.date + '|' + p.meet; return '<button type="button" class="en-chip" data-svplan="' + esc(k) + '" aria-pressed="' + (f.plan === k) + '">' + esc(p.meet) + ' <small>' + esc(p.date.slice(5).replace('-', '/')) + '</small></button>'; }).join('') + '</div>' : '') +
+      '<label class="sv-f">大会名 <input type="text" maxlength="80" data-svf="meet" value="' + esc(f.meet) + '" placeholder="例：秋季大会"></label>' +
+      '<label class="sv-f">締切 <input type="date" data-svf="deadline" value="' + esc(f.deadline) + '" min="' + esc(LaneSurvey.jstDay(Date.now() + 864e5)) + '"> <small class="muted">この日の23:59まで</small></label>';
+    if (sx.length > 1) h += '<div class="en-step"><span class="en-n">2</span><b>男女</b><div class="divsw">' + [['m', '男子'], ['f', '女子'], ['mf', '両方']].map(function (x) { return '<button type="button" data-svsexes="' + x[0] + '" aria-pressed="' + (f.sexes === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div></div>';
+    var ath = d.athletes.filter(function (a) { return svSexOk(f, a.sex); }), on = ath.filter(function (a) { return !f.off[a.key]; }).length;
+    h += '<div class="en-step"><span class="en-n">3</span><b>名簿</b><span class="small muted">' + on + '/' + ath.length + '人</span><button type="button" class="btn sub small" data-sv="all">全員</button><button type="button" class="btn sub small" data-sv="none">全員外す</button></div>' +
+      '<div class="en-chips">' + ath.map(function (a) { return '<button type="button" class="en-chip" data-svath="' + esc(a.key) + '" aria-pressed="' + !f.off[a.key] + '">' + (f.sexes === 'mf' ? E.sexName(a.sex).slice(0, 1) + ' ' : '') + esc(a.name) + (a.grade ? ' <small>' + esc(a.grade) + '年</small>' : '') + '</button>'; }).join('') + '</div>';
+    var evs = d.events.filter(function (e) { return svSexOk(f, e.sex); });
+    h += '<div class="en-step"><span class="en-n">4</span><b>選べる種目</b></div><div class="en-chips">' + evs.map(function (e) { var k = nm(e.sex, e.label); return '<button type="button" class="en-chip" data-svev="' + esc(k) + '" aria-pressed="' + !f.evOff[k] + '">' + esc(f.sexes === 'mf' ? k : e.label) + '</button>'; }).join('') +
+      f.extra.map(function (k, i) { return '<button type="button" class="en-chip" data-svxdel="' + i + '" aria-pressed="true" title="押すと外します">' + esc(k) + ' ✕</button>'; }).join('') + '</div>' +
+      '<div class="sv-add">' + (f.sexes === 'mf' ? '<select data-svf="xsex" aria-label="足す種目の男女"><option value="m"' + (f.xsex === 'm' ? ' selected' : '') + '>男子</option><option value="f"' + (f.xsex === 'f' ? ' selected' : '') + '>女子</option></select>' : '') +
+      '<input type="text" maxlength="30" id="rbSvX" placeholder="種目を手で足す（例：100mH）" aria-label="種目を手で足す"><button type="button" class="btn sub small" data-sv="xadd">＋ 足す</button></div>';
+    var rl = d.relays.filter(function (x) { return svSexOk(f, x.sex); });
+    if (rl.length) h += '<div class="en-step"><span class="en-n">5</span><b>リレー</b></div><div class="en-chips">' + rl.map(function (x) { var k = nm(x.sex, x.label); return '<button type="button" class="en-chip" data-svrel="' + esc(k) + '" aria-pressed="' + !f.relOff[k] + '">' + esc(f.sexes === 'mf' ? k : x.label) + '</button>'; }).join('') + '</div>';
+    if (TEAM && TEAM.role === 'coach') h += '<label class="sv-f sv-chk"><input type="checkbox" data-svf="team"' + (f.team ? ' checked' : '') + '> チーム「' + esc(TEAM.name || '') + '」の顧問も見られるようにする</label>';
+    h += '<div class="en-tools"><button type="button" class="btn" data-sv="create"' + (SV.busy ? ' disabled' : '') + '>📮 リンクを作る</button><button type="button" class="btn sub small" data-sv="cancel">やめる</button></div>';
+    return h + '</div>';
+  }
+  function svState(c) { return !c.open ? '⏸ 止めています' : c.deadline <= Date.now() ? '締切を過ぎました' : '受付中'; }
+  function svCurHtml(d) {
+    var esc = LaneEntry.esc, S = LaneSurvey, c = SV.cur, A = SV.ans || {}, url = S.linkFor(c.id), msg = '【' + c.meet + '】エントリー調査です。' + S.dayLabel(c.deadline) + 'までに、自分の名前を選んで希望の種目を送ってください。\n' + url;
+    var done = c.roster.map(function (r, i) { return A[i] ? i : -1; }).filter(function (i) { return i >= 0; }), yet = c.roster.map(function (r, i) { return A[i] ? -1 : i; }).filter(function (i) { return i >= 0; });
+    var h = '<div class="sv-cur"><div class="sv-cur-h"><b>' + esc(c.meet) + '</b><span class="sv-state ' + (svState(c) === '受付中' ? 'on' : 'off') + '">' + svState(c) + '</span><small>締切 ' + esc(S.dayLabel(c.deadline)) + '</small><button type="button" class="btn sub small" data-sv="back">← 一覧</button></div>';
+    h += '<label class="small">選手に送るリンク<input class="tk-link" id="rbSvLink" readonly value="' + esc(url) + '"></label>' +
+      '<div class="en-tools"><button type="button" class="btn" data-sv="copy" data-url="' + esc(url) + '">🔗 リンクをコピー</button><a class="btn sub" target="_blank" rel="noopener" href="https://line.me/R/share?text=' + encodeURIComponent(msg) + '">LINEで送る</a><button type="button" class="btn sub" data-sv="qr" aria-expanded="' + SV.qr + '">🔳 QR</button></div>';
+    if (SV.qr) { var svg = ''; try { var q = qrcode(0, 'M'); q.addData(url, 'Byte'); q.make(); svg = q.createSvgTag({ cellSize: 4, margin: 3, scalable: true }); } catch (e) { svg = '<small class="warn">QRを作れませんでした</small>'; } h += '<div class="sv-qr">' + svg + '</div>'; }
+    h += '<div class="en-step"><span class="en-n">✓</span><b>答え</b><span class="small muted">' + done.length + '/' + c.roster.length + '人</span><button type="button" class="btn sub small" data-sv="reans">🔄 読み込み直す</button></div>';
+    if (done.length) h += '<div class="en-scroll"><table class="en-t sv-ans"><thead><tr><th>選手</th><th>第1希望</th><th>第2希望</th><th>リレー</th><th>ひとこと</th><th>送った日時</th></tr></thead><tbody>' + done.map(function (i) {
+      var r = c.roster[i], a = A[i]; return '<tr><td>' + esc(r.n) + (r.g ? ' <small>' + esc(r.g) + '年</small>' : '') + '</td><td>' + esc(S.evShort(a.ev1)) + '</td><td>' + esc(S.evShort(a.ev2)) + '</td><td>' + (a.relay === 'ok' ? '可' + (a.rel ? '（' + esc(S.evShort(a.rel)) + '）' : '') : a.relay === 'no' ? '不可' : '') + '</td><td class="sv-cm">' + esc(a.cm) + '</td><td><small>' + esc(S.when(a.at)) + '</small></td></tr>';
+    }).join('') + '</tbody></table></div>';
+    h += '<p class="small"><b>まだの人</b>（' + yet.length + '人）' + (yet.length ? '：' + yet.map(function (i) { return esc(c.roster[i].n); }).join('・') : '：いません') + '</p>';
+    h += '<div class="en-tools"><button type="button" class="btn" data-sv="apply"' + (done.length ? '' : ' disabled') + '>📥 希望を下書きに入れる</button>' +
+      '<button type="button" class="btn sub small" data-sv="stop">' + (c.open ? '⏸ 受付を止める' : '▶ 受付を再開') + '</button>' +
+      '<label class="sv-f sv-dl">締切 <input type="date" id="rbSvDl" value="' + esc(S.jstDay(c.deadline)) + '"></label><button type="button" class="btn sub small" data-sv="dl">締切を変える</button>' +
+      '<button type="button" class="btn sub small sv-del" data-sv="del">🗑 削除</button></div>';
+    return h + '</div>';
+  }
+  function svClick(t, d) {
+    var a = t.getAttribute('data-sv'), f = SV.form;
+    if (a === 'toggle') { SV.open = !SV.open; SV.msg = ''; if (SV.open && USER && !SV.list && !SV.cur) { svLoadList(); return true; } entRender(); return true; }
+    if (a === 'help') { SV.help = !SV.help; entRender(); return true; }
+    if (a === 'login') { if ($('rbSignIn')) $('rbSignIn').click(); return true; }
+    if (a === 'reload') { SV.list = null; svLoadList(); return true; }
+    if (a === 'new') { SV.form = svNewForm(d); SV.msg = ''; entRender(); return true; }
+    if (a === 'cancel') { SV.form = null; entRender(); return true; }
+    if (a === 'back') { SV.cur = null; SV.ans = null; SV.list = null; SV.msg = ''; svLoadList(); return true; }
+    var oid = t.getAttribute('data-svopen'); if (oid) { svOpenOne(oid); return true; }
+    if (f) {
+      var pk = t.getAttribute('data-svplan'); if (pk) { var p = svPlans().filter(function (x) { return x.date + '|' + x.meet === pk; })[0]; if (p) { f.plan = pk; f.meet = p.meet; f.deadline = LaneSurvey.defaultDeadline(p.deadline); } entRender(); return true; }
+      var sx = t.getAttribute('data-svsexes'); if (sx) { f.sexes = sx; entRender(); return true; }
+      var ak = t.getAttribute('data-svath'); if (ak != null) { if (f.off[ak]) delete f.off[ak]; else f.off[ak] = 1; entRender(); return true; }
+      if (a === 'all') { f.off = {}; entRender(); return true; }
+      if (a === 'none') { d.athletes.forEach(function (x) { if (svSexOk(f, x.sex)) f.off[x.key] = 1; }); entRender(); return true; }
+      var ek = t.getAttribute('data-svev'); if (ek != null) { if (f.evOff[ek]) delete f.evOff[ek]; else f.evOff[ek] = 1; entRender(); return true; }
+      var rk = t.getAttribute('data-svrel'); if (rk != null) { if (f.relOff[rk]) delete f.relOff[rk]; else f.relOff[rk] = 1; entRender(); return true; }
+      var xd = t.getAttribute('data-svxdel'); if (xd != null) { f.extra.splice(+xd, 1); entRender(); return true; }
+      if (a === 'xadd') { var v = ($('rbSvX').value || '').replace(/\s+/g, '').replace(/^(男子|女子)/, '').slice(0, 30); if (v) { var full = LaneEntry.sexName(f.sexes === 'mf' ? f.xsex : f.sexes) + v; if (f.extra.indexOf(full) < 0) f.extra.push(full); } entRender(); return true; }
+      if (a === 'create') { var pay = svPayload(d, f); svRun(async function (api) { var id = await api.create(pay); SV.form = null; SV.cur = await api.load(id); SV.ans = {}; return id; }, '✔ リンクを作りました。コピーかLINEで選手に送ってください。'); return true; }
+    }
+    var c = SV.cur; if (!c) return false;
+    if (a === 'copy') { var u = t.getAttribute('data-url'), done = function () { svSay('🔗 コピーしました。'); entRender(); }; if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(u).then(done, function () { $('rbSvLink').select(); svSay('リンクを選びました。長押し（右クリック）でコピーしてください。'); entRender(); }); else { $('rbSvLink').select(); } return true; }
+    if (a === 'qr') { SV.qr = !SV.qr; entRender(); return true; }
+    if (a === 'reans') { svRun(async function (api) { SV.ans = await api.answers(c.id); }); return true; }
+    if (a === 'stop') { var on = !c.open; svRun(async function (api) { await api.setOpen(c.id, on); c.open = on; }, on ? '▶ 受付を再開しました。' : '⏸ 受付を止めました（リンクを開いても答えられません）。'); return true; }
+    if (a === 'dl') { var dv = $('rbSvDl').value; svRun(async function (api) { await api.setDeadline(c.id, dv); c.deadline = LaneSurvey.dayEnd(dv); }, '✔ 締切を変えました。'); return true; }
+    if (a === 'del') { if (!confirm('この調査と、集まった答えをすべて削除します。元に戻せません。よいですか？')) return true; svRun(async function (api) { await api.remove(c.id); SV.cur = null; SV.ans = null; SV.list = await api.list(TEAM && TEAM.role === 'coach' ? TEAM.id : ''); }, '🗑 削除しました（答えも消えました）。'); return true; }
+    if (a === 'apply') {
+      if (!ENT.plan) ENT.plan = LaneEntry.newPlan();
+      var r = LaneSurvey.apply(LaneEntry, d, ENT.plan, c, SV.ans || {});
+      svSay('📥 種目' + r.picks + '件・リレー' + r.relay + '人を下書きに入れました。' + (r.skip.length ? ' 入れられなかったもの：' + r.skip.join('／') : '') + ' ルールの警告は上で確かめてください。', r.skip.length ? 'warn' : 'ok');
+      entRender(); return true;
+    }
+    return false;
+  }
+  function svChange(t) {
+    var k = t.getAttribute('data-svf'); if (!k || !SV.form) return false;
+    if (k === 'team') SV.form.team = t.checked; else SV.form[k] = t.value;
+    if (k === 'xsex') entRender();
+    return true;
+  }
   function entRows() {
     var s = school(), mine = $('rbMine').checked;
     return ALL.filter(function (r) {
@@ -8354,12 +11053,14 @@ var LanePdf = (function () {
     h += L.length ? '<div class="en-scroll">' + E.table(L) + '</div>' : '<p class="small muted">まだ選んでいません。</p>';
     h += E.feeTable(F);
     h += '<div class="en-tools"><button type="button" class="btn" data-en="print"' + (L.length ? '' : ' disabled') + '>🖨 印刷・PDF</button><button type="button" class="btn sub" data-en="copy"' + (L.length ? '' : ' disabled') + '>📋 文字でコピー</button><button type="button" class="btn sub small" data-en="clear">すべて外す</button></div>';
+    h += svHtml(d);
     box.innerHTML = h; box.hidden = false;
   }
   function entSay(m, c) { ENT.msg = m; ENT.cls = c || 'ok'; }
   function entClick(e) {
     var t = e.target.closest ? e.target.closest('button') : null; if (!t) return;
     var P = ENT.plan, d = entData(), a = t.getAttribute('data-en');
+    if (t.closest('.sv-box') && svClick(t, d)) return;
     ENT.msg = '';
     if (a === 'close') { ENT.open = false; entRender(); return; }
     if (a === 'help' || a === 'rules' || a === 'fee') { ENT[a] = !ENT[a]; entRender(); return; }
@@ -8385,6 +11086,7 @@ var LanePdf = (function () {
   }
   function entChange(e) {
     var t = e.target, P = ENT.plan, d; if (!P) return;
+    if (svChange(t)) return;
     var oi = t.getAttribute('data-enother');
     if (oi != null && t.value) { d = entData(); var ath = d.athletes.filter(function (x) { return x.sex === ENT.sex; })[+oi]; if (ath) (P.picks[ath.key] = P.picks[ath.key] || []).push(t.value); entRender(); return; }
     var lg = t.getAttribute('data-enleg');

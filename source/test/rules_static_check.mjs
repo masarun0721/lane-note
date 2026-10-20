@@ -27,7 +27,16 @@ const RES_HEAD = /\/\/ ・v0\.26\.38 pubResults[^\n]*\n/;
 const USERS_RE = / *\/\/ v0\.26\.41 users ここから[\s\S]*?\/\/ v0\.26\.41 users ここまで\n/;
 const USERS_OLD = '    match /users/{userId}/{document=**} {\n      allow read, write: if owner(userId);\n    }\n';
 ok('v0.26.41 users は1段だけ（{document=**} の広いルールは無い）・個人のPDFのかけらは validPdfChunk', () => { const m = rules.match(USERS_RE); assert(m, 'users のルールがない'); assert(!/users\/\{userId\}\/\{document=\*\*\}/.test(rules.replace(/^\s*\/\/.*$/gm, ''))); assert.match(m[0], /match \/users\/\{userId\}\/\{col\}\/\{docId\}/); assert.match(m[0], /match \/pdf\/\{c\}[\s\S]*allow create: if owner\(userId\) && col == 'meets' && validPdfChunk/); assert.match(m[0], /allow update: if false/); });
-const rulesBase = rules.replace(USERS_RE, USERS_OLD).replace(RES_RE, '').replace(RES_HEAD, '').replace(PUB_RE, '').replace(BAN_NEW, '        allow get, list: if isCoach(t);\n');
+// v0.28.0：エントリー調査（surveys・surveyAdmins）は監査待ち。最終案と比べるときは、ブロックと見出しの1行を除いて比べる
+const SURVEY_RE = / *\/\/ v0\.28\.0 エントリー調査 ここから[\s\S]*?\/\/ v0\.28\.0 エントリー調査 ここまで\n/;
+const SURVEY_HEAD = /\/\/ ・v0\.28\.0 surveys[^\n]*\n/;
+ok('v0.28.0 エントリー調査：surveys の一覧は不可・回答を読むのは持ち主とチームの顧問だけ・ID は24文字', () => {
+  const m = rules.match(SURVEY_RE); assert(m, 'エントリー調査のルールがない'); const b = m[0].replace(/\/\/.*$/gm, '');
+  assert.match(b, /match \/surveys\/\{sid\} \{\s*allow get: if validSurveyId\(sid\) && \(surveyOpen\(resource\.data\) \|\| surveyBossOf\(sid\)\);\s*allow list: if false;/);
+  assert.match(b, /match \/answers\/\{rid\} \{\s*allow get, list: if surveyBossOf\(sid\);/);
+  assert.match(b, /\^\[A-Za-z0-9\]\{24\}\$/); assert.doesNotMatch(b, /if\s+true/);
+});
+const rulesBase = rules.replace(SURVEY_RE, '').replace(SURVEY_HEAD, '').replace(USERS_RE, USERS_OLD).replace(RES_RE, '').replace(RES_HEAD, '').replace(PUB_RE, '').replace(BAN_NEW, '        allow get, list: if isCoach(t);\n');
 ok('v0.26.35 外された本人だけが自分の banned を読める（監査待ちの変更・1か所）', () => assert(rules.includes(BAN_NEW)));
 ok('v0.26.38 みんなの結果の追加分が、監査待ちの案（/workspace/astra_audit/firestore.rules.v0.26.38.pubresults）と同じ（比較元が無ければ SKIP）', () => {
   const f = '/workspace/astra_audit/firestore.rules.v0.26.38.pubresults'; if (!fs.existsSync(f)) return SKIP;

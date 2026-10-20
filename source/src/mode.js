@@ -11,7 +11,7 @@ var LaneMode = (function () {
   function set(m) { try { if (m === 'coach' || m === 'player') localStorage.setItem(KEY, m); } catch (e) { } }
   // v0.26.20：招待リンク（team.html#join=）で来た人には、はじめてのモードの質問を出さない（参加の画面を先に）
   function inviteView() { if (!document.body.classList.contains('team-page')) return false; if (/^#join=/.test(location.hash)) return true; try { return !!sessionStorage.getItem('lanenote.join.v1'); } catch (e) { return false; } }
-  function sharedView() { return /^#[dpt]=/.test(location.hash) || /[?&][st]=/.test(location.search); }
+  function sharedView() { return /^#[dpt]=/.test(location.hash) || /[?&][stq]=/.test(location.search); }
   function base() { return /^https?:$/.test(location.protocol) ? location.origin + location.pathname.replace(/[^\/]*$/, '') : (window.LANE_SHARE_BASE || './'); }
   /* この端末に保存されている、もらったリンク（大会当日の予定＝p・個人ページ＝pp） */
   function savedLinks() {

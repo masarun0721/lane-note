@@ -1243,6 +1243,7 @@
     renderBatches(); applyInference(); render();
   }
   function resetTeamState() {   // v0.26.1（C403）：前の人のチームの中身（コード・メンバー・履歴）をメモリと画面から消す
+    try { if (SV) { svReset(); SV.msg = ''; } } catch (e) { }   // v0.28.0：前のアカウントの調査・答えを画面に残さない
     TEAM = null; TEAMS = []; TEAM_LOST = ''; TEAM_LOST_WHY = ''; TEAM_WAIT = ''; SAFE = { open: false, data: null }; ADMIN = false; QUAR = []; TM = { members: null, codes: null, hist: null, banned: null, busy: false, open: {} }; renderPendBan();
     var bx = $('rbTeam'); if (bx) { bx.innerHTML = ''; bx.hidden = true; }
   }
@@ -2632,6 +2633,137 @@
   }
   /* v0.27.0：📝 エントリー下書き。JAAFのエントリーシステムへ手で打つための下書き（送信・自動入力はしない）。内容はこの画面の中だけ（保存しない） */
   var ENT = { open: false, sex: '', plan: null, help: false, rules: false, fee: false, add: {}, msg: '', cls: '', meet: '' };
+  /* v0.28.0：📮 エントリー調査リンク（エントリー下書きの中）。顧問が大会ごとに1つのリンクを作り、選手の希望を集めて下書きに入れる
+     Googleでログインした顧問（持ち主・チームの顧問）だけ。答えはこの画面で読むだけで、端末には保存しない */
+  var SV = { open: false, help: false, list: null, cur: null, ans: null, form: null, busy: false, msg: '', cls: '', qr: false, gen: 0 };
+  function svReset() { SV.list = null; SV.cur = null; SV.ans = null; SV.form = null; SV.busy = false; SV.qr = false; SV.gen++; }
+  function svSay(m, c) { SV.msg = m; SV.cls = c || 'ok'; }
+  function svToday() { return LaneSurvey.jstDay(Date.now()); }
+  function svPlans() { var td = svToday(); return susPlans().filter(function (p) { return (p.end || p.date) >= td; }).sort(function (a, b) { return a.date < b.date ? -1 : 1; }); }
+  function svApi(sc) { return LaneSurvey.coach(FB, sc.uid, function () { check(sc); }); }
+  async function svRun(fn, okMsg) {
+    var sc = scope(), g = ++SV.gen; SV.busy = true; SV.msg = ''; entRender();
+    try { await loadFirebase(); var r = await fn(svApi(sc), sc); if (g !== SV.gen) return; if (okMsg) svSay(typeof okMsg === 'function' ? okMsg(r) : okMsg); }
+    catch (e) { if (isAbort(e) || g !== SV.gen) return; svSay(e && e.code === 'permission-denied' ? '✖ できませんでした（権限がありません。持ち主かチームの顧問だけが使えます）' : '✖ ' + (e && e.message || 'できませんでした'), 'err'); }
+    if (g === SV.gen) { SV.busy = false; entRender(); }
+  }
+  function svLoadList() { return svRun(async function (api, sc) { SV.list = await api.list(sc.team && sc.team.role === 'coach' ? sc.team.id : ''); }); }
+  function svOpenOne(id) { return svRun(async function (api) { SV.cur = await api.load(id); SV.ans = SV.cur ? await api.answers(id) : null; SV.form = null; SV.qr = false; if (!SV.cur) { SV.list = null; throw new Error('この調査は見つかりません（削除されました）'); } }); }
+  function svNewForm(d) {
+    var P = svPlans()[0] || null, sx = []; d.athletes.forEach(function (a) { if (a.sex && sx.indexOf(a.sex) < 0) sx.push(a.sex); }); sx.sort();
+    var sexes = sx.length > 1 ? (ENT.sex || 'mf') : (sx[0] || 'm'), f = { meet: P ? P.meet : '', plan: P ? P.date + '|' + P.meet : '', deadline: LaneSurvey.defaultDeadline(P && P.deadline), sexes: sexes, off: {}, evOff: {}, relOff: {}, extra: [], team: !!(TEAM && TEAM.role === 'coach'), xsex: sx[0] || 'm' };
+    return f;
+  }
+  function svSexOk(f, s) { return f.sexes === 'mf' || f.sexes === s; }
+  function svPayload(d, f) {
+    var E = LaneEntry, nm = function (s, l) { return E.sexName(s) + l; };
+    var roster = d.athletes.filter(function (a) { return svSexOk(f, a.sex) && !f.off[a.key]; }).map(function (a) { return { n: a.name, g: a.grade || '', s: a.sex, key: a.key }; });
+    var evs = d.events.filter(function (e) { return svSexOk(f, e.sex) && !f.evOff[nm(e.sex, e.label)]; }).map(function (e) { return nm(e.sex, e.label); }).concat(f.extra);
+    var rels = d.relays.filter(function (x) { return svSexOk(f, x.sex) && !f.relOff[nm(x.sex, x.label)]; }).map(function (x) { return nm(x.sex, x.label); });
+    return { meet: f.meet, team: f.team && TEAM && TEAM.role === 'coach' ? TEAM.id : '', sexes: f.sexes, roster: roster, evs: evs, rels: rels, deadline: f.deadline };
+  }
+  function svHtml(d) {
+    var esc = LaneEntry.esc, S = LaneSurvey, h = '<div class="sv-box"><div class="en-tools"><button type="button" class="btn sub" data-sv="toggle" aria-expanded="' + SV.open + '">📮 エントリー調査リンク</button>' +
+      (SV.open ? '<button type="button" class="en-q" data-sv="help" aria-expanded="' + SV.help + '" title="エントリー調査リンクの使い方">?</button>' : '') + '</div>';
+    if (!SV.open) return h + '</div>';
+    if (SV.help) h += '<div class="en-help"><p>大会ごとに<b>1つのリンク</b>を作って、LINEなどで選手に送ります。選手はログインなしで開き、名簿から自分の名前を選んで、第1・第2希望の種目とリレーに出られるか（可／不可）・ひとことを送ります。送り直すと新しい答えに置きかわります。</p>' +
+      '<p>リンクで見えるのは、大会名・締切・選んだ名前と学年・選べる種目だけです（記録やほかの人の答えは見えません）。締切を過ぎる・止める・削除すると受け付けません。答えは、作った人とチームの顧問だけが見られます。</p>' +
+      '<p>「📥 希望を下書きに入れる」で、希望が上の下書きに入ります（1人2種目まで などのルールと警告はそのまま）。リンクを知っている人はだれでも、名簿のどの名前でも送れるので、おかしな答えは選手に確かめてください。</p></div>';
+    if (SV.msg) h += '<div class="status ' + SV.cls + '">' + esc(SV.msg) + '</div>';
+    if (!CLOUD_READY) return h + '<p class="small muted">この環境ではクラウドが使えないため、使えません。</p></div>';
+    if (!USER) return h + '<p class="en-line">Googleでログインすると使えます。</p><button type="button" class="btn" data-sv="login">Googleでログイン</button></div>';
+    if (SV.busy && !SV.list && !SV.cur) return h + '<p class="small muted">読み込んでいます…</p></div>';
+    if (SV.cur) return h + svCurHtml(d) + '</div>';
+    if (SV.form) return h + svFormHtml(d) + '</div>';
+    if (!SV.list) return h + '<p class="small muted">読み込んでいます…</p></div>';
+    h += '<div class="sv-list">' + (SV.list.length ? SV.list.map(function (x) { return '<button type="button" class="sv-item" data-svopen="' + esc(x.id) + '"><b>' + esc(x.meet) + '</b><small>' + (x.team ? 'チーム' : '自分') + ' ・ ' + esc(S.dayLabel(x.at)) + '作成</small></button>'; }).join('') : '<p class="small muted">まだ調査はありません。</p>') + '</div>';
+    h += '<div class="en-tools"><button type="button" class="btn" data-sv="new">＋ 新しい調査リンクを作る</button><button type="button" class="btn sub small" data-sv="reload">🔄 読み込み直す</button></div>';
+    return h + '</div>';
+  }
+  function svFormHtml(d) {
+    var esc = LaneEntry.esc, E = LaneEntry, f = SV.form, nm = function (s, l) { return E.sexName(s) + l; }, sx = [];
+    d.athletes.forEach(function (a) { if (a.sex && sx.indexOf(a.sex) < 0) sx.push(a.sex); }); sx.sort();
+    var pl = svPlans(), h = '<div class="sv-form">';
+    h += '<div class="en-step"><span class="en-n">1</span><b>大会</b></div>' + (pl.length ? '<div class="en-chips">' + pl.slice(0, 8).map(function (p) { var k = p.date + '|' + p.meet; return '<button type="button" class="en-chip" data-svplan="' + esc(k) + '" aria-pressed="' + (f.plan === k) + '">' + esc(p.meet) + ' <small>' + esc(p.date.slice(5).replace('-', '/')) + '</small></button>'; }).join('') + '</div>' : '') +
+      '<label class="sv-f">大会名 <input type="text" maxlength="80" data-svf="meet" value="' + esc(f.meet) + '" placeholder="例：秋季大会"></label>' +
+      '<label class="sv-f">締切 <input type="date" data-svf="deadline" value="' + esc(f.deadline) + '" min="' + esc(LaneSurvey.jstDay(Date.now() + 864e5)) + '"> <small class="muted">この日の23:59まで</small></label>';
+    if (sx.length > 1) h += '<div class="en-step"><span class="en-n">2</span><b>男女</b><div class="divsw">' + [['m', '男子'], ['f', '女子'], ['mf', '両方']].map(function (x) { return '<button type="button" data-svsexes="' + x[0] + '" aria-pressed="' + (f.sexes === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div></div>';
+    var ath = d.athletes.filter(function (a) { return svSexOk(f, a.sex); }), on = ath.filter(function (a) { return !f.off[a.key]; }).length;
+    h += '<div class="en-step"><span class="en-n">3</span><b>名簿</b><span class="small muted">' + on + '/' + ath.length + '人</span><button type="button" class="btn sub small" data-sv="all">全員</button><button type="button" class="btn sub small" data-sv="none">全員外す</button></div>' +
+      '<div class="en-chips">' + ath.map(function (a) { return '<button type="button" class="en-chip" data-svath="' + esc(a.key) + '" aria-pressed="' + !f.off[a.key] + '">' + (f.sexes === 'mf' ? E.sexName(a.sex).slice(0, 1) + ' ' : '') + esc(a.name) + (a.grade ? ' <small>' + esc(a.grade) + '年</small>' : '') + '</button>'; }).join('') + '</div>';
+    var evs = d.events.filter(function (e) { return svSexOk(f, e.sex); });
+    h += '<div class="en-step"><span class="en-n">4</span><b>選べる種目</b></div><div class="en-chips">' + evs.map(function (e) { var k = nm(e.sex, e.label); return '<button type="button" class="en-chip" data-svev="' + esc(k) + '" aria-pressed="' + !f.evOff[k] + '">' + esc(f.sexes === 'mf' ? k : e.label) + '</button>'; }).join('') +
+      f.extra.map(function (k, i) { return '<button type="button" class="en-chip" data-svxdel="' + i + '" aria-pressed="true" title="押すと外します">' + esc(k) + ' ✕</button>'; }).join('') + '</div>' +
+      '<div class="sv-add">' + (f.sexes === 'mf' ? '<select data-svf="xsex" aria-label="足す種目の男女"><option value="m"' + (f.xsex === 'm' ? ' selected' : '') + '>男子</option><option value="f"' + (f.xsex === 'f' ? ' selected' : '') + '>女子</option></select>' : '') +
+      '<input type="text" maxlength="30" id="rbSvX" placeholder="種目を手で足す（例：100mH）" aria-label="種目を手で足す"><button type="button" class="btn sub small" data-sv="xadd">＋ 足す</button></div>';
+    var rl = d.relays.filter(function (x) { return svSexOk(f, x.sex); });
+    if (rl.length) h += '<div class="en-step"><span class="en-n">5</span><b>リレー</b></div><div class="en-chips">' + rl.map(function (x) { var k = nm(x.sex, x.label); return '<button type="button" class="en-chip" data-svrel="' + esc(k) + '" aria-pressed="' + !f.relOff[k] + '">' + esc(f.sexes === 'mf' ? k : x.label) + '</button>'; }).join('') + '</div>';
+    if (TEAM && TEAM.role === 'coach') h += '<label class="sv-f sv-chk"><input type="checkbox" data-svf="team"' + (f.team ? ' checked' : '') + '> チーム「' + esc(TEAM.name || '') + '」の顧問も見られるようにする</label>';
+    h += '<div class="en-tools"><button type="button" class="btn" data-sv="create"' + (SV.busy ? ' disabled' : '') + '>📮 リンクを作る</button><button type="button" class="btn sub small" data-sv="cancel">やめる</button></div>';
+    return h + '</div>';
+  }
+  function svState(c) { return !c.open ? '⏸ 止めています' : c.deadline <= Date.now() ? '締切を過ぎました' : '受付中'; }
+  function svCurHtml(d) {
+    var esc = LaneEntry.esc, S = LaneSurvey, c = SV.cur, A = SV.ans || {}, url = S.linkFor(c.id), msg = '【' + c.meet + '】エントリー調査です。' + S.dayLabel(c.deadline) + 'までに、自分の名前を選んで希望の種目を送ってください。\n' + url;
+    var done = c.roster.map(function (r, i) { return A[i] ? i : -1; }).filter(function (i) { return i >= 0; }), yet = c.roster.map(function (r, i) { return A[i] ? -1 : i; }).filter(function (i) { return i >= 0; });
+    var h = '<div class="sv-cur"><div class="sv-cur-h"><b>' + esc(c.meet) + '</b><span class="sv-state ' + (svState(c) === '受付中' ? 'on' : 'off') + '">' + svState(c) + '</span><small>締切 ' + esc(S.dayLabel(c.deadline)) + '</small><button type="button" class="btn sub small" data-sv="back">← 一覧</button></div>';
+    h += '<label class="small">選手に送るリンク<input class="tk-link" id="rbSvLink" readonly value="' + esc(url) + '"></label>' +
+      '<div class="en-tools"><button type="button" class="btn" data-sv="copy" data-url="' + esc(url) + '">🔗 リンクをコピー</button><a class="btn sub" target="_blank" rel="noopener" href="https://line.me/R/share?text=' + encodeURIComponent(msg) + '">LINEで送る</a><button type="button" class="btn sub" data-sv="qr" aria-expanded="' + SV.qr + '">🔳 QR</button></div>';
+    if (SV.qr) { var svg = ''; try { var q = qrcode(0, 'M'); q.addData(url, 'Byte'); q.make(); svg = q.createSvgTag({ cellSize: 4, margin: 3, scalable: true }); } catch (e) { svg = '<small class="warn">QRを作れませんでした</small>'; } h += '<div class="sv-qr">' + svg + '</div>'; }
+    h += '<div class="en-step"><span class="en-n">✓</span><b>答え</b><span class="small muted">' + done.length + '/' + c.roster.length + '人</span><button type="button" class="btn sub small" data-sv="reans">🔄 読み込み直す</button></div>';
+    if (done.length) h += '<div class="en-scroll"><table class="en-t sv-ans"><thead><tr><th>選手</th><th>第1希望</th><th>第2希望</th><th>リレー</th><th>ひとこと</th><th>送った日時</th></tr></thead><tbody>' + done.map(function (i) {
+      var r = c.roster[i], a = A[i]; return '<tr><td>' + esc(r.n) + (r.g ? ' <small>' + esc(r.g) + '年</small>' : '') + '</td><td>' + esc(S.evShort(a.ev1)) + '</td><td>' + esc(S.evShort(a.ev2)) + '</td><td>' + (a.relay === 'ok' ? '可' + (a.rel ? '（' + esc(S.evShort(a.rel)) + '）' : '') : a.relay === 'no' ? '不可' : '') + '</td><td class="sv-cm">' + esc(a.cm) + '</td><td><small>' + esc(S.when(a.at)) + '</small></td></tr>';
+    }).join('') + '</tbody></table></div>';
+    h += '<p class="small"><b>まだの人</b>（' + yet.length + '人）' + (yet.length ? '：' + yet.map(function (i) { return esc(c.roster[i].n); }).join('・') : '：いません') + '</p>';
+    h += '<div class="en-tools"><button type="button" class="btn" data-sv="apply"' + (done.length ? '' : ' disabled') + '>📥 希望を下書きに入れる</button>' +
+      '<button type="button" class="btn sub small" data-sv="stop">' + (c.open ? '⏸ 受付を止める' : '▶ 受付を再開') + '</button>' +
+      '<label class="sv-f sv-dl">締切 <input type="date" id="rbSvDl" value="' + esc(S.jstDay(c.deadline)) + '"></label><button type="button" class="btn sub small" data-sv="dl">締切を変える</button>' +
+      '<button type="button" class="btn sub small sv-del" data-sv="del">🗑 削除</button></div>';
+    return h + '</div>';
+  }
+  function svClick(t, d) {
+    var a = t.getAttribute('data-sv'), f = SV.form;
+    if (a === 'toggle') { SV.open = !SV.open; SV.msg = ''; if (SV.open && USER && !SV.list && !SV.cur) { svLoadList(); return true; } entRender(); return true; }
+    if (a === 'help') { SV.help = !SV.help; entRender(); return true; }
+    if (a === 'login') { if ($('rbSignIn')) $('rbSignIn').click(); return true; }
+    if (a === 'reload') { SV.list = null; svLoadList(); return true; }
+    if (a === 'new') { SV.form = svNewForm(d); SV.msg = ''; entRender(); return true; }
+    if (a === 'cancel') { SV.form = null; entRender(); return true; }
+    if (a === 'back') { SV.cur = null; SV.ans = null; SV.list = null; SV.msg = ''; svLoadList(); return true; }
+    var oid = t.getAttribute('data-svopen'); if (oid) { svOpenOne(oid); return true; }
+    if (f) {
+      var pk = t.getAttribute('data-svplan'); if (pk) { var p = svPlans().filter(function (x) { return x.date + '|' + x.meet === pk; })[0]; if (p) { f.plan = pk; f.meet = p.meet; f.deadline = LaneSurvey.defaultDeadline(p.deadline); } entRender(); return true; }
+      var sx = t.getAttribute('data-svsexes'); if (sx) { f.sexes = sx; entRender(); return true; }
+      var ak = t.getAttribute('data-svath'); if (ak != null) { if (f.off[ak]) delete f.off[ak]; else f.off[ak] = 1; entRender(); return true; }
+      if (a === 'all') { f.off = {}; entRender(); return true; }
+      if (a === 'none') { d.athletes.forEach(function (x) { if (svSexOk(f, x.sex)) f.off[x.key] = 1; }); entRender(); return true; }
+      var ek = t.getAttribute('data-svev'); if (ek != null) { if (f.evOff[ek]) delete f.evOff[ek]; else f.evOff[ek] = 1; entRender(); return true; }
+      var rk = t.getAttribute('data-svrel'); if (rk != null) { if (f.relOff[rk]) delete f.relOff[rk]; else f.relOff[rk] = 1; entRender(); return true; }
+      var xd = t.getAttribute('data-svxdel'); if (xd != null) { f.extra.splice(+xd, 1); entRender(); return true; }
+      if (a === 'xadd') { var v = ($('rbSvX').value || '').replace(/\s+/g, '').replace(/^(男子|女子)/, '').slice(0, 30); if (v) { var full = LaneEntry.sexName(f.sexes === 'mf' ? f.xsex : f.sexes) + v; if (f.extra.indexOf(full) < 0) f.extra.push(full); } entRender(); return true; }
+      if (a === 'create') { var pay = svPayload(d, f); svRun(async function (api) { var id = await api.create(pay); SV.form = null; SV.cur = await api.load(id); SV.ans = {}; return id; }, '✔ リンクを作りました。コピーかLINEで選手に送ってください。'); return true; }
+    }
+    var c = SV.cur; if (!c) return false;
+    if (a === 'copy') { var u = t.getAttribute('data-url'), done = function () { svSay('🔗 コピーしました。'); entRender(); }; if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(u).then(done, function () { $('rbSvLink').select(); svSay('リンクを選びました。長押し（右クリック）でコピーしてください。'); entRender(); }); else { $('rbSvLink').select(); } return true; }
+    if (a === 'qr') { SV.qr = !SV.qr; entRender(); return true; }
+    if (a === 'reans') { svRun(async function (api) { SV.ans = await api.answers(c.id); }); return true; }
+    if (a === 'stop') { var on = !c.open; svRun(async function (api) { await api.setOpen(c.id, on); c.open = on; }, on ? '▶ 受付を再開しました。' : '⏸ 受付を止めました（リンクを開いても答えられません）。'); return true; }
+    if (a === 'dl') { var dv = $('rbSvDl').value; svRun(async function (api) { await api.setDeadline(c.id, dv); c.deadline = LaneSurvey.dayEnd(dv); }, '✔ 締切を変えました。'); return true; }
+    if (a === 'del') { if (!confirm('この調査と、集まった答えをすべて削除します。元に戻せません。よいですか？')) return true; svRun(async function (api) { await api.remove(c.id); SV.cur = null; SV.ans = null; SV.list = await api.list(TEAM && TEAM.role === 'coach' ? TEAM.id : ''); }, '🗑 削除しました（答えも消えました）。'); return true; }
+    if (a === 'apply') {
+      if (!ENT.plan) ENT.plan = LaneEntry.newPlan();
+      var r = LaneSurvey.apply(LaneEntry, d, ENT.plan, c, SV.ans || {});
+      svSay('📥 種目' + r.picks + '件・リレー' + r.relay + '人を下書きに入れました。' + (r.skip.length ? ' 入れられなかったもの：' + r.skip.join('／') : '') + ' ルールの警告は上で確かめてください。', r.skip.length ? 'warn' : 'ok');
+      entRender(); return true;
+    }
+    return false;
+  }
+  function svChange(t) {
+    var k = t.getAttribute('data-svf'); if (!k || !SV.form) return false;
+    if (k === 'team') SV.form.team = t.checked; else SV.form[k] = t.value;
+    if (k === 'xsex') entRender();
+    return true;
+  }
   function entRows() {
     var s = school(), mine = $('rbMine').checked;
     return ALL.filter(function (r) {
@@ -2703,12 +2835,14 @@
     h += L.length ? '<div class="en-scroll">' + E.table(L) + '</div>' : '<p class="small muted">まだ選んでいません。</p>';
     h += E.feeTable(F);
     h += '<div class="en-tools"><button type="button" class="btn" data-en="print"' + (L.length ? '' : ' disabled') + '>🖨 印刷・PDF</button><button type="button" class="btn sub" data-en="copy"' + (L.length ? '' : ' disabled') + '>📋 文字でコピー</button><button type="button" class="btn sub small" data-en="clear">すべて外す</button></div>';
+    h += svHtml(d);
     box.innerHTML = h; box.hidden = false;
   }
   function entSay(m, c) { ENT.msg = m; ENT.cls = c || 'ok'; }
   function entClick(e) {
     var t = e.target.closest ? e.target.closest('button') : null; if (!t) return;
     var P = ENT.plan, d = entData(), a = t.getAttribute('data-en');
+    if (t.closest('.sv-box') && svClick(t, d)) return;
     ENT.msg = '';
     if (a === 'close') { ENT.open = false; entRender(); return; }
     if (a === 'help' || a === 'rules' || a === 'fee') { ENT[a] = !ENT[a]; entRender(); return; }
@@ -2734,6 +2868,7 @@
   }
   function entChange(e) {
     var t = e.target, P = ENT.plan, d; if (!P) return;
+    if (svChange(t)) return;
     var oi = t.getAttribute('data-enother');
     if (oi != null && t.value) { d = entData(); var ath = d.athletes.filter(function (x) { return x.sex === ENT.sex; })[+oi]; if (ath) (P.picks[ath.key] = P.picks[ath.key] || []).push(t.value); entRender(); return; }
     var lg = t.getAttribute('data-enleg');
