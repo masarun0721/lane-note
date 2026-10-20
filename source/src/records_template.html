@@ -79,6 +79,25 @@ body.personal-on .tabs button[data-v="rank"],body.personal-on .tabs button[data-
 .sus-card .card-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .sus-n{font-weight:700;color:#b45309}
 .sus-card .card-h [data-sus="close"]{margin-left:auto}
+.en-card .card-h [data-en="close"]{margin-left:auto}
+.en-q{width:28px;height:28px;border-radius:50%;border:2px solid #1f3a68;background:#fff;color:#1f3a68;font-weight:800;cursor:pointer;padding:0}
+.en-help{background:#f3f6fb;border-radius:10px;padding:8px 12px;margin:8px 0;font-size:14px}.en-help p{margin:4px 0}
+.en-step{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0 6px}.en-n{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#1f3a68;color:#fff;font-weight:800;font-size:13px}
+.en-card .divsw button[aria-pressed="true"]{background:#1f3a68;color:#fff}
+.en-aths{list-style:none;margin:0;padding:0;border:1px solid #d6dce7;border-radius:10px;background:#fff}.en-aths li{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;padding:8px 10px;border-bottom:1px solid #eef1f6}.en-aths li:last-child{border-bottom:0}.en-aths li.on{background:#f5f9ff}
+.en-nm{min-width:8em;font-weight:700;padding-top:6px}.en-chips{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+.en-chip{border:1px solid #1f3a68;background:#fff;color:#1f3a68;border-radius:999px;padding:5px 12px;min-height:36px;cursor:pointer;font-size:14px}.en-chip small{color:#5a6577}.en-chip[aria-pressed="true"]{background:#1f3a68;color:#fff}.en-chip[aria-pressed="true"] small{color:#dfe6f3}.en-chip.en-c{border-style:dashed}
+.en-other,.en-team select,.en-set input{min-height:36px;cursor:pointer}.en-set input[type=number]{width:5em;cursor:text}
+.en-rel{border:1px solid #d6dce7;border-radius:10px;padding:8px 10px;margin:6px 0;background:#fff}.en-rh{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.en-rh button{margin-left:auto}
+.en-team{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px;padding-top:6px;border-top:1px dashed #d6dce7}
+.en-tools{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.en-tools button,.en-card button{cursor:pointer}.en-card button[disabled]{cursor:not-allowed}
+.en-set{display:flex;flex-direction:column;gap:6px;background:#f8f9fc;border-radius:10px;padding:8px 12px}
+.en-warn{margin:6px 0;padding:8px 12px 8px 28px;background:#fff6e5;border:1px solid #f0c36d;border-radius:10px;color:#7a4b00;font-size:14px}
+.en-scroll{overflow-x:auto}.en-t{width:100%;border-collapse:collapse;font-size:14px;background:#fff}.en-t th,.en-t td{border-bottom:1px solid #e3e7ef;padding:6px 8px;text-align:left;vertical-align:top}.en-t .lp-r{text-align:right}.en-mk{font-weight:700;white-space:nowrap}.en-none{color:#8a93a3;font-weight:400;font-size:12px}.en-mem{font-size:12px;color:#5a6577}
+.en-fee{margin:8px 0 0 auto;border-collapse:collapse;font-size:14px}.en-fee td{padding:3px 8px}.en-fee .lp-r{text-align:right}.en-tot td{border-top:2px solid #1f3a68}
+body.personal-on #rbEntryBox,body.personal-on #rbEntry{display:none!important}
+#rbEntry .en-t th{position:static;top:auto}.en-line{margin:4px 0 0;font-size:13px;color:#5a6577}
+@media(max-width:600px){#rbEntry .en-t thead{display:none}#rbEntry .en-t,#rbEntry .en-t tbody{display:block}#rbEntry .en-t tr{display:flex;flex-wrap:wrap;gap:2px 10px;padding:6px 4px;border-bottom:1px solid #e3e7ef}#rbEntry .en-t td{border:0;padding:0}#rbEntry .en-t td:nth-child(1){flex:1 1 100%;font-weight:700}#rbEntry .en-t td:nth-child(4){margin-left:auto}#rbEntry .en-t td:nth-child(5){flex:1 1 100%;font-size:12px;color:#5a6577}#rbEntry .en-t td:nth-child(5) br{display:none}#rbEntry .en-t td:nth-child(5) small{margin-left:6px}#rbEntry .en-fee{width:100%}}
 .sus-h{margin:12px 0 4px;font-size:14px}.sus-h small{margin-left:6px;background:#eef2f8;border-radius:10px;padding:0 7px;font-weight:700}
 .sus-list{list-style:none;margin:0;padding:0}
 .sus-it{border:1px solid #e3e8f0;border-radius:8px;padding:6px 8px;margin:6px 0;background:#fff}
@@ -501,6 +520,8 @@ __MODEPICK__
   <div class="rb-stats" id="rbStats"></div>
   <div class="rb-pp rb-row" id="rbSusBox"><button class="btn sub" type="button" id="rbSusOpen" aria-controls="rbSus" aria-expanded="false">🔍 怪しい記録チェック</button></div>
   <div class="card sus-card" id="rbSus" hidden></div>
+  <div class="rb-pp rb-row" id="rbEntryBox"><button class="btn sub" type="button" id="rbEntryOpen" aria-controls="rbEntry" aria-expanded="false">📝 エントリー下書き</button></div>
+  <div class="card sus-card en-card" id="rbEntry" hidden></div>
   <div class="rb-pp rb-row" id="rbPPBox"><button class="btn sub" type="button" id="rbPPOpen">📱 選手の個人ページを作る</button><span class="small muted" data-xp="">選手が自分の記録とグラフを見られるリンクです。<a href="guide.html#g3">くわしく</a></span></div>
   <div class="rb-pp rb-row" id="rbTalkBox"><button class="btn sub" type="button" id="rbTalkOpen">💬 選手とのやり取り</button><span class="small muted" data-xp="">使いたい先生だけ。はじめはオフです（Googleでログインが必要）。</span></div>
   <div class="rb-pp" id="rbPubPref" hidden></div>

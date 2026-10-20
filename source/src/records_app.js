@@ -2630,6 +2630,124 @@
     $('rbSusOpen').addEventListener('click', function () { SUS.open = !SUS.open; SUS.msg = ''; SUS.undo = null; susRender(); if (SUS.open && $('rbSus').scrollIntoView) $('rbSus').scrollIntoView({ block: 'nearest' }); });
     $('rbSus').addEventListener('click', function (e) { susClick(e).catch(function () { }); });
   }
+  /* v0.27.0：📝 エントリー下書き。JAAFのエントリーシステムへ手で打つための下書き（送信・自動入力はしない）。内容はこの画面の中だけ（保存しない） */
+  var ENT = { open: false, sex: '', plan: null, help: false, rules: false, fee: false, add: {}, msg: '', cls: '', meet: '' };
+  function entRows() {
+    var s = school(), mine = $('rbMine').checked;
+    return ALL.filter(function (r) {
+      if (mine && s && !R.matchSchool(r.team, s)) return false;
+      if (DIV !== 'all' && R.divisionOf(r) !== DIV) return false;
+      return true;
+    });
+  }
+  function entData() { return LaneEntry.data(R, entRows()); }
+  function entRender() {
+    var box = $('rbEntry'), btn = $('rbEntryOpen'); if (!box || !btn) return;
+    btn.setAttribute('aria-expanded', ENT.open ? 'true' : 'false');
+    if (!ENT.open) { box.hidden = true; box.innerHTML = ''; return; }
+    if (!ENT.plan) ENT.plan = LaneEntry.newPlan();
+    var E = LaneEntry, esc = E.esc, d = entData(), P = ENT.plan, sexes = [];
+    d.athletes.forEach(function (a) { if (a.sex && sexes.indexOf(a.sex) < 0) sexes.push(a.sex); });
+    sexes.sort(); if (!ENT.sex || sexes.indexOf(ENT.sex) < 0) ENT.sex = sexes.indexOf(SEX) >= 0 ? SEX : (sexes[0] || '');
+    var h = '<div class="card-h"><b>📝 エントリー下書き</b><button type="button" class="en-q" data-en="help" aria-expanded="' + ENT.help + '" title="使い方">?</button>' +
+      '<button type="button" class="btn sub small" data-en="close">閉じる</button></div><p class="en-line">JAAFへ手で打つための下書き。送信しません。</p>';
+    if (ENT.help) h += '<div class="en-help"><p>JAAFのエントリーシステムに<b>手で打ち込む</b>ときの下書きです。ここから送ったり、自動で入力したりはしません。</p>' +
+      '<p>① 男子・女子を選ぶ → ② 選手の種目ボタンを押す（もう一度押すと外れる・「＋ほかの種目」で足せる） → ③ リレーは「＋チームを足す」でメンバー（4〜6人、5・6人目は補欠）を選ぶ → ④ 下の表を見ながら入力（印刷・コピーもできます）。</p>' +
+      '<p>「公認ベスト」は<b>公認の記録だけ</b>です（追い風参考などは使いません）。公認が無いときは空欄のままで大丈夫です。ルールは警告だけで、止めません。内容は保存しません（ページを閉じると消えます）。</p></div>';
+    if (ENT.msg) h += '<div class="status ' + ENT.cls + '">' + esc(ENT.msg) + '</div>';
+    if (!d.athletes.length) { box.innerHTML = h + '<p class="small muted">記録帳に選手の記録がありません。先に記録を入れてください。</p>'; box.hidden = false; return; }
+    h += '<div class="en-step"><span class="en-n">1</span><b>男女</b><div class="divsw" role="radiogroup" aria-label="エントリー下書きの男女">' + sexes.map(function (s) { return '<button type="button" data-ensex="' + s + '" aria-pressed="' + (s === ENT.sex) + '">' + E.sexName(s) + '</button>'; }).join('') + '</div></div>';
+    var aths = d.athletes.filter(function (a) { return a.sex === ENT.sex; }), allEv = d.events.filter(function (e) { return e.sex === ENT.sex; });
+    h += '<div class="en-step"><span class="en-n">2</span><b>選手と種目</b></div><ul class="en-aths">';
+    aths.forEach(function (a, i) {
+      var pk = P.picks[a.key] || [], own = {};
+      var chips = a.events.map(function (e) { own[e.ev] = 1; return '<button type="button" class="en-chip' + (e.comb ? ' en-c' : '') + '" data-enpick="' + i + '" data-ev="' + esc(e.ev) + '" aria-pressed="' + (pk.indexOf(e.ev) >= 0) + '">' + esc(e.label) + ' <small>' + (e.best ? esc(R.showMark(e.best.mark, e.full)) : '公認なし') + '</small></button>'; });
+      pk.forEach(function (ev) { if (!own[ev]) { var g = d.eventBy[ev]; chips.push('<button type="button" class="en-chip" data-enpick="' + i + '" data-ev="' + esc(ev) + '" aria-pressed="true">' + esc(g ? g.label : ev) + ' <small>公認なし</small></button>'); } });
+      var other = allEv.filter(function (e) { return !own[e.ev] && pk.indexOf(e.ev) < 0; });
+      h += '<li class="' + (pk.length ? 'on' : '') + '"><span class="en-nm">' + esc(a.name) + (a.grade ? ' <small>' + esc(a.grade) + '年</small>' : '') + '</span><span class="en-chips">' + chips.join('') +
+        (other.length ? '<select class="en-other" data-enother="' + i + '" aria-label="ほかの種目を足す"><option value="">＋ほかの種目</option>' + other.map(function (e) { return '<option value="' + esc(e.ev) + '">' + esc(e.label) + '</option>'; }).join('') + '</select>' : '') + '</span></li>';
+    });
+    h += '</ul>';
+    var rel = d.relays.filter(function (x) { return x.sex === ENT.sex; });
+    if (rel.length) {
+      h += '<div class="en-step"><span class="en-n">3</span><b>リレー</b></div>';
+      rel.forEach(function (x) {
+        var ts = P.relays[x.ev] || [];
+        h += '<div class="en-rel"><div class="en-rh"><b>' + esc(x.label) + '</b> <small>公認ベスト：' + (x.best ? esc(R.showMark(x.best.mark, x.full)) + '（' + esc(x.best.meet) + '）' : '公認記録なし（空欄でOK）') + '</small>' +
+          '<button type="button" class="btn sub small" data-enteam="' + esc(x.ev) + '">＋チームを足す</button></div>';
+        ts.forEach(function (t, ti) {
+          h += '<div class="en-team"><b>' + esc(t.label) + 'チーム</b>';
+          for (var j = 0; j < P.rules.maxLeg; j++) {
+            var cur = t.members[j] || '';
+            h += '<select data-enleg="' + esc(x.ev) + '|' + ti + '|' + j + '" aria-label="' + esc(t.label) + 'チーム ' + (j + 1) + '人目"><option value="">' + (j + 1) + '人目' + (j >= P.rules.minLeg ? '（補欠）' : '') + '</option>' + aths.map(function (a) { return '<option value="' + esc(a.key) + '"' + (a.key === cur ? ' selected' : '') + '>' + esc(a.name) + '</option>'; }).join('') + '</select>';
+          }
+          h += '<button type="button" class="btn sub small" data-endel="' + esc(x.ev) + '|' + ti + '">このチームを消す</button></div>';
+        });
+        h += '</div>';
+      });
+    }
+    var R0 = P.rules, F0 = P.fees;
+    h += '<div class="en-tools"><button type="button" class="btn sub small" data-en="rules" aria-expanded="' + ENT.rules + '">⚙ ルールを変える</button><button type="button" class="btn sub small" data-en="fee" aria-expanded="' + ENT.fee + '">💴 参加料を変える</button></div>';
+    if (ENT.rules) h += '<div class="en-set"><p class="small muted">はじめは 東京都高体連 第2・3支部 秋季大会の要項の値です。大会に合わせて変えてください。</p>' +
+      '<label>1人 <input type="number" min="0" data-enrule="maxEv" value="' + R0.maxEv + '"> 種目まで（リレー除く）</label>' +
+      '<label>リレー1校 <input type="number" min="0" data-enrule="relayTeams" value="' + R0.relayTeams + '"> チームまで</label>' +
+      '<label>混成は各校 <input type="number" min="0" data-enrule="combPerSchool" value="' + R0.combPerSchool + '"> 名</label>' +
+      '<label><input type="checkbox" data-enrule="noMulti"' + (R0.noMulti ? ' checked' : '') + '> 同じ人は自校の複数チームに入れない</label>' +
+      '<label><input type="checkbox" data-enrule="combAlone"' + (R0.combAlone ? ' checked' : '') + '> 混成（八種・七種）はほかの種目と重ねない</label></div>';
+    if (ENT.fee) h += '<div class="en-set"><label>個人 <input type="number" min="0" data-enfee="indiv" value="' + F0.indiv + '"> 円</label><label>リレー <input type="number" min="0" data-enfee="relay" value="' + F0.relay + '"> 円</label>' +
+      '<label>混成 <input type="number" min="0" data-enfee="comb" value="' + F0.comb + '"> 円</label><label>プログラム <input type="number" min="0" data-enfee="prog" value="' + F0.prog + '"> 円 ×</label>' +
+      '<label><input type="number" min="0" data-enfee="copies" value="' + (F0.copies == null ? '' : F0.copies) + '" placeholder="自動"> 部（空なら男女の数）</label></div>';
+    var L = E.lines(R, d, P), W = E.check(d, P), F = E.fees(R, d, P);
+    h += '<div class="en-step"><span class="en-n">4</span><b>下書き</b><span class="small muted">' + L.length + '件</span></div>';
+    if (W.length) h += '<ul class="en-warn" role="status">' + W.map(function (x) { return '<li>⚠ ' + esc(x.msg) + '</li>'; }).join('') + '</ul>';
+    h += L.length ? '<div class="en-scroll">' + E.table(L) + '</div>' : '<p class="small muted">まだ選んでいません。</p>';
+    h += E.feeTable(F);
+    h += '<div class="en-tools"><button type="button" class="btn" data-en="print"' + (L.length ? '' : ' disabled') + '>🖨 印刷・PDF</button><button type="button" class="btn sub" data-en="copy"' + (L.length ? '' : ' disabled') + '>📋 文字でコピー</button><button type="button" class="btn sub small" data-en="clear">すべて外す</button></div>';
+    box.innerHTML = h; box.hidden = false;
+  }
+  function entSay(m, c) { ENT.msg = m; ENT.cls = c || 'ok'; }
+  function entClick(e) {
+    var t = e.target.closest ? e.target.closest('button') : null; if (!t) return;
+    var P = ENT.plan, d = entData(), a = t.getAttribute('data-en');
+    ENT.msg = '';
+    if (a === 'close') { ENT.open = false; entRender(); return; }
+    if (a === 'help' || a === 'rules' || a === 'fee') { ENT[a] = !ENT[a]; entRender(); return; }
+    if (a === 'clear') { P.picks = {}; P.relays = {}; entSay('すべて外しました。'); entRender(); return; }
+    if (a === 'print') { openPrint(LaneEntry.sheet(R, d, P, { school: school(), date: LanePrint.today() })); return; }
+    if (a === 'copy') {
+      var tx = LaneEntry.text(R, d, P), done = function () { entSay('📋 コピーしました。'); entRender(); }, fb = function () { var ta = document.createElement('textarea'); ta.value = tx; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch (er) { entSay('コピーできませんでした。', 'err'); entRender(); } ta.remove(); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(tx).then(done, fb); else fb();
+      return;
+    }
+    var sx = t.getAttribute('data-ensex'); if (sx) { ENT.sex = sx; entRender(); return; }
+    var pi = t.getAttribute('data-enpick');
+    if (pi != null) {
+      var ath = d.athletes.filter(function (x) { return x.sex === ENT.sex; })[+pi], ev = t.getAttribute('data-ev'); if (!ath) return;
+      var pk = P.picks[ath.key] || (P.picks[ath.key] = []), k = pk.indexOf(ev);
+      if (k >= 0) pk.splice(k, 1); else pk.push(ev); if (!pk.length) delete P.picks[ath.key];
+      entRender(); return;
+    }
+    var te = t.getAttribute('data-enteam');
+    if (te) { var ts = P.relays[te] || (P.relays[te] = []); ts.push({ label: String.fromCharCode(65 + ts.length), members: [] }); entRender(); return; }
+    var dl = t.getAttribute('data-endel');
+    if (dl) { var p = dl.split('|'), arr = P.relays[p[0]] || []; arr.splice(+p[1], 1); arr.forEach(function (x, i) { x.label = String.fromCharCode(65 + i); }); if (!arr.length) delete P.relays[p[0]]; entRender(); }
+  }
+  function entChange(e) {
+    var t = e.target, P = ENT.plan, d; if (!P) return;
+    var oi = t.getAttribute('data-enother');
+    if (oi != null && t.value) { d = entData(); var ath = d.athletes.filter(function (x) { return x.sex === ENT.sex; })[+oi]; if (ath) (P.picks[ath.key] = P.picks[ath.key] || []).push(t.value); entRender(); return; }
+    var lg = t.getAttribute('data-enleg');
+    if (lg) { var p = lg.split('|'), tm = (P.relays[p[0]] || [])[+p[1]]; if (tm) { tm.members[+p[2]] = t.value; } entRender(); return; }
+    var rk = t.getAttribute('data-enrule');
+    if (rk) { P.rules[rk] = t.type === 'checkbox' ? t.checked : Math.max(0, parseInt(t.value, 10) || 0); entRender(); return; }
+    var fk = t.getAttribute('data-enfee');
+    if (fk) { P.fees[fk] = fk === 'copies' && t.value === '' ? null : Math.max(0, parseInt(t.value, 10) || 0); entRender(); }
+  }
+  if ($('rbEntryOpen')) {
+    $('rbEntryOpen').addEventListener('click', function () { ENT.open = !ENT.open; ENT.msg = ''; entRender(); if (ENT.open && $('rbEntry').scrollIntoView) $('rbEntry').scrollIntoView({ block: 'nearest' }); });
+    $('rbEntry').addEventListener('click', entClick);
+    $('rbEntry').addEventListener('change', entChange);
+  }
   /* 保存の前の確認画面：これから入れる記録の気になる行。二重ははじめから「入れない」、ほかは入れる（印だけ）。チェックで変えられる */
   function susForBatch(b) {
     if (typeof LaneSuspect === 'undefined' || !b.all) return null;
@@ -3196,7 +3314,7 @@
     var meets = {}; rows.forEach(function (r) { var k = r.date + '|' + r.meet; meets[k] = (meets[k] || 0) + 1; });
     var aths = {}; rows.forEach(function (r) { aths[R.athleteKey(r)] = 1; });
     $('rbStats').textContent = ALL.length ? '保存している記録：' + ALL.length + '件（表示 ' + rows.length + '件・選手 ' + Object.keys(aths).length + '人・大会 ' + Object.keys(meets).length + '件）' : 'まだ記録がありません。上で結果の資料を入れて「記録に保存」を押してください。';
-    renderMeetList(); renderSex(); renderReview(); fillDatalists(); if (SUS && SUS.open) susRender();
+    renderMeetList(); renderSex(); renderReview(); fillDatalists(); if (SUS && SUS.open) susRender(); if (ENT && ENT.open) entRender();
     var ak = curAthlete(), v = $('rbView');
     document.body.classList.toggle('ath-open', !!ak);
     v.className = 'tblwrap view-' + (ak ? 'athlete' : view);
