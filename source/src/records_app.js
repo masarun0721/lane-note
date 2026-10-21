@@ -2884,19 +2884,20 @@
     // v0.28.2 学年でしぼる（隠すだけ。隠れている人の選んだ種目は、下書きにも参加料にも入ったまま）・学年順に並べる
     var egb = LaneEntry.gradeBase(aths.map(function (a) { return a.grade; }), ''), egs = [], hidN = 0;
     aths.forEach(function (a) { var g = LaneEntry.gradeInfo(a.grade, egb); if (!egs.some(function (x) { return x.key === g.key; })) egs.push(g); }); egs.sort(function (a, b) { return a.k - b.k; });
-    if (ENT.gf && !egs.some(function (x) { return x.key === ENT.gf; })) ENT.gf = '';
+    // v0.28.4 学年は複数えらべる（ENT.gf＝えらんだ学年のキーの並び。空＝全員）
+    ENT.gf = (Array.isArray(ENT.gf) ? ENT.gf : []).filter(function (k) { return egs.some(function (x) { return x.key === k; }); }); var gfOut = function (a) { return ENT.gf.length && ENT.gf.indexOf(LaneEntry.gradeInfo(a.grade, egb).key) < 0; };
     var shown = aths.map(function (a, i) { return { a: a, i: i }; });
     if (ENT.gs) shown = LaneEntry.byGrade(shown, function (o) { return o.a.grade; }, egb, ENT.gs);
     h += '<div class="en-step"><span class="en-n">2</span><b>選手と種目</b></div>';
     if (egs.length > 1) {
-      h += '<div class="en-grs" role="group" aria-label="学年でしぼる"><button type="button" class="en-gr" data-engf="" aria-pressed="' + !ENT.gf + '">全員</button>' + egs.map(function (g) { return '<button type="button" class="en-gr" data-engf="' + esc(g.key) + '" aria-pressed="' + (ENT.gf === g.key) + '">' + esc(g.lbl) + '</button>'; }).join('') +
+      h += '<div class="en-grs" role="group" aria-label="学年でしぼる"><button type="button" class="en-gr" data-engf="" aria-pressed="' + !ENT.gf.length + '">全員</button>' + egs.map(function (g) { return '<button type="button" class="en-gr" data-engf="' + esc(g.key) + '" aria-pressed="' + (ENT.gf.indexOf(g.key) >= 0) + '">' + esc(g.lbl) + '</button>'; }).join('') +
         '<span class="en-gsep"></span>' + [[0, 'いつもの順'], [1, '学年 低→高'], [-1, '学年 高→低']].map(function (x) { return '<button type="button" class="en-gr en-gso" data-engs="' + x[0] + '" aria-pressed="' + ((ENT.gs || 0) === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>';
-      if (ENT.gf) shown.forEach(function (o) { if (LaneEntry.gradeInfo(o.a.grade, egb).key !== ENT.gf && (P.picks[o.a.key] || []).length) hidN++; });
+      if (ENT.gf.length) shown.forEach(function (o) { if (gfOut(o.a) && (P.picks[o.a.key] || []).length) hidN++; });
       if (hidN) h += '<p class="small en-hid" data-enhid="' + hidN + '">👁 非表示中に選択あり ' + hidN + '人（下書きと参加料には入っています）</p>';
     }
     h += '<ul class="en-aths">';
     shown.forEach(function (o) {
-      var a = o.a, i = o.i; if (ENT.gf && LaneEntry.gradeInfo(a.grade, egb).key !== ENT.gf) return;
+      var a = o.a, i = o.i; if (gfOut(a)) return;
       var pk = P.picks[a.key] || [], own = {};
       var chips = a.events.map(function (e) { own[e.ev] = 1; return '<button type="button" class="en-chip' + (e.comb ? ' en-c' : '') + '" data-enpick="' + i + '" data-ev="' + esc(e.ev) + '" aria-pressed="' + (pk.indexOf(e.ev) >= 0) + '">' + esc(e.label) + ' <small>' + (e.best ? esc(R.showMark(e.best.mark, e.full)) : '公認なし') + '</small></button>'; });
       pk.forEach(function (ev) { if (!own[ev]) { var g = d.eventBy[ev]; chips.push('<button type="button" class="en-chip" data-enpick="' + i + '" data-ev="' + esc(ev) + '" aria-pressed="true">' + esc(g ? g.label : ev) + ' <small>公認なし</small></button>'); } });
@@ -2985,7 +2986,7 @@
       return;
     }
     var sx = t.getAttribute('data-ensex'); if (sx) { ENT.sex = sx; entRender(); return; }
-    if (t.hasAttribute('data-engf')) { ENT.gf = t.getAttribute('data-engf'); entRender(); return; }
+    if (t.hasAttribute('data-engf')) { var gk = t.getAttribute('data-engf'), gl = Array.isArray(ENT.gf) ? ENT.gf.slice() : [], gi = gl.indexOf(gk); if (!gk) gl = []; else if (gi >= 0) gl.splice(gi, 1); else gl.push(gk); ENT.gf = gl; entRender(); return; }   // 全員＝えらびを消す・学年ごとに入れたり外したり（最後の学年を外すと全員）
     if (t.hasAttribute('data-engs')) { ENT.gs = +t.getAttribute('data-engs'); entRender(); return; }
     var pi = t.getAttribute('data-enpick');
     if (pi != null) {

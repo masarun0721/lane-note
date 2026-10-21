@@ -37,20 +37,13 @@ jobs:
       - name: Rules test on emulator
         run: npx -y firebase-tools@14.12.0 emulators:exec --only firestore --project demo-lane-note --config firebase.json "node source/test/rules_check.mjs && node source/test/rules_team_check.mjs && node source/test/rules_safety_check.mjs && node source/test/rules_counter_e2e.mjs && node source/test/rules_prep_pdf_check.mjs && node source/test/rules_pubmeets_check.mjs && node source/test/rules_join_msg_check.mjs && node source/test/rules_clear_all_check.mjs && node source/test/rules_pubresults_check.mjs && node source/test/rules_astra5_check.mjs && node source/test/rules_astra5_stage2_check.mjs && node source/test/rules_astra5_stage3_check.mjs && node source/test/rules_survey_check.mjs && node source/test/rules_admin_list_check.mjs"
 
-  deploy:
+  # v0.28.4 テストは Pages と分けた（Hosting はこのテストだけを待つ）
+  test:
     needs: rules
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       # source/ から組み立てる（Python 3 の標準ライブラリだけで動く）
       - name: Build from source
@@ -81,23 +74,33 @@ jobs:
           npm ci --ignore-scripts --no-audit --no-fund
           npm test
 
-      - name: Assemble site
-        run: cp .nojekyll _site/
-
+  # v0.28.4 GitHub Pages（旧アドレス masarun0721.github.io）は v0.28.4 で止める。
+  # 毎回ビルドせず、リポジトリに置いた固定のコピー pages_frozen/（v0.28.4・引っ越しのお知らせ入り）をそのまま出すだけ。
+  # これからの修正は Firebase Hosting（lane-note.web.app）にだけ出る。Pages を完全に止めるときは、この pages の仕事を消す
+  pages:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - name: Frozen copy only (no build)
+        run: test -f pages_frozen/index.html && test -f pages_frozen/.nojekyll && grep -q 'LANE NOTEは新しい住所に引っ越しました' pages_frozen/index.html
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: _site
-
+          path: pages_frozen
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
 
-  # v0.28.3 Firebase Hosting（https://lane-note.web.app）にも公開する。Pages と同じビルド・同じテストに通ったときだけ。
-  # hosting だけ（--only hosting）。ルール・インデックス・TTL・Worker は絶対に出さない。
-  # 秘密情報 FIREBASE_SERVICE_ACCOUNT_LANE_NOTE（サービスアカウントの JSON 鍵・Firebase Hosting 管理者）が無いときは何もしない
   hosting:
-    needs: deploy
+    needs: [rules, test]
     runs-on: ubuntu-latest
     permissions:
       contents: read

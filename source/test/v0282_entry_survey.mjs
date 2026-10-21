@@ -56,7 +56,7 @@ try {
   await p.evaluate(() => { const s = document.getElementById('rbSchool'); s.value = '架空'; s.dispatchEvent(new Event('input', { bubbles: true })); s.dispatchEvent(new Event('change', { bubbles: true })); });
   const f = path.join(fs.mkdtempSync('/tmp/v0282e-'), 's.json'); fs.writeFileSync(f, JSON.stringify({ records: ROWS })); await (await p.$('#rbImport')).uploadFile(f); await sl(2500);
   await p.click('#rbEntryOpen'); await sl(300);
-  await check('② 学年でしぼる（全員・1年・2年・3年）：隠すだけ。隠れた人が選んだ種目は下書きと参加料に残り「非表示中に選択あり」と出る', async () => {
+  await check('② 学年でしぼる（全員・1年・2年・3年、複数えらべる・最後を外すと全員）：隠すだけ。隠れた人が選んだ種目は下書きと参加料に残り「非表示中に選択あり」と出る', async () => {
     assert.deepEqual(await txt(p, '#rbEntry [data-engf]'), ['全員', '1年', '2年', '3年']);
     assert.equal(await p.evaluate(() => getComputedStyle(document.querySelector('#rbEntry [data-engf="g1"]')).cursor), 'pointer');
     const pick = n => p.evaluate(n => { const li = [...document.querySelectorAll('#rbEntry .en-aths > li')].find(l => l.textContent.includes(n)); li.querySelector('[data-enpick]').click(); }, n);
@@ -67,9 +67,19 @@ try {
     const names = await txt(p, '#rbEntry .en-aths > li .en-nm'); assert(names.every(x => /1年/.test(x)) && names.length === 2, names.join());
     assert.equal(await p.evaluate(() => document.querySelector('#rbEntry [data-enhid]').textContent), '👁 非表示中に選択あり 2人（下書きと参加料には入っています）');
     assert.equal(await p.evaluate(() => document.querySelector('#rbEnFee [data-ftot]').textContent), tot0, '参加料はそのまま'); assert(/架空 一郎/.test(await p.evaluate(() => document.querySelector('#rbEntry .en-t').textContent)), '下書きに残る');
+    // v0.28.4 複数えらべる：1年＋2年 → 1年・2年の人。最後の学年を外すと全員。全員はえらびを消す
+    const pr = () => p.evaluate(() => [...document.querySelectorAll('#rbEntry [data-engf]')].map(b => b.textContent + ':' + b.getAttribute('aria-pressed')).join(' '));
+    await p.evaluate(() => document.querySelector('#rbEntry [data-engf="g2"]').click()); await sl(200);
+    assert.equal(await pr(), '全員:false 1年:true 2年:true 3年:false'); let nm = await txt(p, '#rbEntry .en-aths > li .en-nm'); assert(nm.length === 3 && nm.every(x => /[12]年/.test(x)), nm.join());
+    assert.equal(await p.evaluate(() => document.querySelector('#rbEntry [data-enhid]').textContent), '👁 非表示中に選択あり 1人（下書きと参加料には入っています）');
+    if (SHOT) { const r = await p.evaluate(() => { const e = document.querySelector('#rbEntry .en-grs'); e.scrollIntoView({ block: 'start' }); const a = e.getBoundingClientRect(), z = document.querySelector('#rbEntry .en-aths').getBoundingClientRect(); return { x: 0, y: a.top - 40 + scrollY, width: 390, height: Math.min(900, z.bottom - a.top + 50) }; }); await p.screenshot({ path: path.join(SHOT, 'fix75_entry_grade.png'), clip: r, captureBeyondViewport: true }); }
+    await p.evaluate(() => document.querySelector('#rbEntry [data-engf="g1"]').click()); await sl(200); assert.equal(await pr(), '全員:false 1年:false 2年:true 3年:false');
+    await p.evaluate(() => document.querySelector('#rbEntry [data-engf="g2"]').click()); await sl(200); assert.equal(await pr(), '全員:true 1年:false 2年:false 3年:false'); assert.equal((await txt(p, '#rbEntry .en-aths > li .en-nm')).length, 5);
+    await p.evaluate(() => { document.querySelector('#rbEntry [data-engf="g1"]').click(); }); await sl(150); await p.evaluate(() => document.querySelector('#rbEntry [data-engf="g3"]').click()); await sl(150);
+    await p.evaluate(() => document.querySelector('#rbEntry [data-engf=""]').click()); await sl(200); assert.equal(await pr(), '全員:true 1年:false 2年:false 3年:false');
+    assert.equal(await p.evaluate(() => document.querySelector('#rbEnFee [data-ftot]').textContent), tot0, '参加料はずっとそのまま');
   });
   await check('② 学年順：いつもの順／学年 低→高／高→低（同じ学年は元の順）', async () => {
-    await p.evaluate(() => document.querySelector('#rbEntry [data-engf=""]').click()); await sl(150);
     await p.evaluate(() => document.querySelector('#rbEntry [data-engs="-1"]').click()); await sl(200);
     const g = (await txt(p, '#rbEntry .en-aths > li .en-nm')).map(x => (/(\d)年/.exec(x) || [])[1]); assert.deepEqual(g, ['3', '3', '2', '1', '1']);
     await p.evaluate(() => document.querySelector('#rbEntry [data-engs="1"]').click()); await sl(200);

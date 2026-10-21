@@ -12,31 +12,6 @@ function laneLinkBase() {
   if (location.hostname === LANE_OLD_HOST || /^lane-note\.(web\.app|firebaseapp\.com)$/.test(location.hostname)) return LANE_SITE;
   return location.origin + location.pathname.replace(/[^\/]*$/, '');
 }
-/* v0.28.3 旧アドレスで開いたときの案内（自動では移らない：この端末の記録はアドレスごとに別の保存場所のため） */
-var LaneMove = (function () {
-  'use strict';
-  var KEY = 'lanenote.move.hide.v1';
-  function newUrl() { var p = location.pathname.replace(/^\/lane-note\//, '/').replace(/^\/+/, ''); return LANE_SITE + p + location.search + location.hash; }
-  function show() {
-    if (typeof document === 'undefined' || location.hostname !== LANE_OLD_HOST || document.getElementById('laneMove')) return;
-    try { if (sessionStorage.getItem(KEY)) return; } catch (e) { }
-    var d = document.createElement('div'); d.id = 'laneMove'; d.className = 'lane-move'; d.setAttribute('role', 'note');
-    d.innerHTML = '<span class="lm-t">📮 新しい住所は <b>lane-note.web.app</b> です</span>' +
-      '<a class="lm-go" id="laneMoveGo" href="' + newUrl().replace(/"/g, '&quot;') + '">新しい住所で開く</a>' +
-      '<button type="button" class="lm-q" id="laneMoveQ" aria-expanded="false" title="記録の移し方">?</button>' +
-      '<button type="button" class="lm-x" id="laneMoveX" aria-label="閉じる" title="閉じる">✕</button>' +
-      '<div class="lm-h" id="laneMoveH" hidden>この端末に保存した記録は、新しい住所へ<b>自動では移りません</b>（住所ごとに保存場所が別のため）。' +
-      '<br>① この旧アドレスの <a href="records.html#rbH3">記録のページ「データの持ち運び」</a> で「💾 ファイルに書き出す（JSON）」' +
-      '<br>② 新しい住所の <a href="' + LANE_SITE + 'records.html#rbH3">記録のページ</a> で「📂 ファイルから読み込む」' +
-      '<br>Googleでログインしてクラウドに保存している記録は、新しい住所でログインすればそのまま見られます。</div>';
-    if (!document.getElementById('laneMoveCss')) { var st = document.createElement('style'); st.id = 'laneMoveCss'; st.textContent = '.lane-move{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:7px 10px;background:#fff7e0;border-bottom:1px solid #e8c56a;color:#4a3a10;font-size:13px;line-height:1.5}.lane-move .lm-t{flex:1 1 auto}.lane-move .lm-go{background:#1f3a6b;color:#fff;border-radius:999px;padding:3px 12px;text-decoration:none;font-weight:700;cursor:pointer}.lane-move .lm-go:hover{background:#2c4f8f}.lane-move .lm-q,.lane-move .lm-x{border:1px solid #c9a94a;background:#fff;border-radius:999px;min-width:26px;height:26px;cursor:pointer;font-weight:700;color:#4a3a10}.lane-move .lm-q:hover,.lane-move .lm-x:hover{background:#fdeebb}.lane-move .lm-h{flex-basis:100%;font-size:12px}.lane-move .lm-h a{color:#1f3a6b;cursor:pointer}'; document.head.appendChild(st); }
-    document.body.insertBefore(d, document.body.firstChild);
-    document.getElementById('laneMoveQ').addEventListener('click', function () { var h = document.getElementById('laneMoveH'); h.hidden = !h.hidden; this.setAttribute('aria-expanded', String(!h.hidden)); });
-    document.getElementById('laneMoveX').addEventListener('click', function () { try { sessionStorage.setItem(KEY, '1'); } catch (e) { } d.remove(); });
-  }
-  if (typeof document !== 'undefined') { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', show); else show(); }
-  return { show: show, newUrl: newUrl };
-})();
 var LaneMode = (function () {
   'use strict';
   var KEY = 'lanenote.mode.v1', PKEY = 'lanenote.player.v1.';

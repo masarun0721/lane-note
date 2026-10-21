@@ -13,7 +13,7 @@ import base64, hashlib, html as htmlmod, json, pathlib, re, sys
 ROOT = pathlib.Path(__file__).resolve().parent
 S = ROOT / 'src'
 SHARE_BASE = 'https://lane-note.web.app/'   # 共有リンク・QRの公開アドレス。src/mode.js の LANE_SITE と同じにする（build で確かめる）
-VERSION = 'v0.28.3'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
+VERSION = 'v0.28.4'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
 # 作成日は版番号から取れないので固定（ビルドした日で変わると、公開時の一致検査ができないため）
 BUILD_DATE = '2026年10月12日'
 REC_VERSION = 'v0.11.1'   # LANE LOG（records.html）だけの版
@@ -361,8 +361,16 @@ def write(out, *bodies):
     print(' / '.join('%s %d' % (out / n, len(b)) for n, b in zip(OUTPUTS, bodies)))
 
 
+def with_move(name, body):
+    """v0.28.4 引っ越しのお知らせ（src/move.js）を全部のページの最後に入れる（旧アドレスで開いたときだけ動く）"""
+    if not name.endswith('.html'):
+        return body
+    i = body.rindex('</body>')
+    return body[:i] + '<script>\n' + text('src/move.js') + '\n</script>\n' + body[i:]
+
+
 def main(argv):
-    bodies = build()
+    bodies = tuple(with_move(n, b) for n, b in zip(OUTPUTS, build()))
     if len(argv) == 2 and argv[0] == '--out':
         write(pathlib.Path(argv[1]), *bodies)
         return 0
