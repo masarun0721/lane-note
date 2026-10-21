@@ -2727,11 +2727,13 @@
     var sexes = sx.length > 1 ? (ENT.sex || 'mf') : (sx[0] || 'm'), f = { meet: P ? P.meet : '', plan: P ? P.date + '|' + P.meet : '', deadline: LaneSurvey.defaultDeadline(P && P.deadline), sexes: sexes, off: {}, evOff: {}, relOff: {}, extra: [], team: !!(TEAM && TEAM.role === 'coach'), xsex: sx[0] || 'm', kind: 'official', relayAsk: true };
     return f;
   }
+  var SV_RUN = [50, 60, 80, 100, 150, 200, 300, 400, 600, 800, 1000, 1500, 2000, 3000, 5000, 10000];
+  function svEvNorm(s) { var v = String(s || '').normalize('NFKC').replace(/\s+/g, '').replace(/^(男子|女子)/, '').replace(/[mｍ]$/i, function (c) { return c.toLowerCase(); }).slice(0, 30); if (/^\d+$/.test(v) && SV_RUN.indexOf(+v) >= 0) v += 'm'; return v; }
   function svSexOk(f, s) { return f.sexes === 'mf' || f.sexes === s; }
   function svPayload(d, f) {
     var E = LaneEntry, nm = function (s, l) { return E.sexName(s) + l; };
     var roster = d.athletes.filter(function (a) { return svSexOk(f, a.sex) && !f.off[a.key]; }).map(function (a) { return { n: a.name, g: a.grade || '', s: a.sex, key: a.key }; });
-    var evs = d.events.filter(function (e) { return svSexOk(f, e.sex) && !f.evOff[nm(e.sex, e.label)]; }).map(function (e) { return nm(e.sex, e.label); }).concat(f.extra);
+    var evs = R.sortEvents(d.events.filter(function (e) { return svSexOk(f, e.sex) && !f.evOff[nm(e.sex, e.label)]; }).map(function (e) { return nm(e.sex, e.label); }).concat(f.extra), function (k) { return k.replace(/^(男子|女子)/, ''); });   // v0.28.5 標準の順で保存（選手の画面も同じ順）
     var rels = d.relays.filter(function (x) { return svSexOk(f, x.sex) && !f.relOff[nm(x.sex, x.label)]; }).map(function (x) { return nm(x.sex, x.label); });
     return { meet: f.meet, team: f.team && TEAM && TEAM.role === 'coach' ? TEAM.id : '', sexes: f.sexes, roster: roster, evs: evs, rels: rels, deadline: f.deadline, kind: f.kind === 'kiroku' ? 'kiroku' : 'official', relayAsk: !!f.relayAsk };
   }
@@ -2771,9 +2773,12 @@
     h += '<div class="en-step"><span class="en-n">3</span><b>名簿</b><span class="small muted">' + on + '/' + ath.length + '人</span><button type="button" class="btn sub small" data-sv="all">全員</button><button type="button" class="btn sub small" data-sv="none">全員外す</button></div>' +
       (grs.length > 1 ? '<div class="en-grs" role="group" aria-label="学年ごと">' + grs.map(function (g) { var n = g.list.filter(function (a) { return !f.off[a.key]; }).length; return '<button type="button" class="en-gr" data-svgr="' + esc(g.key) + '" aria-pressed="' + (n === g.list.length) + '" title="' + esc(g.lbl) + 'を' + (n === g.list.length ? '全部外す' : '全部入れる') + '">' + esc(g.lbl) + ' <b>' + n + '/' + g.list.length + '</b></button>'; }).join('') + '</div>' : '') +
       grs.map(function (g) { return '<div class="en-grp" data-grp="' + esc(g.key) + '">' + (grs.length > 1 ? '<small class="en-grl">' + esc(g.lbl) + '</small>' : '') + '<div class="en-chips">' + g.list.map(function (a) { return '<button type="button" class="en-chip" data-svath="' + esc(a.key) + '" aria-pressed="' + !f.off[a.key] + '">' + (f.sexes === 'mf' ? E.sexName(a.sex).slice(0, 1) + ' ' : '') + esc(a.name) + (a.grade ? ' <small>' + esc(a.grade) + (/年$/.test(a.grade) ? '' : '年') + '</small>' : '') + '</button>'; }).join('') + '</div></div>'; }).join('');
-    var evs = d.events.filter(function (e) { return svSexOk(f, e.sex); });
-    h += '<div class="en-step"><span class="en-n">4</span><b>選べる種目</b></div><div class="en-chips">' + evs.map(function (e) { var k = nm(e.sex, e.label); return '<button type="button" class="en-chip" data-svev="' + esc(k) + '" aria-pressed="' + !f.evOff[k] + '">' + esc(f.sexes === 'mf' ? k : e.label) + '</button>'; }).join('') +
-      f.extra.map(function (k, i) { return '<button type="button" class="en-chip" data-svxdel="' + i + '" aria-pressed="true" title="押すと外します">' + esc(k) + ' ✕</button>'; }).join('') + '</div>' +
+    // v0.28.5 記録帳の種目と手で足した種目を、まとめて陸上の標準の順に（手で足したものも決まった場所へ・わからないものは最後）
+    var evs = d.events.filter(function (e) { return svSexOk(f, e.sex); }).map(function (e) { return { k: nm(e.sex, e.label), lb: e.label }; })
+      .concat(f.extra.map(function (k, i) { return { k: k, lb: k.replace(/^(男子|女子)/, ''), x: i }; }));
+    evs = R.sortEvents(evs, function (e) { return e.lb; });
+    h += '<div class="en-step"><span class="en-n">4</span><b>選べる種目</b></div><div class="en-chips">' + evs.map(function (e) { var hl = f.hl === e.k ? ' en-hl' : '', lb = esc(f.sexes === 'mf' ? e.k : e.lb);
+      return e.x != null ? '<button type="button" class="en-chip' + hl + '" data-svxdel="' + e.x + '" data-svxk="' + esc(e.k) + '" aria-pressed="true" title="押すと外します">' + lb + ' ✕</button>' : '<button type="button" class="en-chip' + hl + '" data-svev="' + esc(e.k) + '" aria-pressed="' + !f.evOff[e.k] + '">' + lb + '</button>'; }).join('') + '</div>' +
       '<div class="sv-add">' + (f.sexes === 'mf' ? '<select data-svf="xsex" aria-label="足す種目の男女"><option value="m"' + (f.xsex === 'm' ? ' selected' : '') + '>男子</option><option value="f"' + (f.xsex === 'f' ? ' selected' : '') + '>女子</option></select>' : '') +
       '<input type="text" maxlength="30" id="rbSvX" placeholder="種目を手で足す（例：100mH）" aria-label="種目を手で足す"><button type="button" class="btn sub small" data-sv="xadd">＋ 足す</button></div>';
     var rl = d.relays.filter(function (x) { return svSexOk(f, x.sex); });
@@ -2828,7 +2833,16 @@
       var ek = t.getAttribute('data-svev'); if (ek != null) { if (f.evOff[ek]) delete f.evOff[ek]; else f.evOff[ek] = 1; entRender(); return true; }
       var rk = t.getAttribute('data-svrel'); if (rk != null) { if (f.relOff[rk]) delete f.relOff[rk]; else f.relOff[rk] = 1; entRender(); return true; }
       var xd = t.getAttribute('data-svxdel'); if (xd != null) { f.extra.splice(+xd, 1); entRender(); return true; }
-      if (a === 'xadd') { var v = ($('rbSvX').value || '').replace(/\s+/g, '').replace(/^(男子|女子)/, '').slice(0, 30); if (v) { var full = LaneEntry.sexName(f.sexes === 'mf' ? f.xsex : f.sexes) + v; if (f.extra.indexOf(full) < 0) f.extra.push(full); } entRender(); return true; }
+      if (a === 'xadd') {
+        // v0.28.5 手で足す：記録帳のボタンと同じ短い形に（全角→半角・空白と頭の男子／女子は取る・走る距離の数だけなら「◯m」）。前は「男子」を付けたまま表示していた
+        var nm = function (x, l) { return LaneEntry.sexName(x) + l; }, v = svEvNorm($('rbSvX').value), sx0 = f.sexes === 'mf' ? f.xsex : f.sexes; f.hl = '';
+        if (v) {
+          var full = LaneEntry.sexName(sx0) + v, have = d.events.some(function (e) { return svSexOk(f, e.sex) && nm(e.sex, e.label) === full; });
+          if (have) { delete f.evOff[full]; f.hl = full; } else if (f.extra.indexOf(full) >= 0) f.hl = full; else f.extra.push(full);   // もうあるときは重ねず、そのボタンを光らせる
+          $('rbSvX').value = '';
+        }
+        entRender(); return true;
+      }
       if (a === 'create') { var pay = svPayload(d, f); svRun(async function (api) { var id = await api.create(pay); SV.form = null; SV.cur = await api.load(id); SV.ans = {}; return id; }, '✔ リンクを作りました。コピーかLINEで選手に送ってください。'); return true; }
     }
     var c = SV.cur; if (!c) return false;

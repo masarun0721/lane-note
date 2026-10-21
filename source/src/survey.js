@@ -196,7 +196,8 @@ var LaneSurvey = (function () {
     var showSex = s.sexes === 'mf' ? (st.sex || 'm') : s.sexes;
     h += '<div class="sv-names">' + s.roster.map(function (r, i) { return r.s !== showSex ? '' : '<button type="button" class="sv-name" data-svme="' + i + '" aria-pressed="' + (st.i === i) + '">' + esc(r.n) + (r.g ? '<small>' + esc(r.g) + '年</small>' : '') + '</button>'; }).join('') + '</div></section>';
     if (me) {
-      var evs = s.evs.filter(function (e) { return !sexOfLabel(e) || sexOfLabel(e) === sx; }), rels = s.rels.filter(function (e) { return !sexOfLabel(e) || sexOfLabel(e) === sx; });
+      var so = typeof ResultParser !== 'undefined' && ResultParser.sortEvents ? ResultParser.sortEvents : function (l) { return l; };   // v0.28.5 前に作った調査も標準の順で
+      var evs = so(s.evs.filter(function (e) { return !sexOfLabel(e) || sexOfLabel(e) === sx; })), rels = s.rels.filter(function (e) { return !sexOfLabel(e) || sexOfLabel(e) === sx; });
       var chips = function (k, cur, dis) { return '<div class="sv-chips">' + evs.map(function (e) { return '<button type="button" class="sv-chip" data-sv' + k + '="' + esc(e) + '" aria-pressed="' + (cur === e) + '"' + (dis === e ? ' disabled' : '') + '>' + esc(evShort(e)) + '</button>'; }).join('') + '</div>'; };
       h += '<section class="sv-card sv-join"><h3><span class="sv-n">2</span>出場</h3><div class="sv-chips">' + [[true, '出場する'], [false, '出場しない']].map(function (x) { return '<button type="button" class="sv-chip" data-svjoin="' + (x[0] ? '1' : '0') + '" aria-pressed="' + (st.join === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div></section>';
       if (st.join === true) {

@@ -31,7 +31,10 @@ var LaneEntry = (function () {
       if (!a.grade && b.grade) a.grade = b.grade; if (!a.sex) a.sex = sx;
       a.events.push(one);
     });
-    return { athletes: order.map(function (k) { return ath[k]; }), byKey: ath, relays: rorder.map(function (k) { return relays[k]; }), relayBy: relays, events: Object.keys(evs).map(function (k) { return evs[k]; }), eventBy: evs };
+    // v0.28.5 種目・リレー・選手ごとの種目は陸上の標準の順（R.sortEvents があるとき）
+    var so = R.sortEvents ? function (l) { return R.sortEvents(l, function (e) { return e.label; }); } : function (l) { return l; };
+    order.forEach(function (k) { ath[k].events = so(ath[k].events); });
+    return { athletes: order.map(function (k) { return ath[k]; }), byKey: ath, relays: so(rorder.map(function (k) { return relays[k]; })), relayBy: relays, events: so(Object.keys(evs).map(function (k) { return evs[k]; })), eventBy: evs };
   }
   function newPlan() { return { picks: {}, relays: {}, rules: Object.assign({}, RULES), fees: Object.assign({}, FEES) }; }
   function evInfo(d, ath, ev) {

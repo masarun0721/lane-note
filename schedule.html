@@ -802,6 +802,7 @@ body.personal-on #rbEntryBox,body.personal-on #rbEntry{display:none!important}
 .sv-cur{background:#fff;border:1px solid #d6dce7;border-radius:12px;padding:10px 12px;margin:6px 0}.sv-cur-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}.sv-cur-h button{margin-left:auto}
 .sv-state{border-radius:999px;padding:2px 10px;font-size:12px;font-weight:700}.sv-state.on{background:#e9f7ee;color:#135b2c}.sv-state.off{background:#f1f2f5;color:#5a6577}
 .sv-qr{max-width:220px;margin:6px 0}.sv-qr svg{width:100%;height:auto}.sv-cm{max-width:16em;word-break:break-word}.sv-del{color:#a11!important}.sv-dl{margin:0}
+#rbEntry .en-chip.en-hl{outline:3px solid #f2b705;outline-offset:2px;animation:enhl 1.2s ease-out 2}@keyframes enhl{50%{outline-color:#c0392b}}
 #rbEntry .en-chips{display:flex;gap:6px;flex-wrap:wrap}.en-line{margin:4px 0 0;font-size:13px;color:#5a6577}
 @media(max-width:600px){#rbEntry .en-t thead{display:none}#rbEntry .en-t,#rbEntry .en-t tbody{display:block}#rbEntry .en-t tr{display:flex;flex-wrap:wrap;gap:2px 10px;padding:6px 4px;border-bottom:1px solid #e3e7ef}#rbEntry .en-t td{border:0;padding:0}#rbEntry .en-t td:nth-child(1){flex:1 1 100%;font-weight:700}#rbEntry .en-t td:nth-child(4){margin-left:auto}#rbEntry .en-t td:nth-child(5){flex:1 1 100%;font-size:12px;color:#5a6577}#rbEntry .en-t td:nth-child(5) br{display:none}#rbEntry .en-t td:nth-child(5) small{margin-left:6px}#rbEntry .en-fee{width:100%}}
 .sus-h{margin:12px 0 4px;font-size:14px}.sus-h small{margin-left:6px;background:#eef2f8;border-radius:10px;padding:0 7px;font-weight:700}
@@ -2763,6 +2764,12 @@ var ResultParser = (function () {
     else t = 8;
     return [t, dist, s];
   }
+  // v0.28.5 種目名（文字）を陸上の標準の順に：短距離→中長距離→障害（SC）→ハードル→競歩→リレー→跳躍→投てき→混成→わからない種目。
+  //   disciplineOrder を使う（記録の一覧の並びは変えない。ここでは障害をハードルの前、競歩をリレーの前にする）
+  function eventStdKey(label) { var d = disciplineOrder(String(label || '')), m = { 2.5: 1.5, 4: 2.7 }; return [d[0] in m ? m[d[0]] : d[0], d[1], d[2]]; }
+  function eventCmp(a, b) { var x = eventStdKey(a), y = eventStdKey(b); return x[0] - y[0] || x[1] - y[1]; }
+  // 同じ種目どうし（男子・女子など）は元の順のまま
+  function sortEvents(list, get) { get = get || function (x) { return x; }; return (list || []).map(function (x, i) { return [x, i]; }).sort(function (p, q) { return eventCmp(get(p[0]), get(q[0])) || p[1] - q[1]; }).map(function (p) { return p[0]; }); }
   function cmpEventRec(a, b) {
     var ga = GROUPS.indexOf(divGroup(a)), gb = GROUPS.indexOf(divGroup(b)); if (ga !== gb) return ga - gb;
     var xa = genderOf(a), xb = genderOf(b); if (xa !== xb) return (xa === 'm' ? 0 : xa === 'f' ? 1 : 2) - (xb === 'm' ? 0 : xb === 'f' ? 1 : 2);
@@ -3403,7 +3410,7 @@ var ResultParser = (function () {
     computeBests: computeBests, baseEvent: baseEvent, learnGenders: learnGenders, isRelay: isRelay, relayEvent: relayEvent, relayMeta: relayMeta, relaySaveEvent: relaySaveEvent, relayTeamBase: relayTeamBase, matchRelayTeam: matchRelayTeam, parseRelayGold: parseRelayGold, parseRelayPdf: parseRelayPdf, mergeRelays: mergeRelays, legsText: legsText, parseLegs: parseLegs, relayRecord: relayRecord, pbLookup: pbLookup, nameKey: nameKey, athleteKey: athleteKey, matchSchool: matchSchool, schoolLoose: schoolLoose, cleanMark: cleanMark, isTag: isTag, canonSchool: canonSchool, cyuTeam: cyuTeam, eventShown: eventShown, teamLabel: teamLabel, teamOf: teamOf, recId: recId, recIdLegacy: recIdLegacy, recIdV6: recIdV6, identityKey: identityKey, fullIdentity: fullIdentity, looseIdentity: looseIdentity, manualRecord: manualRecord, sanitizeRecord: sanitizeRecord, validDate: validDate, normManualWind: normManualWind, dedupe: dedupe, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
     guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, fmtSecDiff: fmtSecDiff, minuteStyle: minuteStyle, showMark: showMark, distMark: distMark, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText,
     eventCat: eventCat, divisionOf: divisionOf, divLabel: divLabel, eventKey: eventKey, eventKeyLabel: eventKeyLabel, shownWind: shownWind, hasMark: hasMark, sortAthletes: sortAthletes, kanaKey: kanaKey,
-    setGenderDefault: setGenderDefault, setDivisionHints: setDivisionHints, setMeetDivs: setMeetDivs, divSource: divSource, divisionWhy: divisionWhy, splitTeamGrade: splitTeamGrade, setPersonDivs: setPersonDivs, setRosterDivs: setRosterDivs, divConflicts: divConflicts, gradeFromEvent: gradeFromEvent, fixRecord: fixRecord, jhOnlyEvent: jhOnlyEvent, rawDivisionOf: rawDivisionOf, genderOf: genderOf, divGroup: divGroup, disciplineOrder: disciplineOrder, groupEvents: groupEvents, gendersIn: gendersIn, GROUPS: GROUPS,
+    setGenderDefault: setGenderDefault, setDivisionHints: setDivisionHints, setMeetDivs: setMeetDivs, divSource: divSource, divisionWhy: divisionWhy, splitTeamGrade: splitTeamGrade, setPersonDivs: setPersonDivs, setRosterDivs: setRosterDivs, divConflicts: divConflicts, gradeFromEvent: gradeFromEvent, fixRecord: fixRecord, jhOnlyEvent: jhOnlyEvent, rawDivisionOf: rawDivisionOf, genderOf: genderOf, divGroup: divGroup, disciplineOrder: disciplineOrder, eventCmp: eventCmp, sortEvents: sortEvents, groupEvents: groupEvents, gendersIn: gendersIn, GROUPS: GROUPS,
     personKey: personKey, inferDivisions: inferDivisions, mapHeaders: mapHeaders, findHeaderRow: findHeaderRow, parseDateCell: parseDateCell, normImportMark: normImportMark, dupCheck: dupCheck, parseMeetPlan: parseMeetPlan, parseIcs: parseIcs, icsBytesToText: icsBytesToText, guessDiv: guessDiv, meetClass: meetClass, splitVenue: splitVenue, meetNorm: meetNorm, planKey: planKey, PLAN_TEMPLATE: PLAN_TEMPLATE, sheetEvent: sheetEvent, sheetBlocks: sheetBlocks, importBlock: importBlock, importWorkbook: importWorkbook, importRows: importRows, splitTable: splitTable, isTable: isTable, FIELD_LABELS: FIELD_LABELS, isFieldEvent: isFieldEvent };
 })();
 if (typeof module !== 'undefined') module.exports = ResultParser;
@@ -3463,7 +3470,7 @@ if (typeof module !== 'undefined') module.exports = LaneRoster;
 
 </script>
 <script>
-var APP_VERSION = "v0.28.4", REC_VERSION = "v0.11.1";
+var APP_VERSION = "v0.28.5", REC_VERSION = "v0.11.1";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>
@@ -4092,7 +4099,8 @@ var LaneSurvey = (function () {
     var showSex = s.sexes === 'mf' ? (st.sex || 'm') : s.sexes;
     h += '<div class="sv-names">' + s.roster.map(function (r, i) { return r.s !== showSex ? '' : '<button type="button" class="sv-name" data-svme="' + i + '" aria-pressed="' + (st.i === i) + '">' + esc(r.n) + (r.g ? '<small>' + esc(r.g) + '年</small>' : '') + '</button>'; }).join('') + '</div></section>';
     if (me) {
-      var evs = s.evs.filter(function (e) { return !sexOfLabel(e) || sexOfLabel(e) === sx; }), rels = s.rels.filter(function (e) { return !sexOfLabel(e) || sexOfLabel(e) === sx; });
+      var so = typeof ResultParser !== 'undefined' && ResultParser.sortEvents ? ResultParser.sortEvents : function (l) { return l; };   // v0.28.5 前に作った調査も標準の順で
+      var evs = so(s.evs.filter(function (e) { return !sexOfLabel(e) || sexOfLabel(e) === sx; })), rels = s.rels.filter(function (e) { return !sexOfLabel(e) || sexOfLabel(e) === sx; });
       var chips = function (k, cur, dis) { return '<div class="sv-chips">' + evs.map(function (e) { return '<button type="button" class="sv-chip" data-sv' + k + '="' + esc(e) + '" aria-pressed="' + (cur === e) + '"' + (dis === e ? ' disabled' : '') + '>' + esc(evShort(e)) + '</button>'; }).join('') + '</div>'; };
       h += '<section class="sv-card sv-join"><h3><span class="sv-n">2</span>出場</h3><div class="sv-chips">' + [[true, '出場する'], [false, '出場しない']].map(function (x) { return '<button type="button" class="sv-chip" data-svjoin="' + (x[0] ? '1' : '0') + '" aria-pressed="' + (st.join === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div></section>';
       if (st.join === true) {
@@ -7080,7 +7088,10 @@ var LaneEntry = (function () {
       if (!a.grade && b.grade) a.grade = b.grade; if (!a.sex) a.sex = sx;
       a.events.push(one);
     });
-    return { athletes: order.map(function (k) { return ath[k]; }), byKey: ath, relays: rorder.map(function (k) { return relays[k]; }), relayBy: relays, events: Object.keys(evs).map(function (k) { return evs[k]; }), eventBy: evs };
+    // v0.28.5 種目・リレー・選手ごとの種目は陸上の標準の順（R.sortEvents があるとき）
+    var so = R.sortEvents ? function (l) { return R.sortEvents(l, function (e) { return e.label; }); } : function (l) { return l; };
+    order.forEach(function (k) { ath[k].events = so(ath[k].events); });
+    return { athletes: order.map(function (k) { return ath[k]; }), byKey: ath, relays: so(rorder.map(function (k) { return relays[k]; })), relayBy: relays, events: so(Object.keys(evs).map(function (k) { return evs[k]; })), eventBy: evs };
   }
   function newPlan() { return { picks: {}, relays: {}, rules: Object.assign({}, RULES), fees: Object.assign({}, FEES) }; }
   function evInfo(d, ath, ev) {
@@ -11108,11 +11119,13 @@ var LanePdf = (function () {
     var sexes = sx.length > 1 ? (ENT.sex || 'mf') : (sx[0] || 'm'), f = { meet: P ? P.meet : '', plan: P ? P.date + '|' + P.meet : '', deadline: LaneSurvey.defaultDeadline(P && P.deadline), sexes: sexes, off: {}, evOff: {}, relOff: {}, extra: [], team: !!(TEAM && TEAM.role === 'coach'), xsex: sx[0] || 'm', kind: 'official', relayAsk: true };
     return f;
   }
+  var SV_RUN = [50, 60, 80, 100, 150, 200, 300, 400, 600, 800, 1000, 1500, 2000, 3000, 5000, 10000];
+  function svEvNorm(s) { var v = String(s || '').normalize('NFKC').replace(/\s+/g, '').replace(/^(男子|女子)/, '').replace(/[mｍ]$/i, function (c) { return c.toLowerCase(); }).slice(0, 30); if (/^\d+$/.test(v) && SV_RUN.indexOf(+v) >= 0) v += 'm'; return v; }
   function svSexOk(f, s) { return f.sexes === 'mf' || f.sexes === s; }
   function svPayload(d, f) {
     var E = LaneEntry, nm = function (s, l) { return E.sexName(s) + l; };
     var roster = d.athletes.filter(function (a) { return svSexOk(f, a.sex) && !f.off[a.key]; }).map(function (a) { return { n: a.name, g: a.grade || '', s: a.sex, key: a.key }; });
-    var evs = d.events.filter(function (e) { return svSexOk(f, e.sex) && !f.evOff[nm(e.sex, e.label)]; }).map(function (e) { return nm(e.sex, e.label); }).concat(f.extra);
+    var evs = R.sortEvents(d.events.filter(function (e) { return svSexOk(f, e.sex) && !f.evOff[nm(e.sex, e.label)]; }).map(function (e) { return nm(e.sex, e.label); }).concat(f.extra), function (k) { return k.replace(/^(男子|女子)/, ''); });   // v0.28.5 標準の順で保存（選手の画面も同じ順）
     var rels = d.relays.filter(function (x) { return svSexOk(f, x.sex) && !f.relOff[nm(x.sex, x.label)]; }).map(function (x) { return nm(x.sex, x.label); });
     return { meet: f.meet, team: f.team && TEAM && TEAM.role === 'coach' ? TEAM.id : '', sexes: f.sexes, roster: roster, evs: evs, rels: rels, deadline: f.deadline, kind: f.kind === 'kiroku' ? 'kiroku' : 'official', relayAsk: !!f.relayAsk };
   }
@@ -11152,9 +11165,12 @@ var LanePdf = (function () {
     h += '<div class="en-step"><span class="en-n">3</span><b>名簿</b><span class="small muted">' + on + '/' + ath.length + '人</span><button type="button" class="btn sub small" data-sv="all">全員</button><button type="button" class="btn sub small" data-sv="none">全員外す</button></div>' +
       (grs.length > 1 ? '<div class="en-grs" role="group" aria-label="学年ごと">' + grs.map(function (g) { var n = g.list.filter(function (a) { return !f.off[a.key]; }).length; return '<button type="button" class="en-gr" data-svgr="' + esc(g.key) + '" aria-pressed="' + (n === g.list.length) + '" title="' + esc(g.lbl) + 'を' + (n === g.list.length ? '全部外す' : '全部入れる') + '">' + esc(g.lbl) + ' <b>' + n + '/' + g.list.length + '</b></button>'; }).join('') + '</div>' : '') +
       grs.map(function (g) { return '<div class="en-grp" data-grp="' + esc(g.key) + '">' + (grs.length > 1 ? '<small class="en-grl">' + esc(g.lbl) + '</small>' : '') + '<div class="en-chips">' + g.list.map(function (a) { return '<button type="button" class="en-chip" data-svath="' + esc(a.key) + '" aria-pressed="' + !f.off[a.key] + '">' + (f.sexes === 'mf' ? E.sexName(a.sex).slice(0, 1) + ' ' : '') + esc(a.name) + (a.grade ? ' <small>' + esc(a.grade) + (/年$/.test(a.grade) ? '' : '年') + '</small>' : '') + '</button>'; }).join('') + '</div></div>'; }).join('');
-    var evs = d.events.filter(function (e) { return svSexOk(f, e.sex); });
-    h += '<div class="en-step"><span class="en-n">4</span><b>選べる種目</b></div><div class="en-chips">' + evs.map(function (e) { var k = nm(e.sex, e.label); return '<button type="button" class="en-chip" data-svev="' + esc(k) + '" aria-pressed="' + !f.evOff[k] + '">' + esc(f.sexes === 'mf' ? k : e.label) + '</button>'; }).join('') +
-      f.extra.map(function (k, i) { return '<button type="button" class="en-chip" data-svxdel="' + i + '" aria-pressed="true" title="押すと外します">' + esc(k) + ' ✕</button>'; }).join('') + '</div>' +
+    // v0.28.5 記録帳の種目と手で足した種目を、まとめて陸上の標準の順に（手で足したものも決まった場所へ・わからないものは最後）
+    var evs = d.events.filter(function (e) { return svSexOk(f, e.sex); }).map(function (e) { return { k: nm(e.sex, e.label), lb: e.label }; })
+      .concat(f.extra.map(function (k, i) { return { k: k, lb: k.replace(/^(男子|女子)/, ''), x: i }; }));
+    evs = R.sortEvents(evs, function (e) { return e.lb; });
+    h += '<div class="en-step"><span class="en-n">4</span><b>選べる種目</b></div><div class="en-chips">' + evs.map(function (e) { var hl = f.hl === e.k ? ' en-hl' : '', lb = esc(f.sexes === 'mf' ? e.k : e.lb);
+      return e.x != null ? '<button type="button" class="en-chip' + hl + '" data-svxdel="' + e.x + '" data-svxk="' + esc(e.k) + '" aria-pressed="true" title="押すと外します">' + lb + ' ✕</button>' : '<button type="button" class="en-chip' + hl + '" data-svev="' + esc(e.k) + '" aria-pressed="' + !f.evOff[e.k] + '">' + lb + '</button>'; }).join('') + '</div>' +
       '<div class="sv-add">' + (f.sexes === 'mf' ? '<select data-svf="xsex" aria-label="足す種目の男女"><option value="m"' + (f.xsex === 'm' ? ' selected' : '') + '>男子</option><option value="f"' + (f.xsex === 'f' ? ' selected' : '') + '>女子</option></select>' : '') +
       '<input type="text" maxlength="30" id="rbSvX" placeholder="種目を手で足す（例：100mH）" aria-label="種目を手で足す"><button type="button" class="btn sub small" data-sv="xadd">＋ 足す</button></div>';
     var rl = d.relays.filter(function (x) { return svSexOk(f, x.sex); });
@@ -11209,7 +11225,16 @@ var LanePdf = (function () {
       var ek = t.getAttribute('data-svev'); if (ek != null) { if (f.evOff[ek]) delete f.evOff[ek]; else f.evOff[ek] = 1; entRender(); return true; }
       var rk = t.getAttribute('data-svrel'); if (rk != null) { if (f.relOff[rk]) delete f.relOff[rk]; else f.relOff[rk] = 1; entRender(); return true; }
       var xd = t.getAttribute('data-svxdel'); if (xd != null) { f.extra.splice(+xd, 1); entRender(); return true; }
-      if (a === 'xadd') { var v = ($('rbSvX').value || '').replace(/\s+/g, '').replace(/^(男子|女子)/, '').slice(0, 30); if (v) { var full = LaneEntry.sexName(f.sexes === 'mf' ? f.xsex : f.sexes) + v; if (f.extra.indexOf(full) < 0) f.extra.push(full); } entRender(); return true; }
+      if (a === 'xadd') {
+        // v0.28.5 手で足す：記録帳のボタンと同じ短い形に（全角→半角・空白と頭の男子／女子は取る・走る距離の数だけなら「◯m」）。前は「男子」を付けたまま表示していた
+        var nm = function (x, l) { return LaneEntry.sexName(x) + l; }, v = svEvNorm($('rbSvX').value), sx0 = f.sexes === 'mf' ? f.xsex : f.sexes; f.hl = '';
+        if (v) {
+          var full = LaneEntry.sexName(sx0) + v, have = d.events.some(function (e) { return svSexOk(f, e.sex) && nm(e.sex, e.label) === full; });
+          if (have) { delete f.evOff[full]; f.hl = full; } else if (f.extra.indexOf(full) >= 0) f.hl = full; else f.extra.push(full);   // もうあるときは重ねず、そのボタンを光らせる
+          $('rbSvX').value = '';
+        }
+        entRender(); return true;
+      }
       if (a === 'create') { var pay = svPayload(d, f); svRun(async function (api) { var id = await api.create(pay); SV.form = null; SV.cur = await api.load(id); SV.ans = {}; return id; }, '✔ リンクを作りました。コピーかLINEで選手に送ってください。'); return true; }
     }
     var c = SV.cur; if (!c) return false;
