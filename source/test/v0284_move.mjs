@@ -44,13 +44,13 @@ await check('この端末に記録がある：「この端末に記録を保存�
   const p2 = await page(390, 844); await p2.goto(OLD + 'records.html', { waitUntil: 'load' }); await sl(1200); if (SHOT) await p2.screenshot({ path: path.join(SHOT, 'fix75_overlay_390.png') }); await p2.close();
   await p.close();
 });
-await check('「このまま使う（記録を移すときだけ）」：お知らせを閉じ、この画面のあいだは上に赤い帯（新しい住所で開く・記録を書き出す）。開き直しても帯。新しいタブ（別の画面）ではまた全画面', async () => {
+await check('「このまま使う（記録を移すときだけ）」：お知らせを閉じ、この画面のあいだは上に赤い帯（新しい住所で開く・記録を書き出す）。v0.28.6：別のページを開く・読み直すとまた全画面（タブに覚えない）', async () => {
   const p = await page(1280); await p.goto(OLD + 'records.html', { waitUntil: 'load' }); await seed(p); await p.reload({ waitUntil: 'load' }); await sl(900);
   await p.click('#laneMoveStay'); await sl(200);
   const r = await p.evaluate(() => { const b = document.getElementById('laneMoveBar'), s = getComputedStyle(b); return [!!document.getElementById('laneMoveOv'), b.textContent, s.backgroundColor, s.position, !!b.querySelector('#laneMoveGo'), !!b.querySelector('#laneMoveExp')]; });
   assert.deepEqual(r, [false, '⚠ LANE NOTEは新しい住所（lane-note.web.app）に引っ越しました。こちらは今後更新されません。新しい住所で開く💾 記録を書き出す', 'rgb(179, 38, 30)', 'sticky', true, true]);
   if (SHOT) await p.screenshot({ path: path.join(SHOT, 'fix75_banner_1280.png') });
-  await p.goto(OLD + 'index.html', { waitUntil: 'load' }); await sl(900); assert.deepEqual([(await info(p)).ov, (await info(p)).bar], [false, true]);
+  await p.goto(OLD + 'index.html', { waitUntil: 'load' }); await sl(900); assert.deepEqual([(await info(p)).ov, (await info(p)).bar], [true, false], '開き直すとまた全画面');
   const q = await page(390, 700); await q.goto(OLD + 'records.html', { waitUntil: 'load' }); await sl(900); assert.equal((await info(q)).ov, true, '別の画面ではまた出す');
   await q.click('#laneMoveStay'); await sl(200); if (SHOT) await q.screenshot({ path: path.join(SHOT, 'fix75_banner_390.png') }); await q.close(); await p.close();
 });

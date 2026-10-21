@@ -3470,7 +3470,7 @@ if (typeof module !== 'undefined') module.exports = LaneRoster;
 
 </script>
 <script>
-var APP_VERSION = "v0.28.5", REC_VERSION = "v0.11.1";
+var APP_VERSION = "v0.28.6", REC_VERSION = "v0.11.1";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>
@@ -12530,13 +12530,13 @@ var LanePdf = (function () {
    ・この端末に記録（lanenote-records）があるときだけ「記録を書き出す」を出す。記録のページ以外は records.html?export=1 を開く */
 var LaneMove = (function () {
   'use strict';
-  var SITE = typeof LANE_SITE !== 'undefined' ? LANE_SITE : 'https://lane-note.web.app/', OLD = 'masarun0721.github.io', KEY = 'lanenote.move.stay.v1';
+  var SITE = typeof LANE_SITE !== 'undefined' ? LANE_SITE : 'https://lane-note.web.app/', OLD = 'masarun0721.github.io', KEY = 'lanenote.move.mig.v1', STAY = false;   // v0.28.6 「このまま使う」はこの表示のあいだだけ（読み直すとまた全画面）
   var st = { has: false, done: false, msg: '' };
   function $(id) { return document.getElementById(id); }
   function on() { return typeof location !== 'undefined' && location.hostname === OLD; }
   function newUrl() { var p = location.pathname.replace(/^\/lane-note\//, '/').replace(/^\/+/, ''), q = location.search.replace(/([?&])export=1(&|$)/, '$1').replace(/[?&]$/, ''); return SITE + p + q + location.hash; }
   function recPage() { return !!$('rbExport') && /\/records\.html$/.test(location.pathname); }
-  function stay() { try { return !!sessionStorage.getItem(KEY); } catch (e) { return false; } }
+  function stay() { if (STAY) return true; try { var t = +sessionStorage.getItem(KEY) || 0; return t > 0 && Date.now() - t < 180000; } catch (e) { return false; } }   // ログインで移す途中だけ3分のあいだ帯にする
   function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   // この端末の記録があるか（無いときにデータベースを作らない）
   function hasLocal() {
@@ -12601,11 +12601,11 @@ var LaneMove = (function () {
   function click(e) {
     var t = e.target; if (!t || !t.closest) return;
     var sg = t.closest('#laneMoveSign'); if (sg && recPage()) {
-      e.preventDefault(); try { sessionStorage.setItem(KEY, '1'); } catch (x) { } render();   // お知らせは赤い帯にして、移す画面を見せる
+      e.preventDefault(); STAY = true; try { sessionStorage.setItem(KEY, String(Date.now())); } catch (x) { } render();   // お知らせは赤い帯にして、移す画面を見せる
       if (!guestBox()) { var si = $('rbSignIn'); if (si && !si.hidden && si.offsetParent !== null) si.click(); }
       toGuest(240); return;   // ログインのあと「このアカウントへ移す」が出たら、そこへ（2分まで待つ）
     }
-    if (t.closest('#laneMoveStay')) { try { sessionStorage.setItem(KEY, '1'); } catch (x) { } render(); return; }
+    if (t.closest('#laneMoveStay')) { STAY = true; render(); return; }
     var x = t.closest('#laneMoveExp'); if (x && recPage()) {
       e.preventDefault(); var b = $('rbExport'); if (b) b.click();
       setTimeout(function () { var s = $('rbDataStatus'); st.msg = s && s.textContent.trim() ? s.textContent.trim() : '書き出しを始めました（ダウンロードを確かめてください）'; var m = $('laneMoveMsg'), r = $('laneMoveRec'); if (m) m.textContent = st.msg; else if (r) { m = document.createElement('p'); m.className = 'mv-msg'; m.id = 'laneMoveMsg'; m.textContent = st.msg; r.appendChild(m); } }, 400);
