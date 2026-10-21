@@ -27,8 +27,8 @@ var LaneEntry = (function () {
         return;
       }
       if (!evs[b.event]) evs[b.event] = { ev: b.event, label: one.label, full: b.eventLabel, sex: sx, comb: one.comb };
-      var a = ath[b.key] || (ath[b.key] = (order.push(b.key), { key: b.key, name: b.name, kana: b.kana, grade: b.grade, team: b.team, sex: sx, events: [] }));
-      if (!a.grade && b.grade) a.grade = b.grade; if (!a.sex) a.sex = sx;
+      var a = ath[b.key] || (ath[b.key] = (order.push(b.key), { key: b.key, name: b.name, kana: b.kana, grade: gradeNo(b.grade), team: b.team, sex: sx, events: [] }));
+      if (!a.grade && b.grade) a.grade = gradeNo(b.grade); if (!a.sex) a.sex = sx;
       a.events.push(one);
     });
     // v0.28.5 種目・リレー・選手ごとの種目は陸上の標準の順（R.sortEvents があるとき）
@@ -141,20 +141,22 @@ var LaneEntry = (function () {
   }
   /* v0.28.2 学年：並べ順と札。「中2」「高1」はそのまま、「1」「1年」だけのときは base（'jh' 中学・'hs' 高校・'' 不明）に合わせる。
      並べ順は 中1・中2・中3・高1・高2・高3・（区分なし）1・2・3・学年なし */
+  // v0.28.8 学年をそろえる：「高2」「高校2年」「2年」→「2」、「中2」「中学2年」→「中2」。記録は書きかえず、読むときだけ
+  function gradeNo(g) { var s = String(g == null ? '' : g).normalize('NFKC'), m = s.match(/[1-6]/); return m ? (/^\s*中/.test(s) ? '中' : '') + m[0] : ''; }
   function gradeBase(grades, div) {
     if (div === '中学' || div === 'jh') return 'jh'; if (div === '高校' || div === 'hs') return 'hs';
-    var j = 0, h = 0; (grades || []).forEach(function (g) { g = String(g || '').normalize('NFKC'); if (/^中/.test(g)) j++; else if (/^高/.test(g)) h++; });
-    return j && !h ? 'jh' : h && !j ? 'hs' : '';
+    var j = 0, h = 0, b = 0; (grades || []).forEach(function (g) { g = String(g || '').normalize('NFKC'); if (/^中/.test(g)) j++; else if (/^高/.test(g)) h++; else if (/\d/.test(g)) b++; });
+    return j && !h && !b ? 'jh' : h && !j ? 'hs' : '';
   }
   function gradeInfo(g, base) {
-    g = String(g || '').normalize('NFKC').trim(); var m = /^(中|高)?\s*(\d)/.exec(g); if (!m) return { k: 99, lbl: '学年なし', key: '' };
-    var d = m[1] === '中' ? 'jh' : m[1] === '高' ? 'hs' : base, n = +m[2];
-    return d === 'jh' ? { k: n, lbl: '中' + n + '年', key: 'jh' + n } : d === 'hs' ? { k: 10 + n, lbl: '高' + n + '年', key: 'hs' + n } : { k: 20 + n, lbl: n + '年', key: 'g' + n };
+    var raw = String(g || '').normalize('NFKC').trim(); g = gradeNo(raw); if (!g) return { k: 99, lbl: '学年なし', key: '' };
+    var n = +g.slice(-1), jh = g.charAt(0) === '中' || (base === 'jh' && !/^高/.test(raw));   // v0.28.8 中は別、高・数字だけは同じ学年
+    return jh ? { k: n, lbl: '中' + n + '年', key: 'jh' + n } : { k: 10 + n, lbl: n + '年', key: 'g' + n };
   }
   // 学年で並べる（同じ学年の中は元の順のまま）。dir：1 低→高・-1 高→低（学年なしは最後）
   function byGrade(list, get, base, dir) {
     dir = dir || 1; return list.map(function (x, i) { return { x: x, i: i, k: gradeInfo(get(x), base).k }; }).sort(function (a, b) { if (a.k === 99 || b.k === 99) return (a.k === 99) - (b.k === 99) || a.i - b.i; return (a.k - b.k) * dir || a.i - b.i; }).map(function (o) { return o.x; });
   }
-  return { gradeBase: gradeBase, gradeInfo: gradeInfo, byGrade: byGrade, RULES: RULES, FEES: FEES, NO_MARK: NO_MARK, data: data, newPlan: newPlan, lines: lines, check: check, fees: fees, sheet: sheet, text: text, table: table, feeTable: feeTable, yen: yen, isComb: isComb, sexName: sexName, esc: esc };
+  return { gradeNo: gradeNo, gradeBase: gradeBase, gradeInfo: gradeInfo, byGrade: byGrade, RULES: RULES, FEES: FEES, NO_MARK: NO_MARK, data: data, newPlan: newPlan, lines: lines, check: check, fees: fees, sheet: sheet, text: text, table: table, feeTable: feeTable, yen: yen, isComb: isComb, sexName: sexName, esc: esc };
 })();
 if (typeof module !== 'undefined') module.exports = LaneEntry;

@@ -13,7 +13,7 @@ const ROWS = [rec({ name: '架空 一郎', grade: '2' }), rec({ name: '架空 �
   rec({ name: '架空 四郎', grade: '1', mark: '13.10' }), rec({ name: '架空 五郎', grade: '3', mark: '12.30' }), rec({ event: '男子4×100mR', name: '架空中', mark: '47.50', wind: '' }), rec({ name: '架空 花子', grade: '2', event: '女子100m', mark: '13.50', wind: '+0.2' })];
 const D = E.data(R, ROWS), K = n => D.athletes.find(a => a.name === n).key;
 await check('学年の札と並べ順：中1→中3→高1→高3→（区分なし）1→3→学年なし。「1年」だけのときは大会の区分・名簿の書き方に合わせる。同じ学年の中は元の順', () => {
-  assert.equal(E.gradeInfo('中2').lbl, '中2年'); assert.equal(E.gradeInfo('高1').lbl, '高1年'); assert.equal(E.gradeInfo('2', 'hs').lbl, '高2年'); assert.equal(E.gradeInfo('2', '').lbl, '2年'); assert.equal(E.gradeInfo('').lbl, '学年なし');
+  assert.equal(E.gradeInfo('中2').lbl, '中2年'); assert.equal(E.gradeInfo('高1').lbl, '1年'); assert.equal(E.gradeInfo('2', 'hs').lbl, '2年');   // v0.28.8 札は「2年」にそろえる assert.equal(E.gradeInfo('2', '').lbl, '2年'); assert.equal(E.gradeInfo('').lbl, '学年なし');
   assert.equal(E.gradeBase(['高1', '2']), 'hs'); assert.equal(E.gradeBase(['中1', '高1']), ''); assert.equal(E.gradeBase(['1'], '中学'), 'jh');
   const l = ['高2 A', '中3 B', '高1 C', '中1 D', '高2 E', ' F', '中3 G'].map(x => ({ g: x.split(' ')[0], n: x.split(' ')[1] }));
   assert.equal(E.byGrade(l, x => x.g, '', 1).map(x => x.n).join(''), 'DBGCAEF'); assert.equal(E.byGrade(l, x => x.g, '', -1).map(x => x.n).join(''), 'AECBGDF');

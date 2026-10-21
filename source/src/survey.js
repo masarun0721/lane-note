@@ -33,9 +33,10 @@ var LaneSurvey = (function () {
 
   /* ---------- 調査の中身（純粋な関数・テスト用にも使う） ---------- */
   // o = { meet, team, sexes:'m'|'f'|'mf', roster:[{n,g,s,key}], evs:['男子100m',...], rels:['男子4×100mR'], deadline:'YYYY-MM-DD' }
+  function gNo(g) { var s = String(g == null ? '' : g).normalize('NFKC'), m = s.match(/[1-6]/); return m ? (/^\s*中/.test(s) ? '中' : '') + m[0] : ''; }   // v0.28.8 「高2」は「2」、「中2」はそのまま
   function buildDocs(o, now) {
     now = now || Date.now();
-    var roster = (o.roster || []).slice(0, 150).map(function (r) { return { n: cut(r.n, 40), g: cut(r.g, 4), s: r.s === 'f' ? 'f' : 'm' }; });
+    var roster = (o.roster || []).slice(0, 150).map(function (r) { return { n: cut(r.n, 40), g: gNo(r.g), s: r.s === 'f' ? 'f' : 'm' }; });
     var akeys = (o.roster || []).slice(0, 150).map(function (r) { return cut(r.key, 200); });
     var uniq = function (l, n) { var seen = {}, out = []; (l || []).forEach(function (x) { x = cut(x, 40); if (x && !seen[x]) { seen[x] = 1; out.push(x); } }); return out.slice(0, n); };
     var evs = uniq(o.evs, 40), rels = uniq(o.rels, 6), dl = dayEnd(o.deadline);
@@ -201,7 +202,7 @@ var LaneSurvey = (function () {
     h += '<section class="sv-card"><h3><span class="sv-n">1</span>名前</h3>';
     if (s.sexes === 'mf') h += '<div class="sv-sex">' + ['m', 'f'].map(function (x) { return '<button type="button" class="sv-tab" data-svsex="' + x + '" aria-pressed="' + ((st.sex || 'm') === x) + '">' + sexName(x) + '</button>'; }).join('') + '</div>';
     var showSex = s.sexes === 'mf' ? (st.sex || 'm') : s.sexes;
-    h += '<div class="sv-names">' + s.roster.map(function (r, i) { return r.s !== showSex ? '' : '<button type="button" class="sv-name" data-svme="' + i + '" aria-pressed="' + (st.i === i) + '">' + esc(r.n) + (r.g ? '<small>' + esc(r.g) + '年</small>' : '') + '</button>'; }).join('') + '</div></section>';
+    h += '<div class="sv-names">' + s.roster.map(function (r, i) { return r.s !== showSex ? '' : '<button type="button" class="sv-name" data-svme="' + i + '" aria-pressed="' + (st.i === i) + '">' + esc(r.n) + (gNo(r.g) ? '<small>' + esc(gNo(r.g)) + '年</small>' : '') + '</button>'; }).join('') + '</div></section>';
     if (me) {
       var so = typeof ResultParser !== 'undefined' && ResultParser.sortEvents ? ResultParser.sortEvents : function (l) { return l; };   // v0.28.5 前に作った調査も標準の順で
       var evs = so(s.evs.filter(function (e) { return !sexOfLabel(e) || sexOfLabel(e) === sx; })), rels = s.rels.filter(function (e) { return !sexOfLabel(e) || sexOfLabel(e) === sx; });
@@ -256,7 +257,7 @@ var LaneSurvey = (function () {
     });
     return true;
   }
-  return { validId: validId, newId: newId, linkFor: linkFor, buildDocs: buildDocs, cleanAnswer: cleanAnswer, coach: coach, student: student, apply: apply, fb: fb, setFirebase: setFirebase, initLink: initLink, renderStudent: renderStudent,
+  return { gNo: gNo, validId: validId, newId: newId, linkFor: linkFor, buildDocs: buildDocs, cleanAnswer: cleanAnswer, coach: coach, student: student, apply: apply, fb: fb, setFirebase: setFirebase, initLink: initLink, renderStudent: renderStudent,
     defaultDeadline: defaultDeadline, dayEnd: dayEnd, jstDay: jstDay, when: when, dayLabel: dayLabel, sexName: sexName, evShort: evShort, esc: esc, CMMAX: CMMAX, KEEP: KEEP };
 })();
 if (typeof module !== 'undefined') module.exports = LaneSurvey;
