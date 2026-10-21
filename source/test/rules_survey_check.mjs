@@ -65,7 +65,7 @@ try {
     await bad(Object.assign({}, p, { evs: [] }));
     const big = Array.from({ length: 151 }, (_, k) => ({ n: '架空' + k, g: '1', s: 'm' })); await bad(Object.assign({}, p, { roster: big, n: 151 }), Object.assign({}, a, { akeys: big.map((_, k) => 'k' + k) }));
     await bad(Object.assign({}, p, { n: 2 }));
-    await bad(Object.assign({}, p, { deadline: Timestamp.fromMillis(Date.now() - 1000), expireAt: Timestamp.fromMillis(Date.now() + 864e5) }), Object.assign({}, a, { expireAt: Timestamp.fromMillis(Date.now() + 864e5) }));
+    await bad(Object.assign({}, p, { deadline: Timestamp.fromMillis(Date.now() - 10 * 60 * 1000), expireAt: Timestamp.fromMillis(Date.now() + 864e5) }), Object.assign({}, a, { expireAt: Timestamp.fromMillis(Date.now() + 864e5) }));
     const far = Date.now() + 121 * 864e5; await bad(Object.assign({}, p, { deadline: Timestamp.fromMillis(far), expireAt: Timestamp.fromMillis(far) }), Object.assign({}, a, { expireAt: Timestamp.fromMillis(far) }));
     const ex1 = Timestamp.fromMillis(p.deadline.toMillis() - 1000); await bad(Object.assign({}, p, { expireAt: ex1 }), Object.assign({}, a, { expireAt: ex1 }));
     const ex2 = Timestamp.fromMillis(p.deadline.toMillis() + 61 * 864e5); await bad(Object.assign({}, p, { expireAt: ex2 }), Object.assign({}, a, { expireAt: ex2 }));
@@ -152,7 +152,7 @@ try {
   await test('締切：締切を過ぎると、ログインなしは読めない・送れない（新しく・送り直し）', async () => {
     const [p, a] = docsFor('alice'); const sid = ID('h'); await rawCreate('alice', sid, p, a);
     await assertSucceeds(rawAns(anonDb, sid, 'r0', {}));
-    const past = Timestamp.fromMillis(Date.now() - 1000); await adminUpd('surveys/' + sid, { deadline: past }); await cool(sid, 'r0');
+    const past = Timestamp.fromMillis(Date.now() - 10 * 60 * 1000); await adminUpd('surveys/' + sid, { deadline: past }); await cool(sid, 'r0');
     await assertFails(getDoc(doc(anonDb, 'surveys', sid))); await assertFails(rawAns(anonDb, sid, 'r0', {})); await assertFails(rawAns(anonDb, sid, 'r1', {}));
     await assertSucceeds(getDocs(collection(db('alice'), 'surveys', sid, 'answers')));
   });
@@ -166,7 +166,7 @@ try {
       await assertFails(updateDoc(doc(db('alice'), 'surveys', SID), Object.assign({ updatedAt: serverTimestamp() }, o)));
     await assertFails(updateDoc(doc(db('alice'), 'surveyAdmins', SID), { ownerUid: 'carol' })); await assertFails(updateDoc(doc(db('alice'), 'surveyAdmins', SID), { akeys: ['a', 'b', 'c'] }));
     await assertFails(updateDoc(doc(anonDb, 'surveys', SID), { open: false, updatedAt: serverTimestamp() }));
-    const pt = Timestamp.fromMillis(Date.now() - 1000), b = writeBatch(db('alice')); b.update(doc(db('alice'), 'surveys', SID), { deadline: pt, expireAt: pt, updatedAt: serverTimestamp() }); b.update(doc(db('alice'), 'surveyAdmins', SID), { expireAt: pt }); await assertFails(b.commit());
+    const pt = Timestamp.fromMillis(Date.now() - 10 * 60 * 1000), b = writeBatch(db('alice')); b.update(doc(db('alice'), 'surveys', SID), { deadline: pt, expireAt: pt, updatedAt: serverTimestamp() }); b.update(doc(db('alice'), 'surveyAdmins', SID), { expireAt: pt }); await assertFails(b.commit());
   });
   await test('消す：ほかの人・ログインなしは不可。管理の文書だけ先に消すのは不可。持ち主が消すと回答も全部消え、そのあとは送れない', async () => {
     await assertFails(deleteDoc(doc(anonDb, 'surveys', SID))); await assertFails(deleteDoc(doc(db('carol'), 'surveys', SID)));
