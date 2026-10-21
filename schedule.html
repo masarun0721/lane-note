@@ -656,7 +656,7 @@ body.fb-open{overflow:hidden}
 /* v0.26.29 今後の大会・カレンダー */
 .lp-list{list-style:none;margin:8px 0;padding:0}.lp-list>li{padding:8px 4px;border-bottom:1px solid #e3e7ee;line-height:1.5}
 .lp-left{display:inline-block;min-width:4.5em;text-align:center;font-weight:bold;font-size:12px;background:#eef3fb;color:#1d3b6b;border-radius:10px;padding:1px 8px}.lp-left.soon{background:#fde9e2;color:#a33a14}
-.lp-div{border:1px solid #c9d2e0;border-radius:6px;padding:0 4px}.lp-acts{display:flex;gap:6px;justify-content:flex-end;margin-top:2px}.lp-acts .btn{width:auto;flex:0 0 auto;padding:3px 10px;font-size:12px;min-height:0}
+.lp-div{border:1px solid #c9d2e0;border-radius:6px;padding:0 4px}.lp-acts{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;margin-top:2px}.lp-acts .btn{width:auto;flex:0 0 auto;padding:3px 10px;font-size:12px;min-height:0}
 .lp-nav{display:flex;flex-wrap:nowrap}.lp-nav .btn{width:auto;flex:0 0 auto;padding:2px 12px;min-height:0}
 .lp-edit .mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px}.lp-edit label{display:flex;flex-direction:column;font-size:12px;gap:2px}.lp-edit input,.lp-edit select{font-size:14px;padding:5px;border:1px solid #c9d2e0;border-radius:6px}
 .lp-calbox{margin-top:10px}.lp-nav{align-items:center;gap:10px}
@@ -1082,11 +1082,12 @@ tr.rc.editing td{background:#fff3ec!important}
 .en-grs{display:flex;flex-wrap:wrap;gap:4px 6px;margin:6px 0}.en-gr{width:auto;padding:3px 10px;font-size:12.5px;border:1px solid #c5ccd8;border-radius:999px;background:#fff;color:#1f3a68;cursor:pointer}.en-gr:hover{background:#eef2f8}.en-gr[aria-pressed=true]{background:#1f3a68;color:#fff;border-color:#1f3a68}.en-gr b{font-variant-numeric:tabular-nums}.en-gsep{flex-basis:100%;height:0}.en-grp{margin-top:4px}.en-grl{display:block;font-size:11px;color:#59616e;margin:2px 0 0}.en-hid{color:#7a4b00;margin:2px 0 6px}.sv-out{color:#59616e}
 .lp-warnl{margin:3px 0 0;font-size:12px;line-height:1.5;color:#7a4b00}.lp-fixb{display:inline-block;width:auto;margin:0 0 0 4px;padding:1px 8px;font-size:12px;border:1px solid #c9a45a;border-radius:999px;background:#fff;color:#7a4b00;cursor:pointer}.lp-fixb:hover{background:#fff6e5}
 button.pp-open{font:inherit;cursor:pointer;border:1px solid #9bd3a9}button.pp-open:hover{filter:brightness(.94);text-decoration:underline}
+a.pp-src{font-size:12px;margin:0 6px 0 2px;color:#1f3a6b;cursor:pointer;white-space:nowrap}a.pp-src:hover{text-decoration:underline;color:#2c4f8f}.pv-src{margin-left:6px;cursor:pointer}
 .pv-back{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:12px}.pv-box{background:#fff;border-radius:10px;max-width:720px;width:100%;max-height:88vh;display:flex;flex-direction:column;padding:12px}.pv-head{background:none!important;padding:0 0 4px!important;border:0!important;box-shadow:none!important;display:flex;justify-content:space-between;align-items:center;gap:8px;color:#1f3a68;font-size:15px}.pv-x{flex:0 0 auto;width:auto;padding:4px 12px;font-size:13px;border:1px solid #c5ccd8;border-radius:999px;background:#fff;color:#1f3a68;cursor:pointer}.pv-x:hover{background:#eef2f8}.pv-text{flex:1;overflow:auto;white-space:pre-wrap;word-break:break-all;font-size:13px;background:#f6f7f9;border-radius:6px;padding:8px;margin:6px 0 0}
 .lp-cal th{position:static}.lp-cal .lp-dk{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;font-size:9px;line-height:1.2;margin-top:1px;padding:0 2px;border-left:3px solid #c0392b;background:#fdecea;color:#a11;text-align:left;overflow:hidden;word-break:break-all}.lp-cal .lp-dk.k-pay{border-left-color:#b7791f;background:#fff5e0;color:#7a4b00}.lp-cal .lp-dk.done{border-left-color:#c9ced6;background:none;color:#9aa1ad;text-decoration:line-through}
 .lp-list{list-style:none;margin:8px 0;padding:0}.lp-list>li{padding:8px 4px;border-bottom:1px solid #e3e7ee;line-height:1.5}
 .lp-left{display:inline-block;min-width:4.5em;text-align:center;font-weight:bold;font-size:12px;background:#eef3fb;color:#1d3b6b;border-radius:10px;padding:1px 8px}.lp-left.soon{background:#fde9e2;color:#a33a14}
-.lp-div{border:1px solid #c9d2e0;border-radius:6px;padding:0 4px}.lp-acts{display:flex;gap:6px;justify-content:flex-end;margin-top:2px}.lp-acts .btn{width:auto;flex:0 0 auto;padding:3px 10px;font-size:12px;min-height:0}
+.lp-div{border:1px solid #c9d2e0;border-radius:6px;padding:0 4px}.lp-acts{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;margin-top:2px}.lp-acts .btn{width:auto;flex:0 0 auto;padding:3px 10px;font-size:12px;min-height:0}
 .lp-nav{display:flex;flex-wrap:nowrap}.lp-nav .btn{width:auto;flex:0 0 auto;padding:2px 12px;min-height:0}
 .lp-edit .mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px}.lp-edit label{display:flex;flex-direction:column;font-size:12px;gap:2px}.lp-edit input,.lp-edit select{font-size:14px;padding:5px;border:1px solid #c9d2e0;border-radius:6px}
 .lp-calbox{margin-top:10px}.lp-nav{align-items:center;gap:10px}
@@ -1294,6 +1295,41 @@ body.sched-page main>.box:first-of-type>:not(#rbAuth):not(#rbAuthStatus):not(#rb
    ・顧問モード＝今までの全部の機能
    ・選手モード＝自分の予定・自己ベスト・体調メモ・自分の記録・もらったリンクをまとめた、かんたんな画面
    ・共有リンク（#p= / #d= / ?s= / ?t=）を開いたときは、モードに関係なくそのページを出す */
+/* v0.28.3 公開アドレス（ここだけで決める。build.py の SHARE_BASE と同じにする。
+   共有・調査・招待・個人ページ・QR のリンクは、公開版（旧アドレス含む）で開いても必ずこのアドレスで作る。
+   手元の試験用サーバー（localhost など）では、そのとき開いているアドレスで作る） */
+var LANE_SITE = 'https://lane-note.web.app/';
+var LANE_OLD_HOST = 'masarun0721.github.io', LANE_OLD_BASE = 'https://' + LANE_OLD_HOST + '/lane-note/';
+function laneLinkBase() {
+  if (!/^https?:$/.test(location.protocol)) return LANE_SITE;
+  if (location.hostname === LANE_OLD_HOST || /^lane-note\.(web\.app|firebaseapp\.com)$/.test(location.hostname)) return LANE_SITE;
+  return location.origin + location.pathname.replace(/[^\/]*$/, '');
+}
+/* v0.28.3 旧アドレスで開いたときの案内（自動では移らない：この端末の記録はアドレスごとに別の保存場所のため） */
+var LaneMove = (function () {
+  'use strict';
+  var KEY = 'lanenote.move.hide.v1';
+  function newUrl() { var p = location.pathname.replace(/^\/lane-note\//, '/').replace(/^\/+/, ''); return LANE_SITE + p + location.search + location.hash; }
+  function show() {
+    if (typeof document === 'undefined' || location.hostname !== LANE_OLD_HOST || document.getElementById('laneMove')) return;
+    try { if (sessionStorage.getItem(KEY)) return; } catch (e) { }
+    var d = document.createElement('div'); d.id = 'laneMove'; d.className = 'lane-move'; d.setAttribute('role', 'note');
+    d.innerHTML = '<span class="lm-t">📮 新しい住所は <b>lane-note.web.app</b> です</span>' +
+      '<a class="lm-go" id="laneMoveGo" href="' + newUrl().replace(/"/g, '&quot;') + '">新しい住所で開く</a>' +
+      '<button type="button" class="lm-q" id="laneMoveQ" aria-expanded="false" title="記録の移し方">?</button>' +
+      '<button type="button" class="lm-x" id="laneMoveX" aria-label="閉じる" title="閉じる">✕</button>' +
+      '<div class="lm-h" id="laneMoveH" hidden>この端末に保存した記録は、新しい住所へ<b>自動では移りません</b>（住所ごとに保存場所が別のため）。' +
+      '<br>① この旧アドレスの <a href="records.html#rbH3">記録のページ「データの持ち運び」</a> で「💾 ファイルに書き出す（JSON）」' +
+      '<br>② 新しい住所の <a href="' + LANE_SITE + 'records.html#rbH3">記録のページ</a> で「📂 ファイルから読み込む」' +
+      '<br>Googleでログインしてクラウドに保存している記録は、新しい住所でログインすればそのまま見られます。</div>';
+    if (!document.getElementById('laneMoveCss')) { var st = document.createElement('style'); st.id = 'laneMoveCss'; st.textContent = '.lane-move{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:7px 10px;background:#fff7e0;border-bottom:1px solid #e8c56a;color:#4a3a10;font-size:13px;line-height:1.5}.lane-move .lm-t{flex:1 1 auto}.lane-move .lm-go{background:#1f3a6b;color:#fff;border-radius:999px;padding:3px 12px;text-decoration:none;font-weight:700;cursor:pointer}.lane-move .lm-go:hover{background:#2c4f8f}.lane-move .lm-q,.lane-move .lm-x{border:1px solid #c9a94a;background:#fff;border-radius:999px;min-width:26px;height:26px;cursor:pointer;font-weight:700;color:#4a3a10}.lane-move .lm-q:hover,.lane-move .lm-x:hover{background:#fdeebb}.lane-move .lm-h{flex-basis:100%;font-size:12px}.lane-move .lm-h a{color:#1f3a6b;cursor:pointer}'; document.head.appendChild(st); }
+    document.body.insertBefore(d, document.body.firstChild);
+    document.getElementById('laneMoveQ').addEventListener('click', function () { var h = document.getElementById('laneMoveH'); h.hidden = !h.hidden; this.setAttribute('aria-expanded', String(!h.hidden)); });
+    document.getElementById('laneMoveX').addEventListener('click', function () { try { sessionStorage.setItem(KEY, '1'); } catch (e) { } d.remove(); });
+  }
+  if (typeof document !== 'undefined') { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', show); else show(); }
+  return { show: show, newUrl: newUrl };
+})();
 var LaneMode = (function () {
   'use strict';
   var KEY = 'lanenote.mode.v1', PKEY = 'lanenote.player.v1.';
@@ -1304,7 +1340,7 @@ var LaneMode = (function () {
   // v0.26.20：招待リンク（team.html#join=）で来た人には、はじめてのモードの質問を出さない（参加の画面を先に）
   function inviteView() { if (!document.body.classList.contains('team-page')) return false; if (/^#join=/.test(location.hash)) return true; try { return !!sessionStorage.getItem('lanenote.join.v1'); } catch (e) { return false; } }
   function sharedView() { return /^#[dpt]=/.test(location.hash) || /[?&][stq]=/.test(location.search); }
-  function base() { return /^https?:$/.test(location.protocol) ? location.origin + location.pathname.replace(/[^\/]*$/, '') : (window.LANE_SHARE_BASE || './'); }
+  function base() { return laneLinkBase(); }
   /* この端末に保存されている、もらったリンク（大会当日の予定＝p・個人ページ＝pp） */
   function savedLinks() {
     var out = [];
@@ -1413,9 +1449,10 @@ var LaneMode = (function () {
     });
     $('phGo').addEventListener('click', function () {
       var u = $('phUrl').value.trim(), m = /^https?:\/\/[^\s]+$/.test(u) ? u : '';
-      var ok = m && (u.indexOf(base()) === 0 || /^https:\/\/masarun0721\.github\.io\/lane-note\//.test(u)) && (/[#](p|d)=/.test(u) || /[?&](s|t)=/.test(u));
+      var here = location.origin + location.pathname.replace(/[^\/]*$/, ''), OLD = /^https:\/\/(masarun0721\.github\.io\/lane-note|lane-note\.web\.app|lane-note\.firebaseapp\.com)\//;
+      var ok = m && (u.indexOf(here) === 0 || OLD.test(u)) && (/[#](p|d)=/.test(u) || /[?&](s|t)=/.test(u));
       if (!ok) { $('phMsg').textContent = 'LANE NOTE のリンク（先生からもらったもの）を貼ってください。'; return; }
-      location.href = u.indexOf(base()) === 0 ? u : base() + u.replace(/^https:\/\/masarun0721\.github\.io\/lane-note\//, '');
+      location.href = u.indexOf(here) === 0 ? u : here + u.replace(OLD, '');
     });
     if (window.LaneTalk) LaneTalk.renderHomeCard($('phTalk'), []);   // v0.25（C302）：個人ページの tk は使わない
   }
@@ -1718,7 +1755,7 @@ var LaneAuth = (function () {
   }
   function errorText(e) {
     var c = (e && e.code) || '';
-    if (/unauthorized-domain/.test(c)) return 'このアドレスからはログインできません（公開版のページ https://masarun0721.github.io/lane-note/ から開いてください）';
+    if (/unauthorized-domain/.test(c)) return 'このアドレスからはログインできません（公開版のページ https://lane-note.web.app/ から開いてください）';
     if (/network-request-failed/.test(c)) return '通信できませんでした。電波の良いところでもう一度押してください';
     if (/popup-blocked/.test(c)) return 'ログインの小さな画面（ポップアップ）がブロックされました。アドレスバーのブロック表示から、このサイトのポップアップを許可して、もう一度「Googleでログイン」を押してください（入力した内容は消えていません）';
     if (/web-storage-unsupported|operation-not-supported/.test(c)) return 'このブラウザ（LINEなどのアプリの中のブラウザ・プライベートモードなど）ではログインできません。Safari や Chrome で開き直してください';
@@ -3451,11 +3488,11 @@ if (typeof module !== 'undefined') module.exports = LaneRoster;
 
 </script>
 <script>
-var APP_VERSION = "v0.28.2", REC_VERSION = "v0.11.1";
+var APP_VERSION = "v0.28.3", REC_VERSION = "v0.11.1";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>
-var SHARE_BASE = "https://masarun0721.github.io/lane-note/";
+var SHARE_BASE = "https://lane-note.web.app/";
 </script>
 <div id="rbPPScreen" hidden role="dialog" aria-label="選手の個人ページを作る"><div class="pps-bar"><button class="btn sub" type="button" id="rbPPBack">← 戻る</button><b>📱 選手の個人ページを作る</b></div><div class="pps-body">
   <p class="small muted" data-xp="このリンクについて">チェックした選手ごとに、その子の記録だけが入ったリンクを作ります。<a href="guide.html#g3">くわしくは使い方へ</a></p>
@@ -3672,7 +3709,7 @@ var LaneTalk = (function () {
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function validId(s) { return /^[A-Za-z0-9]{20}$/.test(String(s || '')); }
   function newId() { var A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789', out = '', b = new Uint8Array(1); while (out.length < 20) { crypto.getRandomValues(b); if (b[0] < 248) out += A[b[0] % 62]; } return out; }
-  function base() { return /^https?:$/.test(location.protocol) ? location.origin + location.pathname.replace(/[^\/]*$/, '') : (window.SHARE_BASE || './'); }
+  function base() { if (typeof laneLinkBase === 'function') return laneLinkBase(); return /^https?:$/.test(location.protocol) ? location.origin + location.pathname.replace(/[^\/]*$/, '') : (window.SHARE_BASE || './'); }
   function linkFor(tid) { return base().replace(/records\.html$/, '') + '?t=' + tid; }
   function ms(t) { return t && t.toMillis ? t.toMillis() : 0; }
   function when(t) { var m = ms(t); if (!m) return '送信中'; var d = new Date(m); return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + d.getHours() + ':' + ('0' + d.getMinutes()).slice(-2); }
@@ -3895,7 +3932,7 @@ var LaneSurvey = (function () {
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function validId(s) { return /^[A-Za-z0-9]{24}$/.test(String(s || '')); }
   function newId() { var A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789', out = '', b = new Uint8Array(1); while (out.length < 24) { crypto.getRandomValues(b); if (b[0] < 248) out += A[b[0] % 62]; } return out; }
-  function base() { return /^https?:$/.test(location.protocol) ? location.origin + location.pathname.replace(/[^\/]*$/, '') : (window.SHARE_BASE || './'); }
+  function base() { if (typeof laneLinkBase === 'function') return laneLinkBase(); return /^https?:$/.test(location.protocol) ? location.origin + location.pathname.replace(/[^\/]*$/, '') : (window.SHARE_BASE || './'); }
   function linkFor(sid) { return base() + '?q=' + sid; }
   function ms(t) { return t && t.toMillis ? t.toMillis() : (typeof t === 'number' ? t : 0); }
   function isDay(s) { return /^\d{4}-\d{2}-\d{2}$/.test(String(s || '')); }
@@ -7201,6 +7238,7 @@ if (typeof module !== 'undefined') module.exports = LaneEntry;
    ・Webページの中に PDF や別ページへのリンクがたくさんあるとき（大会のページなど）は、一覧を出して選んでもらう。 */
 (function (root) {
   'use strict';
+  // v0.28.3 中継（Cloudflare Worker）のアドレス：ここだけで決める。名前を変えるときはここと README を直す
   var PROXY = 'https://lane-note-fetch.masashi-sakata1007.workers.dev/';
   var MAX = 20 * 1048576;
   var MSG = {
@@ -8677,7 +8715,7 @@ var LanePdf = (function () {
         (M.fee || M.memo ? '<br><small class="muted">' + (M.fee ? '💰 ' + esc(M.fee) : '') + (M.fee && M.memo ? '　' : '') + (M.memo ? '📝 ' + esc(M.memo) : '') + '</small>' : '') +
         (M.resultUrl ? '<br><small>🔗 <a href="' + esc(M.resultUrl) + '" target="_blank" rel="noopener noreferrer">速報・結果のページ</a></small>' : '') +
         '<div class="lp-cks">' + ck('entryAt', 'エントリー済', dl.entry, dl.via) + ck('payAt', '振込済', dl.pay) + '</div>' + dlWarn(k, dl) + (dl.slip && dl.slip.date ? '<div class="lp-cks">' + (function () { var c = LaneDeadline.chip(dl.slip, td, !!M.payAt); return '<small class="lp-dl dl-' + (c.c || 'ok') + '" data-dl="slip" title="' + esc('要項：' + dl.slip.src) + '">📝 A票など提出 ' + esc(c.t) + '</small>'; })() + '</div>' : '') + prepBadges(k, M) +
-        ' <span class="lp-acts">' + (p.date <= td ? '<a class="btn small lp-imp" href="records.html?imp=' + encodeURIComponent(k) + '">📥 結果を取り込む</a>' : '') + '<a class="btn sub small" href="index.html?plan=' + encodeURIComponent(k) + '">📋 大会準備へ</a><button class="btn sub small" type="button" data-lpedit="' + esc(k) + '">✏️ 直す</button><button class="btn sub small danger-t" type="button" data-lpdel="' + esc(k) + '">🗑 消す</button></span></li>';
+        ' <span class="lp-acts">' + (p.date <= td ? '<a class="btn small lp-imp" href="records.html?imp=' + encodeURIComponent(k) + '">📥 結果を取り込む</a>' : '') + '<a class="btn sub small" href="index.html?plan=' + encodeURIComponent(k) + '">📋 大会準備へ</a><a class="btn sub small" data-lpentry="' + esc(k) + '" href="records.html#entry=' + encodeURIComponent(k) + '">📝 エントリー下書き</a><button class="btn sub small" type="button" data-lpedit="' + esc(k) + '">✏️ 直す</button><button class="btn sub small danger-t" type="button" data-lpdel="' + esc(k) + '">🗑 消す</button></span></li>';
     };
     var y = +LP.ym.slice(0, 4), m = +LP.ym.slice(5, 7);
     box.innerHTML = '<h2>📅 今後の大会 <small class="muted">' + (up.length ? up.length + '件' : '') + '</small></h2>' +
@@ -8732,7 +8770,8 @@ var LanePdf = (function () {
       var now = Date.now(), docs = {}, dl = {};
       all.forEach(function (x) {
         if (!x || x.owner !== own || !x.key || !x.end || Date.parse(x.end + 'T00:00:00+09:00') + 31 * 864e5 < now) return;
-        var d = docs[x.key] = docs[x.key] || { text: {}, file: {} };
+        var d = docs[x.key] = docs[x.key] || { text: {}, file: {}, url: {} };
+        if (x.docs && typeof x.docs === 'object') Object.keys(x.docs).forEach(function (kd) { var u = x.docs[kd] && x.docs[kd].url; if (typeof u === 'string' && /^https?:\/\//.test(u) && u.length <= 1000) d.url[kd] = u; });   // v0.28.3 URLから読んだ資料の元のアドレス
         if (x.file && x.blob && x.kind) d.file[x.kind] = { blob: x.blob, name: x.name || '', type: x.type || 'application/pdf' };
         else if (x.snap && x.snap.st && x.snap.st.docText) Object.keys(x.snap.st.docText).forEach(function (kd) { var t = x.snap.st.docText[kd]; if (typeof t === 'string' && t.trim()) d.text[kd] = t; });
       });
@@ -8743,12 +8782,12 @@ var LanePdf = (function () {
     }, function () { PV.busy = false; });
   }
   function pvOpen(k, kind) {
-    var lbl = { yoko: '要項', sl: 'スタートリスト', tt: 'タイムテーブル', note: '注意事項' }[kind] || '資料', d = PV.docs[k] || { text: {}, file: {} }, f = d.file[kind];
+    var lbl = { yoko: '要項', sl: 'スタートリスト', tt: 'タイムテーブル', note: '注意事項' }[kind] || '資料', d = PV.docs[k] || { text: {}, file: {}, url: {} }, f = d.file[kind], su = (d.url || {})[kind] || '';
     if (f) { var u = URL.createObjectURL(f.blob), w = window.open(u, '_blank'); setTimeout(function () { URL.revokeObjectURL(u); }, 60000); if (w) { try { w.opener = null; } catch (e) { } return; } }
     var t = d.text[kind] || '', bx = document.createElement('div');
     bx.className = 'pv-back'; bx.id = 'pvModal';
     bx.innerHTML = '<div class="pv-box" role="dialog" aria-modal="true" aria-label="' + lbl + '"><div class="pv-head"><b>📄 ' + esc(lbl) + (METS[k] ? '：' + esc(METS[k].meet || '') : '') + '</b><button class="pv-x" type="button" data-pvclose="1">✕ 閉じる</button></div>' +
-      (f ? '<p class="small warn">新しいタブを開けませんでした（ポップアップを止める設定かもしれません）。読み取った文字を出します。</p>' : '<p class="small muted" data-pvnofile="1">元のファイルは保存されていません。もう一度入れると見られます。</p>') +
+      (f ? '<p class="small warn">新しいタブを開けませんでした（ポップアップを止める設定かもしれません）。読み取った文字を出します。</p>' : su ? '<p class="small" data-pvsrc="1">この端末にPDFは残っていませんが、読み込んだときのURLがあります。<a class="btn sub small pv-src" href="' + esc(su) + '" target="_blank" rel="noopener noreferrer">🔗 元のPDFを開く</a></p>' : '<p class="small muted" data-pvnofile="1">元のファイルは保存されていません。もう一度入れると見られます。</p>') +
       (t ? '<pre class="pv-text">' + esc(t) + '</pre>' : '<p class="small muted" data-pvnotext="1">読み取った文字も、この端末に残っていません。</p>') + '</div>';
     document.body.appendChild(bx);
     bx.addEventListener('click', function (e) { if (e.target === bx || e.target.hasAttribute('data-pvclose')) bx.remove(); });
@@ -8756,8 +8795,8 @@ var LanePdf = (function () {
   }
   document.addEventListener('keydown', function (e) { var m = $('pvModal'); if (m && e.key === 'Escape') m.remove(); });
   function prepBadges(k, M) {
-    var d = prepDocs(k, M); if (!Object.keys(d).length) return '';
-    return '<div class="lp-prep small">📋 大会準備：' + PREP_KINDS.filter(function (x) { return x[0] !== 'note' || d.note; }).map(function (x) { return d[x[0]] ? '<button type="button" class="pp-b on pp-open" data-pv="' + x[0] + '" data-pvk="' + esc(k) + '" title="読み込んだ' + x[1] + 'を見る">' + x[1] + ' ✓</button>' : '<span class="pp-b wait">' + x[1] + ' 待ち</span>'; }).join('') + '</div>';
+    var d = prepDocs(k, M), V = PV.docs[k] || { file: {}, url: {} }; if (!Object.keys(d).length) return '';
+    return '<div class="lp-prep small">📋 大会準備：' + PREP_KINDS.filter(function (x) { return x[0] !== 'note' || d.note; }).map(function (x) { return d[x[0]] ? '<button type="button" class="pp-b on pp-open" data-pv="' + x[0] + '" data-pvk="' + esc(k) + '" title="読み込んだ' + x[1] + 'を見る">' + x[1] + ' ✓</button>' + (!V.file[x[0]] && V.url && V.url[x[0]] ? '<a class="pp-src" data-pvsrc="' + x[0] + '" href="' + esc(V.url[x[0]]) + '" target="_blank" rel="noopener noreferrer" title="読み込んだときのURLを新しいタブで開く">🔗 元のPDFを開く</a>' : '') : '<span class="pp-b wait">' + x[1] + ' 待ち</span>'; }).join('') + '</div>';
   }
   // v0.26.31 この大会の記録の件数（同じ名前・開催期間の日付）
   function recCount(p) { var nm = planNorm(p.meet), n = 0; ALL.forEach(function (r) { if (r.date >= p.date && r.date <= (p.end || p.date) && planNorm(r.meet) === nm) n++; }); return n; }
@@ -9252,7 +9291,7 @@ var LanePdf = (function () {
   var JOIN_KEY = 'lanenote.join.v1', JOIN = null;
   function joinSave() { try { if (JOIN) sessionStorage.setItem(JOIN_KEY, JSON.stringify(JOIN)); else sessionStorage.removeItem(JOIN_KEY); } catch (e) { } }
   function joinClear() { JOIN = null; joinSave(); renderJoin(); }
-  function inviteUrl(code) { var b = /^https?:$/.test(location.protocol) ? location.origin + location.pathname.replace(/[^\/]*$/, '') : (window.LANE_SHARE_BASE || 'https://masarun0721.github.io/lane-note/'); return b + 'team.html#join=' + encodeURIComponent(code); }
+  function inviteUrl(code) { var b = typeof laneLinkBase === 'function' ? laneLinkBase() : /^https?:$/.test(location.protocol) ? location.origin + location.pathname.replace(/[^\/]*$/, '') : (window.LANE_SHARE_BASE || SHARE_BASE); return b + 'team.html#join=' + encodeURIComponent(code); }
   function joinFromHash() {
     if (!TEAM_PAGE) return false;
     var m = /^#join=([^&]*)/.exec(location.hash || '');
@@ -11243,6 +11282,7 @@ var LanePdf = (function () {
     if (ENT.help) h += '<div class="en-help"><p>JAAFのエントリーシステムに<b>手で打ち込む</b>ときの下書きです。ここから送ったり、自動で入力したりはしません。</p>' +
       '<p>① 男子・女子を選ぶ → ② 選手の種目ボタンを押す（もう一度押すと外れる・「＋ほかの種目」で足せる） → ③ リレーは「＋チームを足す」でメンバー（4〜6人、5・6人目は補欠）を選ぶ → ④ 下の表を見ながら入力（印刷・コピーもできます）。</p>' +
       '<p>「公認ベスト」は<b>公認の記録だけ</b>です（追い風参考などは使いません）。公認が無いときは空欄のままで大丈夫です。ルールは警告だけで、止めません。内容は保存しません（ページを閉じると消えます）。</p></div>';
+    if (ENT.meetKey) { var em = entFeeMeet(); h += '<p class="en-line" data-enmeet="' + esc(em.key) + '">🏁 大会：<b>' + esc(em.meet) + '</b>（' + esc(em.key.slice(0, 10).replace(/-/g, '/')) + '）</p>'; }   // v0.28.3 #entry= で選んだ大会
     if (ENT.msg) h += '<div class="status ' + ENT.cls + '">' + esc(ENT.msg) + '</div>';
     if (!d.athletes.length) { box.innerHTML = h + '<p class="small muted">記録帳に選手の記録がありません。先に記録を入れてください。</p>'; box.hidden = false; return; }
     h += '<div class="en-step"><span class="en-n">1</span><b>男女</b><div class="divsw" role="radiogroup" aria-label="エントリー下書きの男女">' + sexes.map(function (s) { return '<button type="button" data-ensex="' + s + '" aria-pressed="' + (s === ENT.sex) + '">' + E.sexName(s) + '</button>'; }).join('') + '</div></div>';
@@ -11313,7 +11353,7 @@ var LanePdf = (function () {
   /* v0.28.2 参加料の表：単価（100円きざみ）とプログラムの部数を、その場で上下ボタン（ナンバーカードの枚数と同じ数の欄）で直す。
      値は ⚙ 参加料 と同じ plan.fees（1か所）。大会ごとにこの端末に保存（次の大会予定の大会）。保存が無ければ、その大会の要項から（1つに決まる値だけ） */
   var EF_KEY = 'lanenote.entry.fees.v1';
-  function entFeeMeet() { try { var u = LanePlans.upcoming(LanePlans.fromMets(METS), LanePlans.today())[0]; return u ? { key: u.date + '|' + u.meet, meet: u.meet } : { key: '', meet: '' }; } catch (e) { return { key: '', meet: '' }; } }
+  function entFeeMeet() { if (ENT.meetKey) { var mk = ENT.meetKey; return { key: mk, meet: (METS[mk] && METS[mk].meet) || mk.slice(mk.indexOf('|') + 1) }; } try { var u = LanePlans.upcoming(LanePlans.fromMets(METS), LanePlans.today())[0]; return u ? { key: u.date + '|' + u.meet, meet: u.meet } : { key: '', meet: '' }; } catch (e) { return { key: '', meet: '' }; } }
   function entFeeLoad(P) {
     var m = entFeeMeet(); if (P.feeKey === m.key && P.feeKey != null) return m; P.feeKey = m.key;
     var all = lsGet(EF_KEY, {}), sv = all[m.key || '-'], src = '';
@@ -11377,9 +11417,17 @@ var LanePdf = (function () {
     var fk = t.getAttribute('data-enfee');
     if (fk) { P.fees[fk] = fk === 'copies' && t.value === '' ? null : Math.max(0, parseInt(t.value, 10) || 0); entFeeSave(P); entRender(); }
   }
+  // v0.28.3 records.html#entry=<大会のキー>：エントリー下書きを開き、その大会を選んでおく（大会準備・今後の大会の「📝 エントリー下書き」から）
+  function entFromHash() {
+    var m = /^#entry=([^&]*)/.exec(location.hash || ''); if (!m || !$('rbEntry')) return;
+    var k = ''; try { k = decodeURIComponent(m[1]); } catch (e) { } if (!/^\d{4}-\d{2}-\d{2}\|.{1,200}$/.test(k)) return;
+    ENT.meetKey = k; ENT.open = true; ENT.msg = ''; if (ENT.plan) ENT.plan.feeKey = null; entRender();
+    if ($('rbEntry').scrollIntoView) setTimeout(function () { $('rbEntry').scrollIntoView({ block: 'start' }); }, 50);
+  }
   if ($('rbEntryOpen')) {
     $('rbEntryOpen').addEventListener('click', function () { ENT.open = !ENT.open; ENT.msg = ''; entRender(); if (ENT.open && $('rbEntry').scrollIntoView) $('rbEntry').scrollIntoView({ block: 'nearest' }); });
     $('rbEntry').addEventListener('click', entClick);
+    window.addEventListener('hashchange', entFromHash); entFromHash();
     $('rbEntry').addEventListener('change', entChange);
     $('rbEntry').addEventListener('input', function (e) { var t = e.target, k = t.getAttribute && t.getAttribute('data-enfee'), P = ENT.plan; if (!k || !P || !t.classList.contains('en-fin')) return; var v = parseInt(t.value, 10); if (t.value === '' || isNaN(v)) return; P.fees[k] = Math.max(0, v); entFeeSave(P); entFeeLive(); });
   }
@@ -12100,7 +12148,7 @@ var LanePdf = (function () {
   });
   /* ---------- v0.8：選手の個人ページ（その子1人分の記録だけを入れたリンク。大会準備のページ（index）で開く） ---------- */
   var PPL = { links: {}, gen: 0 }, SHARE_DAYS = 119;
-  function siteBase() { return /^https?:$/.test(location.protocol) ? location.origin + location.pathname.replace(/[^\/]*$/, '') : SHARE_BASE; }
+  function siteBase() { if (typeof laneLinkBase === 'function') return laneLinkBase(); return /^https?:$/.test(location.protocol) ? location.origin + location.pathname.replace(/[^\/]*$/, '') : SHARE_BASE; }
   function ppPayload(key) {
     var mine = ALL.filter(function (r) { return R.athleteKey(r) === key; });
     var pf = R.athleteProfile(mine, key); if (!pf) return null;

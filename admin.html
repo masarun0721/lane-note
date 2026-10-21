@@ -647,7 +647,7 @@ body.fb-open{overflow:hidden}
 /* v0.26.29 今後の大会・カレンダー */
 .lp-list{list-style:none;margin:8px 0;padding:0}.lp-list>li{padding:8px 4px;border-bottom:1px solid #e3e7ee;line-height:1.5}
 .lp-left{display:inline-block;min-width:4.5em;text-align:center;font-weight:bold;font-size:12px;background:#eef3fb;color:#1d3b6b;border-radius:10px;padding:1px 8px}.lp-left.soon{background:#fde9e2;color:#a33a14}
-.lp-div{border:1px solid #c9d2e0;border-radius:6px;padding:0 4px}.lp-acts{display:flex;gap:6px;justify-content:flex-end;margin-top:2px}.lp-acts .btn{width:auto;flex:0 0 auto;padding:3px 10px;font-size:12px;min-height:0}
+.lp-div{border:1px solid #c9d2e0;border-radius:6px;padding:0 4px}.lp-acts{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;margin-top:2px}.lp-acts .btn{width:auto;flex:0 0 auto;padding:3px 10px;font-size:12px;min-height:0}
 .lp-nav{display:flex;flex-wrap:nowrap}.lp-nav .btn{width:auto;flex:0 0 auto;padding:2px 12px;min-height:0}
 .lp-edit .mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px}.lp-edit label{display:flex;flex-direction:column;font-size:12px;gap:2px}.lp-edit input,.lp-edit select{font-size:14px;padding:5px;border:1px solid #c9d2e0;border-radius:6px}
 .lp-calbox{margin-top:10px}.lp-nav{align-items:center;gap:10px}
@@ -716,7 +716,7 @@ details.act>summary .sum-x{display:none}
 <body class="adminpage">
 <header>
   <div class="hdr-meta">
-    <div class="hdr-ver" aria-label="バージョン">v0.28.2</div>
+    <div class="hdr-ver" aria-label="バージョン">v0.28.3</div>
     <div class="credit">Presented by Sakata</div>
     <div class="hdr-msg"><span class="hm-l">すべての陸上競技部顧問が、</span><span class="hm-l">少しでも楽になりますように。</span></div>
   </div>
@@ -784,7 +784,7 @@ var LaneAuth = (function () {
   }
   function errorText(e) {
     var c = (e && e.code) || '';
-    if (/unauthorized-domain/.test(c)) return 'このアドレスからはログインできません（公開版のページ https://masarun0721.github.io/lane-note/ から開いてください）';
+    if (/unauthorized-domain/.test(c)) return 'このアドレスからはログインできません（公開版のページ https://lane-note.web.app/ から開いてください）';
     if (/network-request-failed/.test(c)) return '通信できませんでした。電波の良いところでもう一度押してください';
     if (/popup-blocked/.test(c)) return 'ログインの小さな画面（ポップアップ）がブロックされました。アドレスバーのブロック表示から、このサイトのポップアップを許可して、もう一度「Googleでログイン」を押してください（入力した内容は消えていません）';
     if (/web-storage-unsupported|operation-not-supported/.test(c)) return 'このブラウザ（LINEなどのアプリの中のブラウザ・プライベートモードなど）ではログインできません。Safari や Chrome で開き直してください';

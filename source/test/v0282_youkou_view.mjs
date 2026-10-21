@@ -82,7 +82,7 @@ try {
   const FXT = fs.readFileSync(path.join(here, 'fixtures/v0282_shibu3_yoko.txt'), 'utf8'), PDF = path.join(fs.mkdtempSync('/tmp/v0282-'), 'kakuu_shibu3_yoko.pdf');
   { const q = await b.newPage(); await q.setContent('<html><body style="font-family:\'Noto Sans CJK JP\',\'Noto Serif CJK JP\',sans-serif;font-size:11pt;line-height:1.6">' + FXT.split('\n').map(l => '<div>' + l.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</div>').join('') + '</body></html>'); await q.pdf({ path: PDF, format: 'A4' }); await q.close(); }
   const K2 = '2026-11-14|架空 秋季3支部大会';
-  await check('実際の要項の文面（PDF → アプリの pdf.js）：JAAF・〆 10/23 17:00（八種競技の期間は使わない）・参加費とA票 10/27・元のPDFをこの端末に控える', async () => {
+  await check('実際の要項の文面（PDF → アプリの pdf.js）：文字は上から下の順・大会準備に「📝 エントリー下書き」・JAAF・〆 10/23 17:00（八種競技の期間は使わない）・参加費とA票 10/27・元のPDFをこの端末に控える', async () => {
     const q = await b.newPage(); await q.setViewport({ width: 390, height: 844 }); const er = [];
     await q.setRequestInterception(true); q.on('request', r => { const u = r.url(), m = /cdn\.jsdelivr\.net\/npm\/pdfjs-dist@[^/]+\/(.+)$/.exec(u), NM = path.join(here, 'node_modules/pdfjs-dist/');
       if (m) { const fp = NM + m[1].split('?')[0]; if (fs.existsSync(fp)) return r.respond({ status: 200, contentType: /\.m?js$/.test(fp) ? 'application/javascript' : 'application/octet-stream', headers: { 'Access-Control-Allow-Origin': '*' }, body: fs.readFileSync(fp) }); }
@@ -93,7 +93,14 @@ try {
     const r = await q.evaluate(k => JSON.parse(localStorage.getItem('lanenote.prep.idx.v1'))['|'][k].dl, K2);
     assert.deepEqual([r.entry.date, r.entry.time, r.entry.from, r.pay.date, r.slip.date, r.via], ['2026-10-23', '17:00', '2026-10-13', '2026-10-27', '2026-10-27', { via: 'jaaf' }]);
     const f = await q.evaluate(k => new Promise(ok => { const o = indexedDB.open('lanenote-prep', 1); o.onsuccess = () => { const g = o.result.transaction('snap').objectStore('snap').get('||' + k + '|file|yoko'); g.onsuccess = () => ok(g.result ? [g.result.name, g.result.blob.size > 1000, g.result.blob.type] : null); }; }), K2);
-    assert.deepEqual(f, ['kakuu_shibu3_yoko.pdf', true, 'application/pdf']); assert(!er.length, er.join(' / ')); await q.close();
+    assert.deepEqual(f, ['kakuu_shibu3_yoko.pdf', true, 'application/pdf']); assert(!er.length, er.join(' / '));
+    // v0.28.3 読み取った文字は上から下の順（前は下の行から出ていた）
+    const t = await q.evaluate(k => new Promise(ok => { const o = indexedDB.open('lanenote-prep', 1); o.onsuccess = () => { const g = o.result.transaction('snap').objectStore('snap').get('||' + k); g.onsuccess = () => ok(g.result.snap.st.docText.yoko); }; }), K2);
+    const fl = FXT.split('\n').map(x => x.replace(/\s+/g, '')).filter(x => x.length >= 6), tl = t.split('\n').map(x => x.replace(/\s+/g, ''));
+    const pos = fl.slice(0, 12).map(x => tl.findIndex(y => y.includes(x.slice(0, 6)))); const hit = pos.filter(i => i >= 0); assert(hit.length >= 5, JSON.stringify(pos)); assert(hit.every((v, i) => !i || v > hit[i - 1]), '上から下の順 ' + JSON.stringify(pos));
+    // v0.28.3 大会準備の「📝 エントリー下書き」→ records.html#entry=<この大会>
+    assert.equal(await q.$eval('#prepEntry', e => [e.textContent, e.getAttribute('href')].join(' ')), '📝 エントリー下書き records.html#entry=' + encodeURIComponent(K2));
+    await q.close();
   });
 } finally { await b.close(); srv.close(); }
 console.log(`\n${pass} passed, ${fail} failed`); if (fail) process.exit(1);

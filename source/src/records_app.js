@@ -309,7 +309,7 @@
         (M.fee || M.memo ? '<br><small class="muted">' + (M.fee ? '💰 ' + esc(M.fee) : '') + (M.fee && M.memo ? '　' : '') + (M.memo ? '📝 ' + esc(M.memo) : '') + '</small>' : '') +
         (M.resultUrl ? '<br><small>🔗 <a href="' + esc(M.resultUrl) + '" target="_blank" rel="noopener noreferrer">速報・結果のページ</a></small>' : '') +
         '<div class="lp-cks">' + ck('entryAt', 'エントリー済', dl.entry, dl.via) + ck('payAt', '振込済', dl.pay) + '</div>' + dlWarn(k, dl) + (dl.slip && dl.slip.date ? '<div class="lp-cks">' + (function () { var c = LaneDeadline.chip(dl.slip, td, !!M.payAt); return '<small class="lp-dl dl-' + (c.c || 'ok') + '" data-dl="slip" title="' + esc('要項：' + dl.slip.src) + '">📝 A票など提出 ' + esc(c.t) + '</small>'; })() + '</div>' : '') + prepBadges(k, M) +
-        ' <span class="lp-acts">' + (p.date <= td ? '<a class="btn small lp-imp" href="records.html?imp=' + encodeURIComponent(k) + '">📥 結果を取り込む</a>' : '') + '<a class="btn sub small" href="index.html?plan=' + encodeURIComponent(k) + '">📋 大会準備へ</a><button class="btn sub small" type="button" data-lpedit="' + esc(k) + '">✏️ 直す</button><button class="btn sub small danger-t" type="button" data-lpdel="' + esc(k) + '">🗑 消す</button></span></li>';
+        ' <span class="lp-acts">' + (p.date <= td ? '<a class="btn small lp-imp" href="records.html?imp=' + encodeURIComponent(k) + '">📥 結果を取り込む</a>' : '') + '<a class="btn sub small" href="index.html?plan=' + encodeURIComponent(k) + '">📋 大会準備へ</a><a class="btn sub small" data-lpentry="' + esc(k) + '" href="records.html#entry=' + encodeURIComponent(k) + '">📝 エントリー下書き</a><button class="btn sub small" type="button" data-lpedit="' + esc(k) + '">✏️ 直す</button><button class="btn sub small danger-t" type="button" data-lpdel="' + esc(k) + '">🗑 消す</button></span></li>';
     };
     var y = +LP.ym.slice(0, 4), m = +LP.ym.slice(5, 7);
     box.innerHTML = '<h2>📅 今後の大会 <small class="muted">' + (up.length ? up.length + '件' : '') + '</small></h2>' +
@@ -364,7 +364,8 @@
       var now = Date.now(), docs = {}, dl = {};
       all.forEach(function (x) {
         if (!x || x.owner !== own || !x.key || !x.end || Date.parse(x.end + 'T00:00:00+09:00') + 31 * 864e5 < now) return;
-        var d = docs[x.key] = docs[x.key] || { text: {}, file: {} };
+        var d = docs[x.key] = docs[x.key] || { text: {}, file: {}, url: {} };
+        if (x.docs && typeof x.docs === 'object') Object.keys(x.docs).forEach(function (kd) { var u = x.docs[kd] && x.docs[kd].url; if (typeof u === 'string' && /^https?:\/\//.test(u) && u.length <= 1000) d.url[kd] = u; });   // v0.28.3 URLから読んだ資料の元のアドレス
         if (x.file && x.blob && x.kind) d.file[x.kind] = { blob: x.blob, name: x.name || '', type: x.type || 'application/pdf' };
         else if (x.snap && x.snap.st && x.snap.st.docText) Object.keys(x.snap.st.docText).forEach(function (kd) { var t = x.snap.st.docText[kd]; if (typeof t === 'string' && t.trim()) d.text[kd] = t; });
       });
@@ -375,12 +376,12 @@
     }, function () { PV.busy = false; });
   }
   function pvOpen(k, kind) {
-    var lbl = { yoko: '要項', sl: 'スタートリスト', tt: 'タイムテーブル', note: '注意事項' }[kind] || '資料', d = PV.docs[k] || { text: {}, file: {} }, f = d.file[kind];
+    var lbl = { yoko: '要項', sl: 'スタートリスト', tt: 'タイムテーブル', note: '注意事項' }[kind] || '資料', d = PV.docs[k] || { text: {}, file: {}, url: {} }, f = d.file[kind], su = (d.url || {})[kind] || '';
     if (f) { var u = URL.createObjectURL(f.blob), w = window.open(u, '_blank'); setTimeout(function () { URL.revokeObjectURL(u); }, 60000); if (w) { try { w.opener = null; } catch (e) { } return; } }
     var t = d.text[kind] || '', bx = document.createElement('div');
     bx.className = 'pv-back'; bx.id = 'pvModal';
     bx.innerHTML = '<div class="pv-box" role="dialog" aria-modal="true" aria-label="' + lbl + '"><div class="pv-head"><b>📄 ' + esc(lbl) + (METS[k] ? '：' + esc(METS[k].meet || '') : '') + '</b><button class="pv-x" type="button" data-pvclose="1">✕ 閉じる</button></div>' +
-      (f ? '<p class="small warn">新しいタブを開けませんでした（ポップアップを止める設定かもしれません）。読み取った文字を出します。</p>' : '<p class="small muted" data-pvnofile="1">元のファイルは保存されていません。もう一度入れると見られます。</p>') +
+      (f ? '<p class="small warn">新しいタブを開けませんでした（ポップアップを止める設定かもしれません）。読み取った文字を出します。</p>' : su ? '<p class="small" data-pvsrc="1">この端末にPDFは残っていませんが、読み込んだときのURLがあります。<a class="btn sub small pv-src" href="' + esc(su) + '" target="_blank" rel="noopener noreferrer">🔗 元のPDFを開く</a></p>' : '<p class="small muted" data-pvnofile="1">元のファイルは保存されていません。もう一度入れると見られます。</p>') +
       (t ? '<pre class="pv-text">' + esc(t) + '</pre>' : '<p class="small muted" data-pvnotext="1">読み取った文字も、この端末に残っていません。</p>') + '</div>';
     document.body.appendChild(bx);
     bx.addEventListener('click', function (e) { if (e.target === bx || e.target.hasAttribute('data-pvclose')) bx.remove(); });
@@ -388,8 +389,8 @@
   }
   document.addEventListener('keydown', function (e) { var m = $('pvModal'); if (m && e.key === 'Escape') m.remove(); });
   function prepBadges(k, M) {
-    var d = prepDocs(k, M); if (!Object.keys(d).length) return '';
-    return '<div class="lp-prep small">📋 大会準備：' + PREP_KINDS.filter(function (x) { return x[0] !== 'note' || d.note; }).map(function (x) { return d[x[0]] ? '<button type="button" class="pp-b on pp-open" data-pv="' + x[0] + '" data-pvk="' + esc(k) + '" title="読み込んだ' + x[1] + 'を見る">' + x[1] + ' ✓</button>' : '<span class="pp-b wait">' + x[1] + ' 待ち</span>'; }).join('') + '</div>';
+    var d = prepDocs(k, M), V = PV.docs[k] || { file: {}, url: {} }; if (!Object.keys(d).length) return '';
+    return '<div class="lp-prep small">📋 大会準備：' + PREP_KINDS.filter(function (x) { return x[0] !== 'note' || d.note; }).map(function (x) { return d[x[0]] ? '<button type="button" class="pp-b on pp-open" data-pv="' + x[0] + '" data-pvk="' + esc(k) + '" title="読み込んだ' + x[1] + 'を見る">' + x[1] + ' ✓</button>' + (!V.file[x[0]] && V.url && V.url[x[0]] ? '<a class="pp-src" data-pvsrc="' + x[0] + '" href="' + esc(V.url[x[0]]) + '" target="_blank" rel="noopener noreferrer" title="読み込んだときのURLを新しいタブで開く">🔗 元のPDFを開く</a>' : '') : '<span class="pp-b wait">' + x[1] + ' 待ち</span>'; }).join('') + '</div>';
   }
   // v0.26.31 この大会の記録の件数（同じ名前・開催期間の日付）
   function recCount(p) { var nm = planNorm(p.meet), n = 0; ALL.forEach(function (r) { if (r.date >= p.date && r.date <= (p.end || p.date) && planNorm(r.meet) === nm) n++; }); return n; }
@@ -884,7 +885,7 @@
   var JOIN_KEY = 'lanenote.join.v1', JOIN = null;
   function joinSave() { try { if (JOIN) sessionStorage.setItem(JOIN_KEY, JSON.stringify(JOIN)); else sessionStorage.removeItem(JOIN_KEY); } catch (e) { } }
   function joinClear() { JOIN = null; joinSave(); renderJoin(); }
-  function inviteUrl(code) { var b = /^https?:$/.test(location.protocol) ? location.origin + location.pathname.replace(/[^\/]*$/, '') : (window.LANE_SHARE_BASE || 'https://masarun0721.github.io/lane-note/'); return b + 'team.html#join=' + encodeURIComponent(code); }
+  function inviteUrl(code) { var b = typeof laneLinkBase === 'function' ? laneLinkBase() : /^https?:$/.test(location.protocol) ? location.origin + location.pathname.replace(/[^\/]*$/, '') : (window.LANE_SHARE_BASE || SHARE_BASE); return b + 'team.html#join=' + encodeURIComponent(code); }
   function joinFromHash() {
     if (!TEAM_PAGE) return false;
     var m = /^#join=([^&]*)/.exec(location.hash || '');
@@ -2875,6 +2876,7 @@
     if (ENT.help) h += '<div class="en-help"><p>JAAFのエントリーシステムに<b>手で打ち込む</b>ときの下書きです。ここから送ったり、自動で入力したりはしません。</p>' +
       '<p>① 男子・女子を選ぶ → ② 選手の種目ボタンを押す（もう一度押すと外れる・「＋ほかの種目」で足せる） → ③ リレーは「＋チームを足す」でメンバー（4〜6人、5・6人目は補欠）を選ぶ → ④ 下の表を見ながら入力（印刷・コピーもできます）。</p>' +
       '<p>「公認ベスト」は<b>公認の記録だけ</b>です（追い風参考などは使いません）。公認が無いときは空欄のままで大丈夫です。ルールは警告だけで、止めません。内容は保存しません（ページを閉じると消えます）。</p></div>';
+    if (ENT.meetKey) { var em = entFeeMeet(); h += '<p class="en-line" data-enmeet="' + esc(em.key) + '">🏁 大会：<b>' + esc(em.meet) + '</b>（' + esc(em.key.slice(0, 10).replace(/-/g, '/')) + '）</p>'; }   // v0.28.3 #entry= で選んだ大会
     if (ENT.msg) h += '<div class="status ' + ENT.cls + '">' + esc(ENT.msg) + '</div>';
     if (!d.athletes.length) { box.innerHTML = h + '<p class="small muted">記録帳に選手の記録がありません。先に記録を入れてください。</p>'; box.hidden = false; return; }
     h += '<div class="en-step"><span class="en-n">1</span><b>男女</b><div class="divsw" role="radiogroup" aria-label="エントリー下書きの男女">' + sexes.map(function (s) { return '<button type="button" data-ensex="' + s + '" aria-pressed="' + (s === ENT.sex) + '">' + E.sexName(s) + '</button>'; }).join('') + '</div></div>';
@@ -2945,7 +2947,7 @@
   /* v0.28.2 参加料の表：単価（100円きざみ）とプログラムの部数を、その場で上下ボタン（ナンバーカードの枚数と同じ数の欄）で直す。
      値は ⚙ 参加料 と同じ plan.fees（1か所）。大会ごとにこの端末に保存（次の大会予定の大会）。保存が無ければ、その大会の要項から（1つに決まる値だけ） */
   var EF_KEY = 'lanenote.entry.fees.v1';
-  function entFeeMeet() { try { var u = LanePlans.upcoming(LanePlans.fromMets(METS), LanePlans.today())[0]; return u ? { key: u.date + '|' + u.meet, meet: u.meet } : { key: '', meet: '' }; } catch (e) { return { key: '', meet: '' }; } }
+  function entFeeMeet() { if (ENT.meetKey) { var mk = ENT.meetKey; return { key: mk, meet: (METS[mk] && METS[mk].meet) || mk.slice(mk.indexOf('|') + 1) }; } try { var u = LanePlans.upcoming(LanePlans.fromMets(METS), LanePlans.today())[0]; return u ? { key: u.date + '|' + u.meet, meet: u.meet } : { key: '', meet: '' }; } catch (e) { return { key: '', meet: '' }; } }
   function entFeeLoad(P) {
     var m = entFeeMeet(); if (P.feeKey === m.key && P.feeKey != null) return m; P.feeKey = m.key;
     var all = lsGet(EF_KEY, {}), sv = all[m.key || '-'], src = '';
@@ -3009,9 +3011,17 @@
     var fk = t.getAttribute('data-enfee');
     if (fk) { P.fees[fk] = fk === 'copies' && t.value === '' ? null : Math.max(0, parseInt(t.value, 10) || 0); entFeeSave(P); entRender(); }
   }
+  // v0.28.3 records.html#entry=<大会のキー>：エントリー下書きを開き、その大会を選んでおく（大会準備・今後の大会の「📝 エントリー下書き」から）
+  function entFromHash() {
+    var m = /^#entry=([^&]*)/.exec(location.hash || ''); if (!m || !$('rbEntry')) return;
+    var k = ''; try { k = decodeURIComponent(m[1]); } catch (e) { } if (!/^\d{4}-\d{2}-\d{2}\|.{1,200}$/.test(k)) return;
+    ENT.meetKey = k; ENT.open = true; ENT.msg = ''; if (ENT.plan) ENT.plan.feeKey = null; entRender();
+    if ($('rbEntry').scrollIntoView) setTimeout(function () { $('rbEntry').scrollIntoView({ block: 'start' }); }, 50);
+  }
   if ($('rbEntryOpen')) {
     $('rbEntryOpen').addEventListener('click', function () { ENT.open = !ENT.open; ENT.msg = ''; entRender(); if (ENT.open && $('rbEntry').scrollIntoView) $('rbEntry').scrollIntoView({ block: 'nearest' }); });
     $('rbEntry').addEventListener('click', entClick);
+    window.addEventListener('hashchange', entFromHash); entFromHash();
     $('rbEntry').addEventListener('change', entChange);
     $('rbEntry').addEventListener('input', function (e) { var t = e.target, k = t.getAttribute && t.getAttribute('data-enfee'), P = ENT.plan; if (!k || !P || !t.classList.contains('en-fin')) return; var v = parseInt(t.value, 10); if (t.value === '' || isNaN(v)) return; P.fees[k] = Math.max(0, v); entFeeSave(P); entFeeLive(); });
   }
@@ -3732,7 +3742,7 @@
   });
   /* ---------- v0.8：選手の個人ページ（その子1人分の記録だけを入れたリンク。大会準備のページ（index）で開く） ---------- */
   var PPL = { links: {}, gen: 0 }, SHARE_DAYS = 119;
-  function siteBase() { return /^https?:$/.test(location.protocol) ? location.origin + location.pathname.replace(/[^\/]*$/, '') : SHARE_BASE; }
+  function siteBase() { if (typeof laneLinkBase === 'function') return laneLinkBase(); return /^https?:$/.test(location.protocol) ? location.origin + location.pathname.replace(/[^\/]*$/, '') : SHARE_BASE; }
   function ppPayload(key) {
     var mine = ALL.filter(function (r) { return R.athleteKey(r) === key; });
     var pf = R.athleteProfile(mine, key); if (!pf) return null;

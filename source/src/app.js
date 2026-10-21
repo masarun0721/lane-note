@@ -912,7 +912,12 @@
   }
   function ntMsg(s, ng) { $('pvMsg').style.color = ng ? '#b3261e' : ''; $('pvMsg').textContent = s; }
   function pagesText(pages) {
-    return pages.map(function (pg) { var ls = {}; (pg.items || []).forEach(function (i) { var k = Math.round(i.y / 3); ls[k] = (ls[k] ? ls[k] + ' ' : '') + i.str; }); return Object.keys(ls).sort(function (a, b) { return b - a; }).map(function (k) { return ls[k]; }).join('\n'); }).join('\n');
+    // v0.28.3 ページ順 → 上から下（i.y はページの上からの距離。PDF の y が大きい＝上）→ 左から右。近い高さは同じ行にまとめる（前は下の行から出ていた）
+    return pages.map(function (pg) {
+      var it = (pg.items || []).filter(function (i) { return i && typeof i.str === 'string' && i.str !== ''; }).slice().sort(function (a, b) { return (a.y - b.y) || (a.x - b.x); }), lines = [];
+      it.forEach(function (i) { var L = lines[lines.length - 1], tol = Math.max(2, Math.min(6, (i.h || 10) * 0.5)); if (L && Math.abs(i.y - L.y) <= tol) L.a.push(i); else lines.push({ y: i.y, a: [i] }); });
+      return lines.map(function (L) { return L.a.sort(function (a, b) { return a.x - b.x; }).map(function (i) { return i.str; }).join(' ').replace(/\s+$/, ''); }).filter(function (s) { return s.trim(); }).join('\n');
+    }).join('\n');
   }
   function ntTimes() {
     var real = (state.rows || []).map(function (r) { return LaneNotice.toMin(r.start); }).filter(function (n) { return n != null; });
@@ -1335,7 +1340,7 @@
   });
   /* v0.25.8：トップ（/）は記録のページへ移るので、大会準備のまま URL を戻すときは index.html にする */
   function selfPath() { return /\/$/.test(location.pathname) ? location.pathname + 'index.html' : location.pathname; }
-  function shareBase() { return /^https?:$/.test(location.protocol) ? location.origin + location.pathname : SHARE_BASE; }
+  function shareBase() { if (typeof laneLinkBase === 'function' && /^https?:$/.test(location.protocol)) return laneLinkBase() + location.pathname.replace(/^.*\//, ''); return /^https?:$/.test(location.protocol) ? location.origin + location.pathname : SHARE_BASE; }
   /* カード表示（スマホ・閲覧モード共通）。中身はすべて esc() で文字として出す */
   function cardsTimeHtml(rows) {
     var out = [], prev = null, cur = null;
@@ -2039,6 +2044,7 @@
     bar.hidden = false;
     bar.innerHTML = (msg ? '<div>' + msg + '</div>' : '') + '💾 <b>' + esc(PREP.p.meet) + '</b> の準備' + (PREP.resumed ? '（続きから）' : '') + '：' +
       PREP_KINDS.filter(function (k) { return k !== 'note' || d.note; }).map(function (k) { return '<span class="pp-b ' + (d[k] ? 'on' : 'wait') + '" data-pk="' + k + '">' + PREP_LBL[k] + (d[k] ? ' ✓' : ' 待ち') + '</span>'; }).join(' ') +
+      ' <a class="btn sub small" id="prepEntry" href="records.html#entry=' + encodeURIComponent(PREP.key) + '">📝 エントリー下書き</a>' +
       (has ? ' <button type="button" class="btn sub small" id="prepErase">🗑 保存を消す</button>' : '') + '<br><small class="muted">' + prepWhere(PREP.owner) + '</small>';
     var b = $('prepErase'); if (b) b.onclick = function () { prepErase().catch(function (e) { prepBar('✖ 消せませんでした：' + esc(e.message)); }); };
   }

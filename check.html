@@ -647,7 +647,7 @@ body.fb-open{overflow:hidden}
 /* v0.26.29 今後の大会・カレンダー */
 .lp-list{list-style:none;margin:8px 0;padding:0}.lp-list>li{padding:8px 4px;border-bottom:1px solid #e3e7ee;line-height:1.5}
 .lp-left{display:inline-block;min-width:4.5em;text-align:center;font-weight:bold;font-size:12px;background:#eef3fb;color:#1d3b6b;border-radius:10px;padding:1px 8px}.lp-left.soon{background:#fde9e2;color:#a33a14}
-.lp-div{border:1px solid #c9d2e0;border-radius:6px;padding:0 4px}.lp-acts{display:flex;gap:6px;justify-content:flex-end;margin-top:2px}.lp-acts .btn{width:auto;flex:0 0 auto;padding:3px 10px;font-size:12px;min-height:0}
+.lp-div{border:1px solid #c9d2e0;border-radius:6px;padding:0 4px}.lp-acts{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;margin-top:2px}.lp-acts .btn{width:auto;flex:0 0 auto;padding:3px 10px;font-size:12px;min-height:0}
 .lp-nav{display:flex;flex-wrap:nowrap}.lp-nav .btn{width:auto;flex:0 0 auto;padding:2px 12px;min-height:0}
 .lp-edit .mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px}.lp-edit label{display:flex;flex-direction:column;font-size:12px;gap:2px}.lp-edit input,.lp-edit select{font-size:14px;padding:5px;border:1px solid #c9d2e0;border-radius:6px}
 .lp-calbox{margin-top:10px}.lp-nav{align-items:center;gap:10px}
@@ -2137,6 +2137,41 @@ if (typeof module !== 'undefined') module.exports = EntryCheck;
    ・顧問モード＝今までの全部の機能
    ・選手モード＝自分の予定・自己ベスト・体調メモ・自分の記録・もらったリンクをまとめた、かんたんな画面
    ・共有リンク（#p= / #d= / ?s= / ?t=）を開いたときは、モードに関係なくそのページを出す */
+/* v0.28.3 公開アドレス（ここだけで決める。build.py の SHARE_BASE と同じにする。
+   共有・調査・招待・個人ページ・QR のリンクは、公開版（旧アドレス含む）で開いても必ずこのアドレスで作る。
+   手元の試験用サーバー（localhost など）では、そのとき開いているアドレスで作る） */
+var LANE_SITE = 'https://lane-note.web.app/';
+var LANE_OLD_HOST = 'masarun0721.github.io', LANE_OLD_BASE = 'https://' + LANE_OLD_HOST + '/lane-note/';
+function laneLinkBase() {
+  if (!/^https?:$/.test(location.protocol)) return LANE_SITE;
+  if (location.hostname === LANE_OLD_HOST || /^lane-note\.(web\.app|firebaseapp\.com)$/.test(location.hostname)) return LANE_SITE;
+  return location.origin + location.pathname.replace(/[^\/]*$/, '');
+}
+/* v0.28.3 旧アドレスで開いたときの案内（自動では移らない：この端末の記録はアドレスごとに別の保存場所のため） */
+var LaneMove = (function () {
+  'use strict';
+  var KEY = 'lanenote.move.hide.v1';
+  function newUrl() { var p = location.pathname.replace(/^\/lane-note\//, '/').replace(/^\/+/, ''); return LANE_SITE + p + location.search + location.hash; }
+  function show() {
+    if (typeof document === 'undefined' || location.hostname !== LANE_OLD_HOST || document.getElementById('laneMove')) return;
+    try { if (sessionStorage.getItem(KEY)) return; } catch (e) { }
+    var d = document.createElement('div'); d.id = 'laneMove'; d.className = 'lane-move'; d.setAttribute('role', 'note');
+    d.innerHTML = '<span class="lm-t">📮 新しい住所は <b>lane-note.web.app</b> です</span>' +
+      '<a class="lm-go" id="laneMoveGo" href="' + newUrl().replace(/"/g, '&quot;') + '">新しい住所で開く</a>' +
+      '<button type="button" class="lm-q" id="laneMoveQ" aria-expanded="false" title="記録の移し方">?</button>' +
+      '<button type="button" class="lm-x" id="laneMoveX" aria-label="閉じる" title="閉じる">✕</button>' +
+      '<div class="lm-h" id="laneMoveH" hidden>この端末に保存した記録は、新しい住所へ<b>自動では移りません</b>（住所ごとに保存場所が別のため）。' +
+      '<br>① この旧アドレスの <a href="records.html#rbH3">記録のページ「データの持ち運び」</a> で「💾 ファイルに書き出す（JSON）」' +
+      '<br>② 新しい住所の <a href="' + LANE_SITE + 'records.html#rbH3">記録のページ</a> で「📂 ファイルから読み込む」' +
+      '<br>Googleでログインしてクラウドに保存している記録は、新しい住所でログインすればそのまま見られます。</div>';
+    if (!document.getElementById('laneMoveCss')) { var st = document.createElement('style'); st.id = 'laneMoveCss'; st.textContent = '.lane-move{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:7px 10px;background:#fff7e0;border-bottom:1px solid #e8c56a;color:#4a3a10;font-size:13px;line-height:1.5}.lane-move .lm-t{flex:1 1 auto}.lane-move .lm-go{background:#1f3a6b;color:#fff;border-radius:999px;padding:3px 12px;text-decoration:none;font-weight:700;cursor:pointer}.lane-move .lm-go:hover{background:#2c4f8f}.lane-move .lm-q,.lane-move .lm-x{border:1px solid #c9a94a;background:#fff;border-radius:999px;min-width:26px;height:26px;cursor:pointer;font-weight:700;color:#4a3a10}.lane-move .lm-q:hover,.lane-move .lm-x:hover{background:#fdeebb}.lane-move .lm-h{flex-basis:100%;font-size:12px}.lane-move .lm-h a{color:#1f3a6b;cursor:pointer}'; document.head.appendChild(st); }
+    document.body.insertBefore(d, document.body.firstChild);
+    document.getElementById('laneMoveQ').addEventListener('click', function () { var h = document.getElementById('laneMoveH'); h.hidden = !h.hidden; this.setAttribute('aria-expanded', String(!h.hidden)); });
+    document.getElementById('laneMoveX').addEventListener('click', function () { try { sessionStorage.setItem(KEY, '1'); } catch (e) { } d.remove(); });
+  }
+  if (typeof document !== 'undefined') { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', show); else show(); }
+  return { show: show, newUrl: newUrl };
+})();
 var LaneMode = (function () {
   'use strict';
   var KEY = 'lanenote.mode.v1', PKEY = 'lanenote.player.v1.';
@@ -2147,7 +2182,7 @@ var LaneMode = (function () {
   // v0.26.20：招待リンク（team.html#join=）で来た人には、はじめてのモードの質問を出さない（参加の画面を先に）
   function inviteView() { if (!document.body.classList.contains('team-page')) return false; if (/^#join=/.test(location.hash)) return true; try { return !!sessionStorage.getItem('lanenote.join.v1'); } catch (e) { return false; } }
   function sharedView() { return /^#[dpt]=/.test(location.hash) || /[?&][stq]=/.test(location.search); }
-  function base() { return /^https?:$/.test(location.protocol) ? location.origin + location.pathname.replace(/[^\/]*$/, '') : (window.LANE_SHARE_BASE || './'); }
+  function base() { return laneLinkBase(); }
   /* この端末に保存されている、もらったリンク（大会当日の予定＝p・個人ページ＝pp） */
   function savedLinks() {
     var out = [];
@@ -2256,9 +2291,10 @@ var LaneMode = (function () {
     });
     $('phGo').addEventListener('click', function () {
       var u = $('phUrl').value.trim(), m = /^https?:\/\/[^\s]+$/.test(u) ? u : '';
-      var ok = m && (u.indexOf(base()) === 0 || /^https:\/\/masarun0721\.github\.io\/lane-note\//.test(u)) && (/[#](p|d)=/.test(u) || /[?&](s|t)=/.test(u));
+      var here = location.origin + location.pathname.replace(/[^\/]*$/, ''), OLD = /^https:\/\/(masarun0721\.github\.io\/lane-note|lane-note\.web\.app|lane-note\.firebaseapp\.com)\//;
+      var ok = m && (u.indexOf(here) === 0 || OLD.test(u)) && (/[#](p|d)=/.test(u) || /[?&](s|t)=/.test(u));
       if (!ok) { $('phMsg').textContent = 'LANE NOTE のリンク（先生からもらったもの）を貼ってください。'; return; }
-      location.href = u.indexOf(base()) === 0 ? u : base() + u.replace(/^https:\/\/masarun0721\.github\.io\/lane-note\//, '');
+      location.href = u.indexOf(here) === 0 ? u : here + u.replace(OLD, '');
     });
     if (window.LaneTalk) LaneTalk.renderHomeCard($('phTalk'), []);   // v0.25（C302）：個人ページの tk は使わない
   }
@@ -2561,7 +2597,7 @@ var LaneAuth = (function () {
   }
   function errorText(e) {
     var c = (e && e.code) || '';
-    if (/unauthorized-domain/.test(c)) return 'このアドレスからはログインできません（公開版のページ https://masarun0721.github.io/lane-note/ から開いてください）';
+    if (/unauthorized-domain/.test(c)) return 'このアドレスからはログインできません（公開版のページ https://lane-note.web.app/ から開いてください）';
     if (/network-request-failed/.test(c)) return '通信できませんでした。電波の良いところでもう一度押してください';
     if (/popup-blocked/.test(c)) return 'ログインの小さな画面（ポップアップ）がブロックされました。アドレスバーのブロック表示から、このサイトのポップアップを許可して、もう一度「Googleでログイン」を押してください（入力した内容は消えていません）';
     if (/web-storage-unsupported|operation-not-supported/.test(c)) return 'このブラウザ（LINEなどのアプリの中のブラウザ・プライベートモードなど）ではログインできません。Safari や Chrome で開き直してください';
@@ -2688,7 +2724,7 @@ if (typeof module !== 'undefined') module.exports = LaneAuth;
 
 </script>
 <script>
-var APP_VERSION = "v0.28.2";
+var APP_VERSION = "v0.28.3";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>
@@ -2698,6 +2734,7 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
    ・Webページの中に PDF や別ページへのリンクがたくさんあるとき（大会のページなど）は、一覧を出して選んでもらう。 */
 (function (root) {
   'use strict';
+  // v0.28.3 中継（Cloudflare Worker）のアドレス：ここだけで決める。名前を変えるときはここと README を直す
   var PROXY = 'https://lane-note-fetch.masashi-sakata1007.workers.dev/';
   var MAX = 20 * 1048576;
   var MSG = {

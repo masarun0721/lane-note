@@ -92,3 +92,35 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  # v0.28.3 Firebase Hosting（https://lane-note.web.app）にも公開する。Pages と同じビルド・同じテストに通ったときだけ。
+  # hosting だけ（--only hosting）。ルール・インデックス・TTL・Worker は絶対に出さない。
+  # 秘密情報 FIREBASE_SERVICE_ACCOUNT_LANE_NOTE（サービスアカウントの JSON 鍵・Firebase Hosting 管理者）が無いときは何もしない
+  hosting:
+    needs: deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_LANE_NOTE }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Skip when the secret is not set
+        if: env.SA == ''
+        run: echo "::notice::FIREBASE_SERVICE_ACCOUNT_LANE_NOTE が無いので Firebase Hosting には出しません"
+      - name: Build from source
+        if: env.SA != ''
+        run: python3 source/build.py --out _site && python3 source/build.py --check .
+      - name: Setup Node
+        if: env.SA != ''
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Deploy hosting only
+        if: env.SA != ''
+        run: |
+          test -f _site/index.html
+          printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
+          GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json" npx -y firebase-tools@14.12.0 deploy --only hosting --project lane-note --non-interactive
+          rm -f "$RUNNER_TEMP/sa.json"

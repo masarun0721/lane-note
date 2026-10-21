@@ -42,7 +42,7 @@ var LaneAuth = (function () {
   }
   function errorText(e) {
     var c = (e && e.code) || '';
-    if (/unauthorized-domain/.test(c)) return 'このアドレスからはログインできません（公開版のページ https://masarun0721.github.io/lane-note/ から開いてください）';
+    if (/unauthorized-domain/.test(c)) return 'このアドレスからはログインできません（公開版のページ https://lane-note.web.app/ から開いてください）';
     if (/network-request-failed/.test(c)) return '通信できませんでした。電波の良いところでもう一度押してください';
     if (/popup-blocked/.test(c)) return 'ログインの小さな画面（ポップアップ）がブロックされました。アドレスバーのブロック表示から、このサイトのポップアップを許可して、もう一度「Googleでログイン」を押してください（入力した内容は消えていません）';
     if (/web-storage-unsupported|operation-not-supported/.test(c)) return 'このブラウザ（LINEなどのアプリの中のブラウザ・プライベートモードなど）ではログインできません。Safari や Chrome で開き直してください';

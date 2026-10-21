@@ -5,7 +5,7 @@
    ・v0.14（監査F13）：キャッシュ名は build.py が版とページの中身のハッシュから作る（公開のたびに変わり、古いキャッシュは消える）。
      記録のページが保存されていないときは、大会準備のページではなく「電波がない」案内を出す。 */
 var CACHE = '__CACHE__';
-var PAGE = new URL('./', self.location).href;   // 例：https://masarun0721.github.io/lane-note/
+var PAGE = new URL('./', self.location).href;   // 例：https://lane-note.web.app/
 var REC = new URL('./records.html', self.location).href;
 var INDEX = new URL('./index.html', self.location).href;   // v0.25.8：大会準備のページ（トップ / は記録のページへ移る）
 var GUIDE = new URL('./guide.html', self.location).href;   // v0.18：はじめての人はこちら

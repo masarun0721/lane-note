@@ -11,7 +11,7 @@ var LaneSurvey = (function () {
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function validId(s) { return /^[A-Za-z0-9]{24}$/.test(String(s || '')); }
   function newId() { var A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789', out = '', b = new Uint8Array(1); while (out.length < 24) { crypto.getRandomValues(b); if (b[0] < 248) out += A[b[0] % 62]; } return out; }
-  function base() { return /^https?:$/.test(location.protocol) ? location.origin + location.pathname.replace(/[^\/]*$/, '') : (window.SHARE_BASE || './'); }
+  function base() { if (typeof laneLinkBase === 'function') return laneLinkBase(); return /^https?:$/.test(location.protocol) ? location.origin + location.pathname.replace(/[^\/]*$/, '') : (window.SHARE_BASE || './'); }
   function linkFor(sid) { return base() + '?q=' + sid; }
   function ms(t) { return t && t.toMillis ? t.toMillis() : (typeof t === 'number' ? t : 0); }
   function isDay(s) { return /^\d{4}-\d{2}-\d{2}$/.test(String(s || '')); }

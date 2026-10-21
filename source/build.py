@@ -12,8 +12,8 @@ import base64, hashlib, html as htmlmod, json, pathlib, re, sys
 
 ROOT = pathlib.Path(__file__).resolve().parent
 S = ROOT / 'src'
-SHARE_BASE = 'https://masarun0721.github.io/lane-note/'   # 共有リンク・QRの公開アドレス（file:// で開いたとき用）
-VERSION = 'v0.28.2'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
+SHARE_BASE = 'https://lane-note.web.app/'   # 共有リンク・QRの公開アドレス。src/mode.js の LANE_SITE と同じにする（build で確かめる）
+VERSION = 'v0.28.3'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
 # 作成日は版番号から取れないので固定（ビルドした日で変わると、公開時の一致検査ができないため）
 BUILD_DATE = '2026年10月12日'
 REC_VERSION = 'v0.11.1'   # LANE LOG（records.html）だけの版
@@ -60,6 +60,7 @@ MODEBTN, MODEPICK = _mp()
 
 
 def build():
+    assert ("var LANE_SITE = '%s';" % SHARE_BASE) in text('src/mode.js'), 'src/mode.js の LANE_SITE と build.py の SHARE_BASE がちがいます'
     html = text('src/template.html')
     rep = {
         '__PARSER__': text('src/parser.js'), '__RESULTS__': text('src/results.js'), '__LOGIC__': text('src/logic.js'), '__PLAYER__': text('src/player.js'), '__PERSONAL__': text('src/personal.js'), '__MODE__': (text('src/mode.js') + '\n' + text('src/plans.js') + '\n' + text('src/deadline.js')), '__TALK__': text('src/talk.js') + '\n' + text('src/survey.js'),

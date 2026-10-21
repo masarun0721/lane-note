@@ -4,6 +4,7 @@
    ・Webページの中に PDF や別ページへのリンクがたくさんあるとき（大会のページなど）は、一覧を出して選んでもらう。 */
 (function (root) {
   'use strict';
+  // v0.28.3 中継（Cloudflare Worker）のアドレス：ここだけで決める。名前を変えるときはここと README を直す
   var PROXY = 'https://lane-note-fetch.masashi-sakata1007.workers.dev/';
   var MAX = 20 * 1048576;
   var MSG = {
