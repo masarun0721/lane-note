@@ -53,15 +53,19 @@ var LaneSurvey = (function () {
   // 選手の答えをきれいにする（ルールと同じ条件。だめなら理由を返す）
   function cleanAnswer(a, s) {
     a = a || {}; var evs = (s && s.evs) || [], rels = (s && s.rels) || [];
-    var o = { ev1: cut(a.ev1, 40), ev2: cut(a.ev2, 40), relay: a.relay === 'ok' || a.relay === 'no' ? a.relay : '', rel: cut(a.rel, 40), cm: cut(a.cm, CMMAX) };
+    var o = { ev1: cut(a.ev1, 40), ev2: cut(a.ev2, 40), relay: a.relay === 'ok' || a.relay === 'no' ? a.relay : '', rel: cut(a.rel, 40), rel2: cut(a.rel2, 40), cm: cut(a.cm, CMMAX) };
     if (o.ev1 && evs.indexOf(o.ev1) < 0) return { err: '第1希望の種目が選べる種目にありません' };
     if (!o.ev1) o.ev2 = '';
     if (o.ev2 && (evs.indexOf(o.ev2) < 0 || o.ev2 === o.ev1)) return { err: '第2希望は第1希望とちがう種目にしてください' };
     if (!rels.length) { o.relay = ''; o.rel = ''; }
     if (o.relay !== 'ok') o.rel = '';
     if (o.rel && rels.indexOf(o.rel) < 0) o.rel = '';
+    // v0.28.7 リレーは2つまで選べる（rel と rel2）
+    if (o.relay !== 'ok' || (o.rel2 && rels.indexOf(o.rel2) < 0) || o.rel2 === o.rel) o.rel2 = '';
+    if (!o.rel && o.rel2) { o.rel = o.rel2; o.rel2 = ''; }
+    if (!o.rel2) delete o.rel2;
     // v0.28.2 出場する／しない（join）。しないなら希望とリレーは空にして、ひとこと（理由など）だけでも送れる。join の無い古い答えは「出場する」
-    if (a.join === false) { o.ev1 = o.ev2 = o.relay = o.rel = ''; o.join = false; return { ok: o }; }
+    if (a.join === false) { o.ev1 = o.ev2 = o.relay = o.rel = ''; delete o.rel2; o.join = false; return { ok: o }; }
     if (a.join === true) o.join = true;
     if (!o.ev1 && !o.relay && !o.cm) return { err: '種目かリレーのどちらかを選んでください' };
     return { ok: o };
@@ -87,7 +91,7 @@ var LaneSurvey = (function () {
     var TS = function (m) { return F.Timestamp.fromMillis(m); };
     async function answers(sid) {
       var s = await F.getDocs(F.collection(fs, 'surveys', sid, 'answers')); ok(); var out = {};
-      s.forEach(function (d) { var m = /^r(\d{1,3})$/.exec(d.id); if (!m) return; var v = d.data() || {}; out[+m[1]] = { ev1: String(v.ev1 || ''), ev2: String(v.ev2 || ''), relay: String(v.relay || ''), rel: String(v.rel || ''), cm: String(v.cm || ''), join: v.join !== false, at: ms(v.at) }; });
+      s.forEach(function (d) { var m = /^r(\d{1,3})$/.exec(d.id); if (!m) return; var v = d.data() || {}; out[+m[1]] = { ev1: String(v.ev1 || ''), ev2: String(v.ev2 || ''), relay: String(v.relay || ''), rel: String(v.rel || ''), rel2: String(v.rel2 || ''), cm: String(v.cm || ''), join: v.join !== false, at: ms(v.at) }; });
       return out;
     }
     return {
@@ -146,7 +150,7 @@ var LaneSurvey = (function () {
       send: async function (s, idx, a) {
         var c = cleanAnswer(a, s); if (c.err) { var e = new Error(c.err); e.code = 'invalid'; throw e; }
         if (!(idx >= 0 && idx < s.roster.length)) { var e2 = new Error('名前を選んでください'); e2.code = 'invalid'; throw e2; }
-        var o = c.ok, w = { ev1: o.ev1, ev2: o.ev2, relay: o.relay, rel: o.rel, cm: o.cm, at: F.serverTimestamp(), expireAt: s.expireAt }; if (o.join != null) w.join = o.join;
+        var o = c.ok, w = { ev1: o.ev1, ev2: o.ev2, relay: o.relay, rel: o.rel, cm: o.cm, at: F.serverTimestamp(), expireAt: s.expireAt }; if (o.join != null) w.join = o.join; if (o.rel2) w.rel2 = o.rel2;
         await F.setDoc(F.doc(fs, 'surveys', s.id, 'answers', 'r' + idx), w);
         return o;
       }
@@ -171,6 +175,9 @@ var LaneSurvey = (function () {
         var pk = plan.picks[a.key] || (plan.picks[a.key] = []); if (pk.indexOf(ev) < 0) { pk.push(ev); res.picks++; }
       });
       if (x.relay !== 'ok') return;
+      (x.rel2 ? [x.rel, x.rel2] : [x.rel]).forEach(function (rel) { addRel(a, nm, rel); });
+    });
+    function addRel(a, nm, rel) { var x = { rel: rel };
       var rl = d.relays.filter(function (r) { return x.rel ? sexName(r.sex) + r.label === x.rel : r.sex === a.sex; });
       if (rl.length !== 1) { res.skip.push(nm + '：リレー（' + (x.rel ? evShort(x.rel) : 'どのリレーか未定') + '）は手で入れてください'); return; }
       var ts = plan.relays[rl[0].ev] || (plan.relays[rl[0].ev] = []);
@@ -179,7 +186,7 @@ var LaneSurvey = (function () {
       if (!t) { t = { label: String.fromCharCode(65 + ts.length), members: [] }; ts.push(t); }
       var j = t.members.indexOf(''); if (j >= 0 && j < maxLeg) t.members[j] = a.key; else t.members.push(a.key);
       res.relay++;
-    });
+    }
     return res;
   }
 
@@ -206,7 +213,7 @@ var LaneSurvey = (function () {
       if (st.ev1) h += '<section class="sv-card"><h3><span class="sv-n">4</span>' + (kr ? '2種目目' : '第2希望') + ' <small>（なければ空のまま）</small></h3>' + chips('ev2', st.ev2, st.ev1) + '</section>';
       if (rels.length) {
         h += '<section class="sv-card"><h3><span class="sv-n">' + (st.ev1 ? 5 : 4) + '</span>リレー</h3><div class="sv-chips">' + [['ok', '出られる（可）'], ['no', '出られない（不可）']].map(function (x) { return '<button type="button" class="sv-chip" data-svrelay="' + x[0] + '" aria-pressed="' + (st.relay === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>';
-        if (st.relay === 'ok' && rels.length > 1) h += '<div class="sv-chips sv-sub">' + rels.map(function (e) { return '<button type="button" class="sv-chip" data-svrel="' + esc(e) + '" aria-pressed="' + (st.rel === e) + '">' + esc(evShort(e)) + '</button>'; }).join('') + '</div>';
+        if (st.relay === 'ok' && rels.length > 1) h += '<div class="sv-chips sv-sub">' + rels.map(function (e) { return '<button type="button" class="sv-chip" data-svrel="' + esc(e) + '" aria-pressed="' + (st.rel === e || st.rel2 === e) + '">' + esc(evShort(e)) + '</button>'; }).join('') + '</div>';
         h += '</section>';
       }
       }
@@ -233,16 +240,16 @@ var LaneSurvey = (function () {
       var g = function (k) { return t.getAttribute(k); };
       if (g('data-sv') === 'help') { st.help = !st.help; draw(); return; }
       if (g('data-svsex')) { st.sex = g('data-svsex'); draw(); return; }
-      if (g('data-svme') != null) { var i = +g('data-svme'); if (st.i !== i) { st.i = i; st.ev1 = st.ev2 = st.relay = st.rel = ''; st.join = null; st.sent = false; } st.msg = ''; draw(); return; }
-      if (g('data-svjoin') != null) { st.join = g('data-svjoin') === '1'; if (!st.join) st.ev1 = st.ev2 = st.relay = st.rel = ''; st.msg = ''; draw(); return; }
+      if (g('data-svme') != null) { var i = +g('data-svme'); if (st.i !== i) { st.i = i; st.ev1 = st.ev2 = st.relay = st.rel = st.rel2 = ''; st.join = null; st.sent = false; } st.msg = ''; draw(); return; }
+      if (g('data-svjoin') != null) { st.join = g('data-svjoin') === '1'; if (!st.join) st.ev1 = st.ev2 = st.relay = st.rel = st.rel2 = ''; st.msg = ''; draw(); return; }
       if (g('data-svev1') != null) { st.ev1 = st.ev1 === g('data-svev1') ? '' : g('data-svev1'); if (st.ev2 === st.ev1 || !st.ev1) st.ev2 = ''; draw(); return; }
       if (g('data-svev2') != null) { st.ev2 = st.ev2 === g('data-svev2') ? '' : g('data-svev2'); draw(); return; }
-      if (g('data-svrelay')) { st.relay = st.relay === g('data-svrelay') ? '' : g('data-svrelay'); if (st.relay !== 'ok') st.rel = ''; draw(); return; }
-      if (g('data-svrel') != null) { st.rel = st.rel === g('data-svrel') ? '' : g('data-svrel'); draw(); return; }
+      if (g('data-svrelay')) { st.relay = st.relay === g('data-svrelay') ? '' : g('data-svrelay'); if (st.relay !== 'ok') st.rel = st.rel2 = ''; draw(); return; }
+      if (g('data-svrel') != null) { var e = g('data-svrel'); if (st.rel === e) { st.rel = st.rel2 || ''; st.rel2 = ''; } else if (st.rel2 === e) st.rel2 = ''; else if (!st.rel) st.rel = e; else st.rel2 = e; draw(); return; }   // v0.28.7 それぞれ押して入れる／外す
       if (g('data-sv') === 'send') {
         st.busy = true; st.msg = ''; draw();
         try { if (st.join == null) { var je = new Error('出場するかどうかを選んでください'); je.code = 'invalid'; throw je; }
-          await sec.__api.send(S, st.i, { join: st.join, ev1: st.ev1, ev2: st.ev2, relay: st.relay, rel: st.rel, cm: st.cm }); lsSet(sid, st.i); st.sent = true; st.msg = '✔ 送りました（' + when(Date.now()) + '）。直したいときは、もう一度送ると新しい答えに置きかわります。'; st.cls = 'ok'; }
+          await sec.__api.send(S, st.i, { join: st.join, ev1: st.ev1, ev2: st.ev2, relay: st.relay, rel: st.rel, rel2: st.rel2 || '', cm: st.cm }); lsSet(sid, st.i); st.sent = true; st.msg = '✔ 送りました（' + when(Date.now()) + '）。直したいときは、もう一度送ると新しい答えに置きかわります。'; st.cls = 'ok'; }
         catch (er) { st.msg = er && er.code === 'invalid' ? er.message : er && er.code === 'permission-denied' ? '送れませんでした。締切を過ぎたか、続けて送りすぎです（5秒あけてください）。' : '送れませんでした。電波のよいところで、もう一度押してください。'; st.cls = 'err'; }
         st.busy = false; draw(); var mm = box.querySelector('.sv-msg'); if (mm && mm.scrollIntoView) mm.scrollIntoView({ block: 'nearest' });
       }
