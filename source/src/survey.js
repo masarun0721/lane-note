@@ -45,7 +45,9 @@ var LaneSurvey = (function () {
     if (dl > now + 119 * 864e5) throw new Error('締切は119日以内にしてください');
     var meet = cut(o.meet, 80); if (!meet) throw new Error('大会名を入れてください');
     var sexes = o.sexes === 'f' || o.sexes === 'mf' ? o.sexes : 'm';
-    return { pub: { v: 1, meet: meet, sexes: sexes, roster: roster, n: roster.length, evs: evs, rels: rels, open: true, deadlineMs: dl, expireMs: dl + KEEP * 864e5 },
+    // v0.28.2 種類：official（希望を聞く・公式戦）／kiroku（出る種目・記録会）。relayAsk：リレーを聞くか（はじめは公式戦は聞く・記録会は聞かない）
+    var kind = o.kind === 'kiroku' ? 'kiroku' : 'official', relayAsk = o.relayAsk == null ? kind === 'official' : !!o.relayAsk;
+    return { pub: { v: 1, meet: meet, sexes: sexes, roster: roster, n: roster.length, evs: evs, rels: rels, kind: kind, relayAsk: relayAsk, open: true, deadlineMs: dl, expireMs: dl + KEEP * 864e5 },
       admin: { team: cut(o.team, 20), meet: meet, akeys: akeys, expireMs: dl + KEEP * 864e5 } };
   }
   // 選手の答えをきれいにする（ルールと同じ条件。だめなら理由を返す）
@@ -58,6 +60,9 @@ var LaneSurvey = (function () {
     if (!rels.length) { o.relay = ''; o.rel = ''; }
     if (o.relay !== 'ok') o.rel = '';
     if (o.rel && rels.indexOf(o.rel) < 0) o.rel = '';
+    // v0.28.2 出場する／しない（join）。しないなら希望とリレーは空にして、ひとこと（理由など）だけでも送れる。join の無い古い答えは「出場する」
+    if (a.join === false) { o.ev1 = o.ev2 = o.relay = o.rel = ''; o.join = false; return { ok: o }; }
+    if (a.join === true) o.join = true;
     if (!o.ev1 && !o.relay && !o.cm) return { err: '種目かリレーのどちらかを選んでください' };
     return { ok: o };
   }
@@ -82,13 +87,13 @@ var LaneSurvey = (function () {
     var TS = function (m) { return F.Timestamp.fromMillis(m); };
     async function answers(sid) {
       var s = await F.getDocs(F.collection(fs, 'surveys', sid, 'answers')); ok(); var out = {};
-      s.forEach(function (d) { var m = /^r(\d{1,3})$/.exec(d.id); if (!m) return; var v = d.data() || {}; out[+m[1]] = { ev1: String(v.ev1 || ''), ev2: String(v.ev2 || ''), relay: String(v.relay || ''), rel: String(v.rel || ''), cm: String(v.cm || ''), at: ms(v.at) }; });
+      s.forEach(function (d) { var m = /^r(\d{1,3})$/.exec(d.id); if (!m) return; var v = d.data() || {}; out[+m[1]] = { ev1: String(v.ev1 || ''), ev2: String(v.ev2 || ''), relay: String(v.relay || ''), rel: String(v.rel || ''), cm: String(v.cm || ''), join: v.join !== false, at: ms(v.at) }; });
       return out;
     }
     return {
       create: async function (o) {
         var D = buildDocs(o), sid = newId(), b = F.writeBatch(fs), p = D.pub;
-        b.set(F.doc(fs, 'surveys', sid), { v: 1, meet: p.meet, sexes: p.sexes, roster: p.roster, n: p.n, evs: p.evs, rels: p.rels, open: true, deadline: TS(p.deadlineMs), expireAt: TS(p.expireMs), updatedAt: F.serverTimestamp() });
+        b.set(F.doc(fs, 'surveys', sid), { v: 1, meet: p.meet, sexes: p.sexes, roster: p.roster, n: p.n, evs: p.evs, rels: p.rels, kind: p.kind, relayAsk: p.relayAsk, open: true, deadline: TS(p.deadlineMs), expireAt: TS(p.expireMs), updatedAt: F.serverTimestamp() });
         b.set(F.doc(fs, 'surveyAdmins', sid), { ownerUid: uid, team: D.admin.team, meet: p.meet, akeys: D.admin.akeys, createdAt: F.serverTimestamp(), expireAt: TS(p.expireMs) });
         ok(); await b.commit(); ok(); return sid;
       },
@@ -105,7 +110,7 @@ var LaneSurvey = (function () {
         var r = await Promise.all([F.getDoc(F.doc(fs, 'surveys', sid)), F.getDoc(F.doc(fs, 'surveyAdmins', sid))]); ok();
         if (!r[0].exists() || !r[1].exists()) return null;
         var s = r[0].data() || {}, a = r[1].data() || {};
-        return { id: sid, meet: String(s.meet || ''), sexes: s.sexes, roster: s.roster || [], evs: s.evs || [], rels: s.rels || [], open: !!s.open, deadline: ms(s.deadline), expireAt: ms(s.expireAt), akeys: a.akeys || [], team: String(a.team || ''), mine: a.ownerUid === uid };
+        return { id: sid, meet: String(s.meet || ''), sexes: s.sexes, roster: s.roster || [], evs: s.evs || [], rels: s.rels || [], kind: s.kind === 'kiroku' ? 'kiroku' : 'official', relayAsk: s.relayAsk !== false, open: !!s.open, deadline: ms(s.deadline), expireAt: ms(s.expireAt), akeys: a.akeys || [], team: String(a.team || ''), mine: a.ownerUid === uid };
       },
       answers: answers,
       setOpen: async function (sid, on) { await F.updateDoc(F.doc(fs, 'surveys', sid), { open: !!on, updatedAt: F.serverTimestamp() }); ok(); },
@@ -136,12 +141,13 @@ var LaneSurvey = (function () {
         var d; try { d = await F.getDoc(F.doc(fs, 'surveys', sid)); } catch (e) { if (e && e.code === 'permission-denied') return null; throw e; }
         if (!d.exists()) return null;
         var s = d.data() || {}; if (!s.open || ms(s.deadline) <= Date.now()) return null;
-        return { id: sid, meet: String(s.meet || ''), sexes: s.sexes, roster: (s.roster || []).map(function (r) { return { n: String(r && r.n || ''), g: String(r && r.g || ''), s: r && r.s === 'f' ? 'f' : 'm' }; }), evs: (s.evs || []).map(String), rels: (s.rels || []).map(String), deadline: ms(s.deadline), expireAt: s.expireAt };
+        return { id: sid, meet: String(s.meet || ''), sexes: s.sexes, roster: (s.roster || []).map(function (r) { return { n: String(r && r.n || ''), g: String(r && r.g || ''), s: r && r.s === 'f' ? 'f' : 'm' }; }), evs: (s.evs || []).map(String), rels: s.relayAsk === false ? [] : (s.rels || []).map(String), kind: s.kind === 'kiroku' ? 'kiroku' : 'official', deadline: ms(s.deadline), expireAt: s.expireAt };
       },
       send: async function (s, idx, a) {
         var c = cleanAnswer(a, s); if (c.err) { var e = new Error(c.err); e.code = 'invalid'; throw e; }
         if (!(idx >= 0 && idx < s.roster.length)) { var e2 = new Error('名前を選んでください'); e2.code = 'invalid'; throw e2; }
-        var o = c.ok; await F.setDoc(F.doc(fs, 'surveys', s.id, 'answers', 'r' + idx), { ev1: o.ev1, ev2: o.ev2, relay: o.relay, rel: o.rel, cm: o.cm, at: F.serverTimestamp(), expireAt: s.expireAt });
+        var o = c.ok, w = { ev1: o.ev1, ev2: o.ev2, relay: o.relay, rel: o.rel, cm: o.cm, at: F.serverTimestamp(), expireAt: s.expireAt }; if (o.join != null) w.join = o.join;
+        await F.setDoc(F.doc(fs, 'surveys', s.id, 'answers', 'r' + idx), w);
         return o;
       }
     };
@@ -150,13 +156,14 @@ var LaneSurvey = (function () {
   /* ---------- 答えをエントリー下書きに入れる（下書きのルールと警告はそのまま） ---------- */
   // E=LaneEntry, d=E.data(...), plan, sv={roster,akeys,evs,rels}, ans={idx:answer}
   function apply(E, d, plan, sv, ans) {
-    var res = { picks: 0, relay: 0, skip: [] }, maxLeg = (plan.rules && plan.rules.maxLeg) || 6;
+    var res = { picks: 0, relay: 0, skip: [], out: [] }, maxLeg = (plan.rules && plan.rules.maxLeg) || 6;
     var evKey = function (a, label) {
       var own = a.events.filter(function (e) { return sexName(a.sex || e.sex) + e.label === label; })[0]; if (own) return own.ev;
       var g = d.events.filter(function (e) { return sexName(e.sex) + e.label === label; })[0]; return g ? g.ev : '';
     };
     Object.keys(ans || {}).forEach(function (i) {
       var x = ans[i], k = (sv.akeys || [])[+i], a = k && d.byKey[k], nm = ((sv.roster || [])[+i] || {}).n || '';
+      if (x.join === false) { res.out.push(nm); return; }   // v0.28.2 出場しない人は下書きに入れない（参加料にも数えない）
       if (!a) { res.skip.push(nm + '：記録帳に見つかりません'); return; }
       [x.ev1, x.ev2].forEach(function (lb) {
         if (!lb) return; var ev = evKey(a, lb);
@@ -191,15 +198,19 @@ var LaneSurvey = (function () {
     if (me) {
       var evs = s.evs.filter(function (e) { return !sexOfLabel(e) || sexOfLabel(e) === sx; }), rels = s.rels.filter(function (e) { return !sexOfLabel(e) || sexOfLabel(e) === sx; });
       var chips = function (k, cur, dis) { return '<div class="sv-chips">' + evs.map(function (e) { return '<button type="button" class="sv-chip" data-sv' + k + '="' + esc(e) + '" aria-pressed="' + (cur === e) + '"' + (dis === e ? ' disabled' : '') + '>' + esc(evShort(e)) + '</button>'; }).join('') + '</div>'; };
-      h += '<section class="sv-card"><h3><span class="sv-n">2</span>第1希望</h3>' + chips('ev1', st.ev1) + '</section>';
-      if (st.ev1) h += '<section class="sv-card"><h3><span class="sv-n">3</span>第2希望 <small>（なければ空のまま）</small></h3>' + chips('ev2', st.ev2, st.ev1) + '</section>';
+      h += '<section class="sv-card sv-join"><h3><span class="sv-n">2</span>出場</h3><div class="sv-chips">' + [[true, '出場する'], [false, '出場しない']].map(function (x) { return '<button type="button" class="sv-chip" data-svjoin="' + (x[0] ? '1' : '0') + '" aria-pressed="' + (st.join === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div></section>';
+      if (st.join === true) {
+      var kr = s.kind === 'kiroku';   // v0.28.2 記録会は「1種目目・2種目目」
+      h += '<section class="sv-card"><h3><span class="sv-n">3</span>' + (kr ? '1種目目' : '第1希望') + '</h3>' + chips('ev1', st.ev1) + '</section>';
+      if (st.ev1) h += '<section class="sv-card"><h3><span class="sv-n">4</span>' + (kr ? '2種目目' : '第2希望') + ' <small>（なければ空のまま）</small></h3>' + chips('ev2', st.ev2, st.ev1) + '</section>';
       if (rels.length) {
-        h += '<section class="sv-card"><h3><span class="sv-n">' + (st.ev1 ? 4 : 3) + '</span>リレー</h3><div class="sv-chips">' + [['ok', '出られる（可）'], ['no', '出られない（不可）']].map(function (x) { return '<button type="button" class="sv-chip" data-svrelay="' + x[0] + '" aria-pressed="' + (st.relay === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>';
+        h += '<section class="sv-card"><h3><span class="sv-n">' + (st.ev1 ? 5 : 4) + '</span>リレー</h3><div class="sv-chips">' + [['ok', '出られる（可）'], ['no', '出られない（不可）']].map(function (x) { return '<button type="button" class="sv-chip" data-svrelay="' + x[0] + '" aria-pressed="' + (st.relay === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>';
         if (st.relay === 'ok' && rels.length > 1) h += '<div class="sv-chips sv-sub">' + rels.map(function (e) { return '<button type="button" class="sv-chip" data-svrel="' + esc(e) + '" aria-pressed="' + (st.rel === e) + '">' + esc(evShort(e)) + '</button>'; }).join('') + '</div>';
         h += '</section>';
       }
-      h += '<section class="sv-card"><h3>ひとこと <small>（なくてOK・' + CMMAX + '文字まで）</small></h3><textarea id="svCm" maxlength="' + CMMAX + '" rows="2" placeholder="例：800mも考えています">' + esc(st.cm || '') + '</textarea><div class="sv-cnt"><span id="svCnt">' + (st.cm || '').length + '</span>/' + CMMAX + '</div></section>';
-      h += '<button type="button" class="btn sv-send" data-sv="send"' + (st.busy ? ' disabled' : '') + '>' + (st.sent ? '📮 送り直す' : '📮 送る') + '</button>';
+      }
+      if (st.join != null) h += '<section class="sv-card"><h3>ひとこと <small>（なくてOK・' + CMMAX + '文字まで）</small></h3><textarea id="svCm" maxlength="' + CMMAX + '" rows="2" placeholder="' + (st.join ? '例：800mも考えています' : '理由など（なくてOK）') + '">' + esc(st.cm || '') + '</textarea><div class="sv-cnt"><span id="svCnt">' + (st.cm || '').length + '</span>/' + CMMAX + '</div></section>';
+      if (st.join != null) h += '<button type="button" class="btn sv-send" data-sv="send"' + (st.busy ? ' disabled' : '') + '>' + (st.sent ? '📮 送り直す' : '📮 送る') + '</button>';
     }
     box.innerHTML = h;
   }
@@ -221,14 +232,16 @@ var LaneSurvey = (function () {
       var g = function (k) { return t.getAttribute(k); };
       if (g('data-sv') === 'help') { st.help = !st.help; draw(); return; }
       if (g('data-svsex')) { st.sex = g('data-svsex'); draw(); return; }
-      if (g('data-svme') != null) { var i = +g('data-svme'); if (st.i !== i) { st.i = i; st.ev1 = st.ev2 = st.relay = st.rel = ''; st.sent = false; } st.msg = ''; draw(); return; }
+      if (g('data-svme') != null) { var i = +g('data-svme'); if (st.i !== i) { st.i = i; st.ev1 = st.ev2 = st.relay = st.rel = ''; st.join = null; st.sent = false; } st.msg = ''; draw(); return; }
+      if (g('data-svjoin') != null) { st.join = g('data-svjoin') === '1'; if (!st.join) st.ev1 = st.ev2 = st.relay = st.rel = ''; st.msg = ''; draw(); return; }
       if (g('data-svev1') != null) { st.ev1 = st.ev1 === g('data-svev1') ? '' : g('data-svev1'); if (st.ev2 === st.ev1 || !st.ev1) st.ev2 = ''; draw(); return; }
       if (g('data-svev2') != null) { st.ev2 = st.ev2 === g('data-svev2') ? '' : g('data-svev2'); draw(); return; }
       if (g('data-svrelay')) { st.relay = st.relay === g('data-svrelay') ? '' : g('data-svrelay'); if (st.relay !== 'ok') st.rel = ''; draw(); return; }
       if (g('data-svrel') != null) { st.rel = st.rel === g('data-svrel') ? '' : g('data-svrel'); draw(); return; }
       if (g('data-sv') === 'send') {
         st.busy = true; st.msg = ''; draw();
-        try { await sec.__api.send(S, st.i, { ev1: st.ev1, ev2: st.ev2, relay: st.relay, rel: st.rel, cm: st.cm }); lsSet(sid, st.i); st.sent = true; st.msg = '✔ 送りました（' + when(Date.now()) + '）。直したいときは、もう一度送ると新しい答えに置きかわります。'; st.cls = 'ok'; }
+        try { if (st.join == null) { var je = new Error('出場するかどうかを選んでください'); je.code = 'invalid'; throw je; }
+          await sec.__api.send(S, st.i, { join: st.join, ev1: st.ev1, ev2: st.ev2, relay: st.relay, rel: st.rel, cm: st.cm }); lsSet(sid, st.i); st.sent = true; st.msg = '✔ 送りました（' + when(Date.now()) + '）。直したいときは、もう一度送ると新しい答えに置きかわります。'; st.cls = 'ok'; }
         catch (er) { st.msg = er && er.code === 'invalid' ? er.message : er && er.code === 'permission-denied' ? '送れませんでした。締切を過ぎたか、続けて送りすぎです（5秒あけてください）。' : '送れませんでした。電波のよいところで、もう一度押してください。'; st.cls = 'err'; }
         st.busy = false; draw(); var mm = box.querySelector('.sv-msg'); if (mm && mm.scrollIntoView) mm.scrollIntoView({ block: 'nearest' });
       }

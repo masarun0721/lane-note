@@ -136,6 +136,22 @@ var LaneEntry = (function () {
     s.push('', '■参加料（めやす）'); F.items.forEach(function (i) { s.push(i.label + ' ' + yen(i.unit) + '×' + i.n + ' = ' + yen(i.sum)); }); s.push('合計 ' + yen(F.total));
     return s.join('\n');
   }
-  return { RULES: RULES, FEES: FEES, NO_MARK: NO_MARK, data: data, newPlan: newPlan, lines: lines, check: check, fees: fees, sheet: sheet, text: text, table: table, feeTable: feeTable, yen: yen, isComb: isComb, sexName: sexName, esc: esc };
+  /* v0.28.2 学年：並べ順と札。「中2」「高1」はそのまま、「1」「1年」だけのときは base（'jh' 中学・'hs' 高校・'' 不明）に合わせる。
+     並べ順は 中1・中2・中3・高1・高2・高3・（区分なし）1・2・3・学年なし */
+  function gradeBase(grades, div) {
+    if (div === '中学' || div === 'jh') return 'jh'; if (div === '高校' || div === 'hs') return 'hs';
+    var j = 0, h = 0; (grades || []).forEach(function (g) { g = String(g || '').normalize('NFKC'); if (/^中/.test(g)) j++; else if (/^高/.test(g)) h++; });
+    return j && !h ? 'jh' : h && !j ? 'hs' : '';
+  }
+  function gradeInfo(g, base) {
+    g = String(g || '').normalize('NFKC').trim(); var m = /^(中|高)?\s*(\d)/.exec(g); if (!m) return { k: 99, lbl: '学年なし', key: '' };
+    var d = m[1] === '中' ? 'jh' : m[1] === '高' ? 'hs' : base, n = +m[2];
+    return d === 'jh' ? { k: n, lbl: '中' + n + '年', key: 'jh' + n } : d === 'hs' ? { k: 10 + n, lbl: '高' + n + '年', key: 'hs' + n } : { k: 20 + n, lbl: n + '年', key: 'g' + n };
+  }
+  // 学年で並べる（同じ学年の中は元の順のまま）。dir：1 低→高・-1 高→低（学年なしは最後）
+  function byGrade(list, get, base, dir) {
+    dir = dir || 1; return list.map(function (x, i) { return { x: x, i: i, k: gradeInfo(get(x), base).k }; }).sort(function (a, b) { if (a.k === 99 || b.k === 99) return (a.k === 99) - (b.k === 99) || a.i - b.i; return (a.k - b.k) * dir || a.i - b.i; }).map(function (o) { return o.x; });
+  }
+  return { gradeBase: gradeBase, gradeInfo: gradeInfo, byGrade: byGrade, RULES: RULES, FEES: FEES, NO_MARK: NO_MARK, data: data, newPlan: newPlan, lines: lines, check: check, fees: fees, sheet: sheet, text: text, table: table, feeTable: feeTable, yen: yen, isComb: isComb, sexName: sexName, esc: esc };
 })();
 if (typeof module !== 'undefined') module.exports = LaneEntry;

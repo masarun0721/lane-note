@@ -284,6 +284,7 @@
   function ppSc(o) { if (typeof LanePlans !== 'undefined') { var sc = LanePlans.toSc(LanePlans.fromMets(METS)); if (sc.length) o.sc = sc; } return o; }   // v0.26.30 個人ページにも、これからの大会（名前・日付・会場だけ）
   function planList() {
     var box = $('lpHome'); if (!box || typeof LanePlans === 'undefined') return;
+    pvLoad();
     var P = LanePlans, all = P.fromMets(METS), td = P.today(), up = P.upcoming(all, td), keyOf = function (p) { return p.date + '|' + p.meet; };
     P.save(all, scope().uid || '', scope().team ? scope().team.id : '');
     if (!LP.ym) {   // v0.28.1 まだ済んでいない締切が最初の大会より前にあれば、その月から
@@ -301,13 +302,13 @@
         '<label>エントリーした日 <input type="date" data-lpf="entryAt" value="' + esc(e.entryAt || '') + '"></label><label>振込締切 <input type="date" data-lpf="payDue" value="' + esc(e.payDue || ((planDl(k, p).pay || {}).date) || '') + '"></label><label>振込締切の時刻（任意） <input type="time" data-lpf="payDueTime" value="' + esc(e.payDueTime || (!e.payDue && (planDl(k, p).pay || {}).time) || '') + '"></label><label>振り込んだ日 <input type="date" data-lpf="payAt" value="' + esc(e.payAt || '') + '"></label>' +
         '<label>金額（任意） <input data-lpf="fee" maxlength="30" value="' + esc(e.fee || '') + '" placeholder="例：12,000円"></label><label>メモ（任意） <input data-lpf="memo" maxlength="300" value="' + esc(e.memo || '') + '"></label><label>速報・結果のURL <input type="url" data-lpf="resultUrl" maxlength="1000" value="' + esc(e.resultUrl || '') + '" placeholder="https://"></label></div>' +
         '<div class="rb-row"><button class="btn" type="button" data-lpsave="1">保存</button><button class="btn sub" type="button" data-lpcancel="1">やめる</button></div><div class="status" id="lpStatus"></div></li>';
-      var M = METS[k] || {}, sg = P.stage(M, td, recCount(p)), dl = planDl(k, p), ck = function (f, t, d, vi) { var c = d && typeof LaneDeadline !== 'undefined' ? LaneDeadline.chip(d, td, !!M[f]) : null; return '<span class="lp-ckr"><label class="lp-ck"><input type="checkbox" data-lpck="' + f + '"' + (M[f] ? ' checked' : '') + '> ' + t + (M[f] ? ' <small class="muted">' + esc(P.md(M[f])) + '</small>' : '') + '</label>' + (vi ? (vi.amb ? '<small class="lp-via dl-warn" data-via="?">⚠ 出し方を読めませんでした</small>' : '<small class="lp-via' + (M[f] ? ' dl-muted' : '') + '" data-via="' + esc(vi.via) + '"' + (vi.mail ? ' title="' + esc(vi.mail) + '"' : '') + '>' + esc(LaneDeadline.VIA_LABEL[vi.via] || '') + (vi.via === 'mail' && vi.mail ? ' ' + esc(vi.mail) : '') + '</small>') : '') + (c ? '<small class="lp-dl dl-' + (c.c || 'ok') + '" data-dl="' + f + '"' + (d.src ? ' title="' + esc(d.man ? '手で入れた締切' : '要項：' + d.src) + '"' : '') + '>' + (c.c === 'warn' ? '⚠ ' : '⏰ ') + esc(c.t) + '</small>' : '') + '</span>'; };
+      var M = METS[k] || {}, sg = P.stage(M, td, recCount(p)), dl = planDl(k, p), ck = function (f, t, d, vi) { var c = d && d.date && typeof LaneDeadline !== 'undefined' ? LaneDeadline.chip(d, td, !!M[f]) : null; if (vi && vi.amb) vi = null; return '<span class="lp-ckr"><label class="lp-ck"><input type="checkbox" data-lpck="' + f + '"' + (M[f] ? ' checked' : '') + '> ' + t + (M[f] ? ' <small class="muted">' + esc(P.md(M[f])) + '</small>' : '') + '</label>' + (vi ? (vi.amb ? '<small class="lp-via dl-warn" data-via="?">⚠ 出し方を読めませんでした</small>' : '<small class="lp-via' + (M[f] ? ' dl-muted' : '') + '" data-via="' + esc(vi.via) + '"' + (vi.mail ? ' title="' + esc(vi.mail) + '"' : '') + '>' + esc(LaneDeadline.VIA_LABEL[vi.via] || '') + (vi.via === 'mail' && vi.mail ? ' ' + esc(vi.mail) : '') + '</small>') : '') + (c ? '<small class="lp-dl dl-' + (c.c || 'ok') + '" data-dl="' + f + '"' + (d.src ? ' title="' + esc(d.man ? '手で入れた締切' : '要項：' + d.src) + '"' : '') + '>' + (c.c === 'warn' ? '⚠ ' : '⏰ ') + esc(c.t) + '</small>' : '') + '</span>'; };
       return '<li data-lpk="' + esc(k) + '"><span class="lp-st st-' + sg.c + '" data-stage="' + sg.k + '">' + esc(sg.t) + '</span> <span class="lp-left' + (n <= 7 ? ' soon' : '') + '">' + esc(P.leftLabel(p, td)) + '</span> <b>' + esc(P.range(p)) + '</b> ' + esc(p.meet) + (p.div ? ' <small class="lp-div">' + esc(p.div) + '</small>' : '') + (p.venue ? '<br><small class="muted">📍 ' + esc(p.venue) + '</small>' : '') +
         (p.deadline ? '<br><small class="' + (P.daysLeft(p.deadline, td) <= 7 && P.daysLeft(p.deadline, td) >= 0 && !M.entryAt ? 'ng' : 'muted') + '">⏰ ' + esc(P.deadlineLabel(p, td)) + '</small>' : '') +
         (p.payDue ? '<br><small class="' + (P.daysLeft(p.payDue, td) <= 7 && P.daysLeft(p.payDue, td) >= 0 && !M.payAt ? 'ng' : 'muted') + '">💴 振込締切 ' + esc(P.md(p.payDue)) + (P.daysLeft(p.payDue, td) >= 0 ? '（あと' + P.daysLeft(p.payDue, td) + '日）' : '（過ぎました）') + '</small>' : '') +
         (M.fee || M.memo ? '<br><small class="muted">' + (M.fee ? '💰 ' + esc(M.fee) : '') + (M.fee && M.memo ? '　' : '') + (M.memo ? '📝 ' + esc(M.memo) : '') + '</small>' : '') +
         (M.resultUrl ? '<br><small>🔗 <a href="' + esc(M.resultUrl) + '" target="_blank" rel="noopener noreferrer">速報・結果のページ</a></small>' : '') +
-        '<div class="lp-cks">' + ck('entryAt', 'エントリー済', dl.entry, dl.via) + ck('payAt', '振込済', dl.pay) + '</div>' + ((dl.entry && !dl.entry.date) || (dl.pay && !dl.pay.date) || (dl.via && dl.via.amb) ? '<div class="lp-cks"><button class="btn sub small" type="button" data-lpedit="' + esc(k) + '" data-dlfix="1">✏️ 締切を入力</button></div>' : '') + (dl.slip && dl.slip.date ? '<div class="lp-cks">' + (function () { var c = LaneDeadline.chip(dl.slip, td, !!M.payAt); return '<small class="lp-dl dl-' + (c.c || 'ok') + '" data-dl="slip" title="' + esc('要項：' + dl.slip.src) + '">📝 A票など提出 ' + esc(c.t) + '</small>'; })() + '</div>' : '') + prepBadges(k, M) +
+        '<div class="lp-cks">' + ck('entryAt', 'エントリー済', dl.entry, dl.via) + ck('payAt', '振込済', dl.pay) + '</div>' + dlWarn(k, dl) + (dl.slip && dl.slip.date ? '<div class="lp-cks">' + (function () { var c = LaneDeadline.chip(dl.slip, td, !!M.payAt); return '<small class="lp-dl dl-' + (c.c || 'ok') + '" data-dl="slip" title="' + esc('要項：' + dl.slip.src) + '">📝 A票など提出 ' + esc(c.t) + '</small>'; })() + '</div>' : '') + prepBadges(k, M) +
         ' <span class="lp-acts">' + (p.date <= td ? '<a class="btn small lp-imp" href="records.html?imp=' + encodeURIComponent(k) + '">📥 結果を取り込む</a>' : '') + '<a class="btn sub small" href="index.html?plan=' + encodeURIComponent(k) + '">📋 大会準備へ</a><button class="btn sub small" type="button" data-lpedit="' + esc(k) + '">✏️ 直す</button><button class="btn sub small danger-t" type="button" data-lpdel="' + esc(k) + '">🗑 消す</button></span></li>';
     };
     var y = +LP.ym.slice(0, 4), m = +LP.ym.slice(5, 7);
@@ -321,13 +322,14 @@
   /* v0.28.1 チェックの横の締切。手で入れた締切（エントリー締切・振込締切）が先、なければ読み込んだ要項から読んだもの（この端末の控え）。
      要項を読み込んだのに読めなかった種類は「締切を読めませんでした」。要項が無い大会は何も出さない */
   function planDl(k, p) {
-    var l = (lsGet(PREP_IDX, {})[prepOwner()] || {})[k], y = l && l.kinds && l.kinds.yoko ? (l.dl || {}) : null, o = {};
+    var l = (lsGet(PREP_IDX, {})[prepOwner()] || {})[k], y = l && l.kinds && l.kinds.yoko ? (PV.dl[k] || l.dl || { none: true }) : null, o = {};
     var M = METS[k] || {}, man = function (day, tm) { return day ? { date: day, time: /^\d{2}:\d{2}$/.test(tm || '') ? tm : '', man: true, src: '手入力' } : null; };
-    o.entry = man(p.deadline || M.deadline, M.deadlineTime) || (y ? (y.entry || { amb: true }) : null);
-    o.pay = man(p.payDue || M.payDue, M.payDueTime) || (y ? (y.pay || { amb: true }) : null);
+    var nr = y && y.none ? { amb: true, none: true } : { amb: true };   // none：v0.28.1 より前に入れた要項で、まだ読んでいない（文字の控えも無い）
+    o.entry = man(p.deadline || M.deadline, M.deadlineTime) || (y ? (y.entry || nr) : null);
+    o.pay = man(p.payDue || M.payDue, M.payDueTime) || (y ? (y.pay || nr) : null);
     o.slip = y && y.slip && y.slip.date ? y.slip : null;
     // v0.28.1 エントリーの出し方：手で選んだものが先、なければ要項から（読めなければ amb）。要項も手入力も無ければ null
-    o.via = M.entryVia ? { via: M.entryVia, mail: M.entryMail || '', man: true } : (y ? (y.via && y.via.via ? y.via : { amb: true }) : null);
+    o.via = M.entryVia ? { via: M.entryVia, mail: M.entryMail || '', man: true } : (y ? (y.via && y.via.via ? y.via : nr) : null);
     return o;
   }
   /* v0.26.33 大会準備の進み具合（どの資料を読み込んだか）：クラウドの印（URLから読んだもの・ログイン時）＋この端末の控え */
@@ -337,9 +339,57 @@
     var d = {}, c = M && M.prep && M.prep.docs, l = (lsGet(PREP_IDX, {})[prepOwner()] || {})[k];
     PREP_KINDS.forEach(function (x) { if (c && c[x[0]] || l && l.kinds && l.kinds[x[0]]) d[x[0]] = 1; }); return d;
   }
+  /* v0.28.2 読めなかったものを1行にまとめる（小さい字・小さいボタン）。まだ読んでいない（v0.28.1 より前の要項）ときは、そう書く */
+  function dlWarn(k, dl) {
+    var miss = [];
+    if (dl.entry && !dl.entry.date) miss.push('エントリー締切'); if (dl.pay && !dl.pay.date) miss.push('振込締切'); if (dl.via && dl.via.amb) miss.push('出し方');
+    if (!miss.length) return '';
+    var none = [dl.entry, dl.pay, dl.via].some(function (x) { return x && x.none; });
+    return '<div class="lp-warnl" data-dlwarn="' + (none ? 'none' : 'amb') + '">⚠ ' + (none ? '要項の締切はまだ読んでいません（要項を入れ直すと読みます）' : '要項から読めませんでした：' + miss.join('・')) +
+      ' <button class="lp-fixb" type="button" data-lpedit="' + esc(k) + '" data-dlfix="1">✏️ 締切を入力</button></div>';
+  }
+  /* v0.28.2 大会準備がこの端末に控えたもの（読み取った文字・元のPDF）を読む。クラウドは読まない。
+     控えの文字があれば、締切をここで読み直す（v0.28.1 より前に入れた要項・読み方を直したとき）。PV.docs[大会のキー] = { text:{種類:文字}, file:{種類:{blob,name}} } */
+  var PV = { docs: {}, dl: {}, own: null, busy: false };
+  function pvLoad() {
+    var own = prepOwner(); if (PV.busy || PV.own === own) return; PV.busy = true;
+    new Promise(function (ok) {
+      if (typeof indexedDB === 'undefined' || !indexedDB) return ok([]);
+      var q; try { q = indexedDB.open('lanenote-prep', 1); } catch (e) { return ok([]); }
+      q.onupgradeneeded = function () { q.result.createObjectStore('snap', { keyPath: 'id' }); };
+      q.onerror = function () { ok([]); };
+      q.onsuccess = function () { var db = q.result; try { var g = db.transaction('snap', 'readonly').objectStore('snap').getAll(); g.onsuccess = function () { db.close(); ok(g.result || []); }; g.onerror = function () { db.close(); ok([]); }; } catch (e) { db.close(); ok([]); } };
+    }).then(function (all) {
+      PV.busy = false; if (own !== prepOwner()) { PV.own = null; return pvLoad(); }
+      var now = Date.now(), docs = {}, dl = {};
+      all.forEach(function (x) {
+        if (!x || x.owner !== own || !x.key || !x.end || Date.parse(x.end + 'T00:00:00+09:00') + 31 * 864e5 < now) return;
+        var d = docs[x.key] = docs[x.key] || { text: {}, file: {} };
+        if (x.file && x.blob && x.kind) d.file[x.kind] = { blob: x.blob, name: x.name || '', type: x.type || 'application/pdf' };
+        else if (x.snap && x.snap.st && x.snap.st.docText) Object.keys(x.snap.st.docText).forEach(function (kd) { var t = x.snap.st.docText[kd]; if (typeof t === 'string' && t.trim()) d.text[kd] = t; });
+      });
+      Object.keys(docs).forEach(function (key) { var t = docs[key].text.yoko; if (t && typeof LaneDeadline !== 'undefined') { try { dl[key] = LaneDeadline.parse(t, key.slice(0, 10)); } catch (e) { } } });
+      PV.docs = docs; PV.dl = dl; PV.own = own;
+      if (Object.keys(dl).length) { var o = lsGet(PREP_IDX, {}), w = o[own]; if (w) { Object.keys(dl).forEach(function (key) { if (w[key] && w[key].kinds && w[key].kinds.yoko) w[key].dl = dl[key]; }); lsSet(PREP_IDX, o); } }
+      planList();
+    }, function () { PV.busy = false; });
+  }
+  function pvOpen(k, kind) {
+    var lbl = { yoko: '要項', sl: 'スタートリスト', tt: 'タイムテーブル', note: '注意事項' }[kind] || '資料', d = PV.docs[k] || { text: {}, file: {} }, f = d.file[kind];
+    if (f) { var u = URL.createObjectURL(f.blob), w = window.open(u, '_blank'); setTimeout(function () { URL.revokeObjectURL(u); }, 60000); if (w) { try { w.opener = null; } catch (e) { } return; } }
+    var t = d.text[kind] || '', bx = document.createElement('div');
+    bx.className = 'pv-back'; bx.id = 'pvModal';
+    bx.innerHTML = '<div class="pv-box" role="dialog" aria-modal="true" aria-label="' + lbl + '"><div class="pv-head"><b>📄 ' + esc(lbl) + (METS[k] ? '：' + esc(METS[k].meet || '') : '') + '</b><button class="pv-x" type="button" data-pvclose="1">✕ 閉じる</button></div>' +
+      (f ? '<p class="small warn">新しいタブを開けませんでした（ポップアップを止める設定かもしれません）。読み取った文字を出します。</p>' : '<p class="small muted" data-pvnofile="1">元のファイルは保存されていません。もう一度入れると見られます。</p>') +
+      (t ? '<pre class="pv-text">' + esc(t) + '</pre>' : '<p class="small muted" data-pvnotext="1">読み取った文字も、この端末に残っていません。</p>') + '</div>';
+    document.body.appendChild(bx);
+    bx.addEventListener('click', function (e) { if (e.target === bx || e.target.hasAttribute('data-pvclose')) bx.remove(); });
+    var c = bx.querySelector('[data-pvclose]'); if (c) c.focus();
+  }
+  document.addEventListener('keydown', function (e) { var m = $('pvModal'); if (m && e.key === 'Escape') m.remove(); });
   function prepBadges(k, M) {
     var d = prepDocs(k, M); if (!Object.keys(d).length) return '';
-    return '<div class="lp-prep small">📋 大会準備：' + PREP_KINDS.filter(function (x) { return x[0] !== 'note' || d.note; }).map(function (x) { return '<span class="pp-b ' + (d[x[0]] ? 'on' : 'wait') + '">' + x[1] + (d[x[0]] ? ' ✓' : ' 待ち') + '</span>'; }).join('') + '</div>';
+    return '<div class="lp-prep small">📋 大会準備：' + PREP_KINDS.filter(function (x) { return x[0] !== 'note' || d.note; }).map(function (x) { return d[x[0]] ? '<button type="button" class="pp-b on pp-open" data-pv="' + x[0] + '" data-pvk="' + esc(k) + '" title="読み込んだ' + x[1] + 'を見る">' + x[1] + ' ✓</button>' : '<span class="pp-b wait">' + x[1] + ' 待ち</span>'; }).join('') + '</div>';
   }
   // v0.26.31 この大会の記録の件数（同じ名前・開催期間の日付）
   function recCount(p) { var nm = planNorm(p.meet), n = 0; ALL.forEach(function (r) { if (r.date >= p.date && r.date <= (p.end || p.date) && planNorm(r.meet) === nm) n++; }); return n; }
@@ -1632,6 +1682,7 @@
   $('lpHome').addEventListener('click', async function (e) {
     var t = e.target, k;
     if (t.hasAttribute('data-lpm')) { LP.ym = LanePlans.addMonth(LP.ym, +t.getAttribute('data-lpm')); planList(); }
+    else if (t.closest && t.closest('[data-pv]')) { var pb = t.closest('[data-pv]'); pvOpen(pb.getAttribute('data-pvk'), pb.getAttribute('data-pv')); }
     else if ((k = t.getAttribute('data-lpedit'))) { LP.edit = k; planList(); }
     else if (t.hasAttribute('data-lpcancel')) { LP.edit = ''; planList(); }
     else if (t.hasAttribute('data-lpsave')) await planEditSave(t.closest('[data-lpk]'));
@@ -2672,7 +2723,7 @@
   function svOpenOne(id) { return svRun(async function (api) { SV.cur = await api.load(id); SV.ans = SV.cur ? await api.answers(id) : null; SV.form = null; SV.qr = false; if (!SV.cur) { SV.list = null; throw new Error('この調査は見つかりません（削除されました）'); } }); }
   function svNewForm(d) {
     var P = svPlans()[0] || null, sx = []; d.athletes.forEach(function (a) { if (a.sex && sx.indexOf(a.sex) < 0) sx.push(a.sex); }); sx.sort();
-    var sexes = sx.length > 1 ? (ENT.sex || 'mf') : (sx[0] || 'm'), f = { meet: P ? P.meet : '', plan: P ? P.date + '|' + P.meet : '', deadline: LaneSurvey.defaultDeadline(P && P.deadline), sexes: sexes, off: {}, evOff: {}, relOff: {}, extra: [], team: !!(TEAM && TEAM.role === 'coach'), xsex: sx[0] || 'm' };
+    var sexes = sx.length > 1 ? (ENT.sex || 'mf') : (sx[0] || 'm'), f = { meet: P ? P.meet : '', plan: P ? P.date + '|' + P.meet : '', deadline: LaneSurvey.defaultDeadline(P && P.deadline), sexes: sexes, off: {}, evOff: {}, relOff: {}, extra: [], team: !!(TEAM && TEAM.role === 'coach'), xsex: sx[0] || 'm', kind: 'official', relayAsk: true };
     return f;
   }
   function svSexOk(f, s) { return f.sexes === 'mf' || f.sexes === s; }
@@ -2681,7 +2732,7 @@
     var roster = d.athletes.filter(function (a) { return svSexOk(f, a.sex) && !f.off[a.key]; }).map(function (a) { return { n: a.name, g: a.grade || '', s: a.sex, key: a.key }; });
     var evs = d.events.filter(function (e) { return svSexOk(f, e.sex) && !f.evOff[nm(e.sex, e.label)]; }).map(function (e) { return nm(e.sex, e.label); }).concat(f.extra);
     var rels = d.relays.filter(function (x) { return svSexOk(f, x.sex) && !f.relOff[nm(x.sex, x.label)]; }).map(function (x) { return nm(x.sex, x.label); });
-    return { meet: f.meet, team: f.team && TEAM && TEAM.role === 'coach' ? TEAM.id : '', sexes: f.sexes, roster: roster, evs: evs, rels: rels, deadline: f.deadline };
+    return { meet: f.meet, team: f.team && TEAM && TEAM.role === 'coach' ? TEAM.id : '', sexes: f.sexes, roster: roster, evs: evs, rels: rels, deadline: f.deadline, kind: f.kind === 'kiroku' ? 'kiroku' : 'official', relayAsk: !!f.relayAsk };
   }
   function svHtml(d) {
     var esc = LaneEntry.esc, S = LaneSurvey, h = '<div class="sv-box"><div class="en-tools"><button type="button" class="btn sub" data-sv="toggle" aria-expanded="' + SV.open + '">📮 エントリー調査リンク</button>' +
@@ -2707,18 +2758,25 @@
     var pl = svPlans(), h = '<div class="sv-form">';
     h += '<div class="en-step"><span class="en-n">1</span><b>大会</b></div>' + (pl.length ? '<div class="en-chips">' + pl.slice(0, 8).map(function (p) { var k = p.date + '|' + p.meet; return '<button type="button" class="en-chip" data-svplan="' + esc(k) + '" aria-pressed="' + (f.plan === k) + '">' + esc(p.meet) + ' <small>' + esc(p.date.slice(5).replace('-', '/')) + '</small></button>'; }).join('') + '</div>' : '') +
       '<label class="sv-f">大会名 <input type="text" maxlength="80" data-svf="meet" value="' + esc(f.meet) + '" placeholder="例：秋季大会"></label>' +
+      '<div class="en-grs sv-kind" role="radiogroup" aria-label="調査の種類">' + [['official', '希望を聞く（公式戦）'], ['kiroku', '出る種目（記録会）']].map(function (x) { return '<button type="button" class="en-gr" role="radio" data-svkind="' + x[0] + '" aria-pressed="' + (f.kind === x[0]) + '" aria-checked="' + (f.kind === x[0]) + '">' + x[1] + '</button>'; }).join('') +
+      '<label class="sv-f sv-rask"><input type="checkbox" data-svf="relayAsk"' + (f.relayAsk ? ' checked' : '') + '> リレーを聞く</label></div>' +
       '<label class="sv-f">締切 <input type="date" data-svf="deadline" value="' + esc(f.deadline) + '" min="' + esc(LaneSurvey.jstDay(Date.now() + 864e5)) + '"> <small class="muted">この日の23:59まで</small></label>';
     if (sx.length > 1) h += '<div class="en-step"><span class="en-n">2</span><b>男女</b><div class="divsw">' + [['m', '男子'], ['f', '女子'], ['mf', '両方']].map(function (x) { return '<button type="button" data-svsexes="' + x[0] + '" aria-pressed="' + (f.sexes === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div></div>';
     var ath = d.athletes.filter(function (a) { return svSexOk(f, a.sex); }), on = ath.filter(function (a) { return !f.off[a.key]; }).length;
+    // v0.28.2 学年の順（中1→高3）にまとめて、学年ごとに「全部入れる／外す」ボタン（何人入っているか）
+    var gb = E.gradeBase(ath.map(function (a) { return a.grade; }), f.plan && METS[f.plan] ? METS[f.plan].div : ''), gi = function (a) { return E.gradeInfo(a.grade, gb); };
+    ath = E.byGrade(ath, function (a) { return a.grade; }, gb, 1);
+    var grs = []; ath.forEach(function (a) { var g = gi(a); if (!grs.length || grs[grs.length - 1].key !== g.key) grs.push({ key: g.key, lbl: g.lbl, list: [] }); grs[grs.length - 1].list.push(a); });
     h += '<div class="en-step"><span class="en-n">3</span><b>名簿</b><span class="small muted">' + on + '/' + ath.length + '人</span><button type="button" class="btn sub small" data-sv="all">全員</button><button type="button" class="btn sub small" data-sv="none">全員外す</button></div>' +
-      '<div class="en-chips">' + ath.map(function (a) { return '<button type="button" class="en-chip" data-svath="' + esc(a.key) + '" aria-pressed="' + !f.off[a.key] + '">' + (f.sexes === 'mf' ? E.sexName(a.sex).slice(0, 1) + ' ' : '') + esc(a.name) + (a.grade ? ' <small>' + esc(a.grade) + '年</small>' : '') + '</button>'; }).join('') + '</div>';
+      (grs.length > 1 ? '<div class="en-grs" role="group" aria-label="学年ごと">' + grs.map(function (g) { var n = g.list.filter(function (a) { return !f.off[a.key]; }).length; return '<button type="button" class="en-gr" data-svgr="' + esc(g.key) + '" aria-pressed="' + (n === g.list.length) + '" title="' + esc(g.lbl) + 'を' + (n === g.list.length ? '全部外す' : '全部入れる') + '">' + esc(g.lbl) + ' <b>' + n + '/' + g.list.length + '</b></button>'; }).join('') + '</div>' : '') +
+      grs.map(function (g) { return '<div class="en-grp" data-grp="' + esc(g.key) + '">' + (grs.length > 1 ? '<small class="en-grl">' + esc(g.lbl) + '</small>' : '') + '<div class="en-chips">' + g.list.map(function (a) { return '<button type="button" class="en-chip" data-svath="' + esc(a.key) + '" aria-pressed="' + !f.off[a.key] + '">' + (f.sexes === 'mf' ? E.sexName(a.sex).slice(0, 1) + ' ' : '') + esc(a.name) + (a.grade ? ' <small>' + esc(a.grade) + (/年$/.test(a.grade) ? '' : '年') + '</small>' : '') + '</button>'; }).join('') + '</div></div>'; }).join('');
     var evs = d.events.filter(function (e) { return svSexOk(f, e.sex); });
     h += '<div class="en-step"><span class="en-n">4</span><b>選べる種目</b></div><div class="en-chips">' + evs.map(function (e) { var k = nm(e.sex, e.label); return '<button type="button" class="en-chip" data-svev="' + esc(k) + '" aria-pressed="' + !f.evOff[k] + '">' + esc(f.sexes === 'mf' ? k : e.label) + '</button>'; }).join('') +
       f.extra.map(function (k, i) { return '<button type="button" class="en-chip" data-svxdel="' + i + '" aria-pressed="true" title="押すと外します">' + esc(k) + ' ✕</button>'; }).join('') + '</div>' +
       '<div class="sv-add">' + (f.sexes === 'mf' ? '<select data-svf="xsex" aria-label="足す種目の男女"><option value="m"' + (f.xsex === 'm' ? ' selected' : '') + '>男子</option><option value="f"' + (f.xsex === 'f' ? ' selected' : '') + '>女子</option></select>' : '') +
       '<input type="text" maxlength="30" id="rbSvX" placeholder="種目を手で足す（例：100mH）" aria-label="種目を手で足す"><button type="button" class="btn sub small" data-sv="xadd">＋ 足す</button></div>';
     var rl = d.relays.filter(function (x) { return svSexOk(f, x.sex); });
-    if (rl.length) h += '<div class="en-step"><span class="en-n">5</span><b>リレー</b></div><div class="en-chips">' + rl.map(function (x) { var k = nm(x.sex, x.label); return '<button type="button" class="en-chip" data-svrel="' + esc(k) + '" aria-pressed="' + !f.relOff[k] + '">' + esc(f.sexes === 'mf' ? k : x.label) + '</button>'; }).join('') + '</div>';
+    if (rl.length && f.relayAsk) h += '<div class="en-step"><span class="en-n">5</span><b>リレー</b></div><div class="en-chips">' + rl.map(function (x) { var k = nm(x.sex, x.label); return '<button type="button" class="en-chip" data-svrel="' + esc(k) + '" aria-pressed="' + !f.relOff[k] + '">' + esc(f.sexes === 'mf' ? k : x.label) + '</button>'; }).join('') + '</div>';
     if (TEAM && TEAM.role === 'coach') h += '<label class="sv-f sv-chk"><input type="checkbox" data-svf="team"' + (f.team ? ' checked' : '') + '> チーム「' + esc(TEAM.name || '') + '」の顧問も見られるようにする</label>';
     h += '<div class="en-tools"><button type="button" class="btn" data-sv="create"' + (SV.busy ? ' disabled' : '') + '>📮 リンクを作る</button><button type="button" class="btn sub small" data-sv="cancel">やめる</button></div>';
     return h + '</div>';
@@ -2732,11 +2790,13 @@
       '<div class="en-tools"><button type="button" class="btn" data-sv="copy" data-url="' + esc(url) + '">🔗 リンクをコピー</button><a class="btn sub" target="_blank" rel="noopener" href="https://line.me/R/share?text=' + encodeURIComponent(msg) + '">LINEで送る</a><button type="button" class="btn sub" data-sv="qr" aria-expanded="' + SV.qr + '">🔳 QR</button></div>';
     if (SV.qr) { var svg = ''; try { var q = qrcode(0, 'M'); q.addData(url, 'Byte'); q.make(); svg = q.createSvgTag({ cellSize: 4, margin: 3, scalable: true }); } catch (e) { svg = '<small class="warn">QRを作れませんでした</small>'; } h += '<div class="sv-qr">' + svg + '</div>'; }
     h += '<div class="en-step"><span class="en-n">✓</span><b>答え</b><span class="small muted">' + done.length + '/' + c.roster.length + '人</span><button type="button" class="btn sub small" data-sv="reans">🔄 読み込み直す</button></div>';
-    if (done.length) h += '<div class="en-scroll"><table class="en-t sv-ans"><thead><tr><th>選手</th><th>第1希望</th><th>第2希望</th><th>リレー</th><th>ひとこと</th><th>送った日時</th></tr></thead><tbody>' + done.map(function (i) {
+    var outI = done.filter(function (i) { return A[i].join === false; }); done = done.filter(function (i) { return A[i].join !== false; });   // v0.28.2 出場しない人は別に
+    if (done.length) h += '<div class="en-scroll"><table class="en-t sv-ans"><thead><tr><th>選手</th><th>' + (c.kind === 'kiroku' ? '1種目目' : '第1希望') + '</th><th>' + (c.kind === 'kiroku' ? '2種目目' : '第2希望') + '</th><th>リレー</th><th>ひとこと</th><th>送った日時</th></tr></thead><tbody>' + done.map(function (i) {
       var r = c.roster[i], a = A[i]; return '<tr><td>' + esc(r.n) + (r.g ? ' <small>' + esc(r.g) + '年</small>' : '') + '</td><td>' + esc(S.evShort(a.ev1)) + '</td><td>' + esc(S.evShort(a.ev2)) + '</td><td>' + (a.relay === 'ok' ? '可' + (a.rel ? '（' + esc(S.evShort(a.rel)) + '）' : '') : a.relay === 'no' ? '不可' : '') + '</td><td class="sv-cm">' + esc(a.cm) + '</td><td><small>' + esc(S.when(a.at)) + '</small></td></tr>';
     }).join('') + '</tbody></table></div>';
+    if (outI.length) h += '<p class="small sv-out" data-svout="' + outI.length + '"><b>出場しない ' + outI.length + '人</b>：' + outI.map(function (i) { var cm = A[i].cm; return esc(c.roster[i].n) + (cm ? '<small class="muted">（' + esc(cm) + '）</small>' : ''); }).join('・') + '</p>';
     h += '<p class="small"><b>まだの人</b>（' + yet.length + '人）' + (yet.length ? '：' + yet.map(function (i) { return esc(c.roster[i].n); }).join('・') : '：いません') + '</p>';
-    h += '<div class="en-tools"><button type="button" class="btn" data-sv="apply"' + (done.length ? '' : ' disabled') + '>📥 希望を下書きに入れる</button>' +
+    h += '<div class="en-tools"><button type="button" class="btn" data-sv="apply"' + (done.length || outI.length ? '' : ' disabled') + '>📥 希望を下書きに入れる</button>' +
       '<button type="button" class="btn sub small" data-sv="stop">' + (c.open ? '⏸ 受付を止める' : '▶ 受付を再開') + '</button>' +
       '<label class="sv-f sv-dl">締切 <input type="date" id="rbSvDl" value="' + esc(S.jstDay(c.deadline)) + '"></label><button type="button" class="btn sub small" data-sv="dl">締切を変える</button>' +
       '<button type="button" class="btn sub small sv-del" data-sv="del">🗑 削除</button></div>';
@@ -2755,8 +2815,14 @@
     if (f) {
       var pk = t.getAttribute('data-svplan'); if (pk) { var p = svPlans().filter(function (x) { return x.date + '|' + x.meet === pk; })[0]; if (p) { f.plan = pk; f.meet = p.meet; f.deadline = LaneSurvey.defaultDeadline(p.deadline); } entRender(); return true; }
       var sx = t.getAttribute('data-svsexes'); if (sx) { f.sexes = sx; entRender(); return true; }
+      var kd = t.getAttribute('data-svkind'); if (kd) { if (f.kind !== kd) { f.kind = kd; f.relayAsk = kd === 'official'; } entRender(); return true; }
       var ak = t.getAttribute('data-svath'); if (ak != null) { if (f.off[ak]) delete f.off[ak]; else f.off[ak] = 1; entRender(); return true; }
       if (a === 'all') { f.off = {}; entRender(); return true; }
+      var gk = t.getAttribute('data-svgr'); if (gk != null) {
+        var al = d.athletes.filter(function (x) { return svSexOk(f, x.sex); }), gb2 = LaneEntry.gradeBase(al.map(function (x) { return x.grade; }), f.plan && METS[f.plan] ? METS[f.plan].div : '');
+        var gl = al.filter(function (x) { return LaneEntry.gradeInfo(x.grade, gb2).key === gk; }), full = gl.every(function (x) { return !f.off[x.key]; });
+        gl.forEach(function (x) { if (full) f.off[x.key] = 1; else delete f.off[x.key]; }); entRender(); return true;
+      }
       if (a === 'none') { d.athletes.forEach(function (x) { if (svSexOk(f, x.sex)) f.off[x.key] = 1; }); entRender(); return true; }
       var ek = t.getAttribute('data-svev'); if (ek != null) { if (f.evOff[ek]) delete f.evOff[ek]; else f.evOff[ek] = 1; entRender(); return true; }
       var rk = t.getAttribute('data-svrel'); if (rk != null) { if (f.relOff[rk]) delete f.relOff[rk]; else f.relOff[rk] = 1; entRender(); return true; }
@@ -2774,14 +2840,15 @@
     if (a === 'apply') {
       if (!ENT.plan) ENT.plan = LaneEntry.newPlan();
       var r = LaneSurvey.apply(LaneEntry, d, ENT.plan, c, SV.ans || {});
-      svSay('📥 種目' + r.picks + '件・リレー' + r.relay + '人を下書きに入れました。' + (r.skip.length ? ' 入れられなかったもの：' + r.skip.join('／') : '') + ' ルールの警告は上で確かめてください。', r.skip.length ? 'warn' : 'ok');
+      ENT.out = r.out;
+      svSay('📥 種目' + r.picks + '件・リレー' + r.relay + '人を下書きに入れました。' + (r.out.length ? ' 出場しない ' + r.out.length + '人（' + r.out.join('・') + '）は入れていません。' : '') + (r.skip.length ? ' 入れられなかったもの：' + r.skip.join('／') : '') + ' ルールの警告は上で確かめてください。', r.skip.length ? 'warn' : 'ok');
       entRender(); return true;
     }
     return false;
   }
   function svChange(t) {
     var k = t.getAttribute('data-svf'); if (!k || !SV.form) return false;
-    if (k === 'team') SV.form.team = t.checked; else SV.form[k] = t.value;
+    if (k === 'team') SV.form.team = t.checked; else if (k === 'relayAsk') { SV.form.relayAsk = t.checked; entRender(); return true; } else SV.form[k] = t.value;
     if (k === 'xsex') entRender();
     return true;
   }
@@ -2799,6 +2866,7 @@
     btn.setAttribute('aria-expanded', ENT.open ? 'true' : 'false');
     if (!ENT.open) { box.hidden = true; box.innerHTML = ''; return; }
     if (!ENT.plan) ENT.plan = LaneEntry.newPlan();
+    entFeeLoad(ENT.plan);
     var E = LaneEntry, esc = E.esc, d = entData(), P = ENT.plan, sexes = [];
     d.athletes.forEach(function (a) { if (a.sex && sexes.indexOf(a.sex) < 0) sexes.push(a.sex); });
     sexes.sort(); if (!ENT.sex || sexes.indexOf(ENT.sex) < 0) ENT.sex = sexes.indexOf(SEX) >= 0 ? SEX : (sexes[0] || '');
@@ -2811,8 +2879,22 @@
     if (!d.athletes.length) { box.innerHTML = h + '<p class="small muted">記録帳に選手の記録がありません。先に記録を入れてください。</p>'; box.hidden = false; return; }
     h += '<div class="en-step"><span class="en-n">1</span><b>男女</b><div class="divsw" role="radiogroup" aria-label="エントリー下書きの男女">' + sexes.map(function (s) { return '<button type="button" data-ensex="' + s + '" aria-pressed="' + (s === ENT.sex) + '">' + E.sexName(s) + '</button>'; }).join('') + '</div></div>';
     var aths = d.athletes.filter(function (a) { return a.sex === ENT.sex; }), allEv = d.events.filter(function (e) { return e.sex === ENT.sex; });
-    h += '<div class="en-step"><span class="en-n">2</span><b>選手と種目</b></div><ul class="en-aths">';
-    aths.forEach(function (a, i) {
+    // v0.28.2 学年でしぼる（隠すだけ。隠れている人の選んだ種目は、下書きにも参加料にも入ったまま）・学年順に並べる
+    var egb = LaneEntry.gradeBase(aths.map(function (a) { return a.grade; }), ''), egs = [], hidN = 0;
+    aths.forEach(function (a) { var g = LaneEntry.gradeInfo(a.grade, egb); if (!egs.some(function (x) { return x.key === g.key; })) egs.push(g); }); egs.sort(function (a, b) { return a.k - b.k; });
+    if (ENT.gf && !egs.some(function (x) { return x.key === ENT.gf; })) ENT.gf = '';
+    var shown = aths.map(function (a, i) { return { a: a, i: i }; });
+    if (ENT.gs) shown = LaneEntry.byGrade(shown, function (o) { return o.a.grade; }, egb, ENT.gs);
+    h += '<div class="en-step"><span class="en-n">2</span><b>選手と種目</b></div>';
+    if (egs.length > 1) {
+      h += '<div class="en-grs" role="group" aria-label="学年でしぼる"><button type="button" class="en-gr" data-engf="" aria-pressed="' + !ENT.gf + '">全員</button>' + egs.map(function (g) { return '<button type="button" class="en-gr" data-engf="' + esc(g.key) + '" aria-pressed="' + (ENT.gf === g.key) + '">' + esc(g.lbl) + '</button>'; }).join('') +
+        '<span class="en-gsep"></span>' + [[0, 'いつもの順'], [1, '学年 低→高'], [-1, '学年 高→低']].map(function (x) { return '<button type="button" class="en-gr en-gso" data-engs="' + x[0] + '" aria-pressed="' + ((ENT.gs || 0) === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>';
+      if (ENT.gf) shown.forEach(function (o) { if (LaneEntry.gradeInfo(o.a.grade, egb).key !== ENT.gf && (P.picks[o.a.key] || []).length) hidN++; });
+      if (hidN) h += '<p class="small en-hid" data-enhid="' + hidN + '">👁 非表示中に選択あり ' + hidN + '人（下書きと参加料には入っています）</p>';
+    }
+    h += '<ul class="en-aths">';
+    shown.forEach(function (o) {
+      var a = o.a, i = o.i; if (ENT.gf && LaneEntry.gradeInfo(a.grade, egb).key !== ENT.gf) return;
       var pk = P.picks[a.key] || [], own = {};
       var chips = a.events.map(function (e) { own[e.ev] = 1; return '<button type="button" class="en-chip' + (e.comb ? ' en-c' : '') + '" data-enpick="' + i + '" data-ev="' + esc(e.ev) + '" aria-pressed="' + (pk.indexOf(e.ev) >= 0) + '">' + esc(e.label) + ' <small>' + (e.best ? esc(R.showMark(e.best.mark, e.full)) : '公認なし') + '</small></button>'; });
       pk.forEach(function (ev) { if (!own[ev]) { var g = d.eventBy[ev]; chips.push('<button type="button" class="en-chip" data-enpick="' + i + '" data-ev="' + esc(ev) + '" aria-pressed="true">' + esc(g ? g.label : ev) + ' <small>公認なし</small></button>'); } });
@@ -2852,12 +2934,38 @@
       '<label><input type="number" min="0" data-enfee="copies" value="' + (F0.copies == null ? '' : F0.copies) + '" placeholder="自動"> 部（空なら男女の数）</label></div>';
     var L = E.lines(R, d, P), W = E.check(d, P), F = E.fees(R, d, P);
     h += '<div class="en-step"><span class="en-n">4</span><b>下書き</b><span class="small muted">' + L.length + '件</span></div>';
+    if (ENT.out && ENT.out.length) h += '<p class="small sv-out" data-enout="' + ENT.out.length + '"><b>出場しない ' + ENT.out.length + '人</b>（調査の答え・下書きと参加料に入れていません）：' + ENT.out.map(esc).join('・') + '</p>';
     if (W.length) h += '<ul class="en-warn" role="status">' + W.map(function (x) { return '<li>⚠ ' + esc(x.msg) + '</li>'; }).join('') + '</ul>';
     h += L.length ? '<div class="en-scroll">' + E.table(L) + '</div>' : '<p class="small muted">まだ選んでいません。</p>';
-    h += E.feeTable(F);
+    h += '<div id="rbEnFee">' + entFeeHtml(F) + '</div>';
     h += '<div class="en-tools"><button type="button" class="btn" data-en="print"' + (L.length ? '' : ' disabled') + '>🖨 印刷・PDF</button><button type="button" class="btn sub" data-en="copy"' + (L.length ? '' : ' disabled') + '>📋 文字でコピー</button><button type="button" class="btn sub small" data-en="clear">すべて外す</button></div>';
     h += svHtml(d);
     box.innerHTML = h; box.hidden = false;
+  }
+  /* v0.28.2 参加料の表：単価（100円きざみ）とプログラムの部数を、その場で上下ボタン（ナンバーカードの枚数と同じ数の欄）で直す。
+     値は ⚙ 参加料 と同じ plan.fees（1か所）。大会ごとにこの端末に保存（次の大会予定の大会）。保存が無ければ、その大会の要項から（1つに決まる値だけ） */
+  var EF_KEY = 'lanenote.entry.fees.v1';
+  function entFeeMeet() { try { var u = LanePlans.upcoming(LanePlans.fromMets(METS), LanePlans.today())[0]; return u ? { key: u.date + '|' + u.meet, meet: u.meet } : { key: '', meet: '' }; } catch (e) { return { key: '', meet: '' }; } }
+  function entFeeLoad(P) {
+    var m = entFeeMeet(); if (P.feeKey === m.key && P.feeKey != null) return m; P.feeKey = m.key;
+    var all = lsGet(EF_KEY, {}), sv = all[m.key || '-'], src = '';
+    if (sv && typeof sv === 'object') { ['indiv', 'relay', 'comb', 'prog', 'copies'].forEach(function (k) { if (k in sv) P.fees[k] = sv[k]; }); src = 'saved'; }
+    else { var t = m.key && PV.docs[m.key] && PV.docs[m.key].text.yoko, fz = t && typeof LaneDeadline !== 'undefined' ? LaneDeadline.fees(t) : {}; if (Object.keys(fz).length) { Object.keys(fz).forEach(function (k) { P.fees[k] = fz[k]; }); src = 'yoko'; } }
+    P.feeSrc = src; return m;
+  }
+  function entFeeSave(P) { var all = lsGet(EF_KEY, {}); all[P.feeKey || '-'] = { indiv: P.fees.indiv, relay: P.fees.relay, comb: P.fees.comb, prog: P.fees.prog, copies: P.fees.copies == null ? null : P.fees.copies }; lsSet(EF_KEY, all); P.feeSrc = 'saved'; }
+  function entFeeHtml(F) {
+    var P = ENT.plan, m = entFeeMeet(), y = LaneEntry.yen, esc = LaneEntry.esc;
+    var inp = function (k, v, step, lbl) { return '<input type="number" class="en-fin" min="0" max="' + (k === 'copies' ? 99 : 100000) + '" step="' + step + '" inputmode="numeric" data-enfee="' + k + '" value="' + v + '" aria-label="' + lbl + '">'; };
+    return '<table class="en-fee"><tbody>' + F.items.map(function (i) {
+      return '<tr data-fk="' + i.k + '"><td>' + esc(i.label) + '</td><td class="lp-r"><label class="mk en-fmk">' + inp(i.k, i.unit, 100, i.label + 'の単価（円）') + '円</label> × ' + (i.k === 'prog' ? '<label class="mk en-fmk">' + inp('copies', F.copies, 1, 'プログラムの部数') + '部</label>' : i.n) + '</td><td class="lp-r" data-fsum="' + i.k + '">' + y(i.sum) + '</td></tr>';
+    }).join('') + '<tr class="en-tot"><td>合計</td><td></td><td class="lp-r"><b data-ftot="1">' + y(F.total) + '</b></td></tr></tbody></table>' +
+      '<p class="small muted en-fnote">' + (m.meet ? '「' + esc(m.meet) + '」の値として、この端末に保存します。' : 'この端末に保存します。') + (P && P.feeSrc === 'yoko' ? ' はじめの値は要項から読みました。' : '') + '</p>';
+  }
+  function entFeeLive() {   // 打っている間も合計を出し直す（表は作り直さない＝打っている欄はそのまま）
+    var P = ENT.plan, box = $('rbEnFee'); if (!P || !box) return;
+    var F = LaneEntry.fees(R, entData(), P), y = LaneEntry.yen;
+    F.items.forEach(function (i) { var c = box.querySelector('[data-fsum="' + i.k + '"]'); if (c) c.textContent = y(i.sum); }); var t = box.querySelector('[data-ftot]'); if (t) t.textContent = y(F.total);
   }
   function entSay(m, c) { ENT.msg = m; ENT.cls = c || 'ok'; }
   function entClick(e) {
@@ -2875,6 +2983,8 @@
       return;
     }
     var sx = t.getAttribute('data-ensex'); if (sx) { ENT.sex = sx; entRender(); return; }
+    if (t.hasAttribute('data-engf')) { ENT.gf = t.getAttribute('data-engf'); entRender(); return; }
+    if (t.hasAttribute('data-engs')) { ENT.gs = +t.getAttribute('data-engs'); entRender(); return; }
     var pi = t.getAttribute('data-enpick');
     if (pi != null) {
       var ath = d.athletes.filter(function (x) { return x.sex === ENT.sex; })[+pi], ev = t.getAttribute('data-ev'); if (!ath) return;
@@ -2897,12 +3007,13 @@
     var rk = t.getAttribute('data-enrule');
     if (rk) { P.rules[rk] = t.type === 'checkbox' ? t.checked : Math.max(0, parseInt(t.value, 10) || 0); entRender(); return; }
     var fk = t.getAttribute('data-enfee');
-    if (fk) { P.fees[fk] = fk === 'copies' && t.value === '' ? null : Math.max(0, parseInt(t.value, 10) || 0); entRender(); }
+    if (fk) { P.fees[fk] = fk === 'copies' && t.value === '' ? null : Math.max(0, parseInt(t.value, 10) || 0); entFeeSave(P); entRender(); }
   }
   if ($('rbEntryOpen')) {
     $('rbEntryOpen').addEventListener('click', function () { ENT.open = !ENT.open; ENT.msg = ''; entRender(); if (ENT.open && $('rbEntry').scrollIntoView) $('rbEntry').scrollIntoView({ block: 'nearest' }); });
     $('rbEntry').addEventListener('click', entClick);
     $('rbEntry').addEventListener('change', entChange);
+    $('rbEntry').addEventListener('input', function (e) { var t = e.target, k = t.getAttribute && t.getAttribute('data-enfee'), P = ENT.plan; if (!k || !P || !t.classList.contains('en-fin')) return; var v = parseInt(t.value, 10); if (t.value === '' || isNaN(v)) return; P.fees[k] = Math.max(0, v); entFeeSave(P); entFeeLive(); });
   }
   /* 保存の前の確認画面：これから入れる記録の気になる行。二重ははじめから「入れない」、ほかは入れる（印だけ）。チェックで変えられる */
   function susForBatch(b) {

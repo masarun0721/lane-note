@@ -60,7 +60,8 @@ try {
     assert.equal(pos, 'entryAt', 'チェックのすぐ横');
   });
   await check('要項を読んだのに読めない：「⚠ 締切を読めませんでした」（日付は出さない）。要項が無い大会は何も出さない', async () => {
-    assert.deepEqual(await card('読めない大会'), ['entryAt|dl-warn|⚠ 締切を読めませんでした', 'payAt|dl-warn|⚠ 締切を読めませんでした']);
+    assert.deepEqual(await card('読めない大会'), []);   // v0.28.2：読めなかったものは1行にまとめる
+    assert.equal(await p.evaluate(() => [...document.querySelectorAll('#lpHome .lp-list > li')].find(l => l.textContent.includes('読めない大会')).querySelectorAll('.lp-warnl').length), 1);
     assert.deepEqual(await card('要項なし大会'), []);
   });
   const via = name => p.evaluate(n => { const li = [...document.querySelectorAll('#lpHome .lp-list > li')].find(l => l.textContent.includes(n)); return [[...li.querySelectorAll('.lp-via')].map(x => x.className.replace('lp-via', '').trim() + '|' + x.textContent), !!li.querySelector('[data-dlfix]')]; }, name);
@@ -68,7 +69,8 @@ try {
     assert.deepEqual(await via('秋季3支部'), [['|JAAF'], false]);
     const t = await p.evaluate(() => { const li = [...document.querySelectorAll('#lpHome .lp-list > li')].find(l => l.textContent.includes('秋季3支部')); const v = li.querySelector('.lp-via'); return v.textContent + ' ' + v.nextElementSibling.textContent; });
     assert.equal(t, 'JAAF ⏰ 〆 10/23(金)17:00（あと3日）');
-    assert.deepEqual(await via('読めない大会'), [['dl-warn|⚠ 出し方を読めませんでした'], true]); assert.deepEqual(await via('要項なし大会'), [[], false]);
+    assert.deepEqual(await via('読めない大会'), [[], true]);
+    assert.equal(await p.evaluate(() => [...document.querySelectorAll('#lpHome .lp-list > li')].find(l => l.textContent.includes('読めない大会')).querySelector('.lp-warnl').textContent), '⚠ 要項から読めませんでした：エントリー締切・振込締切・出し方 ✏️ 締切を入力'); assert.deepEqual(await via('要項なし大会'), [[], false]);
   });
   await check('カレンダー：「〆エントリー 大会名」「〆振込 大会名」を大会の日とは別の色で', async () => {
     const c = await p.evaluate(() => [...document.querySelectorAll('#lpHome .lp-cal .lp-dk')].map(x => x.closest('td').querySelector('b').textContent + '|' + x.className + '|' + x.textContent));

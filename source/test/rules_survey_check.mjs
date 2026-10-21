@@ -40,7 +40,7 @@ try {
   await test('作る：Google ログインの顧問が、調査（公開）と管理の文書（非公開）を1回で作れる。公開の文書に uid・チーム・選手のキーは無い', async () => {
     SID = await coach('alice').create(OPT()); if (!S.validId(SID)) throw new Error('id');
     const p = await adminGet('surveys/' + SID), a = await adminGet('surveyAdmins/' + SID);
-    if (Object.keys(p).sort().join() !== 'deadline,evs,expireAt,meet,n,open,rels,roster,sexes,updatedAt,v') throw new Error(Object.keys(p).join());
+    if (Object.keys(p).sort().join() !== 'deadline,evs,expireAt,kind,meet,n,open,relayAsk,rels,roster,sexes,updatedAt,v') throw new Error(Object.keys(p).join());
     if (JSON.stringify(p).match(/alice|k1|ownerUid|team/)) throw new Error('公開の文書に持ち主・キー');
     if (a.ownerUid !== 'alice' || a.akeys.join() !== 'k1,k2,k3') throw new Error('admin');
   });
@@ -107,6 +107,28 @@ try {
     await bad('r1', { at: Timestamp.now() }); await bad('r1', { expireAt: Timestamp.fromMillis(Date.now() + 864e5) });
     await bad('r1', { ev1: '', ev2: '', relay: '', rel: '', cm: '' });
     await assertSucceeds(rawAns(anonDb, SID, 'r1', { cm: 'あ'.repeat(100) }));
+  });
+  await test('v0.28.2 出場しない（join:false）：希望・リレーが空なら、ひとこと（理由）だけでも空でも送れる。join:false で種目やリレーがある・join が真偽でない・join:true で空、は不可', async () => {
+    const bad = o => assertFails(rawAns(anonDb, SID, 'r1', o));
+    await cool(SID, 'r1');
+    await bad({ join: false, ev1: '男子100m' }); await bad({ join: false, relay: 'ok' }); await bad({ join: false, relay: 'no' }); await bad({ join: 'no' }); await bad({ join: 1 });
+    await bad({ join: true, ev1: '', ev2: '', relay: '', rel: '', cm: '' });
+    await assertSucceeds(rawAns(anonDb, SID, 'r1', { join: false, ev1: '', ev2: '', relay: '', rel: '', cm: '' }));
+    await cool(SID, 'r1'); await assertSucceeds(rawAns(anonDb, SID, 'r1', { join: false, ev1: '', ev2: '', relay: '', rel: '', cm: '部活の大会と重なる' }));
+    await cool(SID, 'r1'); await assertSucceeds(rawAns(anonDb, SID, 'r1', { join: true, ev1: '男子100m' }));
+    const s = await stu(anonDb).load(SID); await cool(SID, 'r1');
+    await assertSucceeds(stu(anonDb).send(s, 1, { join: false, ev1: '男子100m', relay: 'ok', cm: '理由' }));   // アプリは希望とリレーを空にして送る
+    const v = await adminGet('surveys/' + SID + '/answers/r1'); if (v.join !== false || v.ev1 !== '' || v.relay !== '' || v.cm !== '理由') throw new Error(JSON.stringify(v));
+    const a = await coach('alice').answers(SID); if (a[1].join !== false || a[0].join !== true) throw new Error('join の読み（古い答えは出場する）' + JSON.stringify(a));
+  });
+  await test('v0.28.2 調査の種類（kind：official/kiroku）・リレーを聞く（relayAsk）：ほかの値は不可。relayAsk:false の調査にはリレーの答えを送れない（古い調査＝聞く）', async () => {
+    const [p, a] = docsFor('alice');
+    await assertFails(rawCreate('alice', ID('k').slice(0, 23) + '1', Object.assign({}, p, { kind: 'other' }), a));
+    await assertFails(rawCreate('alice', ID('k').slice(0, 23) + '2', Object.assign({}, p, { relayAsk: 'no' }), a));
+    const sid = ID('k'); await assertSucceeds(rawCreate('alice', sid, Object.assign({}, p, { kind: 'kiroku', relayAsk: false }), a));
+    await assertFails(rawAns(anonDb, sid, 'r0', { ev1: '男子100m', relay: 'ok' })); await assertFails(rawAns(anonDb, sid, 'r0', { ev1: '男子100m', relay: 'no' }));
+    await assertSucceeds(rawAns(anonDb, sid, 'r0', { ev1: '男子100m', ev2: '', relay: '', rel: '' }));
+    const s = await stu(anonDb).load(sid); if (s.kind !== 'kiroku' || s.rels.length) throw new Error(JSON.stringify([s.kind, s.rels]));
   });
   await test('答えを読む：ログインなし・匿名・ほかの顧問・チームのマネージャーは get も一覧も不可。持ち主は読める', async () => {
     for (const d of [anonDb, anonAuthDb, db('carol'), db('bob'), db('dave')]) { await assertFails(getDoc(doc(d, 'surveys', SID, 'answers', 'r0'))); await assertFails(getDocs(collection(d, 'surveys', SID, 'answers'))); }

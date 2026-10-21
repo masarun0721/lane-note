@@ -2057,6 +2057,17 @@
     };
     if (now) go(); else prepTimer = setTimeout(go, 300);
   }
+  // v0.28.2 元のファイル（PDF）をこの端末の IndexedDB にだけ控える。id は「持ち主|大会のキー|file|種類」（控えの id と重ならない）。
+  //   大会終了の1か月後の整理（prepSweep）・アカウントの整理（prepPurge）・「保存を消す」で一緒に消える。30MB をこえるものは控えない
+  var PREP_FILE_CAP = 30 * 1048576;
+  function prepFileId(o, key, kind) { return prepOwnerStr(o) + '|' + key + '|file|' + kind; }
+  function prepFileSave(p, kind, file) {
+    try {
+      if (!file || typeof Blob === 'undefined' || !(file instanceof Blob) || !file.size || file.size > PREP_FILE_CAP) return;
+      var rec = { id: prepFileId(p.owner, p.key, kind), owner: prepOwnerStr(p.owner), key: p.key, end: p.p.end || p.p.date, file: 1, kind: kind, name: String(file.name || '').slice(0, 200), type: file.type || 'application/pdf', blob: file, at: Date.now() };
+      prepDb('readwrite', function (st) { return st.put(rec); }).catch(function () { });
+    } catch (e) { }
+  }
   function b64Of(buf) { var u = new Uint8Array(buf), s = ''; for (var i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); }
   function bytesOf(b64) { var s = atob(b64), u = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; }
   function prepSlOk(o) {
@@ -2117,6 +2128,7 @@
     p.paused = false; var o = p.owner, url = String(file.srcUrl || ''), d = { name: String(file.name || '').slice(0, 200), size: file.size || 0, at: new Date().toISOString(), exp: prepExp(kind, p.p) }, note = '';
     if (url) d.url = url.slice(0, 1000);
     p.docs[kind] = d; prepLocalSave(true); prepBar();
+    prepFileSave(p, kind, file);   // v0.28.2 元のPDFはこの端末にだけ控える（クラウドには送らない）。今後の大会のカードの「要項 ✓」から開く
     if (!o.uid || !FB) return;
     var old = p.cloud && p.cloud.docs && p.cloud.docs[kind], cd = { name: d.name, size: d.size, at: d.at, exp: d.exp };
     if (url) cd.url = d.url;
@@ -2333,6 +2345,7 @@
       }
     }
     await prepDb('readwrite', function (st) { return st.delete(prepOwnerStr(p.owner) + '|' + p.key); }).catch(function () { });
+    for (var fk = 0; fk < PREP_KINDS.length; fk++) { var fid = prepFileId(p.owner, p.key, PREP_KINDS[fk]); await prepDb('readwrite', function (st) { return st.delete(fid); }).catch(function () { }); }   // v0.28.2 元のファイルの控えも
     prepIdx(function (o) { var w = o[prepOwnerStr(p.owner)]; if (w) delete w[p.key]; });
     p.docs = {}; p.resumed = false; p.paused = true;   // 消したあとは、もう一度資料を入れるまで保存しない
     prepBar('✔ 保存を消しました。もう一度資料を入れると、また保存します。');

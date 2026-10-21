@@ -83,7 +83,7 @@ try {
     const m = /\?q=([A-Za-z0-9]{24})$/.exec(r.link); assert(m, r.link); SID = m[1]; assert(decodeURIComponent(r.line).includes(r.link)); assert(/受付中/.test(r.t) && /0\/5人/.test(r.t), r.t);
     await p.evaluate(() => document.querySelector('#rbEntry [data-sv="qr"]').click()); await sl(300); assert(await p.$('#rbEntry .sv-qr svg'), 'QR');
     const d = await db(p), pub = d['surveys/' + SID], adm = d['surveyAdmins/' + SID];
-    assert.deepEqual(Object.keys(pub).sort(), ['deadline', 'evs', 'expireAt', 'meet', 'n', 'open', 'rels', 'roster', 'sexes', 'updatedAt', 'v']);
+    assert.deepEqual(Object.keys(pub).sort(), ['deadline', 'evs', 'expireAt', 'kind', 'meet', 'n', 'open', 'relayAsk', 'rels', 'roster', 'sexes', 'updatedAt', 'v']); assert.deepEqual([pub.kind, pub.relayAsk], ['official', true]);
     assert.deepEqual(pub.roster.map(x => x.n).sort(), ['架空 一郎', '架空 三郎', '架空 二郎', '架空 桃子', '架空 花子'].sort()); assert(pub.roster.every(x => Object.keys(x).sort().join() === 'g,n,s'), JSON.stringify(pub.roster));
     assert.deepEqual(pub.evs.sort(), ['女子100m', '男子100m', '男子110mH', '男子走幅跳'].sort()); assert(!/12\.40|13\.50|架空中|alice|@/.test(JSON.stringify(pub)), '公開の文書に記録・学校・uid が無い');
     assert.equal(adm.ownerUid, 'alice'); assert.equal(adm.akeys.length, 5);
@@ -104,7 +104,7 @@ try {
     await s.evaluate(() => document.querySelector('[data-svsex="f"]').click()); await sl(150);
     assert.deepEqual(await s.evaluate(() => [...document.querySelectorAll('.sv-name')].map(x => x.firstChild.textContent.trim())), ['架空 花子', '架空 桃子']);
     await s.evaluate(() => document.querySelector('[data-svsex="m"]').click()); await sl(150);
-    await s.evaluate(() => [...document.querySelectorAll('.sv-name')].find(x => /架空 二郎/.test(x.innerText)).click()); await sl(150);
+    await s.evaluate(() => [...document.querySelectorAll('.sv-name')].find(x => /架空 二郎/.test(x.innerText)).click()); await sl(150); await s.evaluate(() => document.querySelector('[data-svjoin="1"]').click()); await sl(120);
     const evs = await s.evaluate(() => [...document.querySelectorAll('[data-svev1]')].map(x => x.textContent)); assert.deepEqual(evs.sort(), ['100m', '110mH', '走幅跳'].sort(), '男子の種目だけ');
     await s.evaluate(() => document.querySelector('[data-svev1="男子100m"]').click()); await sl(150);
     assert(await s.evaluate(() => document.querySelector('[data-svev2="男子100m"]').disabled));
@@ -115,18 +115,19 @@ try {
     if (SHOT) { await s.evaluate(() => window.scrollTo(0, 0)); await s.screenshot({ path: path.join(SHOT, 'fix71_student_390.png'), fullPage: true }); }
     await s.evaluate(() => document.querySelector('[data-sv="send"]').click()); await sl(800);
     const r = await stu(); assert(/送りました/.test(r.t) && /送り直す/.test(r.t), r.t); assert(r.sw <= r.vw);
-    const a = (await db(s))['surveys/' + SID + '/answers/r1']; assert.deepEqual(Object.keys(a).sort(), ['at', 'cm', 'ev1', 'ev2', 'expireAt', 'rel', 'relay'].sort());
+    const a = (await db(s))['surveys/' + SID + '/answers/r1']; assert.deepEqual(Object.keys(a).sort(), ['at', 'cm', 'ev1', 'ev2', 'expireAt', 'join', 'rel', 'relay'].sort());
     assert.equal(a.ev1, '男子100m'); assert.equal(a.ev2, '男子走幅跳'); assert.equal(a.relay, 'ok'); assert.equal(a.cm.length, 100);
     if (SHOT) await s.screenshot({ path: path.join(SHOT, 'fix71_student_sent_390.png') });
   });
   await check('選手：送り直すと新しい答えに置きかわる（開き直しても自分の名前が選ばれている）', async () => {
     await s.reload({ waitUntil: 'load' }); await s.waitForSelector('#svBody .sv-name'); await sl(300);
     assert(await s.evaluate(() => [...document.querySelectorAll('.sv-name')].find(x => /架空 二郎/.test(x.innerText)).getAttribute('aria-pressed') === 'true'));
+await s.evaluate(() => document.querySelector('[data-svjoin="1"]').click()); await sl(120);
     await s.evaluate(() => document.querySelector('[data-svev1="男子走幅跳"]').click()); await sl(100); await s.evaluate(() => document.querySelector('[data-svrelay="no"]').click()); await sl(100);
     await s.evaluate(() => document.querySelector('[data-sv="send"]').click()); await sl(800);
     const a = (await db(s))['surveys/' + SID + '/answers/r1']; assert.equal(a.ev1, '男子走幅跳'); assert.equal(a.ev2, ''); assert.equal(a.relay, 'no');
     assert.equal(Object.keys(await db(s)).filter(k => k.startsWith('surveys/' + SID + '/answers/')).length, 1);
-    await s.evaluate(() => [...document.querySelectorAll('.sv-name')].find(x => /架空 一郎/.test(x.innerText)).click()); await sl(100);
+    await s.evaluate(() => [...document.querySelectorAll('.sv-name')].find(x => /架空 一郎/.test(x.innerText)).click()); await sl(100); await s.evaluate(() => document.querySelector('[data-svjoin="1"]').click()); await sl(120);
     await s.evaluate(() => document.querySelector('[data-svev1="男子100m"]').click()); await s.evaluate(() => document.querySelector('[data-svev2="男子110mH"]').click()); await s.evaluate(() => document.querySelector('[data-svrelay="ok"]').click()); await sl(100);
     await s.evaluate(() => document.querySelector('[data-sv="send"]').click()); await sl(800);
     assert(!se.length, se.join(' / '));
