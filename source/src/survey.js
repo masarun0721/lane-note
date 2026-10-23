@@ -161,7 +161,7 @@ var LaneSurvey = (function () {
   /* ---------- 答えをエントリー下書きに入れる（下書きのルールと警告はそのまま） ---------- */
   // E=LaneEntry, d=E.data(...), plan, sv={roster,akeys,evs,rels}, ans={idx:answer}
   function apply(E, d, plan, sv, ans) {
-    var res = { picks: 0, relay: 0, skip: [], out: [] }, maxLeg = (plan.rules && plan.rules.maxLeg) || 6;
+    var res = { picks: 0, relay: 0, skip: [], out: [], kept: [] }, maxLeg = (plan.rules && plan.rules.maxLeg) || 6;
     var evKey = function (a, label) {
       var own = a.events.filter(function (e) { return sexName(a.sex || e.sex) + e.label === label; })[0]; if (own) return own.ev;
       var g = d.events.filter(function (e) { return sexName(e.sex) + e.label === label; })[0]; return g ? g.ev : '';
@@ -170,11 +170,15 @@ var LaneSurvey = (function () {
       var x = ans[i], k = (sv.akeys || [])[+i], a = k && d.byKey[k], nm = ((sv.roster || [])[+i] || {}).n || '';
       if (x.join === false) { res.out.push(nm); return; }   // v0.28.2 出場しない人は下書きに入れない（参加料にも数えない）
       if (!a) { res.skip.push(nm + '：記録帳に見つかりません'); return; }
+      // v0.29.1 調査の答えを覚えておく（「手直し済」を外したときに戻す）。手で直した人は上書きしない
+      var sa = (plan.svAns || (plan.svAns = {}))[a.key] = [], hand = plan.hand && plan.hand[a.key];
       [x.ev1, x.ev2].forEach(function (lb) {
         if (!lb) return; var ev = evKey(a, lb);
-        if (!ev) { res.skip.push(nm + '：' + evShort(lb) + 'は記録帳に無い種目です（手で入れてください）'); return; }
+        if (!ev) { if (!hand) res.skip.push(nm + '：' + evShort(lb) + 'は記録帳に無い種目です（手で入れてください）'); return; }
+        if (sa.indexOf(ev) < 0) sa.push(ev); if (hand) return;
         var pk = plan.picks[a.key] || (plan.picks[a.key] = []); if (pk.indexOf(ev) < 0) { pk.push(ev); res.picks++; }
       });
+      if (hand) { res.kept.push(nm); return; }
       if (x.relay !== 'ok') return;
       (x.rel2 ? [x.rel, x.rel2] : [x.rel]).forEach(function (rel) { addRel(a, nm, rel); });
     });

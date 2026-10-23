@@ -2831,6 +2831,7 @@
     if (outI.length) h += '<p class="small sv-out" data-svout="' + outI.length + '"><b>出場しない ' + outI.length + '人</b>：' + outI.map(function (i) { var cm = A[i].cm; return esc(c.roster[i].n) + (cm ? '<small class="muted">（' + esc(cm) + '）</small>' : ''); }).join('・') + '</p>';
     h += '<p class="small"><b>まだの人</b>（' + yet.length + '人）' + (yet.length ? '：' + yet.map(function (i) { return esc(c.roster[i].n); }).join('・') : '：いません') + '</p>';
     h += '<div class="en-tools"><button type="button" class="btn" data-sv="apply"' + (done.length || outI.length ? '' : ' disabled') + '>📥 希望を下書きに入れる</button>' +
+      '<button type="button" class="btn sub" data-sv="jaafgo"' + (done.length || outI.length ? '' : ' disabled') + '>🟦 JAAF用にコピーへ進む</button>' +   // v0.29.1
       '<button type="button" class="btn sub small" data-sv="fpdf" aria-expanded="' + !!SV.fpdf + '">📄 最終チェック用PDF</button>' +
       '<button type="button" class="btn sub small" data-sv="stop">' + (c.open ? '⏸ 受付を止める' : '▶ 受付を再開') + '</button>' +
       '<label class="sv-f sv-dl">締切 <input type="date" id="rbSvDl" value="' + esc(S.jstDay(c.deadline)) + '"></label><button type="button" class="btn sub small" data-sv="dl">締切を変える</button>' +
@@ -2889,11 +2890,16 @@
     if (a === 'stop') { var on = !c.open; svRun(async function (api) { await api.setOpen(c.id, on); c.open = on; }, on ? '▶ 受付を再開しました。' : '⏸ 受付を止めました（リンクを開いても答えられません）。'); return true; }
     if (a === 'dl') { var dv = $('rbSvDl').value; svRun(async function (api) { await api.setDeadline(c.id, dv); c.deadline = LaneSurvey.dayEnd(dv); }, '✔ 締切を変えました。'); return true; }
     if (a === 'del') { if (!confirm('この調査と、集まった答えをすべて削除します。元に戻せません。よいですか？')) return true; svRun(async function (api) { await api.remove(c.id); SV.cur = null; SV.ans = null; SV.list = await api.list(TEAM && TEAM.role === 'coach' ? TEAM.id : ''); }, '🗑 削除しました（答えも消えました）。'); return true; }
-    if (a === 'apply') {
+    if (a === 'apply' || a === 'jaafgo') {
       if (!ENT.plan) ENT.plan = LaneEntry.newPlan();
       var r = LaneSurvey.apply(LaneEntry, d, ENT.plan, c, SV.ans || {});
       ENT.out = r.out;
-      svSay('📥 種目' + r.picks + '件・リレー' + r.relay + '人を下書きに入れました。' + (r.out.length ? ' 出場しない ' + r.out.length + '人（' + r.out.join('・') + '）は入れていません。' : '') + (r.skip.length ? ' 入れられなかったもの：' + r.skip.join('／') : '') + ' ルールの警告は上で確かめてください。', r.skip.length ? 'warn' : 'ok');
+      svSay('📥 種目' + r.picks + '件・リレー' + r.relay + '人を下書きに入れました。' + (r.out.length ? ' 出場しない ' + r.out.length + '人（' + r.out.join('・') + '）は入れていません。' : '') + (r.kept.length ? ' ✋ 手直し済の ' + r.kept.length + '人（' + r.kept.join('・') + '）はそのままにしました。' : '') + (r.skip.length ? ' 入れられなかったもの：' + r.skip.join('／') : '') + ' ルールの警告は上で確かめてください。', r.skip.length ? 'warn' : 'ok');
+      if (a === 'jaafgo') {   // v0.29.1 下書きへ進んで「JAAF用にコピー」を光らせる（種目を直してからコピー）
+        ENT.jaafHl = true; entSay('🟦 調査の答えを入れました。種目を直してから「JAAF用にコピー」を押してください。' + (r.kept.length ? ' ✋ 手直し済の ' + r.kept.length + '人はそのままにしました。' : '')); entRender();
+        var jb = document.querySelector('#rbEntry [data-en="jaaf"]'); if (jb) { try { jb.scrollIntoView({ block: 'center' }); } catch (er) { jb.scrollIntoView(); } try { jb.focus({ preventScroll: true }); } catch (er) { } }
+        return true;
+      }
       entRender(); return true;
     }
     return false;
@@ -2953,7 +2959,7 @@
       var chips = a.events.map(function (e) { own[e.ev] = 1; return '<button type="button" class="en-chip' + (e.comb ? ' en-c' : '') + '" data-enpick="' + i + '" data-ev="' + esc(e.ev) + '" aria-pressed="' + (pk.indexOf(e.ev) >= 0) + '">' + esc(e.label) + ' <small>' + (e.best ? esc(R.showMark(e.best.mark, e.full)) : '公認なし') + '</small></button>'; });
       pk.forEach(function (ev) { if (!own[ev]) { var g = d.eventBy[ev]; chips.push('<button type="button" class="en-chip" data-enpick="' + i + '" data-ev="' + esc(ev) + '" aria-pressed="true">' + esc(g ? g.label : ev) + ' <small>公認なし</small></button>'); } });
       var other = allEv.filter(function (e) { return !own[e.ev] && pk.indexOf(e.ev) < 0; });
-      h += '<li class="' + (pk.length ? 'on' : '') + '"><span class="en-nm">' + esc(a.name) + (a.grade ? ' <small>' + esc(a.grade) + '年</small>' : '') + '</span><span class="en-chips">' + chips.join('') +
+      h += '<li class="' + (pk.length ? 'on' : '') + '"><span class="en-nm">' + esc(a.name) + (a.grade ? ' <small>' + esc(a.grade) + '年</small>' : '') + (P.hand && P.hand[a.key] ? ' <button type="button" class="en-hand" data-enredo="' + i + '" title="' + (P.svAns && P.svAns[a.key] ? '印を外して、調査の答えに戻す' : '印を外す（次に調査の答えを入れると上書きされます）') + '">手直し済 ✕</button>' : '') + '</span><span class="en-chips">' + chips.join('') +
         (other.length ? '<select class="en-other" data-enother="' + i + '" aria-label="ほかの種目を足す"><option value="">＋ほかの種目</option>' + other.map(function (e) { return '<option value="' + esc(e.ev) + '">' + esc(e.label) + '</option>'; }).join('') + '</select>' : '') + '</span></li>';
     });
     h += '</ul>';
@@ -2992,7 +2998,7 @@
     if (W.length) h += '<ul class="en-warn" role="status">' + W.map(function (x) { return '<li>⚠ ' + esc(x.msg) + '</li>'; }).join('') + '</ul>';
     h += L.length ? '<div class="en-scroll">' + E.table(L) + '</div>' : '<p class="small muted">まだ選んでいません。</p>';
     h += '<div id="rbEnFee">' + entFeeHtml(F) + '</div>';
-    h += '<div class="en-tools"><button type="button" class="btn" data-en="print"' + (L.length ? '' : ' disabled') + '>🖨 印刷・PDF</button><button type="button" class="btn sub" data-en="copy"' + (L.length ? '' : ' disabled') + '>📋 文字でコピー</button><button type="button" class="btn sub" data-en="jaaf"' + (L.length ? '' : ' disabled') + '>🟦 JAAF用にコピー</button><button type="button" class="btn sub small" data-en="clear">すべて外す</button></div>';
+    h += '<div class="en-tools"><button type="button" class="btn" data-en="print"' + (L.length ? '' : ' disabled') + '>🖨 印刷・PDF</button><button type="button" class="btn sub" data-en="copy"' + (L.length ? '' : ' disabled') + '>📋 文字でコピー</button><button type="button" class="btn sub' + (ENT.jaafHl ? ' en-hl' : '') + '" data-en="jaaf"' + (L.length ? '' : ' disabled') + '>🟦 JAAF用にコピー</button><button type="button" class="btn sub small" data-en="clear">すべて外す</button></div>';
     h += '<p class="en-jaaf small">🟦 JAAFの画面に入れるときは <a href="jaaf.html" target="_blank" rel="noopener">JAAF入力の手伝い</a>（阪田さん専用・送信はしません）</p>';
     h += svHtml(d);
     box.innerHTML = h; box.hidden = false;
@@ -3030,7 +3036,7 @@
     ENT.msg = '';
     if (a === 'close') { ENT.open = false; entRender(); return; }
     if (a === 'help' || a === 'rules' || a === 'fee') { ENT[a] = !ENT[a]; entRender(); return; }
-    if (a === 'clear') { P.picks = {}; P.relays = {}; entSay('すべて外しました。'); entRender(); return; }
+    if (a === 'clear') { P.picks = {}; P.relays = {}; P.hand = {}; P.svAns = {}; entSay('すべて外しました。'); entRender(); return; }
     if (a === 'print') { openPrint(LaneEntry.sheet(R, d, P, { school: school(), date: LanePrint.today() })); return; }
     if (a === 'copy') {
       var tx = LaneEntry.text(R, d, P), done = function () { entSay('📋 コピーしました。'); entRender(); }, fb = function () { var ta = document.createElement('textarea'); ta.value = tx; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch (er) { entSay('コピーできませんでした。', 'err'); entRender(); } ta.remove(); };
@@ -3038,6 +3044,7 @@
       return;
     }
     if (a === 'jaaf') {   // v0.29.0 JAAF入力の手伝い（jaaf.html のボタン）に渡すJSON。登録番号がない人は知らせる（止めない）
+      ENT.jaafHl = false;
       var jj = LaneEntry.jaafJson(R, d, P, function (k) { return k.indexOf('id:') === 0 ? rosterOf(k.slice(3)) : null; }, entFeeMeet().meet), js = JSON.stringify(jj.json);
       var jok = function () { entSay('🟦 JAAF用にコピーしました（個人 ' + jj.json.entries.length + '件・リレー ' + jj.json.relays.length + 'チーム）。' + (jj.noReg.length ? ' ⚠ 登録番号がない人：' + jj.noReg.join('・') + '（JAAFの画面では名前だけで探すので、必ず確かめてください。🪪 選手台帳で番号を入れられます）' : ''), jj.noReg.length ? 'err' : 'ok'); entRender(); };
       var jfb = function () { var ta = document.createElement('textarea'); ta.value = js; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); jok(); } catch (er) { entSay('コピーできませんでした。', 'err'); entRender(); } ta.remove(); };
@@ -3052,6 +3059,14 @@
       var ath = d.athletes.filter(function (x) { return x.sex === ENT.sex; })[+pi], ev = t.getAttribute('data-ev'); if (!ath) return;
       var pk = P.picks[ath.key] || (P.picks[ath.key] = []), k = pk.indexOf(ev);
       if (k >= 0) pk.splice(k, 1); else pk.push(ev); if (!pk.length) delete P.picks[ath.key];
+      (P.hand || (P.hand = {}))[ath.key] = 1;   // v0.29.1 手で直した人は、調査の答えで上書きしない
+      entRender(); return;
+    }
+    var ri = t.getAttribute('data-enredo');
+    if (ri != null) {   // v0.29.1 「手直し済」を外す。調査の答えがあればそれに戻す
+      var rat = d.athletes.filter(function (x) { return x.sex === ENT.sex; })[+ri]; if (!rat || !P.hand) return;
+      delete P.hand[rat.key]; var sa = P.svAns && P.svAns[rat.key];
+      if (sa) { if (sa.length) P.picks[rat.key] = sa.slice(); else delete P.picks[rat.key]; entSay('↩ ' + rat.name + 'さんを調査の答えに戻しました。'); } else entSay('「手直し済」を外しました（' + rat.name + 'さん）。');
       entRender(); return;
     }
     var te = t.getAttribute('data-enteam');
@@ -3063,7 +3078,7 @@
     var t = e.target, P = ENT.plan, d; if (!P) return;
     if (svChange(t)) return;
     var oi = t.getAttribute('data-enother');
-    if (oi != null && t.value) { d = entData(); var ath = d.athletes.filter(function (x) { return x.sex === ENT.sex; })[+oi]; if (ath) (P.picks[ath.key] = P.picks[ath.key] || []).push(t.value); entRender(); return; }
+    if (oi != null && t.value) { d = entData(); var ath = d.athletes.filter(function (x) { return x.sex === ENT.sex; })[+oi]; if (ath) { (P.picks[ath.key] = P.picks[ath.key] || []).push(t.value); (P.hand || (P.hand = {}))[ath.key] = 1; } entRender(); return; }
     var lg = t.getAttribute('data-enleg');
     if (lg) { var p = lg.split('|'), tm = (P.relays[p[0]] || [])[+p[1]]; if (tm) { tm.members[+p[2]] = t.value; } entRender(); return; }
     var rk = t.getAttribute('data-enrule');
