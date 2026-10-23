@@ -572,6 +572,8 @@
     if (can) h += '<div class="rb-row"><label class="small">1年生だった年度 <input type="number" min="2000" max="2100" data-ro-in="entry" value="' + esc(e.entry || '') + '" style="width:6em"></label><button type="button" class="btn sub sm" data-ro="entry" data-aid="' + esc(e.aid) + '">学年を直す</button>' +
       '<label class="small">新しい所属 <input type="text" data-ro-in="to" maxlength="60" placeholder="例：架空南高" style="width:9em"></label><button type="button" class="btn sub sm" data-ro="move" data-aid="' + esc(e.aid) + '">所属を変える</button>' +
       (e.status === 'active' ? '<button type="button" class="btn sub sm" data-ro="grad" data-aid="' + esc(e.aid) + '">卒業にする</button>' : '<button type="button" class="btn sub sm" data-ro="back" data-aid="' + esc(e.aid) + '">在籍に戻す</button>') + '</div>';
+    // v0.29.0 JAAFの登録番号・会員ID（JAAF入力の手伝いで、選手を確実に見つけるため。どちらも空でよい）
+    h += '<div class="rb-row ro-nums"><span class="small">🔢 JAAF</span>' + (can ? '<label class="small">登録番号 <input type="text" inputmode="numeric" maxlength="8" data-ro-in="regNo" value="' + esc(e.regNo || '') + '" placeholder="例：12345" style="width:6.5em"></label><label class="small">会員ID（11桁・なくてよい） <input type="text" inputmode="numeric" maxlength="13" data-ro-in="jaafId" value="' + esc(e.jaafId || '') + '" placeholder="00100000000" style="width:9.5em"></label><button type="button" class="btn sub sm" data-ro="nums" data-aid="' + esc(e.aid) + '">番号を保存</button>' : '<span class="small">登録番号 ' + esc(e.regNo || '未入力') + (e.jaafId ? '・会員ID ' + esc(e.jaafId) : '') + '</span>') + '</div>';
     if (cand.length) h += '<div class="ro-cand"><p class="small"><b>同じ名前で、台帳に入っていない記録</b>があります。<b>同じ人か確かめてから</b>入れてください（名前だけで自動的にまとめることはしません）。</p><ul>' + cand.map(function (c) { return '<li>' + esc(c.name) + ' <span class="small muted">' + esc(c.teams.join('・')) + '・' + c.n + '件（' + esc(c.first) + '〜' + esc(c.last) + '）</span>' + (can ? ' <button type="button" class="btn sm" data-ro="link" data-aid="' + esc(e.aid) + '" data-key="' + esc(c.key) + '">同じ人なので入れる</button>' : '') + '</li>'; }).join('') + '</ul></div>';
     if (can && mine.length > 1) h += '<details class="ro-split"><summary class="small"><b>別の人の記録が混ざっているとき</b>（分ける）</summary><ul class="small">' + mine.slice().sort(function (a, b) { return cmp(a.date, b.date); }).map(function (r) { return '<li><label><input type="checkbox" data-ro-split="' + esc(r.id) + '"> ' + esc(r.date) + ' ' + esc(r.meet) + ' ' + esc(r.event) + ' ' + esc(smk(r)) + ' ' + esc(r.team) + '</label></li>'; }).join('') + '</ul><button type="button" class="btn sub sm" data-ro="split" data-aid="' + esc(e.aid) + '">選んだ記録を別の人（新しいID）に分ける</button></details>';
     return h + '</div>';
@@ -586,6 +588,12 @@
     if (act.length) h += '<ul class="ro-list">' + act.map(row).join('') + '</ul>'; else h += '<p class="small muted">まだだれも入っていません。</p>';
     if (old.length) h += '<details><summary class="small">卒業・退部の人（記録はそのまま残ります）</summary><ul class="ro-list">' + old.map(row).join('') + '</ul></details>';
     if (can && act.length) {
+      var noNum = act.filter(function (e) { return !e.regNo; }).length;
+      h += '<details class="ro-numsall"' + (RS.nums ? ' open' : '') + '><summary class="small"><b>🔢 JAAFの登録番号をまとめて入れる</b>（未入力 ' + noNum + '人）</summary>' +
+        '<p class="small">「JAAF用にコピー」で選手を確実に見つけるための番号です（JAAFのエントリー画面の「登録番号」の列）。会員ID（11桁）はなくてかまいません。</p>' +
+        '<table class="ro-nt"><thead><tr><th>選手</th><th>登録番号</th><th>会員ID（11桁）</th></tr></thead><tbody>' + act.map(function (e) { return '<tr><td>' + esc(e.name) + '</td><td><input type="text" inputmode="numeric" maxlength="8" data-ro-num="' + esc(e.aid) + '" value="' + esc(e.regNo || '') + '" style="width:6.5em"></td><td><input type="text" inputmode="numeric" maxlength="13" data-ro-jid="' + esc(e.aid) + '" value="' + esc(e.jaafId || '') + '" style="width:9.5em"></td></tr>'; }).join('') + '</tbody></table>' +
+        '<label class="small">貼り付けて入れる（1行に「名前 登録番号 会員ID」・会員IDはなくてよい）<textarea data-ro-in="numsText" rows="3" style="width:100%" placeholder="架空 太郎 12345&#10;見本 花子 23456 00100000002"></textarea></label>' +
+        '<p><button type="button" class="btn sub sm" data-ro="numsPaste">貼った分を表に入れる</button> <button type="button" class="btn sm" data-ro="numsAll">表の番号を保存</button></p></details>';
       h += '<p><button type="button" class="btn sub sm" data-ro="plan">📅 ' + y + '年度の学年を確かめる（年度更新）</button></p>';
       if (RS.plan) { var g = RS.plan.filter(function (p) { return p.action === 'graduate'; }); h += '<div class="ro-plan small"><p>' + y + '年度：' + RS.plan.map(function (p) { return esc(p.name) + ' ' + (p.action === 'graduate' ? '<b>卒業</b>' : p.grade + '年'); }).join('、') + '</p>' + (g.length ? '<button type="button" class="btn sm" data-ro="roll">' + g.length + '人を卒業にする</button>' : '<p>卒業になる人はいません（学年は年度から自動で上がります）。</p>') + '</div>'; }
     }
@@ -669,6 +677,26 @@
         if (a === 'grad') { if (!confirm(e.name + ' を卒業にします（記録はそのまま残ります）。')) return; o = Object.assign({}, e, { status: 'graduated', gradYear: LaneRoster.schoolYear() }); }
         if (a === 'back') { o = Object.assign({}, e, { status: 'active' }); delete o.gradYear; }
         ROSTER = ROSTER.map(function (x) { return x.aid === e.aid ? o : x; }); await saveRoster(sc); msg = '✔ 台帳を直しました。';
+      } else if (a === 'nums') {
+        if (!e) return; var rn = val('regNo'), ji = val('jaafId');
+        if (rn && !LaneRoster.regNo(rn)) { msg = 'ⓘ 登録番号は数字で入れてください（例：12345）。'; return; }
+        if (ji && !LaneRoster.jaafId(ji)) { msg = 'ⓘ 会員IDは11桁の数字です（わからなければ空のままで大丈夫です）。'; return; }
+        var o2 = Object.assign({}, e, { regNo: LaneRoster.regNo(rn), jaafId: LaneRoster.jaafId(ji) });
+        ROSTER = ROSTER.map(function (x) { return x.aid === e.aid ? o2 : x; }); await saveRoster(sc); msg = '✔ 番号を保存しました。';
+      } else if (a === 'numsPaste') {
+        RS.nums = true; var pr = LaneRoster.parseNums(val('numsText'), ROSTER.filter(function (x) { return x.status === 'active'; }));
+        pr.set.forEach(function (p) { var i1 = card.querySelector('[data-ro-num="' + p.aid + '"]'), i2 = card.querySelector('[data-ro-jid="' + p.aid + '"]'); if (i1) i1.value = p.regNo; if (i2 && p.jaafId) i2.value = p.jaafId; });
+        msg = (pr.set.length ? 'ⓘ ' + pr.set.length + '人を表に入れました。「表の番号を保存」で保存します。' : 'ⓘ 表に入れられる行がありませんでした。') + (pr.miss.length ? ' 名前が見つからない：' + pr.miss.join('、') : '') + (pr.bad.length ? ' 読めない行：' + pr.bad.join('、') : '');
+        return;
+      } else if (a === 'numsAll') {
+        var bad = [], nl = ROSTER.map(function (x) {
+          var i1 = card.querySelector('[data-ro-num="' + x.aid + '"]'), i2 = card.querySelector('[data-ro-jid="' + x.aid + '"]'); if (!i1) return x;
+          var r1 = i1.value.trim(), r2 = i2 ? i2.value.trim() : '';
+          if ((r1 && !LaneRoster.regNo(r1)) || (r2 && !LaneRoster.jaafId(r2))) { bad.push(x.name); return x; }
+          return Object.assign({}, x, { regNo: LaneRoster.regNo(r1), jaafId: LaneRoster.jaafId(r2) });
+        });
+        if (bad.length) { msg = 'ⓘ 番号の形がちがいます（登録番号は数字・会員IDは11桁）：' + bad.join('、'); return; }
+        ROSTER = nl; RS.nums = true; await saveRoster(sc); msg = '✔ 登録番号を保存しました（' + ROSTER.filter(function (x) { return x.status === 'active' && x.regNo; }).length + '人）。';
       } else if (a === 'roll') {
         var g = RS.plan.filter(function (p) { return p.action === 'graduate'; });
         if (!confirm(g.map(function (p) { return p.name; }).join('、') + ' を卒業にします（記録はそのまま残ります）。')) return;
@@ -2964,7 +2992,8 @@
     if (W.length) h += '<ul class="en-warn" role="status">' + W.map(function (x) { return '<li>⚠ ' + esc(x.msg) + '</li>'; }).join('') + '</ul>';
     h += L.length ? '<div class="en-scroll">' + E.table(L) + '</div>' : '<p class="small muted">まだ選んでいません。</p>';
     h += '<div id="rbEnFee">' + entFeeHtml(F) + '</div>';
-    h += '<div class="en-tools"><button type="button" class="btn" data-en="print"' + (L.length ? '' : ' disabled') + '>🖨 印刷・PDF</button><button type="button" class="btn sub" data-en="copy"' + (L.length ? '' : ' disabled') + '>📋 文字でコピー</button><button type="button" class="btn sub small" data-en="clear">すべて外す</button></div>';
+    h += '<div class="en-tools"><button type="button" class="btn" data-en="print"' + (L.length ? '' : ' disabled') + '>🖨 印刷・PDF</button><button type="button" class="btn sub" data-en="copy"' + (L.length ? '' : ' disabled') + '>📋 文字でコピー</button><button type="button" class="btn sub" data-en="jaaf"' + (L.length ? '' : ' disabled') + '>🟦 JAAF用にコピー</button><button type="button" class="btn sub small" data-en="clear">すべて外す</button></div>';
+    h += '<p class="en-jaaf small">🟦 JAAFの画面に入れるときは <a href="jaaf.html" target="_blank" rel="noopener">JAAF入力の手伝い</a>（阪田さん専用・送信はしません）</p>';
     h += svHtml(d);
     box.innerHTML = h; box.hidden = false;
   }
@@ -3006,6 +3035,13 @@
     if (a === 'copy') {
       var tx = LaneEntry.text(R, d, P), done = function () { entSay('📋 コピーしました。'); entRender(); }, fb = function () { var ta = document.createElement('textarea'); ta.value = tx; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch (er) { entSay('コピーできませんでした。', 'err'); entRender(); } ta.remove(); };
       if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(tx).then(done, fb); else fb();
+      return;
+    }
+    if (a === 'jaaf') {   // v0.29.0 JAAF入力の手伝い（jaaf.html のボタン）に渡すJSON。登録番号がない人は知らせる（止めない）
+      var jj = LaneEntry.jaafJson(R, d, P, function (k) { return k.indexOf('id:') === 0 ? rosterOf(k.slice(3)) : null; }, entFeeMeet().meet), js = JSON.stringify(jj.json);
+      var jok = function () { entSay('🟦 JAAF用にコピーしました（個人 ' + jj.json.entries.length + '件・リレー ' + jj.json.relays.length + 'チーム）。' + (jj.noReg.length ? ' ⚠ 登録番号がない人：' + jj.noReg.join('・') + '（JAAFの画面では名前だけで探すので、必ず確かめてください。🪪 選手台帳で番号を入れられます）' : ''), jj.noReg.length ? 'err' : 'ok'); entRender(); };
+      var jfb = function () { var ta = document.createElement('textarea'); ta.value = js; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); jok(); } catch (er) { entSay('コピーできませんでした。', 'err'); entRender(); } ta.remove(); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(js).then(jok, jfb); else jfb();
       return;
     }
     var sx = t.getAttribute('data-ensex'); if (sx) { ENT.sex = sx; entRender(); return; }

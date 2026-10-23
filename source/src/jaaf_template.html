@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>JAAF入力の手伝い｜LANE NOTE</title>
+<link rel="icon" type="image/svg+xml" href="__FAVICON__">
+<style>
+__BASE_CSS__
+.jf-steps{counter-reset:s;list-style:none;padding:0;margin:0;display:grid;gap:10px}
+.jf-steps li{position:relative;padding:10px 12px 10px 52px;background:#f6f8fc;border:1px solid var(--line);border-radius:12px;font-size:15px}
+.jf-steps li::before{counter-increment:s;content:counter(s);position:absolute;left:12px;top:10px;width:28px;height:28px;border-radius:50%;background:#1f3a68;color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center}
+.jf-bm{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(120deg,#14284b,#27508f);color:#fff!important;text-decoration:none;font-weight:800;font-size:17px;padding:12px 22px;border-radius:999px;border-bottom:4px solid #d7263d;cursor:grab;box-shadow:0 4px 14px rgba(20,40,75,.25)}
+.jf-drag{display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:16px;border:2px dashed #9fb0cc;border-radius:14px;background:#fff;margin:8px 0}
+.jf-rule{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.jf-rule div{border-radius:12px;padding:12px;background:#eef2f8;font-size:14px}.jf-rule b{display:block;font-size:15px;margin-bottom:2px}
+.jf-rule .ng{background:#fde8ea}.jf-rule .me{background:#fff4d6}
+.jf-legend span{display:inline-block;padding:1px 8px;border-radius:6px;margin-right:6px}
+</style>
+</head>
+<body class="check jaaf">
+<header>
+  <div class="hdr-meta">
+    <div class="hdr-ver" aria-label="バージョン">__VERSION__</div>
+    <div class="credit">Presented by Sakata</div>
+  </div>
+  <div class="brand">
+    <h1 class="logo"><a class="logo-home" href="./" aria-label="ホームへ" title="ホームへ">__LOGO_DARK__<span class="vh">LANE NOTE（レーンノート）JAAF入力の手伝い</span></a></h1>
+    <span class="badge">阪田さん専用</span>
+  </div>
+  <p class="tagline">JAAF入力の手伝い：エントリー下書きの選手を、JAAFの画面でチェックするだけ</p>
+  <nav class="pagenav" aria-label="ページ"><a href="records.html">📒 記録（エントリー下書き）にもどる</a></nav>
+</header>
+<main>
+<section class="box">
+  <h2><span class="no">🛡</span>はじめに（大事なこと）</h2>
+  <div class="jf-rule">
+    <div class="me"><b>👤 阪田さん専用</b>ほかの先生には配りません。JAAFの画面が変わったら動かなくなることがあります。</div>
+    <div class="ng"><b>🚫 送信は絶対にしない</b>このボタンは「登録」にチェックを入れるだけ。「一時保存」「記録入力に進む」などのボタンは押しません。連絡先の欄にもさわりません。</div>
+    <div><b>👀 確認ページは自分で見る</b>チェックが合っているかを目で確かめてから、自分で次へ進んでください。最後の確認ページも必ず自分で見てから送ってください。</div>
+  </div>
+</section>
+<section class="box">
+  <h2><span class="no">1</span>ボタンをブックマークバーに入れる（最初の1回だけ）</h2>
+  <p>下の青いボタンを、ブラウザのブックマークバーまで<b>ドラッグ</b>してください。ここで押しても何も起きません。</p>
+  <div class="jf-drag"><a class="jf-bm" id="jfBm" href="__BOOKMARKLET__" title="ブックマークバーへドラッグ">🟦 LANE→JAAF</a><span class="small muted">ブックマークバーが見えないときは <b>Ctrl+Shift+B</b>（Macは ⌘+Shift+B）。</span></div>
+</section>
+<section class="box">
+  <h2><span class="no">2</span>使い方</h2>
+  <ol class="jf-steps">
+    <li>LANE NOTE の「📝 エントリー下書き」で種目を選び、<b>「🟦 JAAF用にコピー」</b>を押す。登録番号がない人の名前が出たら、🪪 選手台帳で番号を入れておくと確実です。</li>
+    <li>JAAFに自分でログインして、大会の「申込む」から<b>種目ごとに選手が並ぶ画面</b>を開く。</li>
+    <li>ブックマークバーの<b>「🟦 LANE→JAAF」</b>を押す。クリップボードを読む許可を聞かれたら「許可」。読めないときは貼り付け欄が出るので Ctrl+V で貼る。</li>
+    <li>右上にまとめが出ます。<span class="jf-legend"><span style="outline:3px solid #2e7d32;background:#e3f4e1">緑</span>番号で一致 <span style="outline:3px solid #e4572e;background:#ffe3d6">赤</span>名前だけで一致（同じ人か必ず確かめる）</span>「種目なし」「選手なし」「飛ばした」は手で入れてください。</li>
+    <li>チェックを目で確かめてから、<b>自分で</b>「出場選手の記録入力に進む」を押す。記録・確認ページも自分で見て、送信も自分で押します。</li>
+  </ol>
+  <p class="small muted">1人2種目（リレーは数えない）をこえるチェックは入れません。グレーの行（ほかでエントリー済み・対象外）も飛ばします。記録を入れる次の画面は、まだ手で入れます。</p>
+</section>
+<section class="box">
+  <h2><span class="no">🔒</span>データの扱い</h2>
+  <p class="small">JSONはクリップボードを通るだけで、LANE NOTE にもほかの場所にも送りません。JAAFの画面の中身も読み取るだけで、外へは出しません。</p>
+</section>
+</main>
+<footer><div class="f-disc">ⓘ 本ツールは画面のチェックを手伝うだけです。内容は必ず自分の目で確認し、送信は自分で行ってください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。 問い合わせ：<a href="mailto:lanenote.info@gmail.com">lanenote.info@gmail.com</a>・<a href="https://x.com/lanenote" target="_blank" rel="noopener">X：@lanenote</a></div><div><b class="f-brand">LANE NOTE</b>（レーンノート）試作版 ／ <span class="f-credit">Presented by Sakata</span></div> <a href="records.html">記録のページへ</a></footer>
+<script>document.getElementById('jfBm').addEventListener('click', function (e) { e.preventDefault(); alert('ここでは動きません。ブックマークバーへドラッグして、JAAFのエントリー画面で押してください。'); });</script>
+</body>
+</html>

@@ -18,7 +18,28 @@ var LaneRoster = (function () {
   function clean(e) {
     var o = { aid: e.aid, name: String(e.name || '').slice(0, 60), kana: String(e.kana || '').slice(0, 60), team: String(e.team || '').slice(0, 60), div: ['jh', 'hs', 'univ', 'es', ''].indexOf(e.div || '') >= 0 ? (e.div || '') : '', entry: e.entry ? +e.entry : null, status: ['active', 'graduated', 'left'].indexOf(e.status) >= 0 ? e.status : 'active', moves: (e.moves || []).slice(-20).map(function (m) { return { date: String(m.date || '').slice(0, 10), from: String(m.from || '').slice(0, 60), to: String(m.to || '').slice(0, 60), note: String(m.note || '').slice(0, 100) }; }) };
     if (e.gradYear) o.gradYear = +e.gradYear;
+    // v0.29.0 JAAFの登録番号（数字だけ・1〜8桁）と会員ID（11桁）。どちらも入れたときだけ持つ（空なら項目ごと無し）
+    var rn = regNo(e.regNo), ji = jaafId(e.jaafId);
+    if (rn) o.regNo = rn; if (ji) o.jaafId = ji;
     return o;
+  }
+  function digits(v) { return String(v == null ? '' : v).normalize('NFKC').replace(/[\s\-]/g, ''); }
+  function regNo(v) { var s = digits(v); return /^\d{1,8}$/.test(s) ? s : ''; }
+  function jaafId(v) { var s = digits(v); return /^\d{11}$/.test(s) ? s : ''; }
+  // まとめて入れる：「名前 登録番号 [会員ID]」を1行ずつ。名前は空白を除いてくらべる。返り値 { set:[{aid,regNo,jaafId}], miss:[行], bad:[行] }
+  function nameKey(s) { return String(s || '').normalize('NFKC').replace(/\s+/g, ''); }
+  function parseNums(text, list) {
+    var by = {}, out = { set: [], miss: [], bad: [] };
+    (list || []).forEach(function (e) { var k = nameKey(e.name); (by[k] = by[k] || []).push(e); });
+    String(text || '').split(/\r?\n/).forEach(function (line) {
+      var t = line.normalize('NFKC').trim(); if (!t) return;
+      var m = t.match(/^(.*?)[\s,\t]+(\d{1,8})(?:[\s,\t]+(\d{11}))?\s*$/);
+      if (!m) { out.bad.push(line.trim()); return; }
+      var hit = by[nameKey(m[1])] || [];
+      if (hit.length !== 1) { out.miss.push(line.trim() + (hit.length > 1 ? '（同じ名前が' + hit.length + '人）' : '')); return; }
+      out.set.push({ aid: hit[0].aid, name: hit[0].name, regNo: m[2], jaafId: m[3] || '' });
+    });
+    return out;
   }
   // 年度の切りかえ：今年度の学年を計算し、最上級を過ぎた人は「卒業」の候補にする（実行は顧問が確かめてから apply）
   function rollover(list, y) {
@@ -47,6 +68,6 @@ var LaneRoster = (function () {
   }
   function link(recs, keys, aid, R) { var set = {}; keys.forEach(function (k) { set[k] = 1; }); return recs.filter(function (r) { return set[R.athleteKey(r)] && r.aid !== aid; }).map(function (r) { return Object.assign({}, r, { aid: aid }); }); }
   function split(recs, ids, aid) { var set = {}; ids.forEach(function (i) { set[i] = 1; }); return recs.filter(function (r) { return set[r.id]; }).map(function (r) { return Object.assign({}, r, { aid: aid }); }); }
-  return { newAid: newAid, validAid: validAid, schoolYear: schoolYear, gradeIn: gradeIn, entryFor: entryFor, maxGrade: maxGrade, clean: clean, rollover: rollover, applyRollover: applyRollover, move: move, candidates: candidates, link: link, split: split };
+  return { newAid: newAid, validAid: validAid, schoolYear: schoolYear, gradeIn: gradeIn, entryFor: entryFor, maxGrade: maxGrade, clean: clean, regNo: regNo, jaafId: jaafId, parseNums: parseNums, rollover: rollover, applyRollover: applyRollover, move: move, candidates: candidates, link: link, split: split };
 })();
 if (typeof module !== 'undefined') module.exports = LaneRoster;

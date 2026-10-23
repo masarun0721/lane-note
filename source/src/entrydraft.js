@@ -157,6 +157,32 @@ var LaneEntry = (function () {
   function byGrade(list, get, base, dir) {
     dir = dir || 1; return list.map(function (x, i) { return { x: x, i: i, k: gradeInfo(get(x), base).k }; }).sort(function (a, b) { if (a.k === 99 || b.k === 99) return (a.k === 99) - (b.k === 99) || a.i - b.i; return (a.k - b.k) * dir || a.i - b.i; }).map(function (o) { return o.x; });
   }
-  return { gradeNo: gradeNo, gradeBase: gradeBase, gradeInfo: gradeInfo, byGrade: byGrade, RULES: RULES, FEES: FEES, NO_MARK: NO_MARK, data: data, newPlan: newPlan, lines: lines, check: check, fees: fees, sheet: sheet, text: text, table: table, feeTable: feeTable, yen: yen, isComb: isComb, sexName: sexName, esc: esc };
+  /* v0.29.0 JAAF入力の手伝い用のJSON。who(key) → 選手台帳の人（{regNo, jaafId}）か null。
+     { v:1, meet, entries:[{regNo, jaafId, name, kana, sex, grade, event:'男子100m', record, recMeet, recDate}], relays:[{event, team, members:[{regNo, jaafId, name}]}] }
+     返り値 { json, noReg:[名前] }（登録番号がない人。会員IDだけある人は noReg に入れない＝会員IDで見つけられる） */
+  function jaafJson(R, d, plan, who, meet) {
+    who = who || function () { return null; };
+    var noReg = [], seen = {}, person = function (k) {
+      var a = d.byKey[k] || {}, r = who(k) || {}, o = { regNo: r.regNo || '', jaafId: r.jaafId || '', name: a.name || '' };
+      if (!o.regNo && !o.jaafId && !seen[k]) { seen[k] = 1; noReg.push(o.name); }
+      return o;
+    };
+    var entries = [], relays = [];
+    Object.keys(plan.picks).forEach(function (k) {
+      var a = d.byKey[k]; if (!a) return;
+      (plan.picks[k] || []).forEach(function (ev) {
+        var e = evInfo(d, a, ev), p = person(k);
+        entries.push({ regNo: p.regNo, jaafId: p.jaafId, name: p.name, kana: a.kana || '', sex: a.sex || e.sex || '', grade: a.grade || '', event: sexName(a.sex || e.sex) + e.label, record: e.best ? R.showMark(e.best.mark, e.full) : '', recMeet: e.best ? e.best.meet || '' : '', recDate: e.best ? e.best.date || '' : '' });
+      });
+    });
+    Object.keys(plan.relays).forEach(function (ev) {
+      var x = d.relayBy[ev]; if (!x) return;
+      (plan.relays[ev] || []).forEach(function (t) {
+        relays.push({ event: sexName(x.sex) + x.label, team: t.label || '', members: (t.members || []).filter(Boolean).filter(function (k) { return d.byKey[k]; }).map(person) });
+      });
+    });
+    return { json: { v: 1, app: 'LANE NOTE', meet: meet || '', entries: entries, relays: relays }, noReg: noReg };
+  }
+  return { jaafJson: jaafJson, gradeNo: gradeNo, gradeBase: gradeBase, gradeInfo: gradeInfo, byGrade: byGrade, RULES: RULES, FEES: FEES, NO_MARK: NO_MARK, data: data, newPlan: newPlan, lines: lines, check: check, fees: fees, sheet: sheet, text: text, table: table, feeTable: feeTable, yen: yen, isComb: isComb, sexName: sexName, esc: esc };
 })();
 if (typeof module !== 'undefined') module.exports = LaneEntry;

@@ -13,7 +13,7 @@ import base64, hashlib, html as htmlmod, json, pathlib, re, sys
 ROOT = pathlib.Path(__file__).resolve().parent
 S = ROOT / 'src'
 SHARE_BASE = 'https://lane-note.web.app/'   # 共有リンク・QRの公開アドレス。src/mode.js の LANE_SITE と同じにする（build で確かめる）
-VERSION = 'v0.28.9'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
+VERSION = 'v0.29.0'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
 # 作成日は版番号から取れないので固定（ビルドした日で変わると、公開時の一致検査ができないため）
 BUILD_DATE = '2026年10月12日'
 REC_VERSION = 'v0.11.1'   # LANE LOG（records.html）だけの版
@@ -100,7 +100,7 @@ def build():
     sw = text('src/sw.js')
     assert '__CACHE__' in sw
     sw = sw.replace('__CACHE__', 'lanenote-page-%s-r%s-%s' % (VERSION, REC_VERSION, h))
-    return html, sw, rec, text('src/firebase-config.js'), guide, chk, trial, team, build_intro(), sched, build_admin()
+    return html, sw, rec, text('src/firebase-config.js'), guide, chk, trial, team, build_intro(), sched, build_admin(), build_jaaf()
 
 
 def build_admin():
@@ -110,6 +110,28 @@ def build_admin():
     rep = {'__BASE_CSS__': base[base.index('<style>') + 7:base.index('</style>')], '__LOGO_DARK__': logo_inline('logo/option_A_dark.svg'),
            '__FAVICON__': 'data:image/svg+xml;base64,' + b64('logo/option_A_icon.svg'), '__VERSION__': VERSION,
            '__AUTHCOMMON__': text('src/auth_common.js'), '__ADMINAPP__': text('src/admin_app.js')}
+    for k, v in rep.items():
+        assert k in g, k
+        g = g.replace(k, v)
+    return g
+
+
+def bookmarklet():
+    """v0.29.0 JAAF入力の手伝い：src/jaafbm.js を javascript: のリンクにする（行頭の // の行と module の行を外す）"""
+    import urllib.parse
+    lines = [l.strip() for l in text('src/jaafbm.js').split('\n')]
+    code = '\n'.join(l for l in lines if l and not l.startswith('//') and not l.startswith("if (typeof module"))
+    code = '(function(){' + code + '\nLaneJaafBM.main();})();'
+    return 'javascript:' + urllib.parse.quote(code, safe="()!*'~-_.;,:/=+&?@$")
+
+
+def build_jaaf():
+    """v0.29.0 JAAF入力の手伝い（jaaf.html）：エントリー下書きからだけリンクする（メニューには出さない・noindex）"""
+    base = text('src/template.html')
+    g = text('src/jaaf_template.html')
+    rep = {'__BASE_CSS__': base[base.index('<style>') + 7:base.index('</style>')], '__LOGO_DARK__': logo_inline('logo/option_A_dark.svg'),
+           '__FAVICON__': 'data:image/svg+xml;base64,' + b64('logo/option_A_icon.svg'), '__VERSION__': VERSION,
+           '__BOOKMARKLET__': htmlmod.escape(bookmarklet(), quote=True)}
     for k, v in rep.items():
         assert k in g, k
         g = g.replace(k, v)
@@ -341,7 +363,7 @@ def build_records(index_html):
     return rec
 
 
-OUTPUTS = ('index.html', 'sw.js', 'records.html', 'firebase-config.js', 'guide.html', 'check.html', 'try.html', 'team.html', 'intro.html', 'schedule.html', 'admin.html')   # 公開するファイル（--check もこれらを確かめる）
+OUTPUTS = ('index.html', 'sw.js', 'records.html', 'firebase-config.js', 'guide.html', 'check.html', 'try.html', 'team.html', 'intro.html', 'schedule.html', 'admin.html', 'jaaf.html')   # 公開するファイル（--check もこれらを確かめる）
 
 
 def write(out, *bodies):
