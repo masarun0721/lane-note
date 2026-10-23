@@ -90,6 +90,7 @@ var LanePdf = (function () {
       var doc = frame.contentDocument; if (doc.fonts && doc.fonts.ready) { try { await doc.fonts.ready; } catch (e) { } }
       await new Promise(function (r) { setTimeout(r, 60); });
       var body = doc.body, total = Math.max(body.scrollHeight, doc.documentElement.scrollHeight);
+      if (o.trim) { var lastEl = body.lastElementChild; if (lastEl) total = Math.min(total, Math.ceil(lastEl.getBoundingClientRect().bottom - body.getBoundingClientRect().top) + 4); }   // v0.28.9 下の空白（JPEGでうっすら灰色）を描かない
       frame.style.height = Math.ceil(total + 10) + 'px';
       var zoom = 1;
       if (o.onePage && total > ch) { zoom = ch / total; }

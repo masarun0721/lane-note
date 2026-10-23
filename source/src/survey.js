@@ -257,7 +257,61 @@ var LaneSurvey = (function () {
     });
     return true;
   }
-  return { gNo: gNo, validId: validId, newId: newId, linkFor: linkFor, buildDocs: buildDocs, cleanAnswer: cleanAnswer, coach: coach, student: student, apply: apply, fb: fb, setFirebase: setFirebase, initLink: initLink, renderStudent: renderStudent,
+
+  /* ---------- v0.28.9 📄 最終チェック用PDF：顧問が紙で確かめる表（HTMLを作るだけ。PDFにするのは LanePdf） ----------
+     c={meet,deadline,roster,kind,relayAsk,rels}, A={idx:answer}, o={cm:ひとことを載せる, now, sort:種目を並べる関数} */
+  function gradeSortKey(g) { g = gNo(g); if (!g) return -1; return g.charAt(0) === '中' ? +g.slice(1) : 10 + +g; }
+  function sheet(c, A, o) {
+    o = o || {}; A = A || {}; var roster = c.roster || [], kr = c.kind === 'kiroku', ask = c.relayAsk !== false && (c.rels || []).length > 0, mixed = /m/.test(c.sexes || '') && /f/.test(c.sexes || '');
+    var srt = o.sort || (typeof ResultParser !== 'undefined' && ResultParser.sortEvents ? function (l) { return ResultParser.sortEvents(l); } : function (l) { return l; });
+    var lab = function (e) { return mixed ? String(e || '') : evShort(e); };
+    var idx = roster.map(function (r, i) { return i; }), ans = idx.filter(function (i) { return A[i] && A[i].join !== false; }), out = idx.filter(function (i) { return A[i] && A[i].join === false; }), yet = idx.filter(function (i) { return !A[i]; });
+    ans.sort(function (x, y) { var gx = gradeSortKey(roster[x].g), gy = gradeSortKey(roster[y].g); return gy - gx || String(roster[x].n).localeCompare(String(roster[y].n), 'ja'); });
+    var ncol = ask ? 4 : 3, ev = function (e) { return e ? '<span class="fc-ck">☐</span>' + esc(lab(e)) : '<span class="fc-no">－</span>'; };
+    // 1人分の行（ひとことは下に小さく）。学年の札は学年の変わり目に
+    var items = [], curG = null;
+    ans.forEach(function (i) {
+      var r = roster[i], a = A[i], g = gNo(r.g), gl = g ? g + '年' : '学年なし';
+      if (gl !== curG) { curG = gl; items.push({ g: 1, h: '<tr class="fc-g"><td colspan="' + ncol + '"><span class="fc-gl">' + esc(gl) + '</span></td></tr>' }); }
+      var rl = !ask ? '' : '<td class="fc-r">' + (a.relay === 'ok' ? '可' + (a.rel ? '<small>' + esc(lab(a.rel)) + (a.rel2 ? '・' + esc(lab(a.rel2)) : '') + '</small>' : '') : a.relay === 'no' ? '<span class="fc-no">不可</span>' : '') + '</td>';
+      var cm = o.cm && a.cm ? '<tr class="fc-cmr"><td colspan="' + ncol + '">💬 ' + esc(a.cm) + '</td></tr>' : '';
+      items.push({ h: '<tbody class="fc-p"><tr><td class="fc-n">' + esc(r.n) + '</td><td>' + ev(a.ev1) + '</td><td>' + ev(a.ev2) + '</td>' + rl + '</tr>' + cm + '</tbody>', w: cm ? 1.8 : 1 });
+    });
+    // 左右2段：重さ（ひとことの行）で半分に分ける。右の段が学年の途中から始まるときは札をもう一度出す
+    var tot = items.reduce(function (t, x) { return t + (x.w || 0.7); }, 0), acc = 0, cut = items.length;
+    for (var k = 0; k < items.length; k++) { if (acc >= tot / 2 && !items[k].g) { cut = k; break; } acc += items[k].w || 0.7; }
+    var L = items.slice(0, cut), Rt = items.slice(cut);
+    if (Rt.length && L.length && L[L.length - 1].g) Rt.unshift(L.pop());   // 学年の札だけが左の下に残らない
+    else if (Rt.length && !Rt[0].g) { for (var j = cut - 1; j >= 0; j--) if (items[j].g) { Rt.unshift({ g: 1, h: items[j].h.replace('</span>', '<small>（つづき）</small></span>') }); break; } }
+    var thead = '<thead><tr><th class="fc-n">選手</th><th>' + (kr ? '1種目目' : '第1希望') + '</th><th>' + (kr ? '2種目目' : '第2希望') + '</th>' + (ask ? '<th class="fc-r">リレー</th>' : '') + '</tr></thead>';
+    var tbl = function (l) { return '<table class="fc-t">' + thead + l.map(function (x) { return x.g ? '<tbody>' + x.h + '</tbody>' : x.h; }).join('') + '</table>'; };
+    var cnt = {}, add = function (k) { if (k) cnt[k] = (cnt[k] || 0) + 1; };
+    ans.forEach(function (i) { var a = A[i]; add(a.ev1); add(a.ev2); if (ask && a.relay === 'ok') { if (a.rel) { add(a.rel); add(a.rel2); } else add('リレー（どれか未定）'); } });
+    var ks = srt(Object.keys(cnt).filter(function (k) { return k !== 'リレー（どれか未定）'; })); if (cnt['リレー（どれか未定）']) ks.push('リレー（どれか未定）');
+    var now = o.now || Date.now(), nd = new Date(now + 9 * 36e5), stamp = nd.getUTCFullYear() + '/' + (nd.getUTCMonth() + 1) + '/' + nd.getUTCDate() + ' ' + nd.getUTCHours() + ':' + ('0' + nd.getUTCMinutes()).slice(-2);
+    var h = '<div class="fc"><div class="fc-band"><div class="fc-tt"><small>エントリー調査 最終チェック</small><b>' + esc(c.meet) + '</b></div>' +
+      '<div class="fc-meta"><span>締切<b>' + esc(dayLabel(c.deadline)) + '</b></span><span>回答<b>' + (ans.length + out.length) + '/' + roster.length + '人</b></span><span>出場<b>' + ans.length + '人</b></span><span>作成<b>' + stamp + '</b></span></div></div>' +
+      (ans.length ? '<div class="fc-cols">' + tbl(L) + (Rt.length ? tbl(Rt) : '<div></div>') + '</div>' : '<p>出場する答えはまだありません</p>') +
+      '<div class="fc-bot"><div class="fc-b"><h2>種目ごとの人数</h2><div class="fc-c">' + (ks.length ? ks.map(function (k) { return '<span class="fc-chip' + (/R$|リレー/.test(k) ? ' rl' : '') + '">' + esc(k === 'リレー（どれか未定）' ? k : lab(k)) + '<b>' + cnt[k] + '</b></span>'; }).join('') : '<span>なし</span>') + '</div></div>' +
+      '<div class="fc-b fc-two"><div><h2>出場しない<small>' + out.length + '人</small></h2><p class="fc-l">' + (out.length ? out.map(function (i) { var cm = A[i].cm; return '<span>' + esc(roster[i].n) + (cm ? '<small>（' + esc(cm) + '）</small>' : '') + '</span>'; }).join('') : 'いません') + '</p></div>' +
+      '<div><h2>まだの人<small>' + yet.length + '人</small></h2><p class="fc-l">' + (yet.length ? yet.map(function (i) { return '<span>' + esc(roster[i].n) + '</span>'; }).join('') : 'いません') + '</p></div></div></div>' +
+      '<p class="fc-foot">LANE NOTE ／ 作成 ' + stamp + '</p></div>';
+    return { html: h, rows: ans.length, out: out.length, yet: yet.length, left: L.filter(function (x) { return !x.g; }).length, right: Rt.filter(function (x) { return !x.g; }).length, counts: ks.map(function (k) { return [k, cnt[k]]; }), filename: String(c.meet || '大会') + '_エントリー最終チェック' + (o.cm ? '' : '_ひとことなし') + '.pdf' };
+  }
+  var SHEET_CSS = 'html,body{background:#fff}body{font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic","Meiryo","Noto Sans CJK JP","Noto Sans JP",sans-serif;color:#14213d;font-size:10.5px;line-height:1.4}' +
+    '.fc-band{background:#1f3a68;color:#fff;border-radius:8px;padding:9px 14px;display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:8px}' +
+    '.fc-tt small{display:block;font-size:10px;opacity:.85;letter-spacing:.05em}.fc-tt b{font-size:17px;line-height:1.3}.fc-meta{display:flex;gap:12px;font-size:9.5px;white-space:nowrap}.fc-meta span{display:flex;flex-direction:column;align-items:flex-end;opacity:.9}.fc-meta b{font-size:12px;opacity:1}' +
+    '.fc-cols{display:grid;grid-template-columns:1fr 1fr;gap:0 4mm;align-items:start}' +
+    '.fc-t{width:100%;border-collapse:collapse}.fc-t th{background:#e8edf6;color:#1f3a68;font-size:9.5px;text-align:left;padding:3px 5px;border-bottom:1.5px solid #1f3a68}' +
+    '.fc-t td{padding:2.5px 5px;border-bottom:1px solid #e1e6ef;vertical-align:top}.fc-p:nth-of-type(even) td{background:#f6f8fc}.fc-p{break-inside:avoid}' +
+    '.fc-g td{padding:6px 0 2px;border-bottom:0;background:#fff!important}.fc-gl{display:inline-block;background:#1f3a68;color:#fff;font-weight:800;font-size:10px;border-radius:999px;padding:1px 10px}.fc-gl small{font-weight:600;margin-left:3px;opacity:.85}' +
+    '.fc-n{font-weight:700;white-space:nowrap}.fc-ck{font-size:12px;margin-right:2px;color:#1f3a68}.fc-no{color:#9aa3b5}.fc-r{font-size:9.5px;white-space:nowrap}.fc-r small{display:block;color:#5a6577;font-size:8.5px}' +
+    '.fc-cmr td{font-size:8.5px;color:#4a5568;padding:0 5px 3px 12px;border-bottom:1px solid #e1e6ef}' +
+    '.fc-bot{margin-top:8px}.fc-b{break-inside:avoid;margin-top:6px}.fc h2{font-size:11px;margin:0 0 4px;color:#1f3a68;border-left:3px solid #1f3a68;padding-left:6px}.fc h2 small{font-weight:600;margin-left:6px;color:#5a6577}' +
+    '.fc-c{display:flex;flex-wrap:wrap;gap:4px}.fc-chip{display:inline-flex;align-items:center;gap:5px;border:1px solid #c9d3e6;border-radius:999px;padding:1px 4px 1px 9px;font-size:9.5px;background:#fff}.fc-chip b{background:#1f3a68;color:#fff;border-radius:999px;padding:0 7px;font-size:9.5px}.fc-chip.rl b{background:#c0392b}' +
+    '.fc-two{display:grid;grid-template-columns:1fr 1fr;gap:4mm}.fc-l{margin:0;display:flex;flex-wrap:wrap;gap:2px 10px}.fc-l small{color:#5a6577}.fc-foot{margin-top:10px;font-size:8px;color:#7a8394;text-align:right}';
+  function sheetDoc(s) { return '<!doctype html><html lang="ja"><head><meta charset="utf-8"><style>' + SHEET_CSS + '</style></head><body>' + s.html + '</body></html>'; }
+  return { sheet: sheet, sheetDoc: sheetDoc, gNo: gNo, validId: validId, newId: newId, linkFor: linkFor, buildDocs: buildDocs, cleanAnswer: cleanAnswer, coach: coach, student: student, apply: apply, fb: fb, setFirebase: setFirebase, initLink: initLink, renderStudent: renderStudent,
     defaultDeadline: defaultDeadline, dayEnd: dayEnd, jstDay: jstDay, when: when, dayLabel: dayLabel, sexName: sexName, evShort: evShort, esc: esc, CMMAX: CMMAX, KEEP: KEEP };
 })();
 if (typeof module !== 'undefined') module.exports = LaneSurvey;

@@ -2803,15 +2803,24 @@
     if (outI.length) h += '<p class="small sv-out" data-svout="' + outI.length + '"><b>出場しない ' + outI.length + '人</b>：' + outI.map(function (i) { var cm = A[i].cm; return esc(c.roster[i].n) + (cm ? '<small class="muted">（' + esc(cm) + '）</small>' : ''); }).join('・') + '</p>';
     h += '<p class="small"><b>まだの人</b>（' + yet.length + '人）' + (yet.length ? '：' + yet.map(function (i) { return esc(c.roster[i].n); }).join('・') : '：いません') + '</p>';
     h += '<div class="en-tools"><button type="button" class="btn" data-sv="apply"' + (done.length || outI.length ? '' : ' disabled') + '>📥 希望を下書きに入れる</button>' +
+      '<button type="button" class="btn sub small" data-sv="fpdf" aria-expanded="' + !!SV.fpdf + '">📄 最終チェック用PDF</button>' +
       '<button type="button" class="btn sub small" data-sv="stop">' + (c.open ? '⏸ 受付を止める' : '▶ 受付を再開') + '</button>' +
       '<label class="sv-f sv-dl">締切 <input type="date" id="rbSvDl" value="' + esc(S.jstDay(c.deadline)) + '"></label><button type="button" class="btn sub small" data-sv="dl">締切を変える</button>' +
       '<button type="button" class="btn sub small sv-del" data-sv="del">🗑 削除</button></div>';
+    if (SV.fpdf) h += '<div class="en-tools sv-fpdf" role="group" aria-label="最終チェック用PDF"><b class="small">📄 ひとことを</b><button type="button" class="btn" data-sv="fpdf1">💬 載せる</button><button type="button" class="btn sub" data-sv="fpdf0">載せない</button></div>';   // v0.28.9
     return h + '</div>';
   }
   function svClick(t, d) {
     var a = t.getAttribute('data-sv'), f = SV.form;
     if (a === 'toggle') { SV.open = !SV.open; SV.msg = ''; if (SV.open && USER && !SV.list && !SV.cur) { svLoadList(); return true; } entRender(); return true; }
     if (a === 'help') { SV.help = !SV.help; entRender(); return true; }
+    if (a === 'fpdf') { SV.fpdf = !SV.fpdf; entRender(); return true; }
+    if (a === 'fpdf1' || a === 'fpdf0') {   // v0.28.9 最終チェック用PDF：印刷ダイアログなしでそのまま保存
+      SV.fpdf = false; entRender(); if (typeof LanePdf === 'undefined' || !SV.cur) return true;
+      var fs = LaneSurvey.sheet(SV.cur, SV.ans || {}, { cm: a === 'fpdf1' });
+      LanePdf.make({ html: LaneSurvey.sheetDoc(fs), filename: fs.filename, margin: 10, footer: 'LANE NOTE', trim: true }).catch(function () { });
+      return true;
+    }
     if (a === 'login') { if ($('rbSignIn')) $('rbSignIn').click(); return true; }
     if (a === 'reload') { SV.list = null; svLoadList(); return true; }
     if (a === 'new') { SV.form = svNewForm(d); SV.msg = ''; entRender(); return true; }
