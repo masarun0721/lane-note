@@ -13,7 +13,7 @@ import base64, hashlib, html as htmlmod, json, pathlib, re, sys
 ROOT = pathlib.Path(__file__).resolve().parent
 S = ROOT / 'src'
 SHARE_BASE = 'https://lane-note.web.app/'   # 共有リンク・QRの公開アドレス。src/mode.js の LANE_SITE と同じにする（build で確かめる）
-VERSION = 'v0.29.9'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
+VERSION = 'v0.30.0'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
 # 作成日は版番号から取れないので固定（ビルドした日で変わると、公開時の一致検査ができないため）
 BUILD_DATE = '2026年10月12日'
 REC_VERSION = 'v0.11.1'   # LANE LOG（records.html）だけの版
@@ -137,6 +137,8 @@ def build_jaaf():
         assert k in g, k
         g = g.replace(k, v)
     g = re.sub(r'__IMG_([a-z_]+)__', lambda m: img_url(m.group(1)) or (_ for _ in ()).throw(AssertionError(m.group(1))), g)   # v0.29.5 レーンちゃん
+    assert g.count('__VIDEO_jaaf_howto__') == 1
+    g = g.replace('__VIDEO_jaaf_howto__', video_html('jaaf_howto', 'JAAF入力の手伝いの使い方（ブックマークバーに入れる）', '約2分40秒'))   # v0.30.0 説明動画
     return g
 
 
@@ -231,9 +233,9 @@ def vid_url(name, ext):
     return '%s/%s%s?v=%s' % (MANUAL_VIDEO, name, ext, hashlib.sha256(p.read_bytes()).hexdigest()[:8])
 
 
-def video_html(name, title):
+def video_html(name, title, length='約1分'):
     return ('<figure class="mb-video"><video controls preload="none" playsinline width="1280" height="720" poster="%s" aria-label="説明動画：%s"><source src="%s" type="video/mp4"></video>'
-            '<figcaption>▶ 説明動画：%s（約1分・音が出ます）</figcaption></figure>') % (vid_url(name, '.webp'), title, vid_url(name, '.mp4'), title)   # v0.25.3：マニュアルの絵（guide.html には埋め込まず、別ファイルとして公開する）
+            '<figcaption>▶ 説明動画：%s（%s・音が出ます）</figcaption></figure>') % (vid_url(name, '.webp'), title, vid_url(name, '.mp4'), title, length)   # v0.25.3：マニュアルの絵（guide.html には埋め込まず、別ファイルとして公開する）
 
 
 def manual_assets():
