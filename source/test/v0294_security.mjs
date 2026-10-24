@@ -13,7 +13,7 @@ const ROWS = [rec({ name: '架空 一郎' }), rec({ name: '架空 一郎', event
 const D = E.data(R, ROWS), K = n => D.athletes.find(a => a.name === n).key, EV = (n, l) => D.athletes.find(a => a.name === n).events.find(e => e.label === l).ev;
 const RULES = fs.readFileSync(path.join(ROOT, 'firestore.rules'), 'utf8'), FJ = JSON.parse(fs.readFileSync(path.join(ROOT, 'firebase.json'), 'utf8'));
 await check('ルール：answers に d1・dv（16文字）。作るときは d1==dv、上書きでは d1 を変えられない。meets/{k} は形を検査', () => {
-  assert.match(RULES, /'join', 'd1', 'dv'\]\)/); assert.match(RULES, /request\.resource\.data\.get\('d1', ''\) == request\.resource\.data\.get\('dv', ''\)/);
+  assert.match(RULES, /'join', 'd1', 'dv'\]\)/); assert.match(RULES, /request\.resource\.data\.d1 == request\.resource\.data\.dv/);   // v0.29.7（R296-01）作るときは d1・dv が必ず要る
   assert.match(RULES, /request\.resource\.data\.get\('d1', ''\) == resource\.data\.get\('d1', ''\)/); assert.match(RULES, /allow create, update: if activeMember\(t\) && validTeamMeet\(request\.resource\.data\)/);
   assert.match(RULES, /今のアプリは締切＋30日/);
 });
@@ -41,16 +41,15 @@ await check('send：はじめは作る（d1=dv）、同じ端末の上書きは 
   assert.equal(ans[0].moved, true); assert.deepEqual(S.movedNames(sv, ans), ['架空 一郎']);
   delete globalThis.localStorage;
 });
-await check('まだ古いルール（d1・dv を知らない）でも送れる：断られたら印なしで1回だけ送り直す', async () => {
+await check('v0.29.7（R296-01）印なしで送り直さない：ルールに断られたら、そのままエラー（d1・dv のない答えは作らない）', async () => {
   const db = {}, tries = []; const bad = v => 'd1' in v || 'dv' in v, PD = () => Object.assign(new Error('pd'), { code: 'permission-denied' });
   const F = { doc: (fs, ...p) => ({ k: p.join('/') }), serverTimestamp: () => 'TS', deleteField: () => ({}),
     async updateDoc(r, v) { tries.push('u'); if (!db[r.k]) throw Object.assign(new Error('nf'), { code: 'not-found' }); if (bad(v)) throw PD(); db[r.k] = Object.assign({}, db[r.k], v); },
     async setDoc(r, v) { tries.push(bad(v) ? 's+' : 's'); if (bad(v)) throw PD(); db[r.k] = Object.assign({}, v); } };
   globalThis.localStorage = { getItem: () => 'AAAAAAAAAAAAAAAA', setItem() {} };
   const st = S.student({ F, fs: {} }), sv = { id: 'X'.repeat(24), roster: [{ n: '架空 一郎' }], evs: ['男子100m'], rels: [], expireAt: 1 };
-  await st.send(sv, 0, { ev1: '男子100m', join: true }); const a = db['surveys/' + sv.id + '/answers/r0'];
-  assert.equal(a.ev1, '男子100m'); assert(!('d1' in a) && !('dv' in a)); assert.deepEqual(tries, ['u', 's+', 's']);
-  tries.length = 0; await st.send(sv, 0, { ev1: '', cm: 'やっぱり', join: false }); assert.deepEqual(tries, ['u', 's+', 's']); assert.equal(db['surveys/' + sv.id + '/answers/r0'].join, false);
+  await assert.rejects(st.send(sv, 0, { ev1: '男子100m', join: true }), e => e.code === 'permission-denied');
+  assert.deepEqual(tries, ['u', 's+']); assert.equal(db['surveys/' + sv.id + '/answers/r0'], undefined);
   delete globalThis.localStorage;
 });
 const srv = http.createServer((q, s) => { let f = decodeURIComponent(q.url.split(/[?#]/)[0]); if (f.endsWith('/')) f += 'index.html'; const p = path.join(ROOT, f); if (!p.startsWith(ROOT) || !fs.existsSync(p) || fs.statSync(p).isDirectory()) { s.writeHead(404); s.end(); return; }

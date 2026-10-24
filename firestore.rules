@@ -722,7 +722,26 @@ service cloud.firestore {
         && teamMeetStr(d, 'key', 400) && teamMeetStr(d, 'meet', 300) && teamMeetStr(d, 'venue', 300) && teamMeetStr(d, 'weather', 100)
         && teamMeetStr(d, 'memo', 5000) && teamMeetStr(d, 'resultUrl', 2000) && teamMeetStr(d, 'entryMail', 300) && teamMeetStr(d, 'entryVia', 300)
         && (!('prep' in d) || (d.prep is map && d.prep.keys().hasOnly(['docs', 'at', 'info'])
-          && (!('docs' in d.prep) || (d.prep.docs is map && d.prep.docs.keys().hasOnly(['yoko', 'sl', 'tt', 'note'])))));
+          && (!('docs' in d.prep) || (d.prep.docs is map && d.prep.docs.keys().hasOnly(['yoko', 'sl', 'tt', 'note'])))
+          // v0.29.7（R296-04）prep の at（日時の文字）と info（大会名・日付・ルール・参加料）の形も決める
+          && (!('at' in d.prep) || (d.prep.at is string && d.prep.at.size() <= 40))
+          && (!('info' in d.prep) || (d.prep.info is map && d.prep.info.keys().hasOnly(['name', 'date', 'rules', 'fees'])
+            && teamMeetStr(d.prep.info, 'name', 100) && teamMeetStr(d.prep.info, 'date', 60)
+            && (!('rules' in d.prep.info) || (d.prep.info.rules is map && d.prep.info.rules.size() <= 60))
+            && (!('fees' in d.prep.info) || (d.prep.info.fees is map && d.prep.info.fees.size() <= 60))))))
+        // v0.29.7（R296-04）日付・締切などは文字だけ（ちがう型が1件あると、みんなの画面が止まるため）
+        && teamMeetStr(d, 'date', 40) && teamMeetStr(d, 'end', 40) && teamMeetStr(d, 'div', 40) && teamMeetStr(d, 'deadline', 40)
+        && teamMeetStr(d, 'entryAt', 40) && teamMeetStr(d, 'payAt', 40) && teamMeetStr(d, 'payDue', 40)
+        && teamMeetStr(d, 'deadlineTime', 20) && teamMeetStr(d, 'payDueTime', 20) && teamMeetStr(d, 'fee', 100)
+        && (!('plan' in d) || d.plan is bool)
+        && teamMeetNum(d, 'temp') && teamMeetNum(d, 'humidity') && teamMeetNum(d, 'importedN')
+        && teamMeetTime(d, 'updatedAt') && teamMeetTime(d, 'importedAt');
+    }
+    function teamMeetNum(d, k) {
+      return !(k in d) || d[k] is number || (d[k] is string && d[k].size() <= 20);
+    }
+    function teamMeetTime(d, k) {
+      return !(k in d) || d[k] is timestamp || (d[k] is string && d[k].size() <= 40);
     }
     // v0.29.4（H1）答えに付ける端末の印（ランダム16文字）。d1＝最初に送った端末（作るときだけ・あとで変えられない）、dv＝最後に送った端末
     function validDev(v) {
@@ -780,7 +799,8 @@ service cloud.firestore {
     }
     // 回答：第1・第2希望は選べる種目から（第2は空か第1とちがう種目）・リレーは可/不可（どのリレーかは任意）・ひとことは100文字まで
     function validAnswer(rid, d, s) {
-      return rid.matches('^r[0-9]{1,3}$')
+      // v0.29.7（R296-02）番号は先頭ゼロなしの1つの書き方だけ（r0・r7・r149。r00・r07 は不可）
+      return rid.matches('^r(0|[1-9][0-9]{0,2})$')
         && int(rid.replace('^r', '')) < s.n
         && d.keys().hasAll(['ev1', 'ev2', 'relay', 'rel', 'cm', 'at', 'expireAt'])
         && d.keys().hasOnly(['ev1', 'ev2', 'relay', 'rel', 'rel2', 'cm', 'at', 'expireAt', 'join', 'd1', 'dv'])
@@ -826,11 +846,15 @@ service cloud.firestore {
         allow create: if validSurveyId(sid)
           && surveyOpen(get(surveyPath(sid)).data)
           && validAnswer(rid, request.resource.data, get(surveyPath(sid)).data)
-          && request.resource.data.get('d1', '') == request.resource.data.get('dv', '');
+          // v0.29.7（R296-01）新しい答えには端末の印 d1・dv が必ず要る（作るときは同じ値）
+          && ('d1' in request.resource.data) && ('dv' in request.resource.data)
+          && request.resource.data.d1 == request.resource.data.dv;
         allow update: if validSurveyId(sid)
           && surveyOpen(get(surveyPath(sid)).data)
           && validAnswer(rid, request.resource.data, get(surveyPath(sid)).data)
           && request.resource.data.get('d1', '') == resource.data.get('d1', '')
+          // v0.29.7（R296-01）書きかえでも dv（この端末の印）は消せない
+          && ('dv' in request.resource.data)
           && request.time > resource.data.at + duration.value(5, 's');
         allow delete: if surveyBossOf(sid);
       }

@@ -212,6 +212,17 @@
 
   /* ---------- v0.5：大会ごとの天気（users/{uid}/meets/{大会}）・中学/高校を手で選んだ選手（users/{uid}/settings/divOverrides） ---------- */
   var METS = {}, DIV_OV = {}, REVIEW = [];
+  // v0.29.7（R296-04）読んだ大会の印のうち、日付・締切などが文字でないもの（古い不正な値）は外して使う。1件で画面全体が止まらないように
+  var MEET_STR = ['key', 'date', 'end', 'meet', 'venue', 'div', 'deadline', 'entryAt', 'payAt', 'payDue', 'deadlineTime', 'payDueTime', 'entryVia', 'entryMail', 'fee', 'memo', 'resultUrl', 'weather'];
+  function safeMets(m) {
+    var out = {}; if (!m || typeof m !== 'object') return out;
+    Object.keys(m).forEach(function (k) { var x = m[k]; if (!x || typeof x !== 'object' || Array.isArray(x)) return; var y = Object.assign({}, x);
+      MEET_STR.forEach(function (f) { if (f in y && typeof y[f] !== 'string') delete y[f]; });
+      if ('plan' in y && typeof y.plan !== 'boolean') y.plan = y.plan === 1 || y.plan === 'true';   // 前の版の端末の控えは plan: 1
+      if (y.prep != null && (typeof y.prep !== 'object' || Array.isArray(y.prep))) delete y.prep;
+      if (y.key && y.key !== k) return; out[k] = y; });
+    return out;
+  }
   // v0.26.31 大会予定の欄：会場・終了日・区分・締切＋進み具合（エントリー済・振込済の日、振込締切、金額、メモ、結果のURL、結果取込済）
   var PF = ['venue', 'end', 'div', 'plan', 'deadline', 'entryAt', 'payAt', 'payDue', 'deadlineTime', 'payDueTime', 'entryVia', 'entryMail', 'fee', 'memo', 'resultUrl', 'importedAt', 'importedN', 'prep'], EF = PF.filter(function (k) { return k !== 'plan'; });
   function lsGet(k, d) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
@@ -1298,20 +1309,37 @@
       try { localStorage.removeItem(metsKey(null)); localStorage.removeItem(ovKey(null)); } catch (e) { }
       return { discarded: local.length };
     }
-    var have = {}; (await getAll(sc)).forEach(function (r) { have[r.id] = 1; });
-    var add = local.filter(function (r) { return r && r.id && !have[r.id]; });
+    // v0.29.7（R296-06）同じIDでも中身（大会・日付・種目・名前・所属・記録など）がちがえば、別の記録として新しいIDで移す。
+    //   本当に同じ記録だけを「すでにあった」と数える。どちらとも決められない記録は端末に残す（全部は消さない）
+    var have = {}; (await getAll(sc)).forEach(function (r) { if (r && r.id) have[r.id] = r; });
+    var same = function (a, b) { try { return R.fullIdentity(a) === R.fullIdentity(b); } catch (e) { return false; } };
+    var add = [], keep = [], dupN = 0;
+    local.forEach(function (r) {
+      if (!r || !r.id) return;
+      if (!have[r.id]) { add.push(r); have[r.id] = r; return; }
+      if (same(r, have[r.id])) { dupN++; return; }
+      var nid = ''; try { nid = R.recId(r.meet, r.date, r); } catch (e) { }
+      if (!nid || nid === r.id) { keep.push(r); return; }
+      if (have[nid]) { if (same(r, have[nid])) dupN++; else keep.push(r); return; }
+      var c = Object.assign({}, r, { id: nid }); add.push(c); have[nid] = c;
+    });
     if (add.length) { await cloudPut(add, sc); if (!noCache(sc)) await ltx('readwrite', function (s) { add.forEach(function (r) { s.put(r); }); }, sc.dbName, sc); }
     // 天気・中学/高校の選択も、このアカウントに無いものだけ移す
     var gm = lsGet(metsKey(null), {}), go = lsGet(ovKey(null), {}), side = await loadSide(sc);
-    METS = side.mets; DIV_OV = side.ov;
+    METS = safeMets(side.mets); DIV_OV = side.ov;
     var mk = Object.keys(gm).filter(function (k) { return !METS[k]; });
     for (var i = 0; i < mk.length; i++) await saveMeet(mk[i], gm[mk[i]], sc);
     var ok = Object.keys(go).filter(function (k) { return !(k in DIV_OV); });
     if (ok.length) { ok.forEach(function (k) { DIV_OV[k] = go[k]; }); await saveOverrides(sc); }
     check(sc);
+    if (keep.length) {   // v0.29.7（R296-06）決められない記録は端末に残す
+      var kid = {}; keep.forEach(function (r) { kid[r.id] = 1; });
+      await ltx('readwrite', function (s) { local.forEach(function (r) { if (r && r.id && !kid[r.id]) s.delete(r.id); }); }, LOCAL_DB, sc);
+      return { moved: add.length, dup: dupN, kept: keep.length };
+    }
     await ltx('readwrite', function (s) { s.clear(); }, LOCAL_DB, sc);   // 移し終えたら、端末の「ログインしていないとき」の分は消す（次の人に移らないように）
     try { localStorage.removeItem(metsKey(null)); localStorage.removeItem(ovKey(null)); } catch (e) { }
-    return { moved: add.length, dup: local.length - add.length };
+    return { moved: add.length, dup: dupN, kept: 0 };
   }
   $('rbGuest').addEventListener('click', async function (e) {
     var b = e.target.closest('[data-guest]'); if (!b || !USER) return;
@@ -1322,7 +1350,7 @@
     b.disabled = true;
     try {
       var r = await migrateGuest(mode, sc); GUEST_N = 0; renderGuest();
-      status('rbAuthStatus', mode === 'discard' ? '✔ この端末の記録 ' + r.discarded + '件を消しました。' : '✔ ' + r.moved + '件をこのアカウントへ移し、この端末からは消しました' + (r.dup ? '（' + r.dup + '件はすでにあったので重ねませんでした）' : '') + '。', 'ok');
+      status('rbAuthStatus', mode === 'discard' ? '✔ この端末の記録 ' + r.discarded + '件を消しました。' : '✔ ' + r.moved + '件をこのアカウントへ移し、この端末からは消しました' + (r.dup ? '（' + r.dup + '件はすでにあったので重ねませんでした）' : '') + '。' + (r.kept ? ' ⚠ ' + r.kept + '件は同じIDの別の記録とぶつかったので、この端末に残しました（「💾 ファイルに書き出す」で控えを取ってください）。' : ''), r.kept ? 'warn' : 'ok');
       await reload(sc);
     } catch (x) { if (isAbort(x)) return; b.disabled = false; status('rbAuthStatus', '✖ できませんでした：' + esc(x.message), 'ng'); }
   });
@@ -1337,12 +1365,14 @@
   }
   // アカウントが変わったら、前の人の画面の中身（記録・読み込み途中の資料・入力欄）をすべて消す
   function resetView() {
+    ybReset();   // v0.29.7（R296-05）
     ALL = []; batches = []; DONE = []; METS = {}; DIV_OV = {}; REVIEW = []; OFFLINE = false; MODE = { personal: false, name: '', team: '' }; PPL.links = {}; PPL.gen++; MSH = { key: '', url: '', name: '', busy: false, gen: MSH.gen + 1 }; if (TK) { TK = { on: false, idx: [], cur: '', gen: TK.gen + 1 }; } try { $('rbTalkScreen').hidden = true; $('rbTalkThread').hidden = true; $('rbTalkThread').innerHTML = ''; $('rbTalkList').innerHTML = ''; status('rbTalkMsg', '', ''); } catch (e) { }   /* R255：前のアカウントの会話・招待URLを DOM に残さない */ try { applyModeUi(); $('rbPPList').innerHTML = ''; $('rbPPNames').innerHTML = ''; $('rbPPScreen').hidden = true; document.body.classList.remove('pps-open'); status('rbPPMsg', '', ''); } catch (e) { }
     try { $('rbPaste').value = ''; $('rbFile').value = ''; status('rbStatus', '', ''); var d = $('rbDone'); d.innerHTML = ''; d.className = 'status'; status('rbDataStatus', '', ''); } catch (e) { }
     if (typeof manualReset === 'function') manualReset();
     renderBatches(); applyInference(); render();
   }
   function resetTeamState() {   // v0.26.1（C403）：前の人のチームの中身（コード・メンバー・履歴）をメモリと画面から消す
+    ybReset();   // v0.29.7（R296-05）チームを変えたら、1年分のまとめも消す
     try { if (SV) { svReset(); SV.msg = ''; } } catch (e) { }   // v0.28.0：前のアカウントの調査・答えを画面に残さない
     TEAM = null; TEAMS = []; TEAM_LOST = ''; TEAM_LOST_WHY = ''; TEAM_WAIT = ''; SAFE = { open: false, data: null }; ADMIN = false; QUAR = []; TM = { members: null, codes: null, hist: null, banned: null, busy: false, open: {} }; renderPendBan();
     var bx = $('rbTeam'); if (bx) { bx.innerHTML = ''; bx.hidden = true; }
@@ -1924,6 +1954,14 @@
     else if (st === 'gone') h += '— 確認画面から取り消しました' + add;
     if (YB.manual === p.key) h += '<br><small class="warn">📎 この大会の資料を待っています：上の「結果の資料」にPDF・Excelを入れるか、URLを読み込んでください。大会名・日付はこの予定のものになります。</small> <button type="button" class="btn sub small" data-ybmanx="1">やめる</button>';
     return h + '</div></li>';
+  }
+  // v0.29.7（R296-05）「1年分のまとめ」の中身（前の人の大会名・会場・候補・読んだページ）をメモリと画面から消す。読み込み中なら止める
+  function ybReset() {
+    if (typeof YB === 'undefined' || !YB) return;
+    try { if (YB.ctrl) YB.ctrl.abort(); } catch (e) { }
+    YB.rows = null; YB.busy = false; YB.ctrl = null; YB.cur = null; YB.cur0 = null; YB.manual = ''; YB.cache = {}; YB.hubs = []; YB.note = ''; YB.saved = null; YB.from = ''; YB.to = '';
+    YB.pages = {}; YB.negs = {}; YB.pageSchool = ''; YB.gen = (YB.gen || 0) + 1;
+    try { var b = $('ybBody'); if (b) b.innerHTML = ''; var m = $('ybMsg'); if (m) { m.textContent = ''; m.className = 'status'; } } catch (e) { }
   }
   function ybRender() {
     var box = $('ybBody'); if (!box || typeof LaneYear === 'undefined') return;
@@ -2824,7 +2862,8 @@
       '<div class="en-tools"><button type="button" class="btn" data-sv="copy" data-url="' + esc(url) + '">🔗 リンクをコピー</button><a class="btn sub" target="_blank" rel="noopener" href="https://line.me/R/share?text=' + encodeURIComponent(msg) + '">LINEで送る</a><button type="button" class="btn sub" data-sv="qr" aria-expanded="' + SV.qr + '">🔳 QR</button></div>';
     if (SV.qr) { var svg = ''; try { var q = qrcode(0, 'M'); q.addData(url, 'Byte'); q.make(); svg = q.createSvgTag({ cellSize: 4, margin: 3, scalable: true }); } catch (e) { svg = '<small class="warn">QRを作れませんでした</small>'; } h += '<div class="sv-qr">' + svg + '</div>'; }
     h += '<div class="en-step"><span class="en-n">✓</span><b>答え</b><span class="small muted">' + done.length + '/' + c.roster.length + '人</span><button type="button" class="btn sub small" data-sv="reans">🔄 読み込み直す</button></div>';
-    var mvN = S.movedNames(c, A), MV = function (i) { return A[i] && A[i].moved ? ' <b class="sv-moved" title="最初に送った端末とちがう端末から書きかえられました">⚠ 別の端末</b>' : ''; };   // v0.29.4（H1）
+    var mvN = S.movedNames(c, A), MV = function (i) { return A[i] && A[i].moved ? ' <b class="sv-moved" title="最初に送った端末とちがう端末から書きかえられました">⚠ 別の端末</b>' : A[i] && A[i].nocmp ? ' <small class="sv-nocmp muted" title="古い形で送られた答えなので、最初の端末と比べられません">（端末は比べられません）</small>' : ''; };   // v0.29.7（R296-01）   // v0.29.4（H1）
+    if (A.bad) h += '<div class="sv-movedbox" role="note">⚠ <b>番号の書き方がちがう答えが ' + A.bad + '件あり、表には入れていません。</b><br><small>いたずらの可能性があります。表の答えが本人の希望と合っているか、本人に確かめてください。</small></div>';   // v0.29.7（R296-02）
     if (mvN.length) h += '<div class="sv-movedbox" role="note">⚠ <b>別の端末から書きかえられた答えがあります（' + mvN.length + '人：' + mvN.map(esc).join('・') + '）</b><br><small>本人が別のスマホで送り直した場合もありますが、ほかの人のいたずらのこともあります。下書きに入れる前に、本人に確かめてください。</small></div>';
     var outI = done.filter(function (i) { return A[i].join === false; }); done = done.filter(function (i) { return A[i].join !== false; });   // v0.28.2 出場しない人は別に
     if (done.length) h += '<div class="en-scroll"><table class="en-t sv-ans"><thead><tr><th>選手</th><th>' + (c.kind === 'kiroku' ? '1種目目' : '第1希望') + '</th><th>' + (c.kind === 'kiroku' ? '2種目目' : '第2希望') + '</th><th>リレー</th><th>ひとこと</th><th>送った日時</th></tr></thead><tbody>' + done.map(function (i) {
@@ -3038,7 +3077,7 @@
     ENT.msg = '';
     if (a === 'close') { ENT.open = false; entRender(); return; }
     if (a === 'help' || a === 'rules' || a === 'fee') { ENT[a] = !ENT[a]; entRender(); return; }
-    if (a === 'clear') { P.picks = {}; P.relays = {}; P.hand = {}; P.svAns = {}; entSay('すべて外しました。'); entRender(); return; }
+    if (a === 'clear') { P.picks = {}; P.relays = {}; P.hand = {}; P.svAns = {}; P.svRel = {}; entSay('すべて外しました。'); entRender(); return; }
     if (a === 'print') { openPrint(LaneEntry.sheet(R, d, P, { school: school(), date: LanePrint.today() })); return; }
     if (a === 'copy') {
       var tx = LaneEntry.text(R, d, P), done = function () { entSay('📋 コピーしました。'); entRender(); }, fb = function () { var ta = document.createElement('textarea'); ta.value = tx; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch (er) { entSay('コピーできませんでした。', 'err'); entRender(); } ta.remove(); };
@@ -3294,7 +3333,7 @@
     if (sc.epoch !== authEpoch) return;
     var ros; try { ros = typeof LaneRoster === 'undefined' ? [] : await loadRoster(sc); } catch (e) { if (isAbort(e)) return; ros = []; }
     if (sc.epoch !== authEpoch) return;
-    ALL = list.map(R.viewRecord); METS = side.mets;   // v0.26.58 「11.8」のような前の記録は「11.80」で見せる（保存した記録は書きかえない）
+    ALL = list.map(R.viewRecord); METS = safeMets(side.mets);   // v0.26.58 「11.8」のような前の記録は「11.80」で見せる（保存した記録は書きかえない）
     DIV_OV = side.ov; MODE = md; ROSTER = ros; applyModeUi();
     applyInference(); render(); if (CLOUD_READY) renderAuth();
     if (!YB.busy && $('rbYear') && $('rbYear').open) ybRender();

@@ -103,7 +103,11 @@ var LaneSurvey = (function () {
     var TS = function (m) { return F.Timestamp.fromMillis(m); };
     async function answers(sid) {
       var s = await F.getDocs(F.collection(fs, 'surveys', sid, 'answers')); ok(); var out = {};
-      s.forEach(function (d) { var m = /^r(\d{1,3})$/.exec(d.id); if (!m) return; var v = d.data() || {}; out[+m[1]] = { ev1: String(v.ev1 || ''), ev2: String(v.ev2 || ''), relay: String(v.relay || ''), rel: String(v.rel || ''), rel2: String(v.rel2 || ''), cm: String(v.cm || ''), join: v.join !== false, at: ms(v.at), moved: !!(v.d1 && v.dv && v.d1 !== v.dv) }; });
+      // v0.29.7（R296-02）番号は先頭ゼロなしの1つの書き方だけ（r0・r7・r12）。r00・r07 などの別名は読まずに数だけ数える
+      // v0.29.7（R296-01）印（d1・dv）がそろわない古い答えは「端末を比べられない」（nocmp）として出す
+      var bad = 0;
+      s.forEach(function (d) { var m = /^r(0|[1-9]\d{0,2})$/.exec(d.id); if (!m) { if (/^r\d+$/.test(d.id)) bad++; return; } var v = d.data() || {}; var cmp = !!(v.d1 && v.dv); out[+m[1]] = { ev1: String(v.ev1 || ''), ev2: String(v.ev2 || ''), relay: String(v.relay || ''), rel: String(v.rel || ''), rel2: String(v.rel2 || ''), cm: String(v.cm || ''), join: v.join !== false, at: ms(v.at), moved: cmp && v.d1 !== v.dv, nocmp: !cmp }; });
+      Object.defineProperty(out, 'bad', { value: bad, enumerable: false });
       return out;
     }
     return {
@@ -167,15 +171,13 @@ var LaneSurvey = (function () {
         //   ちがう端末からの上書きは、顧問の画面で「⚠ 別の端末から書きかえ」と出す（止めはしない）
         var ref = F.doc(fs, 'surveys', s.id, 'answers', 'r' + idx), dv = devId(); w.dv = dv;
         var u = Object.assign({}, w); if (u.join == null) u.join = F.deleteField(); if (!u.rel2) u.rel2 = F.deleteField();
+        // v0.29.7（R296-01）印なしで送り直すのはやめた（ルールで d1・dv が要るようになったため）
         try { await F.updateDoc(ref, u); }
         catch (e) {
           if (!e || (e.code !== 'not-found' && e.code !== 'permission-denied')) throw e;
-          try { w.d1 = dv; await F.setDoc(ref, w); }
-          catch (e2) {
-            if (!e2 || e2.code !== 'permission-denied') throw e.code === 'permission-denied' ? e : e2;
-            // まだ古いルール（d1・dv を知らない）のときでも調査が止まらないよう、印なしで1回だけ送り直す
-            delete w.d1; delete w.dv; await F.setDoc(ref, w);
-          }
+          w.d1 = dv;
+          try { await F.setDoc(ref, w); }
+          catch (e2) { throw e.code === 'permission-denied' ? e : e2; }
         }
         return o;
       }
@@ -190,20 +192,27 @@ var LaneSurvey = (function () {
       var own = a.events.filter(function (e) { return sexName(a.sex || e.sex) + e.label === label; })[0]; if (own) return own.ev;
       var g = d.events.filter(function (e) { return sexName(e.sex) + e.label === label; })[0]; return g ? g.ev : '';
     };
+    // v0.29.7（R296-03）答えは「置きかえ」。手直ししていない人は、前に調査から入れた種目・リレーを外してから新しい答えを入れる。
+    //   出場しない（join=false）も、最新の答えとして先に覚える（手直し済を外したときにも正しく戻る）
+    var svA = plan.svAns || (plan.svAns = {}), svR = plan.svRel || (plan.svRel = {});
     Object.keys(ans || {}).forEach(function (i) {
-      var x = ans[i], k = (sv.akeys || [])[+i], a = k && d.byKey[k], nm = ((sv.roster || [])[+i] || {}).n || '';
-      if (x.join === false) { res.out.push(nm); return; }   // v0.28.2 出場しない人は下書きに入れない（参加料にも数えない）
-      if (!a) { res.skip.push(nm + '：記録帳に見つかりません'); return; }
-      // v0.29.1 調査の答えを覚えておく（「手直し済」を外したときに戻す）。手で直した人は上書きしない
-      var sa = (plan.svAns || (plan.svAns = {}))[a.key] = [], hand = plan.hand && plan.hand[a.key];
-      [x.ev1, x.ev2].forEach(function (lb) {
+      var x = ans[i], k = (sv.akeys || [])[+i], a = k && d.byKey[k], nm = ((sv.roster || [])[+i] || {}).n || '', out = x.join === false;
+      if (out) res.out.push(nm);   // v0.28.2 出場しない人は下書きに入れない（参加料にも数えない）
+      if (!a) { if (!out) res.skip.push(nm + '：記録帳に見つかりません'); return; }
+      var hand = plan.hand && plan.hand[a.key], old = svA[a.key] || [], sa = [];
+      if (!out) [x.ev1, x.ev2].forEach(function (lb) {
         if (!lb) return; var ev = evKey(a, lb);
         if (!ev) { if (!hand) res.skip.push(nm + '：' + evShort(lb) + 'は記録帳に無い種目です（手で入れてください）'); return; }
-        if (sa.indexOf(ev) < 0) sa.push(ev); if (hand) return;
-        var pk = plan.picks[a.key] || (plan.picks[a.key] = []); if (pk.indexOf(ev) < 0) { pk.push(ev); res.picks++; }
+        if (sa.indexOf(ev) < 0) sa.push(ev);
       });
-      if (hand) { res.kept.push(nm); return; }
-      if (x.relay !== 'ok') return;
+      svA[a.key] = sa;
+      if (hand) { res.kept.push(nm); if (out && (plan.picks[a.key] || []).length) res.skip.push(nm + '：出場しないと答えましたが、手直し済の種目が残っています（確かめてください）'); return; }
+      var prev = plan.picks[a.key] || [], pk = prev.filter(function (ev) { return old.indexOf(ev) < 0; });
+      sa.forEach(function (ev) { if (pk.indexOf(ev) < 0) { pk.push(ev); if (prev.indexOf(ev) < 0) res.picks++; } });
+      if (pk.length) plan.picks[a.key] = pk; else delete plan.picks[a.key];
+      (svR[a.key] || []).forEach(function (ev) { (plan.relays[ev] || []).forEach(function (t) { var j = (t.members || []).indexOf(a.key); if (j >= 0) t.members[j] = ''; }); });
+      svR[a.key] = [];
+      if (out || x.relay !== 'ok') return;
       (x.rel2 ? [x.rel, x.rel2] : [x.rel]).forEach(function (rel) { addRel(a, nm, rel); });
     });
     function addRel(a, nm, rel) { var x = { rel: rel };
@@ -215,6 +224,7 @@ var LaneSurvey = (function () {
       if (!t) { t = { label: String.fromCharCode(65 + ts.length), members: [] }; ts.push(t); }
       var j = t.members.indexOf(''); if (j >= 0 && j < maxLeg) t.members[j] = a.key; else t.members.push(a.key);
       res.relay++;
+      (svR[a.key] || (svR[a.key] = [])).push(rl[0].ev);
     }
     return res;
   }

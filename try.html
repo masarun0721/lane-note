@@ -743,7 +743,7 @@ details.act>summary .sum-x{display:none}
 <body class="trypage">
 <header>
   <div class="hdr-meta">
-    <div class="hdr-ver" aria-label="バージョン">v0.29.6</div>
+    <div class="hdr-ver" aria-label="バージョン">v0.29.7</div>
     <div class="credit">Presented by Sakata</div>
     <div class="hdr-msg"><span class="hm-l">すべての陸上競技部顧問が、</span><span class="hm-l">少しでも楽になりますように。</span></div>
   </div>
@@ -3808,7 +3808,8 @@ var LanePlans = (function () {
   function daysLeft(day, td) { td = td || today(); return Math.round((Date.parse(day + 'T00:00:00Z') - Date.parse(td + 'T00:00:00Z')) / 864e5); }
   function wd(day) { return WD[new Date(day + 'T00:00:00Z').getUTCDay()]; }
   function jp(day) { return +day.slice(0, 4) + '年' + +day.slice(5, 7) + '月' + +day.slice(8, 10) + '日（' + wd(day) + '）'; }
-  function md(day) { return +day.slice(5, 7) + '/' + +day.slice(8, 10) + '（' + wd(day) + '）'; }
+  function md(day) { if (typeof day !== 'string' || !/^\d{4}-\d{2}-\d{2}/.test(day)) return '';   // v0.29.7（R296-04）文字の日付でなければ空
+    return +day.slice(5, 7) + '/' + +day.slice(8, 10) + '（' + wd(day) + '）'; }
   function range(p) { return md(p.date) + (p.end ? '〜' + md(p.end) : ''); }
   function jpRange(p) { if (!p.end) return jp(p.date); return jp(p.date) + '〜' + (p.end.slice(0, 7) === p.date.slice(0, 7) ? +p.end.slice(8, 10) + '日（' + wd(p.end) + '）' : jp(p.end).replace(/^\d+年/, '')); }
   function leftLabel(p, td) {

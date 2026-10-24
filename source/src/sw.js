@@ -40,6 +40,7 @@ function offlineRecords() {
 self.addEventListener('fetch', function (e) {
   var r = e.request, u = new URL(r.url);
   if (r.method !== 'GET' || u.origin !== self.location.origin || r.mode !== 'navigate') return;
+  if (!/(\/|\.html)$/.test(u.pathname)) return;   // v0.29.7：ページ（HTML）だけ。動画・PDFなどを直接開いたときは保存しない
   // v0.26.10：ブラウザのHTTPキャッシュ（GitHub Pages は最大10分）に残った古いページを出さないよう、毎回サーバーに確かめる
   e.respondWith(fetch(r, { cache: 'no-cache' }).then(function (res) {
     if (res && res.ok) { var cp = res.clone(); e.waitUntil(caches.open(CACHE).then(function (c) { return c.put(u.origin + u.pathname, cp); })); }

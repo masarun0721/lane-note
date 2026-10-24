@@ -23,7 +23,7 @@ const OPT = (o = {}) => Object.assign({ meet: '架空区 秋季大会', team: ''
 const coach = u => S.coach({ F, fs: db(u) }, u);
 const stu = dbx => S.student({ F, fs: dbx });
 const ans = (o = {}) => Object.assign({ ev1: '男子100m', ev2: '男子走幅跳', relay: 'ok', rel: '男子4×100mR', cm: 'よろしくお願いします', at: serverTimestamp() }, o);
-const rawAns = async (dbx, sid, rid, o) => { const s = await adminGet('surveys/' + sid); return setDoc(doc(dbx, 'surveys', sid, 'answers', rid), Object.assign(ans(), { expireAt: s.expireAt }, o)); };
+const rawAns = async (dbx, sid, rid, o) => { const s = await adminGet('surveys/' + sid); return setDoc(doc(dbx, 'surveys', sid, 'answers', rid), Object.assign(ans(), { expireAt: s.expireAt, d1: 'RAWDEV0000000001', dv: 'RAWDEV0000000001' }, o)); };   // v0.29.7（R296-01）答えには端末の印が要る
 const cool = async (sid, rid) => adminUpd('surveys/' + sid + '/answers/' + rid, { at: Timestamp.fromMillis(Date.now() - 60000) });
 // ルールを通さずに作る（いろいろな形を試すため）
 const rawCreate = (u, sid, pub, adm) => { const b = writeBatch(db(u)); if (pub) b.set(doc(db(u), 'surveys', sid), pub); if (adm) b.set(doc(db(u), 'surveyAdmins', sid), adm); return b.commit(); };
