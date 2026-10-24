@@ -3040,7 +3040,7 @@
     h += L.length ? '<div class="en-scroll">' + E.table(L) + '</div>' : '<p class="small muted">まだ選んでいません。</p>';
     h += '<div id="rbEnFee">' + entFeeHtml(F) + '</div>';
     h += '<div class="en-tools"><button type="button" class="btn" data-en="print"' + (L.length ? '' : ' disabled') + '>🖨 印刷・PDF</button><button type="button" class="btn sub" data-en="copy"' + (L.length ? '' : ' disabled') + '>📋 文字でコピー</button><button type="button" class="btn sub' + (ENT.jaafHl ? ' en-hl' : '') + '" data-en="jaaf"' + (L.length ? '' : ' disabled') + '>🟦 JAAF用にコピー</button><button type="button" class="btn sub small" data-en="clear">すべて外す</button></div>';
-    h += '<p class="en-jaaf small">🟦 JAAFの画面に入れるときは <a href="jaaf.html" target="_blank" rel="noopener">JAAF入力の手伝い</a>（本郷 陸上競技部の先生用・送信はしません）</p>';
+    h += '<p class="en-jaaf small">🟦 JAAFの画面に入れるときは <a href="jaaf.html" target="_blank" rel="noopener">JAAF入力の手伝い</a></p>';
     h += svHtml(d);
     box.innerHTML = h; box.hidden = false;
   }

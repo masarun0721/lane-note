@@ -10,7 +10,7 @@ const here = path.dirname(fileURLToPath(import.meta.url)), SRC = path.join(here,
 const src = f => fs.readFileSync(path.join(SRC, f), 'utf8');
 let pass = 0, fail = 0; const delay = (ms = 40) => new Promise(r => setTimeout(r, ms));
 async function check(n, f) { try { await f(); pass++; console.log('  ok', n); } catch (e) { fail++; console.log('  NG', n, '\n    ', e && e.stack || e); } }
-const PROXY = 'https://lane-note-fetch.masashi-sakata1007.workers.dev/';
+const PROXY = 'https://lane-note-fetch.lanenote-info.workers.dev/';
 // 模擬の中継：URL → { status, type, body }
 function fakeFetch(map, log) {
   return async (u, init) => {

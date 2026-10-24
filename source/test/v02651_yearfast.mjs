@@ -13,7 +13,7 @@ const H = Object.fromEntries(Y.HUBS.map(h => [h.id, h]));
 /* ---------- 画面（jsdom）：架空の一覧と速報ページ ---------- */
 const html = src('records_template.html').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '').replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '').replace(/__[A-Z_]+__/g, '');
 const tail = 'if (CLOUD_READY) initCloud(); else { renderAuth(); reload(); }';
-const PROXY = 'https://lane-note-fetch.masashi-sakata1007.workers.dev/';
+const PROXY = 'https://lane-note-fetch.lanenote-info.workers.dev/';
 const ind = (date, title, rows) => `<!-- ${date} 09:00:00 15 (Lsoku=0)-->\n<html lang="ja"><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>${title}</title></head>\n${title}<br>\n<hr>\n<center>風:+0.5<br></center>\n` + rows.map(r => `<font color="#000080">${r}<br>\n</font>`).join('') + '<hr>\n<a href="kyougi.html">競技一覧画面へ</a></body></html>';
 const kyougi = (title, n) => `<html><head><meta charset="utf-8"><title>${title}</title></head><body>${title}<br>` + Array.from({ length: n }, (_, i) => `<a href="rel00${i + 1}.html">${i + 1}組</a>`).join(' ') + '</body></html>';
 const p1 = (name, team, mark, g = 2, bib = 11) => `1位　(${bib})<br>　${mark}<br>${name}(${g})<br>${team}<br>`, p2 = (name, team, mark, g = 2, bib = 21) => `2位　(${bib})<br>　${mark}<br>${name}(${g})<br>${team}<br>`;

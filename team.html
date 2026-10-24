@@ -3514,7 +3514,7 @@ if (typeof module !== 'undefined') module.exports = LaneRoster;
 
 </script>
 <script>
-var APP_VERSION = "v0.29.7", REC_VERSION = "v0.11.1";
+var APP_VERSION = "v0.29.8", REC_VERSION = "v0.11.1";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>
@@ -7398,8 +7398,8 @@ if (typeof module !== 'undefined') module.exports = LaneEntry;
   'use strict';
   // v0.28.3 中継（Cloudflare Worker）のアドレス：ここだけで決める。名前を変えるときはここと README を直す
   // v0.29.2 新しい中継（個人名の入らないアドレス）ができたら、PROXY_NEW に入れる（Cloudflare で作った新しい中継のアドレス）。空のあいだは今の中継を使う
-  var PROXY_NEW = '';
-  var PROXY = PROXY_NEW || 'https://lane-note-fetch.masashi-sakata1007.workers.dev/';
+  var PROXY_NEW = 'https://lane-note-fetch.lanenote-info.workers.dev/';   // v0.29.8 新しい中継（前の個人名入りのアドレスはもう使わない）
+  var PROXY = PROXY_NEW;
   var MAX = 20 * 1048576;
   var MSG = {
     bad: 'URLの形が正しくありません（https:// から始まるアドレスを入れてください）',
@@ -11607,7 +11607,7 @@ var LanePdf = (function () {
     h += L.length ? '<div class="en-scroll">' + E.table(L) + '</div>' : '<p class="small muted">まだ選んでいません。</p>';
     h += '<div id="rbEnFee">' + entFeeHtml(F) + '</div>';
     h += '<div class="en-tools"><button type="button" class="btn" data-en="print"' + (L.length ? '' : ' disabled') + '>🖨 印刷・PDF</button><button type="button" class="btn sub" data-en="copy"' + (L.length ? '' : ' disabled') + '>📋 文字でコピー</button><button type="button" class="btn sub' + (ENT.jaafHl ? ' en-hl' : '') + '" data-en="jaaf"' + (L.length ? '' : ' disabled') + '>🟦 JAAF用にコピー</button><button type="button" class="btn sub small" data-en="clear">すべて外す</button></div>';
-    h += '<p class="en-jaaf small">🟦 JAAFの画面に入れるときは <a href="jaaf.html" target="_blank" rel="noopener">JAAF入力の手伝い</a>（本郷 陸上競技部の先生用・送信はしません）</p>';
+    h += '<p class="en-jaaf small">🟦 JAAFの画面に入れるときは <a href="jaaf.html" target="_blank" rel="noopener">JAAF入力の手伝い</a></p>';
     h += svHtml(d);
     box.innerHTML = h; box.hidden = false;
   }

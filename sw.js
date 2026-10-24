@@ -4,7 +4,7 @@
    ・ネット優先：つながるときは常に最新のページを使い、つながらないときだけ保存しておいたページを使う。
    ・v0.14（監査F13）：キャッシュ名は build.py が版とページの中身のハッシュから作る（公開のたびに変わり、古いキャッシュは消える）。
      記録のページが保存されていないときは、大会準備のページではなく「電波がない」案内を出す。 */
-var CACHE = 'lanenote-page-v0.29.7-rv0.11.1-8293f2be07';
+var CACHE = 'lanenote-page-v0.29.8-rv0.11.1-4c2752c608';
 var PAGE = new URL('./', self.location).href;   // 例：https://lane-note.web.app/
 var REC = new URL('./records.html', self.location).href;
 var INDEX = new URL('./index.html', self.location).href;   // v0.25.8：大会準備のページ（トップ / は記録のページへ移る）

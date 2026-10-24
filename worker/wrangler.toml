@@ -1,0 +1,14 @@
+name = "lane-note-fetch"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+account_id = "67d886a9a0788782c75dee03fc9ca30f"
+workers_dev = true
+
+[vars]
+REQUIRE_LIMITER = "1"
+
+[[unsafe.bindings]]
+name = "LIMITER"
+type = "ratelimit"
+namespace_id = "1001"
+simple = { limit = 600, period = 60 }

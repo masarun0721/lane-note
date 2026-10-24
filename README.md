@@ -6,17 +6,17 @@
 
 ## 記録（records.html・試作 v0.6.0）
 
-大会の結果（PDF・保存したWebページのHTML・ページを貼り付けた文章・Excel/CSV）から自校の選手の記録を読み取り、ためていく別ページです（https://masarun0721.github.io/lane-note/records.html ）。選手別・種目別・大会別に一覧でき、自己ベスト（追い風2.0m超・風が読めない記録は公認ベストにしない）と自己ベスト更新の記録がわかります。読み取りで漏れた記録や資料のない記録は「1件ずつ入力」で手で入れられ、記録ごとに「直す」「消す」ができます（v0.6）。JSONファイルへの書き出し・読み込み、Excel（SheetJS）への書き出し、大会ごとの削除、読み込み直後の「今読み込んだ分を取り消す」、全消去ができます。結果のPDF・Webページは「URLから読み込む」でアドレスから直接読み込めます（v0.20／記録 v0.10.0。下の「URLから読み込む」）。
+大会の結果（PDF・保存したWebページのHTML・ページを貼り付けた文章・Excel/CSV）から自校の選手の記録を読み取り、ためていく別ページです（https://lane-note.web.app/records.html ）。選手別・種目別・大会別に一覧でき、自己ベスト（追い風2.0m超・風が読めない記録は公認ベストにしない）と自己ベスト更新の記録がわかります。読み取りで漏れた記録や資料のない記録は「1件ずつ入力」で手で入れられ、記録ごとに「直す」「消す」ができます（v0.6）。JSONファイルへの書き出し・読み込み、Excel（SheetJS）への書き出し、大会ごとの削除、読み込み直後の「今読み込んだ分を取り消す」、全消去ができます。結果のPDF・Webページは「URLから読み込む」でアドレスから直接読み込めます（v0.20／記録 v0.10.0。下の「URLから読み込む」）。
 
 ## エントリー照合（check.html・v0.19）
 
-大会に出したエントリーファイル（Excel .xlsx/.xls・CSV）と、届いたスタートリストのPDFを突き合わせ、選手×種目ごとに「両方ある／エントリーしたのにスタートリストにない／スタートリストにだけある」を出す別ページです（https://masarun0721.github.io/lane-note/check.html ）。見出しの行と列（氏名または姓・名、フリガナ、学年、性別、所属、種目1・2・3…、リレー）は自動で探し、合わないときは画面で選び直せます。種目の書き方（中1_100 ↔ 男子中学1年 100m）と名前の表記ゆれ（空白・全角/半角・かな・旧字）をそろえて比べます。両方のファイルはブラウザの中だけで読み、どこにも送りません。
+大会に出したエントリーファイル（Excel .xlsx/.xls・CSV）と、届いたスタートリストのPDFを突き合わせ、選手×種目ごとに「両方ある／エントリーしたのにスタートリストにない／スタートリストにだけある」を出す別ページです（https://lane-note.web.app/check.html ）。見出しの行と列（氏名または姓・名、フリガナ、学年、性別、所属、種目1・2・3…、リレー）は自動で探し、合わないときは画面で選び直せます。種目の書き方（中1_100 ↔ 男子中学1年 100m）と名前の表記ゆれ（空白・全角/半角・かな・旧字）をそろえて比べます。両方のファイルはブラウザの中だけで読み、どこにも送りません。
 
 ## URLから読み込む（v0.20）
 
 大会準備（スタートリスト・タイムテーブル・競技注意事項・大会要項）、記録（結果のPDF・HTML）、照合（スタートリストのPDF）で、URLを入れて「読み込む」を押すと、ファイルを入れたときと同じ読み取り処理に渡します（共通部品 `source/src/urlload.js`）。PDFかWebページかは Content-Type と中身の先頭（`%PDF-`）で見分けます。Webページの中にPDFや別ページへのリンクがあるときは、一覧（相対URLは解決済み）から選んで読み込みます。URLだけを貼り付けた・落としたときは、URL欄に入れて読み込みを促します。
 
-ブラウザからほかのサイトのファイルを直接取れない（CORS）ため、**LANE NOTE の中継（Cloudflare Workers）** `https://lane-note-fetch.masashi-sakata1007.workers.dev/?url=<URLエンコードしたアドレス>` を通します。コードは `worker/worker.js`。（v0.25）GETだけ・`Origin: https://masarun0721.github.io` が必須・**`ALLOWED_HOSTS` に登録したサイト（いまは gold.jaic.org）だけ**・https/443 だけ・リダイレクトも1回ずつ確かめる（3回まで）・PDF/HTML/テキスト/octet-stream だけ・実際の大きさで20MiBまで・20秒で打ち切り・返すときは `application/octet-stream`＋`attachment`＋`nosniff`＋`sandbox` の CSP（本当の種類は `X-Lane-Type`）。ほかの大会サイトを使うときは `ALLOWED_HOSTS` に足して Deploy します。回数制限は、Cloudflare の Rate Limiting の設定（`LIMITER`）を付けたときだけ働きます（worker.js の先頭のコメント参照）。**中継はURLと中身をそのまま返すだけで保存しません**。中継は GitHub Actions では公開されず、**Cloudflare のダッシュボード（Workers & Pages → lane-note-fetch → Edit code → Deploy）で手作業で更新します**。`worker/worker.js` を変えたら、同じ内容をダッシュボードに貼って Deploy してください。
+ブラウザからほかのサイトのファイルを直接取れない（CORS）ため、**LANE NOTE の中継（Cloudflare Workers）** `https://lane-note-fetch.lanenote-info.workers.dev/?url=<URLエンコードしたアドレス>` を通します。コードは `worker/worker.js`。（v0.25）GETだけ・`Origin: https://lane-note.web.app`（または lane-note.firebaseapp.com）が必須・**`ALLOWED_HOSTS` に登録したサイト（いまは gold.jaic.org）だけ**・https/443 だけ・リダイレクトも1回ずつ確かめる（3回まで）・PDF/HTML/テキスト/octet-stream だけ・実際の大きさで20MiBまで・20秒で打ち切り・返すときは `application/octet-stream`＋`attachment`＋`nosniff`＋`sandbox` の CSP（本当の種類は `X-Lane-Type`）。ほかの大会サイトを使うときは `ALLOWED_HOSTS` に足して Deploy します。回数制限は、Cloudflare の Rate Limiting の設定（`LIMITER`）を付けたときだけ働きます（worker.js の先頭のコメント参照）。**中継はURLと中身をそのまま返すだけで保存しません**。中継は GitHub Actions では公開されず、`worker/` で `npx wrangler@3 deploy` を手作業で行います（設定は `worker/wrangler.toml`：回数制限 `LIMITER` は IP ごとに1分600回、`REQUIRE_LIMITER="1"` で制限の設定がなければ 503）。
 
 ## データの取り扱い
 

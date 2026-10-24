@@ -4,7 +4,7 @@
 import http from 'node:http'; import fs from 'node:fs'; import path from 'node:path'; import {fileURLToPath} from 'node:url';
 import puppeteer from 'puppeteer-core'; import {FAKE_APP, FAKE_AUTH, FAKE_FS} from './fake_firebase.mjs';
 const HERE = path.dirname(fileURLToPath(import.meta.url)), ROOT = path.join(HERE, '../..'), SHOT = process.argv[2] || '';
-const PROXY = 'https://lane-note-fetch.masashi-sakata1007.workers.dev/';
+const PROXY = 'https://lane-note-fetch.lanenote-info.workers.dev/';
 // 架空の速報ページ：所属が「架空学園」（そのまま一致）・「架空学園高」（ゆるい一致）・「見本大附高」（別の学校）
 const PAGE0 = fs.readFileSync(path.join(HERE, 'fixtures/sgk_pc_individual.html'), 'utf8').replace('見本大附高', '架空学園'), CUT = PAGE0.indexOf('試験');
 const PAGE = PAGE0.slice(0, CUT) + PAGE0.slice(CUT).replace('架空学園高', '見本大附高');

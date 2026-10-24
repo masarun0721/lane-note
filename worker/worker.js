@@ -9,7 +9,8 @@
 //      [[ratelimits]]
 //      name = "LIMITER"
 //      namespace_id = "1001"
-//      simple = { limit = 30, period = 60 }
+//      simple = { limit = 600, period = 60 }
+//  ・実際の設定は worker/wrangler.toml（v0.29.8：https://lane-note-fetch.lanenote-info.workers.dev/）
 const ALLOWED_ORIGINS = ["https://lane-note.web.app", "https://lane-note.firebaseapp.com"];
 // v0.26.25：サイトの許可リストはやめ、公開されているサイトならどこでも取りに行く。ただし次は通さない
 //  ・http/https 以外、80/443 以外のポート、URL に利用者名/パスワード

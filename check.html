@@ -2719,7 +2719,7 @@ if (typeof module !== 'undefined') module.exports = LaneAuth;
 
 </script>
 <script>
-var APP_VERSION = "v0.29.7";
+var APP_VERSION = "v0.29.8";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>
@@ -2731,8 +2731,8 @@ document.addEventListener('DOMContentLoaded', function () { document.querySelect
   'use strict';
   // v0.28.3 中継（Cloudflare Worker）のアドレス：ここだけで決める。名前を変えるときはここと README を直す
   // v0.29.2 新しい中継（個人名の入らないアドレス）ができたら、PROXY_NEW に入れる（Cloudflare で作った新しい中継のアドレス）。空のあいだは今の中継を使う
-  var PROXY_NEW = '';
-  var PROXY = PROXY_NEW || 'https://lane-note-fetch.masashi-sakata1007.workers.dev/';
+  var PROXY_NEW = 'https://lane-note-fetch.lanenote-info.workers.dev/';   // v0.29.8 新しい中継（前の個人名入りのアドレスはもう使わない）
+  var PROXY = PROXY_NEW;
   var MAX = 20 * 1048576;
   var MSG = {
     bad: 'URLの形が正しくありません（https:// から始まるアドレスを入れてください）',
