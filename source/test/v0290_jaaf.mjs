@@ -75,7 +75,7 @@ await check('jaaf.html のボタン（javascript:）を見本の画面で動か�
 });
 await check('jaaf.html：本郷の先生だけ・送信しない・確定は本人・ドラッグの説明・いつもの足元。メニューには出さない', () => {
   const h = fs.readFileSync(new URL('jaaf.html', root), 'utf8');
-  for (const k of ['本郷中学校・高等学校 陸上競技部の先生だけが使う機能です。ほかの方には渡さないでください。', '絶対に押しません', '確定は先生ご本人が押します', 'Ctrl+Shift+B', '何も起きない', '困ったとき', 'よくある質問', 'ブックマークバー', 'ドラッグ', 'Presented by Sakata', 'noindex']) assert.ok(h.includes(k), k);
+  for (const k of ['本郷中学校・高等学校 陸上競技部の先生が使うために作ったページです。どなたでも使えますが、エントリーの確定は必ずご自身で行ってください。', 'はい、どなたでも使えます。ただし、エントリーの確定は必ずご自身で行ってください。', '絶対に押しません', '確定は先生ご本人が押します', 'Ctrl+Shift+B', '何も起きない', '困ったとき', 'よくある質問', 'ブックマークバー', 'ドラッグ', 'Presented by Sakata', 'noindex']) assert.ok(h.includes(k), k);
   assert.ok(!h.includes('阪田さん専用'));
   for (const f of ['records.html', 'index.html', 'check.html', 'guide.html', 'team.html', 'schedule.html', 'try.html']) { const x = fs.readFileSync(new URL(f, root), 'utf8'); assert.ok(!/class="[^"]*(pn-|tb-)[^"]*"[^>]*href="jaaf\.html|href="jaaf\.html"[^>]*class="[^"]*(pn-|tb-)/.test(x), f); }
   const rec = fs.readFileSync(new URL('records.html', root), 'utf8'); assert.ok(rec.includes('href="jaaf.html"') && rec.includes('data-en="jaaf"'));

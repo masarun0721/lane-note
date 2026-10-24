@@ -18,7 +18,7 @@ await check('マニュアルに記事を7つ追加（実際の機能だけ・JAA
 });
 await check('jaaf.html：本郷の先生だけの機能・チェックだけ・送信/一時保存/確定は押さない・連絡先にさわらない・手順1〜4・困ったとき・FAQ・noindex', () => {
   const h = rd('jaaf.html');
-  for (const k of ['本郷中学校・高等学校 陸上競技部の先生だけが使う機能です。ほかの方には渡さないでください。', 'noindex', '連絡先', '「🟦 JAAF用にコピー」', '登録番号', 'Ctrl+Shift+B', '何も起きない', 'スマホではできません', '確定は先生ご本人が押します', 'id="jfTr"', 'id="jfFaq"', 'lc_bow.webp', 'lc_trouble.webp'])
+  for (const k of ['本郷中学校・高等学校 陸上競技部の先生が使うために作ったページです。どなたでも使えますが、エントリーの確定は必ずご自身で行ってください。', 'はい、どなたでも使えます。ただし、エントリーの確定は必ずご自身で行ってください。', 'noindex', '連絡先', '「🟦 JAAF用にコピー」', '登録番号', 'Ctrl+Shift+B', '何も起きない', 'スマホではできません', '確定は先生ご本人が押します', 'id="jfTr"', 'id="jfFaq"', 'lc_bow.webp', 'lc_trouble.webp'])
     assert.ok(h.includes(k), k);
   assert.ok(!h.includes('阪田さん専用')); assert.ok(!/masarun|分け合う/.test(fs.readFileSync(path.join(here, '../src/jaaf_template.html'), 'utf8')));
   for (const f of ['index.html', 'check.html', 'guide.html', 'try.html', 'manual.html', 'intro.html']) assert.ok(!rd(f).includes('href="jaaf.html"'), f);
