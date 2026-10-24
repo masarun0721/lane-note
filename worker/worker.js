@@ -10,7 +10,7 @@
 //      name = "LIMITER"
 //      namespace_id = "1001"
 //      simple = { limit = 30, period = 60 }
-const ALLOWED_ORIGINS = ["https://masarun0721.github.io", "https://lane-note.web.app", "https://lane-note.firebaseapp.com"];
+const ALLOWED_ORIGINS = ["https://lane-note.web.app", "https://lane-note.firebaseapp.com"];
 // v0.26.25：サイトの許可リストはやめ、公開されているサイトならどこでも取りに行く。ただし次は通さない
 //  ・http/https 以外、80/443 以外のポート、URL に利用者名/パスワード
 //  ・内部向けの名前（localhost・*.local・*.internal・*.lan・*.home.arpa・ドットのない名前）と、この中継自身

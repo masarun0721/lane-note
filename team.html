@@ -801,6 +801,7 @@ body.personal-on #rbEntryBox,body.personal-on #rbEntry{display:none!important}
 .sv-item{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;border:1px solid #d6dce7;border-radius:10px;background:#fff;padding:8px 12px;cursor:pointer;min-height:44px}.sv-item:hover,#rbEntry .en-chip:hover,#rbEntry .btn:hover{box-shadow:0 0 0 3px rgba(31,58,104,.15)}.sv-item small{color:#5a6577}
 .sv-form{background:#f8f9fc;border-radius:12px;padding:8px 12px;margin:6px 0}.sv-f{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0;font-size:14px}.sv-f input[type=text]{flex:1;min-width:12em;min-height:36px}.sv-f input[type=date]{min-height:36px;cursor:pointer}.sv-chk{cursor:pointer}
 .sv-add{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}.sv-add input{flex:1;min-width:10em;min-height:36px}.sv-add select{min-height:36px;cursor:pointer}
+.sv-movedbox{background:#fff4e5;border:2px solid #e08a00;border-radius:10px;padding:8px 12px;margin:8px 0;color:#7a4a00;font-size:14px}.sv-moved{display:inline-block;margin-left:4px;padding:0 6px;border-radius:999px;background:#e08a00;color:#fff;font-size:11px;white-space:nowrap}.sv-mvrow td{background:#fff8ec}
 .sv-cur{background:#fff;border:1px solid #d6dce7;border-radius:12px;padding:10px 12px;margin:6px 0}.sv-cur-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}.sv-cur-h button{margin-left:auto}
 .sv-state{border-radius:999px;padding:2px 10px;font-size:12px;font-weight:700}.sv-state.on{background:#e9f7ee;color:#135b2c}.sv-state.off{background:#f1f2f5;color:#5a6577}
 .sv-fpdf{align-items:center;margin:4px 0 8px;padding:8px 10px;border-left:3px solid #1f3a68;background:#f6f8fc;border-radius:8px}.sv-qr{max-width:220px;margin:6px 0}.sv-qr svg{width:100%;height:auto}.sv-cm{max-width:16em;word-break:break-word}.sv-del{color:#a11!important}.sv-dl{margin:0}
@@ -1119,6 +1120,25 @@ body.sched-page main>.box:first-of-type>:not(#rbAuth):not(#rbAuthStatus):not(#rb
 .rp-on{display:inline-flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap}.rp-on input{width:auto;margin:0}.rpt tr.rp-off td{color:#8a94a6}.rp-cls{font-size:11px;border-radius:8px;padding:0 5px;white-space:nowrap}.rp-cls.rp-meet{background:#e7f6ec;color:#17663a}.rp-cls.rp-unk{background:#fff7e0;color:#7a5600}.rp-cls.rp-not{background:#f1f1f1;color:#666}.rp-only{font-weight:bold;cursor:pointer}.rp-only input{width:auto}
 /* v0.26.33 大会準備の進み具合 */
 .lp-prep{margin-top:4px;display:flex;flex-wrap:wrap;gap:4px;align-items:center}.pp-b{border-radius:8px;padding:0 6px;font-size:12px;border:1px solid #c9d2e0}.pp-b.on{background:#e7f6ec;border-color:#9fd3b0;color:#17663a}.pp-b.wait{background:#f6f6f6;color:#666}
+</style>
+<style id="spFix">
+/* v0.29.5 スマホの見直し（390px・360px）：押す所は44px以上・横にはみ出さない・iPhoneで入力時に拡大されない文字の大きさ */
+@media (max-width:640px){
+  .btn,button.btn,label.btn,.fb-btn,.mode-link,.pn-b,.pn-main,.lc-av{min-height:44px;box-sizing:border-box}
+  .pn-main,.pn-b,.lc-av{display:inline-flex!important;align-items:center;min-height:44px!important}
+  .mb-btn,.pr,.sh-i,.jf-toc a{min-height:44px;box-sizing:border-box}
+  .sh-i{min-width:44px;min-height:44px}
+  #ckSchool{min-height:44px!important}
+  .divsw button{min-height:44px}
+  .tipq,.xnews-x,.fb-link,.sh-i{position:relative}
+  .tipq::after,.xnews-x::after,.fb-link::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+  input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),select,textarea{font-size:16px;max-width:100%;box-sizing:border-box}
+  input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not(.setting),select:not(.setting){min-height:44px}
+  input.setting,select.setting{min-height:36px}
+  main img,main video,main iframe{max-width:100%}
+  .lockbadge,.g-toc a,.toc a{min-height:44px;display:inline-flex;align-items:center}
+.en-fee{width:100%;table-layout:fixed}.en-fee input,.en-fee select{width:100%;min-width:0;box-sizing:border-box}.en-fee td{overflow-wrap:anywhere}
+}
 </style>
 </head>
 <body class="records team-page">
@@ -3493,7 +3513,7 @@ if (typeof module !== 'undefined') module.exports = LaneRoster;
 
 </script>
 <script>
-var APP_VERSION = "v0.29.3", REC_VERSION = "v0.11.1";
+var APP_VERSION = "v0.29.6", REC_VERSION = "v0.11.1";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>
@@ -3998,6 +4018,17 @@ var LaneSurvey = (function () {
     return { ok: o };
   }
 
+  // v0.29.4 この端末の印（ランダム16文字・この端末の中だけに保存）。名前などは入れない
+  var DKEY = 'lanenote.dev.v1';
+  function devId() {
+    var v = ''; try { v = localStorage.getItem(DKEY) || ''; } catch (e) { }
+    if (/^[A-Za-z0-9]{16}$/.test(v)) return v;
+    var A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789', r = new Uint8Array(16); (globalThis.crypto).getRandomValues(r);
+    v = ''; for (var i = 0; i < 16; i++) v += A[r[i] % 62];
+    try { localStorage.setItem(DKEY, v); } catch (e) { }
+    return v;
+  }
+  function movedNames(c, A) { return (c && c.roster || []).map(function (r, i) { return A && A[i] && A[i].moved ? r.n : null; }).filter(Boolean); }
   /* ---------- Firebase ---------- */
   var FBP = null;
   async function fb() {   // 選手側：ログインなしで Firestore だけ使う
@@ -4018,7 +4049,7 @@ var LaneSurvey = (function () {
     var TS = function (m) { return F.Timestamp.fromMillis(m); };
     async function answers(sid) {
       var s = await F.getDocs(F.collection(fs, 'surveys', sid, 'answers')); ok(); var out = {};
-      s.forEach(function (d) { var m = /^r(\d{1,3})$/.exec(d.id); if (!m) return; var v = d.data() || {}; out[+m[1]] = { ev1: String(v.ev1 || ''), ev2: String(v.ev2 || ''), relay: String(v.relay || ''), rel: String(v.rel || ''), rel2: String(v.rel2 || ''), cm: String(v.cm || ''), join: v.join !== false, at: ms(v.at) }; });
+      s.forEach(function (d) { var m = /^r(\d{1,3})$/.exec(d.id); if (!m) return; var v = d.data() || {}; out[+m[1]] = { ev1: String(v.ev1 || ''), ev2: String(v.ev2 || ''), relay: String(v.relay || ''), rel: String(v.rel || ''), rel2: String(v.rel2 || ''), cm: String(v.cm || ''), join: v.join !== false, at: ms(v.at), moved: !!(v.d1 && v.dv && v.d1 !== v.dv) }; });
       return out;
     }
     return {
@@ -4078,7 +4109,20 @@ var LaneSurvey = (function () {
         var c = cleanAnswer(a, s); if (c.err) { var e = new Error(c.err); e.code = 'invalid'; throw e; }
         if (!(idx >= 0 && idx < s.roster.length)) { var e2 = new Error('名前を選んでください'); e2.code = 'invalid'; throw e2; }
         var o = c.ok, w = { ev1: o.ev1, ev2: o.ev2, relay: o.relay, rel: o.rel, cm: o.cm, at: F.serverTimestamp(), expireAt: s.expireAt }; if (o.join != null) w.join = o.join; if (o.rel2) w.rel2 = o.rel2;
-        await F.setDoc(F.doc(fs, 'surveys', s.id, 'answers', 'r' + idx), w);
+        // v0.29.4（H1）この端末の印（dv）を付ける。最初に送った端末の印（d1）は作るときだけ入れ、上書きでは変えない（ルールで固定）。
+        //   ちがう端末からの上書きは、顧問の画面で「⚠ 別の端末から書きかえ」と出す（止めはしない）
+        var ref = F.doc(fs, 'surveys', s.id, 'answers', 'r' + idx), dv = devId(); w.dv = dv;
+        var u = Object.assign({}, w); if (u.join == null) u.join = F.deleteField(); if (!u.rel2) u.rel2 = F.deleteField();
+        try { await F.updateDoc(ref, u); }
+        catch (e) {
+          if (!e || (e.code !== 'not-found' && e.code !== 'permission-denied')) throw e;
+          try { w.d1 = dv; await F.setDoc(ref, w); }
+          catch (e2) {
+            if (!e2 || e2.code !== 'permission-denied') throw e.code === 'permission-denied' ? e : e2;
+            // まだ古いルール（d1・dv を知らない）のときでも調査が止まらないよう、印なしで1回だけ送り直す
+            delete w.d1; delete w.dv; await F.setDoc(ref, w);
+          }
+        }
         return o;
       }
     };
@@ -4242,7 +4286,7 @@ var LaneSurvey = (function () {
     '.fc-two{display:grid;grid-template-columns:1fr 1fr;gap:4mm}.fc-l{margin:0;display:flex;flex-wrap:wrap;gap:2px 10px}.fc-l small{color:#5a6577}.fc-foot{margin-top:10px;font-size:8px;color:#7a8394;text-align:right}';
   function sheetDoc(s) { return '<!doctype html><html lang="ja"><head><meta charset="utf-8"><style>' + SHEET_CSS + '</style></head><body>' + s.html + '</body></html>'; }
   return { sheet: sheet, sheetDoc: sheetDoc, gNo: gNo, validId: validId, newId: newId, linkFor: linkFor, buildDocs: buildDocs, cleanAnswer: cleanAnswer, coach: coach, student: student, apply: apply, fb: fb, setFirebase: setFirebase, initLink: initLink, renderStudent: renderStudent,
-    defaultDeadline: defaultDeadline, dayEnd: dayEnd, jstDay: jstDay, when: when, dayLabel: dayLabel, sexName: sexName, evShort: evShort, esc: esc, CMMAX: CMMAX, KEEP: KEEP };
+    defaultDeadline: defaultDeadline, dayEnd: dayEnd, jstDay: jstDay, when: when, dayLabel: dayLabel, sexName: sexName, evShort: evShort, esc: esc, CMMAX: CMMAX, KEEP: KEEP, devId: devId, movedNames: movedNames };
 })();
 if (typeof module !== 'undefined') module.exports = LaneSurvey;
 
@@ -11336,11 +11380,13 @@ var LanePdf = (function () {
       '<div class="en-tools"><button type="button" class="btn" data-sv="copy" data-url="' + esc(url) + '">🔗 リンクをコピー</button><a class="btn sub" target="_blank" rel="noopener" href="https://line.me/R/share?text=' + encodeURIComponent(msg) + '">LINEで送る</a><button type="button" class="btn sub" data-sv="qr" aria-expanded="' + SV.qr + '">🔳 QR</button></div>';
     if (SV.qr) { var svg = ''; try { var q = qrcode(0, 'M'); q.addData(url, 'Byte'); q.make(); svg = q.createSvgTag({ cellSize: 4, margin: 3, scalable: true }); } catch (e) { svg = '<small class="warn">QRを作れませんでした</small>'; } h += '<div class="sv-qr">' + svg + '</div>'; }
     h += '<div class="en-step"><span class="en-n">✓</span><b>答え</b><span class="small muted">' + done.length + '/' + c.roster.length + '人</span><button type="button" class="btn sub small" data-sv="reans">🔄 読み込み直す</button></div>';
+    var mvN = S.movedNames(c, A), MV = function (i) { return A[i] && A[i].moved ? ' <b class="sv-moved" title="最初に送った端末とちがう端末から書きかえられました">⚠ 別の端末</b>' : ''; };   // v0.29.4（H1）
+    if (mvN.length) h += '<div class="sv-movedbox" role="note">⚠ <b>別の端末から書きかえられた答えがあります（' + mvN.length + '人：' + mvN.map(esc).join('・') + '）</b><br><small>本人が別のスマホで送り直した場合もありますが、ほかの人のいたずらのこともあります。下書きに入れる前に、本人に確かめてください。</small></div>';
     var outI = done.filter(function (i) { return A[i].join === false; }); done = done.filter(function (i) { return A[i].join !== false; });   // v0.28.2 出場しない人は別に
     if (done.length) h += '<div class="en-scroll"><table class="en-t sv-ans"><thead><tr><th>選手</th><th>' + (c.kind === 'kiroku' ? '1種目目' : '第1希望') + '</th><th>' + (c.kind === 'kiroku' ? '2種目目' : '第2希望') + '</th><th>リレー</th><th>ひとこと</th><th>送った日時</th></tr></thead><tbody>' + done.map(function (i) {
-      var r = c.roster[i], a = A[i]; return '<tr><td>' + esc(r.n) + (S.gNo(r.g) ? ' <small>' + esc(S.gNo(r.g)) + '年</small>' : '') + '</td><td>' + esc(S.evShort(a.ev1)) + '</td><td>' + esc(S.evShort(a.ev2)) + '</td><td>' + (a.relay === 'ok' ? '可' + (a.rel ? '（' + esc(S.evShort(a.rel)) + (a.rel2 ? '・' + esc(S.evShort(a.rel2)) : '') + '）' : '') : a.relay === 'no' ? '不可' : '') + '</td><td class="sv-cm">' + esc(a.cm) + '</td><td><small>' + esc(S.when(a.at)) + '</small></td></tr>';
+      var r = c.roster[i], a = A[i]; return '<tr' + (a.moved ? ' class="sv-mvrow"' : '') + '><td>' + esc(r.n) + (S.gNo(r.g) ? ' <small>' + esc(S.gNo(r.g)) + '年</small>' : '') + MV(i) + '</td><td>' + esc(S.evShort(a.ev1)) + '</td><td>' + esc(S.evShort(a.ev2)) + '</td><td>' + (a.relay === 'ok' ? '可' + (a.rel ? '（' + esc(S.evShort(a.rel)) + (a.rel2 ? '・' + esc(S.evShort(a.rel2)) : '') + '）' : '') : a.relay === 'no' ? '不可' : '') + '</td><td class="sv-cm">' + esc(a.cm) + '</td><td><small>' + esc(S.when(a.at)) + '</small></td></tr>';
     }).join('') + '</tbody></table></div>';
-    if (outI.length) h += '<p class="small sv-out" data-svout="' + outI.length + '"><b>出場しない ' + outI.length + '人</b>：' + outI.map(function (i) { var cm = A[i].cm; return esc(c.roster[i].n) + (cm ? '<small class="muted">（' + esc(cm) + '）</small>' : ''); }).join('・') + '</p>';
+    if (outI.length) h += '<p class="small sv-out" data-svout="' + outI.length + '"><b>出場しない ' + outI.length + '人</b>：' + outI.map(function (i) { var cm = A[i].cm; return esc(c.roster[i].n) + MV(i) + (cm ? '<small class="muted">（' + esc(cm) + '）</small>' : ''); }).join('・') + '</p>';
     h += '<p class="small"><b>まだの人</b>（' + yet.length + '人）' + (yet.length ? '：' + yet.map(function (i) { return esc(c.roster[i].n); }).join('・') : '：いません') + '</p>';
     h += '<div class="en-tools"><button type="button" class="btn" data-sv="apply"' + (done.length || outI.length ? '' : ' disabled') + '>📥 希望を下書きに入れる</button>' +
       '<button type="button" class="btn sub" data-sv="jaafgo"' + (done.length || outI.length ? '' : ' disabled') + '>🟦 JAAF用にコピーへ進む</button>' +   // v0.29.1
@@ -11405,10 +11451,10 @@ var LanePdf = (function () {
     if (a === 'apply' || a === 'jaafgo') {
       if (!ENT.plan) ENT.plan = LaneEntry.newPlan();
       var r = LaneSurvey.apply(LaneEntry, d, ENT.plan, c, SV.ans || {});
-      ENT.out = r.out;
-      svSay('📥 種目' + r.picks + '件・リレー' + r.relay + '人を下書きに入れました。' + (r.out.length ? ' 出場しない ' + r.out.length + '人（' + r.out.join('・') + '）は入れていません。' : '') + (r.kept.length ? ' ✋ 手直し済の ' + r.kept.length + '人（' + r.kept.join('・') + '）はそのままにしました。' : '') + (r.skip.length ? ' 入れられなかったもの：' + r.skip.join('／') : '') + ' ルールの警告は上で確かめてください。', r.skip.length ? 'warn' : 'ok');
+      ENT.out = r.out; var mv = LaneSurvey.movedNames(c, SV.ans || {}), mvT = mv.length ? ' ⚠ 別の端末から書きかえられた答え（' + mv.join('・') + '）があります。本人に確かめてください。' : '';   // v0.29.4（H1）
+      svSay('📥 種目' + r.picks + '件・リレー' + r.relay + '人を下書きに入れました。' + (r.out.length ? ' 出場しない ' + r.out.length + '人（' + r.out.join('・') + '）は入れていません。' : '') + (r.kept.length ? ' ✋ 手直し済の ' + r.kept.length + '人（' + r.kept.join('・') + '）はそのままにしました。' : '') + (r.skip.length ? ' 入れられなかったもの：' + r.skip.join('／') : '') + ' ルールの警告は上で確かめてください。' + mvT, r.skip.length || mv.length ? 'warn' : 'ok');
       if (a === 'jaafgo') {   // v0.29.1 下書きへ進んで「JAAF用にコピー」を光らせる（種目を直してからコピー）
-        ENT.jaafHl = true; entSay('🟦 調査の答えを入れました。種目を直してから「JAAF用にコピー」を押してください。' + (r.kept.length ? ' ✋ 手直し済の ' + r.kept.length + '人はそのままにしました。' : '')); entRender();
+        ENT.jaafHl = true; entSay('🟦 調査の答えを入れました。種目を直してから「JAAF用にコピー」を押してください。' + (r.kept.length ? ' ✋ 手直し済の ' + r.kept.length + '人はそのままにしました。' : '') + mvT, mv.length ? 'warn' : undefined); entRender();
         var jb = document.querySelector('#rbEntry [data-en="jaaf"]'); if (jb) { try { jb.scrollIntoView({ block: 'center' }); } catch (er) { jb.scrollIntoView(); } try { jb.focus({ preventScroll: true }); } catch (er) { } }
         return true;
       }
@@ -11511,7 +11557,7 @@ var LanePdf = (function () {
     h += L.length ? '<div class="en-scroll">' + E.table(L) + '</div>' : '<p class="small muted">まだ選んでいません。</p>';
     h += '<div id="rbEnFee">' + entFeeHtml(F) + '</div>';
     h += '<div class="en-tools"><button type="button" class="btn" data-en="print"' + (L.length ? '' : ' disabled') + '>🖨 印刷・PDF</button><button type="button" class="btn sub" data-en="copy"' + (L.length ? '' : ' disabled') + '>📋 文字でコピー</button><button type="button" class="btn sub' + (ENT.jaafHl ? ' en-hl' : '') + '" data-en="jaaf"' + (L.length ? '' : ' disabled') + '>🟦 JAAF用にコピー</button><button type="button" class="btn sub small" data-en="clear">すべて外す</button></div>';
-    h += '<p class="en-jaaf small">🟦 JAAFの画面に入れるときは <a href="jaaf.html" target="_blank" rel="noopener">JAAF入力の手伝い</a>（阪田さん専用・送信はしません）</p>';
+    h += '<p class="en-jaaf small">🟦 JAAFの画面に入れるときは <a href="jaaf.html" target="_blank" rel="noopener">JAAF入力の手伝い</a>（本郷 陸上競技部の先生用・送信はしません）</p>';
     h += svHtml(d);
     box.innerHTML = h; box.hidden = false;
   }
@@ -12810,19 +12856,33 @@ var LaneMove = (function () {
 (function () {
   'use strict';
   if (window.__laneChan) return; window.__laneChan = 1;
-  var IMG = { explain: 'img/manual/lc_explain_face.webp?v=f4754a17', thumbs: 'img/manual/lc_thumbs_face.webp?v=d68950b8', sleep: 'img/manual/lc_sleep_face.webp?v=668d8836' };
+  var IMG = { explain: 'img/manual/lc_explain_face.webp?v=f4754a17', thumbs: 'img/manual/lc_thumbs_face.webp?v=d68950b8', sleep: 'img/manual/lc_sleep_face.webp?v=668d8836', trouble: 'img/manual/lc_trouble.webp?v=295153cf', bow: 'img/manual/lc_bow.webp?v=9e053435', idea: 'img/manual/lc_idea.webp?v=72836cd7', celebrate: 'img/manual/lc_celebrate.webp?v=ff7d5ac4', wave: 'img/manual/lc_wave.webp?v=a86c5fb7', phone: 'img/manual/lc_phone.webp?v=54be06c7' };
   var css = '.lc-av{display:inline-flex;align-items:center;gap:6px;margin-left:8px;padding:2px 10px 2px 2px;border-radius:999px;background:#fff;color:#1f3a68;text-decoration:none;font-size:12px;font-weight:700;line-height:1.2;white-space:nowrap;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .15s,background .15s;vertical-align:middle}.lc-av:hover{transform:translateY(-1px);background:#fff4ec}.lc-av:hover img{transform:rotate(-8deg)}' +
     '.lc-av img{width:30px;height:30px;border-radius:50%;background:#fff;object-fit:cover;flex:none;transition:transform .15s}.lc-av span{position:relative}' +
     '@media (max-width:420px){.lc-av{font-size:11px;padding-right:8px;gap:4px;margin-left:6px}.lc-av img{width:26px;height:26px}}' +
     '.lc-ei{width:26px;height:26px;border-radius:50%;border:1.5px solid #1f3a68;background:#fff;object-fit:cover;vertical-align:middle;margin:0 6px 0 0}' +
     '#lcToast{position:fixed;right:12px;bottom:14px;z-index:9990;display:flex;align-items:center;gap:8px;background:#fff;border:2px solid #1f3a68;border-radius:16px;padding:5px 14px 5px 5px;box-shadow:0 4px 14px rgba(0,0,0,.18);pointer-events:none;opacity:0;transform:translateY(12px);transition:opacity .3s,transform .3s;font-size:13px;font-weight:700;color:#1f3a68;max-width:72vw}' +
     '#lcToast.on{opacity:1;transform:none}#lcToast img{width:44px;height:44px;border-radius:50%;object-fit:cover;flex:none}' +
-    '@media (prefers-reduced-motion:reduce){#lcToast,.lc-av{transition:none}}@media print{.lc-av,.lc-ei,#lcToast{display:none!important}}';
+    '.lc-pose{height:46px;width:auto;vertical-align:middle;margin:0 8px 0 0;float:none;pointer-events:none;user-select:none}.lc-pose.r{float:right;height:56px;margin:-4px 0 -4px 10px}.mb-tip:has(>.lc-pose),.tipbox:has(>.lc-pose){display:flow-root;min-height:52px}' +
+    '#lcToast.pose img{border-radius:0;object-fit:contain;width:auto}' +
+    '@media (max-width:420px){.lc-pose{height:38px}.lc-pose.r{height:48px}}' +
+    '@media (prefers-reduced-motion:reduce){#lcToast,.lc-av{transition:none}}@media print{.lc-av,.lc-ei,.lc-pose,#lcToast{display:none!important}}';
   function img(k, cls, alt) { var i = document.createElement('img'); i.src = IMG[k]; i.alt = alt || ''; i.className = cls || ''; i.width = 34; i.height = 34; i.decoding = 'async'; i.setAttribute('draggable', 'false'); return i; }
   function avatar() {
     var b = document.querySelector('header .brand'); if (!b || b.querySelector('.lc-av')) return;
     var a = document.createElement('a'); a.className = 'lc-av'; a.href = 'manual.html'; a.title = 'レーンちゃんのマニュアル'; a.setAttribute('aria-label', 'レーンちゃんのマニュアルを開く');
     a.appendChild(img('explain', '', '')); var t = document.createElement('span'); t.textContent = '使い方はこちら'; a.appendChild(t); b.appendChild(a);
+  }
+  // v0.29.5 いろいろなポーズ（小さく・押せない・じゃましない）
+  function pose(k, el, right) { if (!el || el.__lcp === k || el.closest('header, #lcToast, .print, [contenteditable]')) return; var o = el.querySelector(':scope > .lc-pose'); if (o) o.remove(); el.__lcp = k; var i = img(k, 'lc-pose' + (right ? ' r' : ''), ''); i.removeAttribute('width'); i.removeAttribute('height'); i.setAttribute('aria-hidden', 'true'); el.insertBefore(i, el.firstChild); }
+  var TROUBLE = /読めませんでした|読み込めません|できませんでした|送れませんでした|失敗|エラー|見つかりません|⚠ 別の端末/;
+  function poses(root) {
+    var R = root || document;
+    R.querySelectorAll('.mb-tip, .tipbox').forEach(function (e) { pose('idea', e, true); });
+    R.querySelectorAll('.status.ng, .status.err, .status.warn, p.small.ng, .sv-msg.ng, .sv-msg.warn, .sv-movedbox, .tm-warn').forEach(function (e) {
+      var t = (e.textContent || '').trim(); if (t && t.length < 600 && (TROUBLE.test(t) || e.classList.contains('sv-movedbox'))) pose('trouble', e); });
+    R.querySelectorAll('button').forEach(function (b) {
+      if (!/QR/.test(b.textContent || '') || b.closest('header')) return; var box = b.parentElement; if (box && !box.__lcp && box.offsetParent !== null) pose('phone', box); });
   }
   var EMPTY = /(まだ.{0,30}(ありません|いません)|がありません。?$|はありません。?$|まだ入っていません)/;
   function empties(root) {
@@ -12833,28 +12893,30 @@ var LaneMove = (function () {
       e.__lc = 1; e.insertBefore(img('explain', 'lc-ei', ''), e.firstChild);
     }
   }
+  var BIG = /まとめて.*(取り込みました|入れました)|全部(取り込み|入れ)ました|件(を)?取り込みました|完成|作りました/, THANKS = /ありがとう/;
   var DONE = /^(✔|✅|📋 コピー|📄|🟦|📥|🗑 削除しました)|PDFを(保存|作り)|保存しました|作りました|コピーしました|読み込みました|入れました/, SLEEP = /漏れ(は)?(ありません|なし)|すべて|全部|全員/;
   var toast, tm, last = '', lastAt = 0;
   function cheer(t) {
     var now = Date.now(); if (t === last && now - lastAt < 8000) return; last = t; lastAt = now;
     if (!toast) { toast = document.createElement('div'); toast.id = 'lcToast'; toast.setAttribute('aria-hidden', 'true'); document.body.appendChild(toast); }
-    var sl = SLEEP.test(t); toast.innerHTML = ''; toast.appendChild(img(sl ? 'sleep' : 'thumbs', '', ''));
-    toast.appendChild(document.createTextNode(sl ? 'おつかれさま！ 終わったら寝ちゃおう💤' : 'やったね！ その調子✨'));
-    clearTimeout(tm); requestAnimationFrame(function () { toast.className = 'on'; }); tm = setTimeout(function () { toast.className = ''; }, 2800);
+    var th = THANKS.test(t), big = !th && BIG.test(t), sl = !th && !big && SLEEP.test(t), k = th ? 'bow' : big ? 'celebrate' : sl ? 'sleep' : 'thumbs';
+    toast.innerHTML = ''; toast.className = (th || big) ? 'pose' : ''; toast.appendChild(img(k, '', ''));
+    toast.appendChild(document.createTextNode(th ? 'ありがとうございます！ ちゃんと届いたよ' : big ? 'できたー！ おめでとう🎉' : sl ? 'おつかれさま！ 終わったら寝ちゃおう💤' : 'やったね！ その調子✨'));
+    clearTimeout(tm); var pc = toast.className; requestAnimationFrame(function () { toast.className = (pc ? pc + ' ' : '') + 'on'; }); tm = setTimeout(function () { toast.className = pc; }, 2800);
   }
   function scanDone(n) {
     var el = n.nodeType === 1 ? n : n.parentElement; if (!el || el.closest('#lcToast')) return;
     var s = el.closest('.status, [role="status"], .sv-msg'); if (!s || /\b(ng|err|warn)\b/.test(s.className)) return;
-    var t = (s.textContent || '').trim(); if (t && t.length < 400 && DONE.test(t)) cheer(t);
+    var t = (s.textContent || '').trim(); if (t && t.length < 400 && (DONE.test(t) || THANKS.test(t))) cheer(t);
   }
   var q = false, added = [];
-  function flush() { q = false; var a = added; added = []; empties(); a.forEach(scanDone); }
+  function flush() { q = false; var a = added; added = []; empties(); try { poses(); } catch (e) { } a.forEach(scanDone); }
   function start() {
     if (!document.getElementById('lcCss')) { var st = document.createElement('style'); st.id = 'lcCss'; st.textContent = css; document.head.appendChild(st); }
-    avatar(); empties();
+    avatar(); empties(); try { poses(); } catch (e) { }
     try {
       new MutationObserver(function (ms) {
-        ms.forEach(function (m) { if (m.type === 'characterData') added.push(m.target); else for (var i = 0; i < m.addedNodes.length; i++) { var x = m.addedNodes[i]; if (x.nodeType === 1 && (x.id === 'lcToast' || (x.classList && (x.classList.contains('lc-ei') || x.classList.contains('lc-av'))))) continue; added.push(x); } });
+        ms.forEach(function (m) { if (m.type === 'characterData') added.push(m.target); else for (var i = 0; i < m.addedNodes.length; i++) { var x = m.addedNodes[i]; if (x.nodeType === 1 && (x.id === 'lcToast' || (x.classList && (x.classList.contains('lc-ei') || x.classList.contains('lc-pose') || x.classList.contains('lc-av'))))) continue; added.push(x); } });
         if (!q && added.length) { q = true; setTimeout(flush, 120); }
       }).observe(document.body, { childList: true, subtree: true, characterData: true });
     } catch (e) { }

@@ -712,11 +712,30 @@ details.act>summary .sum-x{display:none}
 .ad-note{font-size:13px;color:#555}
 .ad-err{color:#a40000;font-weight:700}
 </style>
+<style id="spFix">
+/* v0.29.5 スマホの見直し（390px・360px）：押す所は44px以上・横にはみ出さない・iPhoneで入力時に拡大されない文字の大きさ */
+@media (max-width:640px){
+  .btn,button.btn,label.btn,.fb-btn,.mode-link,.pn-b,.pn-main,.lc-av{min-height:44px;box-sizing:border-box}
+  .pn-main,.pn-b,.lc-av{display:inline-flex!important;align-items:center;min-height:44px!important}
+  .mb-btn,.pr,.sh-i,.jf-toc a{min-height:44px;box-sizing:border-box}
+  .sh-i{min-width:44px;min-height:44px}
+  #ckSchool{min-height:44px!important}
+  .divsw button{min-height:44px}
+  .tipq,.xnews-x,.fb-link,.sh-i{position:relative}
+  .tipq::after,.xnews-x::after,.fb-link::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+  input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),select,textarea{font-size:16px;max-width:100%;box-sizing:border-box}
+  input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not(.setting),select:not(.setting){min-height:44px}
+  input.setting,select.setting{min-height:36px}
+  main img,main video,main iframe{max-width:100%}
+  .lockbadge,.g-toc a,.toc a{min-height:44px;display:inline-flex;align-items:center}
+.en-fee{width:100%;table-layout:fixed}.en-fee input,.en-fee select{width:100%;min-width:0;box-sizing:border-box}.en-fee td{overflow-wrap:anywhere}
+}
+</style>
 </head>
 <body class="adminpage">
 <header>
   <div class="hdr-meta">
-    <div class="hdr-ver" aria-label="バージョン">v0.29.3</div>
+    <div class="hdr-ver" aria-label="バージョン">v0.29.6</div>
     <div class="credit">Presented by Sakata</div>
     <div class="hdr-msg"><span class="hm-l">すべての陸上競技部顧問が、</span><span class="hm-l">少しでも楽になりますように。</span></div>
   </div>

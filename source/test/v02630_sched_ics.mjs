@@ -130,7 +130,7 @@ await check('中継：text/calendar を通す（ほかの形は今までどお�
   const of = globalThis.fetch; let reply;
   globalThis.fetch = async () => reply();
   try {
-    const rq = u => new Request('https://worker.invalid/?url=' + encodeURIComponent(u), { headers: { Origin: 'https://masarun0721.github.io' } });
+    const rq = u => new Request('https://worker.invalid/?url=' + encodeURIComponent(u), { headers: { Origin: 'https://lane-note.web.app' } });
     _resetRate(); reply = () => new Response('BEGIN:VCALENDAR\r\nEND:VCALENDAR\r\n', { headers: { 'Content-Type': 'text/calendar; charset=UTF-8' } });
     const r = await worker.fetch(rq('https://calendar.google.com/calendar/ical/x/public/basic.ics')); assert.equal(r.status, 200); assert(/text\/calendar/.test(r.headers.get('X-Lane-Type')));
     reply = () => new Response('x', { headers: { 'Content-Type': 'image/png' } }); assert.equal((await worker.fetch(rq('https://calendar.google.com/x.png'))).status, 415);

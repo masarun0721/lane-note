@@ -9,7 +9,7 @@ const PDF = new TextEncoder().encode('%PDF-1.4\n% fictional audit pdf\n%%EOF\n')
 let upstream = () => new Response('x');
 globalThis.fetch = async (u, o) => upstream(u, o);
 // ブラウザ → 中継（実物の worker.fetch）。Origin は公開ページ
-const viaWorker = async (u) => { _resetRate(); const q = new URL(u); return worker.fetch(new Request(q.href, { headers: { Origin: 'https://masarun0721.github.io' } })); };
+const viaWorker = async (u) => { _resetRate(); const q = new URL(u); return worker.fetch(new Request(q.href, { headers: { Origin: 'https://lane-note.web.app' } })); };
 let pass = 0, fail = 0; async function test(n, f) { try { await f(); pass++; console.log('  ok', n); } catch (e) { fail++; console.log('  NG', n, e && e.message); } }
 console.log('[v0.26.39 C509 転送と出典]');
 await test('公式ホスト → 302 → 別サイトのPDF：noRedirect:true でも、url は実際に読んだ先（audit.example）・from は頼んだURL・redirected', async () => {

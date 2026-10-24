@@ -725,6 +725,7 @@ details.act>summary .sum-x{display:none}
 .mb-art p,.mb-art li{font-size:15px;line-height:1.85}
 .mb-toc{background:#f7f9fc;border:1px solid #d6deea;border-radius:10px;padding:10px 14px;margin:8px 0 14px}.mb-toc b{font-size:14px;color:var(--navy)}.mb-toc ol{margin:6px 0 0;padding-left:1.4em}.mb-toc li{font-size:14px;line-height:1.7}.mb-toc a{color:var(--navy)}
 .say{display:flex;gap:10px;align-items:flex-start;margin:12px 0}.say img{width:56px;height:56px;border-radius:50%;border:2px solid var(--navy);background:#fff;flex:none;object-fit:cover}
+.mb-video{margin:12px 0 16px}.mb-video video{width:100%;height:auto;aspect-ratio:16/9;display:block;border-radius:12px;border:2px solid var(--navy);background:#14213d}.mb-video figcaption{font-size:13px;color:#555;margin-top:4px}
 .say .bb{position:relative;background:#f1f5fb;border:1px solid #cdd8ea;border-radius:14px;padding:9px 13px;font-size:15px;line-height:1.75;max-width:640px}
 .say .bb::before{content:"";position:absolute;left:-9px;top:18px;border:8px solid transparent;border-right-color:#cdd8ea;border-left:0}.say .bb::after{content:"";position:absolute;left:-7px;top:19px;border:7px solid transparent;border-right-color:#f1f5fb;border-left:0}
 .say .who{display:block;font-size:11px;font-weight:700;color:var(--navy);margin-bottom:1px}
@@ -743,11 +744,30 @@ details.act>summary .sum-x{display:none}
 .mb-end{display:flex;gap:14px;align-items:center;background:#f7f9fc;border-radius:14px;padding:12px 16px;margin:0 0 16px}.mb-end img{width:120px;height:auto;flex:none}.mb-end p{margin:0;font-size:15px;line-height:1.8}
 @media (max-width:640px){.mb-hero{grid-template-columns:1fr}.mb-hero img{max-width:170px;margin:0 auto}.mb-hero h2{font-size:20px}.mb-art{padding:14px 12px}.mb-art>h2{font-size:18px}.say img{width:46px;height:46px}.mb-end{flex-direction:column;text-align:center}}
 </style>
+<style id="spFix">
+/* v0.29.5 スマホの見直し（390px・360px）：押す所は44px以上・横にはみ出さない・iPhoneで入力時に拡大されない文字の大きさ */
+@media (max-width:640px){
+  .btn,button.btn,label.btn,.fb-btn,.mode-link,.pn-b,.pn-main,.lc-av{min-height:44px;box-sizing:border-box}
+  .pn-main,.pn-b,.lc-av{display:inline-flex!important;align-items:center;min-height:44px!important}
+  .mb-btn,.pr,.sh-i,.jf-toc a{min-height:44px;box-sizing:border-box}
+  .sh-i{min-width:44px;min-height:44px}
+  #ckSchool{min-height:44px!important}
+  .divsw button{min-height:44px}
+  .tipq,.xnews-x,.fb-link,.sh-i{position:relative}
+  .tipq::after,.xnews-x::after,.fb-link::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}
+  input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),select,textarea{font-size:16px;max-width:100%;box-sizing:border-box}
+  input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not(.setting),select:not(.setting){min-height:44px}
+  input.setting,select.setting{min-height:36px}
+  main img,main video,main iframe{max-width:100%}
+  .lockbadge,.g-toc a,.toc a{min-height:44px;display:inline-flex;align-items:center}
+.en-fee{width:100%;table-layout:fixed}.en-fee input,.en-fee select{width:100%;min-width:0;box-sizing:border-box}.en-fee td{overflow-wrap:anywhere}
+}
+</style>
 </head>
 <body class="guide manual-blog">
 <header>
   <div class="hdr-meta">
-    <div class="hdr-ver" aria-label="バージョン">v0.29.3</div>
+    <div class="hdr-ver" aria-label="バージョン">v0.29.6</div>
     <div class="credit">Presented by Sakata</div>
     <div class="hdr-msg"><span class="hm-l">すべての陸上競技部顧問が、</span><span class="hm-l">少しでも楽になりますように。</span></div>
   </div>
@@ -778,7 +798,7 @@ details.act>summary .sum-x{display:none}
     <p>大会の準備も、記録の整理も、手で打つと何時間もかかりますよね。このブログでは「どのボタンを押せば、何ができあがるか」を、場面ごとにやさしく説明します。気になる記事から読んでください。</p>
     <a class="mb-btn" href="#a-features">🐰 こんな機能があるよ！</a><a class="mb-btn sub" href="try.html">⏱ 3分体験（架空のデータ）</a>
   </div>
-  <img src="img/manual/lc_explain.webp?v=5f79a996" width="191" height="360" alt="クリップボードを持って説明するレーンちゃん">
+  <img src="img/manual/lc_wave.webp?v=a86c5fb7" width="144" height="240" alt="手をふってあいさつするレーンちゃん">
 </section>
 
 <h2 class="mb-h" id="list">記事の一覧</h2>
@@ -794,6 +814,13 @@ details.act>summary .sum-x{display:none}
 <a class="mb-card" href="#a-player"><div class="mb-thumb"><img class="shot" src="img/manual/use_pp_pc.webp?v=135b8b4a" alt="" loading="lazy" width="320" height="200"><img class="lc" src="img/manual/lc_dash.webp?v=3d0802ec" alt="" loading="lazy"></div><div class="mb-cb"><span class="mb-tag">選手モード</span><h3>選手・保護者に記録と予定を届ける</h3><p>個人ページのリンク、選手モード、体調メモ、やり取り。選手のスマホに「自分の陸上ノート」を。</p></div></a>
 <a class="mb-card" href="#a-team"><div class="mb-thumb solo"><img class="lc" src="img/manual/lc_thumbs.webp?v=28656088" alt="" loading="lazy"></div><div class="mb-cb"><span class="mb-tag">チーム</span><h3>顧問・マネージャーとチームで使う</h3><p>招待リンクでチームに入ってもらえば、マネージャーが大会の日にスマホで結果を入れられます。</p></div></a>
 <a class="mb-card" href="#a-faq"><div class="mb-thumb solo"><img class="lc" src="img/manual/lc_sleep.webp?v=4c27abcf" alt="" loading="lazy"></div><div class="mb-cb"><span class="mb-tag">Q&amp;A</span><h3>よくある質問と、データの扱い</h3><p>ログインは必要？ お金はかかる？ データはどこに？ 困ったときはここ。</p></div></a>
+<a class="mb-card" href="#a-start"><div class="mb-thumb solo"><img class="lc" src="img/manual/lc_wave.webp?v=a86c5fb7" alt="" loading="lazy"></div><div class="mb-cb"><span class="mb-tag">まずはここ</span><h3>はじめての使い方（5分で）</h3><p>まずは1つの大会で試してみよう。ログインしなくても、この端末だけで使えます。</p></div></a>
+<a class="mb-card" href="#a-phone"><div class="mb-thumb solo"><img class="lc" src="img/manual/lc_phone.webp?v=54be06c7" alt="" loading="lazy"></div><div class="mb-cb"><span class="mb-tag">スマホ</span><h3>スマホでの使い方（ホーム画面に追加・共有リンク）</h3><p>LANE NOTE はスマホのブラウザでそのまま使えます。アイコンを置いておくと、アプリのようにすぐ開けます。</p></div></a>
+<a class="mb-card" href="#a-data"><div class="mb-thumb solo"><img class="lc" src="img/manual/lc_explain.webp?v=5f79a996" alt="" loading="lazy"></div><div class="mb-cb"><span class="mb-tag">データ</span><h3>データの保存と書き出し・引っ越し</h3><p>記録はどこに保存される？ 控えの取り方と、別の端末・新しいアドレスへの移し方。</p></div></a>
+<a class="mb-card" href="#a-multiday"><div class="mb-thumb solo"><img class="lc" src="img/manual/lc_dash.webp?v=3d0802ec" alt="" loading="lazy"></div><div class="mb-cb"><span class="mb-tag">大会準備</span><h3>複数日の大会を準備する</h3><p>2日・3日にわたる大会でも、日付ごとに出場一覧を作れます。</p></div></a>
+<a class="mb-card" href="#a-yoko"><div class="mb-thumb solo"><img class="lc" src="img/manual/lc_idea.webp?v=72836cd7" alt="" loading="lazy"></div><div class="mb-cb"><span class="mb-tag">大会予定</span><h3>要項から締切・申込方法を読む</h3><p>エントリー締切・振込締切・申込書の提出締切を、要項の文字から読み取ります。</p></div></a>
+<a class="mb-card" href="#a-moved"><div class="mb-thumb solo"><img class="lc" src="img/manual/lc_trouble.webp?v=295153cf" alt="" loading="lazy"></div><div class="mb-cb"><span class="mb-tag">エントリー</span><h3>調査で「別の端末」警告が出たとき</h3><p>エントリー調査の答えに「⚠ 別の端末」と出たら。こわがらなくて大丈夫、本人に確かめるだけです。</p></div></a>
+<a class="mb-card" href="#a-trouble"><div class="mb-thumb solo"><img class="lc" src="img/manual/lc_trouble.webp?v=295153cf" alt="" loading="lazy"></div><div class="mb-cb"><span class="mb-tag">困ったとき</span><h3>トラブルのとき</h3><p>「読めませんでした」と出た・ボタンが出ない・記録が見えない…困ったときに見るページ。</p></div></a>
 </div>
 
 <article class="mb-art" id="a-features"><span class="mb-tag n">まずはここ</span><h2>こんな機能があるよ！ LANE NOTE でできること全部</h2>
@@ -825,6 +852,8 @@ details.act>summary .sum-x{display:none}
 <p class="mb-up"><a href="#list">↑ 記事の一覧へ</a></p></article>
 <article class="mb-art" id="a-day"><span class="mb-tag">大会準備</span><h2>大会の前日に、部員の時間表を配る</h2>
 <p class="mb-meta">⏱ 読む時間：約4分 ／ 使うページ：🏁 大会準備</p><nav class="mb-toc" aria-label="この記事の目次"><b>📑 目次</b><ol><li><a href="#a-day-1">用意するもの</a></li><li><a href="#a-day-2">手順</a></li><li><a href="#a-day-3">選手に1人ずつ送りたいとき</a></li><li><a href="#a-day-4">記録用紙もいっしょに</a></li></ol></nav>
+<figure class="mb-video"><video controls preload="none" playsinline width="1280" height="720" poster="img/manual/video/taikai_junbi.webp?v=d2a787fd" aria-label="説明動画：大会準備（部員の時間表）"><source src="img/manual/video/taikai_junbi.mp4?v=abfd13d7" type="video/mp4"></video><figcaption>▶ 説明動画：大会準備（部員の時間表）（約1分・音が出ます）</figcaption></figure>
+<figure class="mb-video"><video controls preload="none" playsinline width="1280" height="720" poster="img/manual/video/kyoyu_link.webp?v=f0a73811" aria-label="説明動画：時間表をリンク・QRで共有"><source src="img/manual/video/kyoyu_link.mp4?v=364ec950" type="video/mp4"></video><figcaption>▶ 説明動画：時間表をリンク・QRで共有（約1分・音が出ます）</figcaption></figure>
 <div class="say"><img src="img/manual/lc_explain_face.webp?v=f4754a17" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>大会の前の夜に、スタートリストから自分の部員を探してマーカーを引く…。それ、もうやらなくていいよ！</div></div>
 <h3 id="a-day-1">用意するもの</h3>
 <ul><li>大会の<b>スタートリスト</b>と<b>タイムテーブル</b>（PDF、または公開されているページのURL）</li><li>あれば<b>競技注意事項</b>（招集時刻を読むのに使います）</li></ul>
@@ -846,6 +875,7 @@ details.act>summary .sum-x{display:none}
 <p class="mb-up"><a href="#list">↑ 記事の一覧へ</a></p></article>
 <article class="mb-art" id="a-parent"><span class="mb-tag">大会準備</span><h2>保護者へのお知らせを、資料から作る</h2>
 <p class="mb-meta">⏱ 読む時間：約3分 ／ 使うページ：🏁 大会準備</p><nav class="mb-toc" aria-label="この記事の目次"><b>📑 目次</b><ol><li><a href="#a-parent-1">手順</a></li><li><a href="#a-parent-2">競技場の情報は一度だけ</a></li></ol></nav>
+<figure class="mb-video"><video controls preload="none" playsinline width="1280" height="720" poster="img/manual/video/hogosha_oshirase.webp?v=afacaac3" aria-label="説明動画：保護者へのお知らせ"><source src="img/manual/video/hogosha_oshirase.mp4?v=4e12d9ef" type="video/mp4"></video><figcaption>▶ 説明動画：保護者へのお知らせ（約1分・音が出ます）</figcaption></figure>
 <div class="say"><img src="img/manual/lc_explain_face.webp?v=f4754a17" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>毎回ほとんど同じ文なのに、日付と会場を打ちかえるのって大変だよね。ひな形を一度作れば、次からはほぼ自動だよ。</div></div>
 <h3 id="a-parent-1">手順</h3>
 <ol class="mb-steps">
@@ -861,6 +891,7 @@ details.act>summary .sum-x{display:none}
 <p class="mb-up"><a href="#list">↑ 記事の一覧へ</a></p></article>
 <article class="mb-art" id="a-cards"><span class="mb-tag">大会準備</span><h2>ナンバーカードと参加料も、まとめて片づける</h2>
 <p class="mb-meta">⏱ 読む時間：約2分 ／ 使うページ：🏁 大会準備</p><nav class="mb-toc" aria-label="この記事の目次"><b>📑 目次</b><ol><li><a href="#a-cards-1">ナンバーカード（ゼッケン・腰番）</a></li><li><a href="#a-cards-2">参加料</a></li></ol></nav>
+<figure class="mb-video"><video controls preload="none" playsinline width="1280" height="720" poster="img/manual/video/number_card_sankaryo.webp?v=1c0a98d2" aria-label="説明動画：ナンバーカードと参加料"><source src="img/manual/video/number_card_sankaryo.mp4?v=787039cb" type="video/mp4"></video><figcaption>▶ 説明動画：ナンバーカードと参加料（約1分・音が出ます）</figcaption></figure>
 <div class="say"><img src="img/manual/lc_explain_face.webp?v=f4754a17" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>スタートリストを入れると、「ナンバーカード」と「参加料」のタブも使えるようになるよ。</div></div>
 <h3 id="a-cards-1">ナンバーカード（ゼッケン・腰番）</h3>
 <p>出場する選手の番号で、ゼッケン（胸・背中）と腰番の Word ファイルを作ります。B5の用紙に「実際のサイズ（100%）」で印刷してください。ゼッケンは1ページに1枚、腰番は1ページに上下2枚（半分に切る）です。</p>
@@ -871,6 +902,7 @@ details.act>summary .sum-x{display:none}
 <p class="mb-up"><a href="#list">↑ 記事の一覧へ</a></p></article>
 <article class="mb-art" id="a-check"><span class="mb-tag">照合</span><h2>エントリー漏れを、スタートリストで確かめる</h2>
 <p class="mb-meta">⏱ 読む時間：約3分 ／ 使うページ：✅ 照合</p>
+<figure class="mb-video"><video controls preload="none" playsinline width="1280" height="720" poster="img/manual/video/entry_shogo.webp?v=7ebb8eaa" aria-label="説明動画：エントリーの照合"><source src="img/manual/video/entry_shogo.mp4?v=8d5ab7e8" type="video/mp4"></video><figcaption>▶ 説明動画：エントリーの照合（約1分・音が出ます）</figcaption></figure>
 <div class="say"><img src="img/manual/lc_explain_face.webp?v=f4754a17" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>スタートリストが出たら、すぐにチェック！ 漏れがあれば、早いうちに大会の係に問い合わせできるよ。</div></div>
 <h3 id="a-check-1">手順</h3>
 <ol class="mb-steps">
@@ -885,6 +917,7 @@ details.act>summary .sum-x{display:none}
 <p class="mb-up"><a href="#list">↑ 記事の一覧へ</a></p></article>
 <article class="mb-art" id="a-entry"><span class="mb-tag">エントリー</span><h2>エントリーの前に、選手の希望をリンクで集める</h2>
 <p class="mb-meta">⏱ 読む時間：約5分 ／ 使うページ：📒 記録 →「📝 エントリー下書き」</p><nav class="mb-toc" aria-label="この記事の目次"><b>📑 目次</b><ol><li><a href="#a-entry-1">1. 調査リンクを作って送る</a></li><li><a href="#a-entry-2">2. 選手が答える</a></li><li><a href="#a-entry-3">3. 答えを下書きに入れる</a></li><li><a href="#a-entry-4">4. 最終チェック用PDF</a></li></ol></nav>
+<figure class="mb-video"><video controls preload="none" playsinline width="1280" height="720" poster="img/manual/video/entry_chosa.webp?v=200076b2" aria-label="説明動画：エントリー調査"><source src="img/manual/video/entry_chosa.mp4?v=a85126aa" type="video/mp4"></video><figcaption>▶ 説明動画：エントリー調査（約1分・音が出ます）</figcaption></figure>
 <div class="say"><img src="img/manual/lc_explain_face.webp?v=f4754a17" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>「出たい種目を紙に書いて出して〜」を、リンク1本にしちゃおう。集計は LANE NOTE がやるよ。</div></div>
 <h3 id="a-entry-1">1. 調査リンクを作って送る</h3>
 <ol class="mb-steps">
@@ -908,6 +941,7 @@ details.act>summary .sum-x{display:none}
 <p class="mb-up"><a href="#list">↑ 記事の一覧へ</a></p></article>
 <article class="mb-art" id="a-sched"><span class="mb-tag">大会予定</span><h2>大会予定と締切を、1つのページで管理する</h2>
 <p class="mb-meta">⏱ 読む時間：約3分 ／ 使うページ：📅 大会予定</p><nav class="mb-toc" aria-label="この記事の目次"><b>📑 目次</b><ol><li><a href="#a-sched-1">大会予定を入れる</a></li><li><a href="#a-sched-2">進み具合をチェックする</a></li><li><a href="#a-sched-3">そのまま大会準備へ</a></li></ol></nav>
+<figure class="mb-video"><video controls preload="none" playsinline width="1280" height="720" poster="img/manual/video/taikai_yotei.webp?v=4d78eed5" aria-label="説明動画：大会予定と締切"><source src="img/manual/video/taikai_yotei.mp4?v=15d9aa8f" type="video/mp4"></video><figcaption>▶ 説明動画：大会予定と締切（約1分・音が出ます）</figcaption></figure>
 <div class="say"><img src="img/manual/lc_explain_face.webp?v=f4754a17" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>「あれ、締切いつだっけ？」をなくそう！</div></div>
 <h3 id="a-sched-1">大会予定を入れる</h3>
 <ul><li>1件ずつ入れる</li><li>CSV（ひな形をダウンロードできます）や、Excel から貼り付けた表でまとめて入れる</li><li>Google カレンダーの .ics ファイルや iCal の URL から入れる（大会らしい予定にははじめからチェックがつきます）</li></ul>
@@ -919,6 +953,7 @@ details.act>summary .sum-x{display:none}
 <p class="mb-up"><a href="#list">↑ 記事の一覧へ</a></p></article>
 <article class="mb-art" id="a-records"><span class="mb-tag">記録</span><h2>結果を取り込んで、自己ベストを管理する</h2>
 <p class="mb-meta">⏱ 読む時間：約5分 ／ 使うページ：📒 記録</p><nav class="mb-toc" aria-label="この記事の目次"><b>📑 目次</b><ol><li><a href="#a-records-1">取り込みの手順</a></li><li><a href="#a-records-2">見られるもの</a></li><li><a href="#a-records-3">1年分をまとめて、ふりかえり</a></li><li><a href="#a-records-4">記録のおそうじ</a></li></ol></nav>
+<figure class="mb-video"><video controls preload="none" playsinline width="1280" height="720" poster="img/manual/video/kirokucho.webp?v=bed7279a" aria-label="説明動画：記録帳（結果の取り込み）"><source src="img/manual/video/kirokucho.mp4?v=22d959aa" type="video/mp4"></video><figcaption>▶ 説明動画：記録帳（結果の取り込み）（約1分・音が出ます）</figcaption></figure>
 <div class="say"><img src="img/manual/lc_explain_face.webp?v=f4754a17" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>Excel に1行ずつ打っていた記録、取り込みで一気に入れちゃおう！</div></div>
 <h3 id="a-records-1">取り込みの手順</h3>
 <ol class="mb-steps">
@@ -938,6 +973,7 @@ details.act>summary .sum-x{display:none}
 <p class="mb-up"><a href="#list">↑ 記事の一覧へ</a></p></article>
 <article class="mb-art" id="a-player"><span class="mb-tag">選手モード</span><h2>選手・保護者に記録と予定を届ける</h2>
 <p class="mb-meta">⏱ 読む時間：約4分 ／ 使うページ：📒 記録・選手モード</p><nav class="mb-toc" aria-label="この記事の目次"><b>📑 目次</b><ol><li><a href="#a-player-1">選手の個人ページ</a></li><li><a href="#a-player-2">選手モード</a></li><li><a href="#a-player-3">選手とのやり取り</a></li></ol></nav>
+<figure class="mb-video"><video controls preload="none" playsinline width="1280" height="720" poster="img/manual/video/kojin_kiroku.webp?v=62013ad8" aria-label="説明動画：個人の記録ページ"><source src="img/manual/video/kojin_kiroku.mp4?v=c01aaeb2" type="video/mp4"></video><figcaption>▶ 説明動画：個人の記録ページ（約1分・音が出ます）</figcaption></figure>
 <div class="say"><img src="img/manual/lc_explain_face.webp?v=f4754a17" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>自分の記録の伸びがグラフで見えると、選手はやる気が出るよね！</div></div>
 <h3 id="a-player-1">選手の個人ページ</h3>
 <ol class="mb-steps">
@@ -954,6 +990,7 @@ details.act>summary .sum-x{display:none}
 <p class="mb-up"><a href="#list">↑ 記事の一覧へ</a></p></article>
 <article class="mb-art" id="a-team"><span class="mb-tag">チーム</span><h2>顧問・マネージャーとチームで使う</h2>
 <p class="mb-meta">⏱ 読む時間：約3分 ／ 使うページ：👥 チーム</p><nav class="mb-toc" aria-label="この記事の目次"><b>📑 目次</b><ol><li><a href="#a-team-1">チームを作って招待する</a></li><li><a href="#a-team-2">役割ごとにできること</a></li></ol></nav>
+<figure class="mb-video"><video controls preload="none" playsinline width="1280" height="720" poster="img/manual/video/team.webp?v=32850f7e" aria-label="説明動画：チームで使う"><source src="img/manual/video/team.mp4?v=7700406f" type="video/mp4"></video><figcaption>▶ 説明動画：チームで使う（約1分・音が出ます）</figcaption></figure>
 <div class="say"><img src="img/manual/lc_explain_face.webp?v=f4754a17" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>1人で全部やらなくていいんだよ。みんなで入れて、先生は確認するだけ！</div></div>
 <h3 id="a-team-1">チームを作って招待する</h3>
 <ol class="mb-steps">
@@ -979,11 +1016,88 @@ details.act>summary .sum-x{display:none}
 <p>画面ごとのボタンの説明は、こちらにまとめてあります。<a class="mb-btn sub" href="guide.html#manual">🧭 画面ごとのボタンの説明</a></p>
 <div class="say r"><img src="img/manual/lc_sleep_face.webp?v=668d8836" alt="レーンちゃん（すやすや）"><div class="bb"><span class="who">レーンちゃん</span>わからないことがあったら「🚨 不具合・要望を送る」で教えてね。それじゃあ、おやすみ…💤</div></div>
 <p class="mb-up"><a href="#list">↑ 記事の一覧へ</a></p></article>
+<article class="mb-art" id="a-start"><span class="mb-tag">まずはここ</span><h2>はじめての使い方（5分で）</h2>
+<p class="mb-meta">⏱ 読む時間：約5分</p><nav class="mb-toc" aria-label="この記事の目次"><b>📑 目次</b><ol><li><a href="#a-start-1">1分目：モードを選ぶ</a></li><li><a href="#a-start-2">2分目：体験してみる</a></li><li><a href="#a-start-3">3〜4分目：大会準備で1つ作る</a></li><li><a href="#a-start-4">5分目：記録をためる</a></li></ol></nav>
+<figure class="mb-video"><video controls preload="none" playsinline width="1280" height="720" poster="img/manual/video/lanenote_hajimete.webp?v=1731d816" aria-label="説明動画：はじめての使い方"><source src="img/manual/video/lanenote_hajimete.mp4?v=65305675" type="video/mp4"></video><figcaption>▶ 説明動画：はじめての使い方（約1分・音が出ます）</figcaption></figure>
+<div class="say"><img src="img/manual/lc_explain_face.webp?v=f4754a17" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>はじめまして！ 全部を一度に覚えなくて大丈夫。まずは5分だけ、いっしょにやってみよう。</div></div>
+<h3 id="a-start-1">1分目：モードを選ぶ</h3>
+<p>はじめて開くと「顧問・コーチの方」か「選手・保護者の方」かを聞かれます。先生は顧問を選びます（あとから変えられます）。</p>
+<h3 id="a-start-2">2分目：体験してみる</h3>
+<p>「⏱ 3分体験」では架空のデータで動きを試せます。本物の資料を入れる前に、どんな画面になるかを見ておくと安心です。</p>
+<h3 id="a-start-3">3〜4分目：大会準備で1つ作る</h3>
+<ol class="mb-steps">
+<li>「🏁 大会準備」を開き、スタートリストとタイムテーブルのPDFを入れます（ファイルを選ぶか、URLを入れて「読み込む」）。</li>
+<li>学校・クラブ名を入れて「👀 画面で見る」。自分の学校の選手だけが時間順に並びます。</li>
+<li>「📄 PDF作成」か「🖨 印刷」、スマホで配るなら「📱 スマホで見る／共有」。</li>
+</ol>
+<h3 id="a-start-4">5分目：記録をためる</h3>
+<p>大会のあと「📒 記録」で結果のPDFやWebページを入れると、自分の学校の記録だけを取り込み、自己ベストが自動で更新されます。</p>
+<div class="mb-tip"><b>💡 ログインは必要になってから</b>ログインしなくても、この端末の中だけで使えます。ほかの端末でも同じ記録を見たい、チームで使いたい、となったら「Googleでログイン」してください。</div>
+<p class="mb-up"><a href="#list">↑ 記事の一覧へ</a></p></article>
+<article class="mb-art" id="a-phone"><span class="mb-tag">スマホ</span><h2>スマホでの使い方（ホーム画面に追加・共有リンク）</h2>
+<p class="mb-meta">⏱ 読む時間：約3分</p><nav class="mb-toc" aria-label="この記事の目次"><b>📑 目次</b><ol><li><a href="#a-phone-1">ホーム画面に置く</a></li><li><a href="#a-phone-2">共有リンクとQRコード</a></li></ol></nav>
+<figure class="mb-video"><video controls preload="none" playsinline width="1280" height="720" poster="img/manual/video/sumaho.webp?v=da4f2cd0" aria-label="説明動画：スマホでの使い方"><source src="img/manual/video/sumaho.mp4?v=402f79cd" type="video/mp4"></video><figcaption>▶ 説明動画：スマホでの使い方（約1分・音が出ます）</figcaption></figure>
+<div class="say"><img src="img/manual/lc_thumbs_face.webp?v=d68950b8" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>大会の日は、スマホで見られるとすごく楽だよ！</div></div>
+<h3 id="a-phone-1">ホーム画面に置く</h3>
+<ul><li>iPhone（Safari）：下の共有ボタン →「ホーム画面に追加」</li><li>Android（Chrome）：右上のメニュー →「ホーム画面に追加」</li></ul>
+<p>これはブラウザの機能で、ページへの近道（ブックマーク）をアイコンにするものです。中身はいつもの LANE NOTE です。</p>
+<h3 id="a-phone-2">共有リンクとQRコード</h3>
+<ul><li>大会準備の「📱 スマホで見る／共有」：時間順の予定などをリンクとQRコードにできます。</li><li>「🏃 選手用リンクを作る」：選手1人ずつ、その子の出場だけのリンク。</li><li>記録の「📱 選手の個人ページを作る」：その子の記録とグラフだけのリンク。</li><li>エントリー調査のリンクは「リンクをコピー」「LINEで送る」「QR」で配れます。</li></ul>
+<div class="mb-note"><b>⚠ リンクの扱い</b>リンクを知っている人は、その中身を見られます。部の LINE グループなど、決まった相手にだけ送ってください。</div>
+<p class="mb-up"><a href="#list">↑ 記事の一覧へ</a></p></article>
+<article class="mb-art" id="a-data"><span class="mb-tag">データ</span><h2>データの保存と書き出し・引っ越し</h2>
+<p class="mb-meta">⏱ 読む時間：約4分 ／ 使うページ：📒 記録</p><nav class="mb-toc" aria-label="この記事の目次"><b>📑 目次</b><ol><li><a href="#a-data-1">どこに保存される？</a></li><li><a href="#a-data-2">控えを取る（書き出し）</a></li><li><a href="#a-data-3">別の端末へ移す（読み込み）</a></li><li><a href="#a-data-4">古いアドレスからの引っ越し</a></li></ol></nav>
+<figure class="mb-video"><video controls preload="none" playsinline width="1280" height="720" poster="img/manual/video/hozon_kakidashi.webp?v=9d212abb" aria-label="説明動画：保存・書き出し"><source src="img/manual/video/hozon_kakidashi.mp4?v=feefe705" type="video/mp4"></video><figcaption>▶ 説明動画：保存・書き出し（約1分・音が出ます）</figcaption></figure>
+<h3 id="a-data-1">どこに保存される？</h3>
+<ul><li><b>ログインしていないとき</b>：この端末のブラウザの中だけ。ほかの端末からは見えません。ブラウザのデータを消すと消えます。</li><li><b>Googleでログインしたとき</b>：自分専用のクラウドに保存され、ほかの端末からも同じ記録を見られます。</li></ul>
+<h3 id="a-data-2">控えを取る（書き出し）</h3>
+<ol class="mb-steps"><li>「📒 記録」を開きます。</li><li>「💾 ファイルに書き出す（JSON）」を押すと、記録を全部1つのファイルにして保存します。</li><li>表で見たいときは「📊 Excelに書き出す」。</li></ol>
+<h3 id="a-data-3">別の端末へ移す（読み込み）</h3>
+<p>移したい端末で「📒 記録」を開き、「📂 ファイルから読み込む」で書き出したファイルを選びます。</p>
+<h3 id="a-data-4">古いアドレスからの引っ越し</h3>
+<p>LANE NOTE は <b>lane-note.web.app</b> に引っ越しました。古いアドレスで開くとお知らせが出ます。古いアドレスの端末に記録が残っているときは、お知らせの「記録を書き出す」でファイルにして、新しいアドレスで「📂 ファイルから読み込む」をしてください（保存場所はアドレスごとに別なので、自動では移りません）。</p>
+<div class="mb-note"><b>⚠ ファイルの扱い</b>書き出したファイルには選手の氏名と記録が入ります。学校のきまりに従って、大切に扱ってください。</div>
+<p class="mb-up"><a href="#list">↑ 記事の一覧へ</a></p></article>
+<article class="mb-art" id="a-multiday"><span class="mb-tag">大会準備</span><h2>複数日の大会を準備する</h2>
+<p class="mb-meta">⏱ 読む時間：約2分 ／ 使うページ：🏁 大会準備</p>
+<h3 id="a-multiday-1">しくみ</h3>
+<p>スタートリストやタイムテーブルに日付が2つ以上あると「⚠ 複数日の大会です」と出て、<b>「対象日」</b>を選ぶ欄があらわれます。</p>
+<ol class="mb-steps"><li>いつもどおりPDFを入れます。</li><li>「対象日」で日付を選びます。選ぶまでは、出場一覧・印刷・Excel・共有は出ません（日付がまざらないように）。</li><li>日ごとに「📄 PDF作成」などで配ります。</li></ol>
+<div class="mb-tip"><b>💡 参加料は全日程の分</b>複数日の大会でも、参加料は表示中の日だけでなく、全日程の出場分で計算します。</div>
+<p class="mb-up"><a href="#list">↑ 記事の一覧へ</a></p></article>
+<article class="mb-art" id="a-yoko"><span class="mb-tag">大会予定</span><h2>要項から締切・申込方法を読む</h2>
+<p class="mb-meta">⏱ 読む時間：約3分 ／ 使うページ：📅 大会予定・🏁 大会準備</p>
+<h3 id="a-yoko-1">手順</h3>
+<ol class="mb-steps"><li>「📅 大会予定」で大会の「📋 大会準備へ」を押し、その大会の要項（PDFかURL）を読み込みます。</li><li>要項の中の「申込」「参加料の振込」「申込書」などの言葉と日付を探して、大会予定の「エントリー済」「振込済」のチェックの横に締切を出します。「エントリーの出し方」も要項から読めたときは自動で入ります（手で選び直せます）。</li><li>読めなかった種類は「締切を読めませんでした」と出ます。手で入れた締切があれば、そちらが優先です。</li></ol>
+<p>大会カードには「未エントリー（締切が近いと赤）」などの印が出るので、締切の見落としを減らせます。</p>
+<div class="mb-note"><b>⚠ 最後は要項で確かめて</b>要項の書き方は大会ごとにちがうので、読みまちがえることがあります。申し込みの前に、必ず元の要項を見てください。</div>
+<p class="mb-up"><a href="#list">↑ 記事の一覧へ</a></p></article>
+<article class="mb-art" id="a-moved"><span class="mb-tag">エントリー</span><h2>調査で「別の端末」警告が出たとき</h2>
+<p class="mb-meta">⏱ 読む時間：約2分 ／ 使うページ：📝 エントリー下書き</p><nav class="mb-toc" aria-label="この記事の目次"><b>📑 目次</b><ol><li><a href="#a-moved-1">どういう意味？</a></li><li><a href="#a-moved-2">よくある理由</a></li><li><a href="#a-moved-3">どうすればいい？</a></li></ol></nav>
+<h3 id="a-moved-1">どういう意味？</h3>
+<p>選手が答えを送ると、送った端末ごとの印（ランダムな文字。名前などは入りません）が一緒に保存されます。<b>最初に送った端末とちがう端末から答えが書きかえられた</b>とき、顧問の答えの画面に「⚠ 別の端末から書きかえられた答えがあります」と出て、その人の行に「⚠ 別の端末」の印がつきます。</p>
+<h3 id="a-moved-2">よくある理由</h3>
+<ul><li>本人がスマホを替えた・家のパソコンから送り直した</li><li>友だちのスマホを借りて送った</li><li>まれに、ほかの人のいたずら</li></ul>
+<h3 id="a-moved-3">どうすればいい？</h3>
+<p>止めはしないので、そのまま下書きに入れることもできます。入れる前に、本人に「この希望で合ってる？」と確かめてください。ちがっていたら、本人にもう一度送ってもらうか、下書きで手で直します。</p>
+<p class="mb-up"><a href="#list">↑ 記事の一覧へ</a></p></article>
+<article class="mb-art" id="a-trouble"><span class="mb-tag">困ったとき</span><h2>トラブルのとき</h2>
+<p class="mb-meta">⏱ 読む時間：約4分</p><nav class="mb-toc" aria-label="この記事の目次"><b>📑 目次</b><ol><li><a href="#a-trouble-1">PDFが「読めませんでした」</a></li><li><a href="#a-trouble-2">出場一覧などのボタンが出ない</a></li><li><a href="#a-trouble-3">記録が見えない・消えた？</a></li><li><a href="#a-trouble-4">画面がおかしい</a></li></ol></nav>
+<div class="say"><img src="img/manual/lc_explain_face.webp?v=f4754a17" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>あわてずに、上から順に試してみてね。</div></div>
+<h3 id="a-trouble-1">PDFが「読めませんでした」</h3>
+<ul><li>スキャンした画像のPDFは読めません（文字が選べるPDFだけ）。</li><li>URLで読めないときは、PDFをいったん保存してファイルで入れてみてください。</li><li>対応を確かめた形式は限られています。読めなかった資料は「📮 不具合・要望を送る」で教えてください（個人情報は書かないでください）。</li></ul>
+<h3 id="a-trouble-2">出場一覧などのボタンが出ない</h3>
+<p>複数日の大会では「対象日」を選ぶまでボタンが出ません。学校・クラブ名が資料の書き方と合っているかも確かめてください。</p>
+<h3 id="a-trouble-3">記録が見えない・消えた？</h3>
+<ul><li>ログインしていないときの記録は、その端末・そのブラウザの中だけです。別の端末や別のブラウザでは見えません。</li><li>古いアドレスで使っていた記録は、新しいアドレスには自動で移りません（「データの保存と書き出し・引っ越し」を見てください）。</li></ul>
+<h3 id="a-trouble-4">画面がおかしい</h3>
+<p>ページを読み直す（再読み込み）と直ることがあります。それでも直らないときは「📮 不具合・要望を送る」から知らせてください。</p>
+<p class="mb-up"><a href="#list">↑ 記事の一覧へ</a></p></article>
 
 <div class="mb-end"><img src="img/manual/lc_sleep.webp?v=4c27abcf" width="312" height="360" alt="チェックリストを終えて眠るレーンちゃん" loading="lazy"><p>ここまで読んでくれて、ありがとう！ わからないところは「≡ メニュー」の <b>🔰 はじめての人はこちら</b> にくわしい説明とデータの取り扱いがあります。困ったことや要望は「🚨 不具合・要望を送る」から送ってください。<br>今日も仕事を早く終わらせて、ゆっくり寝ようね。おやすみなさい…💤</p></div>
 
 <section class="box" id="disclaimer"><h2>⚠ 試作版について・免責</h2><p>機能や画面は予告なく変わることがあります。記録が消えたり読み取りを間違えたりする可能性があるので、大事な記録は元の結果資料でも確認してください。この記事に出てくる学校名・選手名・記録はすべて架空のものです。</p><div class="notice">⚠ <b>試作版です。</b><button type="button" class="fb-link" data-feedback="1">📮 不具合・要望を送る</button>　本ツールはPDFの文字を読み取って自動で整理しているだけです。内容は必ず元のスタートリスト・タイムテーブル等と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div></section>
-<p class="small muted" style="text-align:center">LANE NOTE v0.29.3 ／ https://lane-note.web.app/</p>
+<p class="small muted" style="text-align:center">LANE NOTE v0.29.6 ／ https://lane-note.web.app/</p>
 </main>
 <footer><div class="f-disc">ⓘ 本ツールの利用により生じた不利益について、作成者は責任を負いかねます。 お知らせ：<a href="https://x.com/lanenote" target="_blank" rel="noopener">X：@lanenote</a></div><div><b class="f-brand">LANE NOTE</b>（レーンノート）試作版 ／ <span class="f-credit">Presented by Sakata</span></div></footer>
 <script>
@@ -1550,19 +1664,33 @@ var LaneMove = (function () {
 (function () {
   'use strict';
   if (window.__laneChan) return; window.__laneChan = 1;
-  var IMG = { explain: 'img/manual/lc_explain_face.webp?v=f4754a17', thumbs: 'img/manual/lc_thumbs_face.webp?v=d68950b8', sleep: 'img/manual/lc_sleep_face.webp?v=668d8836' };
+  var IMG = { explain: 'img/manual/lc_explain_face.webp?v=f4754a17', thumbs: 'img/manual/lc_thumbs_face.webp?v=d68950b8', sleep: 'img/manual/lc_sleep_face.webp?v=668d8836', trouble: 'img/manual/lc_trouble.webp?v=295153cf', bow: 'img/manual/lc_bow.webp?v=9e053435', idea: 'img/manual/lc_idea.webp?v=72836cd7', celebrate: 'img/manual/lc_celebrate.webp?v=ff7d5ac4', wave: 'img/manual/lc_wave.webp?v=a86c5fb7', phone: 'img/manual/lc_phone.webp?v=54be06c7' };
   var css = '.lc-av{display:inline-flex;align-items:center;gap:6px;margin-left:8px;padding:2px 10px 2px 2px;border-radius:999px;background:#fff;color:#1f3a68;text-decoration:none;font-size:12px;font-weight:700;line-height:1.2;white-space:nowrap;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .15s,background .15s;vertical-align:middle}.lc-av:hover{transform:translateY(-1px);background:#fff4ec}.lc-av:hover img{transform:rotate(-8deg)}' +
     '.lc-av img{width:30px;height:30px;border-radius:50%;background:#fff;object-fit:cover;flex:none;transition:transform .15s}.lc-av span{position:relative}' +
     '@media (max-width:420px){.lc-av{font-size:11px;padding-right:8px;gap:4px;margin-left:6px}.lc-av img{width:26px;height:26px}}' +
     '.lc-ei{width:26px;height:26px;border-radius:50%;border:1.5px solid #1f3a68;background:#fff;object-fit:cover;vertical-align:middle;margin:0 6px 0 0}' +
     '#lcToast{position:fixed;right:12px;bottom:14px;z-index:9990;display:flex;align-items:center;gap:8px;background:#fff;border:2px solid #1f3a68;border-radius:16px;padding:5px 14px 5px 5px;box-shadow:0 4px 14px rgba(0,0,0,.18);pointer-events:none;opacity:0;transform:translateY(12px);transition:opacity .3s,transform .3s;font-size:13px;font-weight:700;color:#1f3a68;max-width:72vw}' +
     '#lcToast.on{opacity:1;transform:none}#lcToast img{width:44px;height:44px;border-radius:50%;object-fit:cover;flex:none}' +
-    '@media (prefers-reduced-motion:reduce){#lcToast,.lc-av{transition:none}}@media print{.lc-av,.lc-ei,#lcToast{display:none!important}}';
+    '.lc-pose{height:46px;width:auto;vertical-align:middle;margin:0 8px 0 0;float:none;pointer-events:none;user-select:none}.lc-pose.r{float:right;height:56px;margin:-4px 0 -4px 10px}.mb-tip:has(>.lc-pose),.tipbox:has(>.lc-pose){display:flow-root;min-height:52px}' +
+    '#lcToast.pose img{border-radius:0;object-fit:contain;width:auto}' +
+    '@media (max-width:420px){.lc-pose{height:38px}.lc-pose.r{height:48px}}' +
+    '@media (prefers-reduced-motion:reduce){#lcToast,.lc-av{transition:none}}@media print{.lc-av,.lc-ei,.lc-pose,#lcToast{display:none!important}}';
   function img(k, cls, alt) { var i = document.createElement('img'); i.src = IMG[k]; i.alt = alt || ''; i.className = cls || ''; i.width = 34; i.height = 34; i.decoding = 'async'; i.setAttribute('draggable', 'false'); return i; }
   function avatar() {
     var b = document.querySelector('header .brand'); if (!b || b.querySelector('.lc-av')) return;
     var a = document.createElement('a'); a.className = 'lc-av'; a.href = 'manual.html'; a.title = 'レーンちゃんのマニュアル'; a.setAttribute('aria-label', 'レーンちゃんのマニュアルを開く');
     a.appendChild(img('explain', '', '')); var t = document.createElement('span'); t.textContent = '使い方はこちら'; a.appendChild(t); b.appendChild(a);
+  }
+  // v0.29.5 いろいろなポーズ（小さく・押せない・じゃましない）
+  function pose(k, el, right) { if (!el || el.__lcp === k || el.closest('header, #lcToast, .print, [contenteditable]')) return; var o = el.querySelector(':scope > .lc-pose'); if (o) o.remove(); el.__lcp = k; var i = img(k, 'lc-pose' + (right ? ' r' : ''), ''); i.removeAttribute('width'); i.removeAttribute('height'); i.setAttribute('aria-hidden', 'true'); el.insertBefore(i, el.firstChild); }
+  var TROUBLE = /読めませんでした|読み込めません|できませんでした|送れませんでした|失敗|エラー|見つかりません|⚠ 別の端末/;
+  function poses(root) {
+    var R = root || document;
+    R.querySelectorAll('.mb-tip, .tipbox').forEach(function (e) { pose('idea', e, true); });
+    R.querySelectorAll('.status.ng, .status.err, .status.warn, p.small.ng, .sv-msg.ng, .sv-msg.warn, .sv-movedbox, .tm-warn').forEach(function (e) {
+      var t = (e.textContent || '').trim(); if (t && t.length < 600 && (TROUBLE.test(t) || e.classList.contains('sv-movedbox'))) pose('trouble', e); });
+    R.querySelectorAll('button').forEach(function (b) {
+      if (!/QR/.test(b.textContent || '') || b.closest('header')) return; var box = b.parentElement; if (box && !box.__lcp && box.offsetParent !== null) pose('phone', box); });
   }
   var EMPTY = /(まだ.{0,30}(ありません|いません)|がありません。?$|はありません。?$|まだ入っていません)/;
   function empties(root) {
@@ -1573,28 +1701,30 @@ var LaneMove = (function () {
       e.__lc = 1; e.insertBefore(img('explain', 'lc-ei', ''), e.firstChild);
     }
   }
+  var BIG = /まとめて.*(取り込みました|入れました)|全部(取り込み|入れ)ました|件(を)?取り込みました|完成|作りました/, THANKS = /ありがとう/;
   var DONE = /^(✔|✅|📋 コピー|📄|🟦|📥|🗑 削除しました)|PDFを(保存|作り)|保存しました|作りました|コピーしました|読み込みました|入れました/, SLEEP = /漏れ(は)?(ありません|なし)|すべて|全部|全員/;
   var toast, tm, last = '', lastAt = 0;
   function cheer(t) {
     var now = Date.now(); if (t === last && now - lastAt < 8000) return; last = t; lastAt = now;
     if (!toast) { toast = document.createElement('div'); toast.id = 'lcToast'; toast.setAttribute('aria-hidden', 'true'); document.body.appendChild(toast); }
-    var sl = SLEEP.test(t); toast.innerHTML = ''; toast.appendChild(img(sl ? 'sleep' : 'thumbs', '', ''));
-    toast.appendChild(document.createTextNode(sl ? 'おつかれさま！ 終わったら寝ちゃおう💤' : 'やったね！ その調子✨'));
-    clearTimeout(tm); requestAnimationFrame(function () { toast.className = 'on'; }); tm = setTimeout(function () { toast.className = ''; }, 2800);
+    var th = THANKS.test(t), big = !th && BIG.test(t), sl = !th && !big && SLEEP.test(t), k = th ? 'bow' : big ? 'celebrate' : sl ? 'sleep' : 'thumbs';
+    toast.innerHTML = ''; toast.className = (th || big) ? 'pose' : ''; toast.appendChild(img(k, '', ''));
+    toast.appendChild(document.createTextNode(th ? 'ありがとうございます！ ちゃんと届いたよ' : big ? 'できたー！ おめでとう🎉' : sl ? 'おつかれさま！ 終わったら寝ちゃおう💤' : 'やったね！ その調子✨'));
+    clearTimeout(tm); var pc = toast.className; requestAnimationFrame(function () { toast.className = (pc ? pc + ' ' : '') + 'on'; }); tm = setTimeout(function () { toast.className = pc; }, 2800);
   }
   function scanDone(n) {
     var el = n.nodeType === 1 ? n : n.parentElement; if (!el || el.closest('#lcToast')) return;
     var s = el.closest('.status, [role="status"], .sv-msg'); if (!s || /\b(ng|err|warn)\b/.test(s.className)) return;
-    var t = (s.textContent || '').trim(); if (t && t.length < 400 && DONE.test(t)) cheer(t);
+    var t = (s.textContent || '').trim(); if (t && t.length < 400 && (DONE.test(t) || THANKS.test(t))) cheer(t);
   }
   var q = false, added = [];
-  function flush() { q = false; var a = added; added = []; empties(); a.forEach(scanDone); }
+  function flush() { q = false; var a = added; added = []; empties(); try { poses(); } catch (e) { } a.forEach(scanDone); }
   function start() {
     if (!document.getElementById('lcCss')) { var st = document.createElement('style'); st.id = 'lcCss'; st.textContent = css; document.head.appendChild(st); }
-    avatar(); empties();
+    avatar(); empties(); try { poses(); } catch (e) { }
     try {
       new MutationObserver(function (ms) {
-        ms.forEach(function (m) { if (m.type === 'characterData') added.push(m.target); else for (var i = 0; i < m.addedNodes.length; i++) { var x = m.addedNodes[i]; if (x.nodeType === 1 && (x.id === 'lcToast' || (x.classList && (x.classList.contains('lc-ei') || x.classList.contains('lc-av'))))) continue; added.push(x); } });
+        ms.forEach(function (m) { if (m.type === 'characterData') added.push(m.target); else for (var i = 0; i < m.addedNodes.length; i++) { var x = m.addedNodes[i]; if (x.nodeType === 1 && (x.id === 'lcToast' || (x.classList && (x.classList.contains('lc-ei') || x.classList.contains('lc-pose') || x.classList.contains('lc-av'))))) continue; added.push(x); } });
         if (!q && added.length) { q = true; setTimeout(flush, 120); }
       }).observe(document.body, { childList: true, subtree: true, characterData: true });
     } catch (e) { }

@@ -63,7 +63,7 @@ await check('C510：1回の一覧は20件まで（ルールの上限）・条件
 // ===== C509：中継の転送の鎖（https → http → https）を止める =====
 const {default: worker, _resetRate} = await import('data:text/javascript;base64,' + fs.readFileSync(path.join(ROOT, 'worker/worker.js')).toString('base64'));
 const PDF = new TextEncoder().encode('%PDF-1.4\n% fictional\n%%EOF\n');
-const viaWorker = async (u, up) => { globalThis.fetch = async x => up(x); _resetRate(); return worker.fetch(new Request('https://lane-note-fetch.example.workers.dev/?url=' + encodeURIComponent(u), { headers: { Origin: 'https://masarun0721.github.io' } })); };
+const viaWorker = async (u, up) => { globalThis.fetch = async x => up(x); _resetRate(); return worker.fetch(new Request('https://lane-note-fetch.example.workers.dev/?url=' + encodeURIComponent(u), { headers: { Origin: 'https://lane-note.web.app' } })); };
 await check('C509 再現：https → 302 → http → 302 → https の鎖は、最後が https でも中継で止める', async () => {
   const up = u => u.startsWith('https://www.jaaf.or.jp/') ? new Response(null, { status: 302, headers: { Location: 'http://audit.example/mid' } })
     : u.startsWith('http://audit.example/') ? new Response(null, { status: 302, headers: { Location: 'https://audit.example/final.pdf' } }) : new Response(PDF, { headers: { 'Content-Type': 'application/pdf' } });

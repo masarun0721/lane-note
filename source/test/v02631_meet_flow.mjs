@@ -95,8 +95,8 @@ await check('結果のURLを登録してあれば、そのアドレスを読み�
 });
 const w4 = await page('https://masarun0721.github.io/lane-note/records.html?imp=' + encodeURIComponent('<b>x</b>'));
 await check('おかしな imp は無視（日付|大会名 の形だけ）', () => { assert.equal(w4.__t.imp(), null); assert(!w4.document.getElementById('impBar')); });
-await check('チームでも同じ：大会の印（teams/{id}/meets）の欄は決めていない（ルールの変更なし）・マネージャーも直せる', () => {
-  const r = fs.readFileSync(path.join(ROOT, 'firestore.rules'), 'utf8'); assert.match(r, /match \/meets\/\{k\} \{\s*allow read, write: if activeMember\(t\);/);
+await check('チームでも同じ：大会の印（teams/{id}/meets）の欄は決めていない（v0.29.4 から形と長さだけ検査）・マネージャーも直せる', () => {
+  const r = fs.readFileSync(path.join(ROOT, 'firestore.rules'), 'utf8'); assert.match(r, /match \/meets\/\{k\} \{\s*allow read, delete: if activeMember\(t\);\s*allow create, update: if activeMember\(t\) && validTeamMeet\(request\.resource\.data\);/);
 });
 // 大会準備：index.html?plan=日付|大会名
 await check('大会準備へ：その大会を選んだ状態（大会名・日付・会場）・案内が出る・端末の写しに無くても名前と日付は入る', async () => {

@@ -4,7 +4,7 @@ import {JSDOM} from 'jsdom';
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const {default: worker, _resetRate, blockedHost} = await import('data:text/javascript;base64,' + fs.readFileSync(path.join(root, 'worker/worker.js')).toString('base64'));
 const R = createRequire(import.meta.url)('../src/results.js');
-const OK = 'https://masarun0721.github.io'; let seen = [], reply;
+const OK = 'https://lane-note.web.app'; let seen = [], reply;
 globalThis.fetch = async (u, o) => { seen.push({ u, o }); return reply(u, o); };
 const req = (u, origin = OK, extra = {}) => new Request('https://lane-note-fetch.example.workers.dev/?url=' + encodeURIComponent(u), { headers: Object.assign({ Origin: origin }, extra) });
 const pdf = () => new Response('%PDF-1.4 fictional', { headers: { 'Content-Type': 'application/pdf' } });
@@ -44,9 +44,10 @@ await check('Cookie・Authorization は上流に渡さない', async () => {
   await worker.fetch(req('https://example.org/a.pdf', OK, { Cookie: 'sid=secret', Authorization: 'Bearer secret' }));
   const hd = new Headers(seen[0].o.headers); assert.equal(hd.get('cookie'), null); assert.equal(hd.get('authorization'), null); assert.equal(seen[0].o.redirect, 'manual');
 });
-await check('呼べるのは LANE NOTE のアドレスだけ（masarun0721.github.io・lane-note.web.app）', async () => {
+await check('呼べるのは LANE NOTE のアドレスだけ（lane-note.web.app。古い github.io は通さない）', async () => {
   assert.equal((await worker.fetch(req('https://example.org/a.pdf', 'https://lane-note.web.app'))).headers.get('access-control-allow-origin'), 'https://lane-note.web.app');
   assert.equal((await worker.fetch(req('https://example.org/a.pdf', 'https://evil.invalid'))).status, 403);
+  assert.equal((await worker.fetch(req('https://example.org/a.pdf', 'https://masarun0721.github.io'))).status, 403);
 });
 await check('回数制限：LIMITER がなくても IP ごとに1分1200回まで（1201回目は 429・別の IP は通る）', async () => {
   for (let i = 0; i < 1200; i++) assert.equal((await worker.fetch(req('https://example.org/a.pdf', OK, { 'CF-Connecting-IP': '203.0.113.5' }))).status, 200);

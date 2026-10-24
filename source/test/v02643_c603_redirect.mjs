@@ -8,7 +8,7 @@ console.log('[v0.26.43] C603 転送の鎖で https → http を止める');
 const originalFetch = globalThis.fetch, start = 'https://www.jaaf.or.jp/audit/start', endHttp = 'http://audit.example/final.pdf', endHttps = 'https://www.jaaf.or.jp/audit/final.pdf';
 let calls = [], body = '';
 globalThis.fetch = async u => { u = String(u); calls.push(u); if (u === start) { if (body === '302') return new Response(null, { status: 302, headers: { Location: endHttp } }); return new Response(body, { headers: { 'Content-Type': 'text/html' } }); } return new Response('%PDF-1.4\n% synthetic audit data\n', { headers: { 'Content-Type': 'application/pdf' } }); };
-const relay = async u => worker.default.fetch(new Request(u, { headers: { Origin: 'https://masarun0721.github.io', 'CF-Connecting-IP': '192.0.2.10' } }), {});
+const relay = async u => worker.default.fetch(new Request(u, { headers: { Origin: 'https://lane-note.web.app', 'CF-Connecting-IP': '192.0.2.10' } }), {});
 const page = to => '<html><head><meta http-equiv="refresh" content="0;url=' + to + '"></head><body>x</body></html>';
 const js = to => '<html><head><script>location.href="' + to + '";</script></head><body>x</body></html>';
 try {

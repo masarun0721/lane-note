@@ -115,7 +115,7 @@ try {
     if (SHOT) { await s.evaluate(() => window.scrollTo(0, 0)); await s.screenshot({ path: path.join(SHOT, 'fix71_student_390.png'), fullPage: true }); }
     await s.evaluate(() => document.querySelector('[data-sv="send"]').click()); await sl(800);
     const r = await stu(); assert(/送りました/.test(r.t) && /送り直す/.test(r.t), r.t); assert(r.sw <= r.vw);
-    const a = (await db(s))['surveys/' + SID + '/answers/r1']; assert.deepEqual(Object.keys(a).sort(), ['at', 'cm', 'ev1', 'ev2', 'expireAt', 'join', 'rel', 'relay'].sort());
+    const a = (await db(s))['surveys/' + SID + '/answers/r1']; assert.deepEqual(Object.keys(a).sort(), ['at', 'cm', 'd1', 'dv', 'ev1', 'ev2', 'expireAt', 'join', 'rel', 'relay'].sort()); assert.match(a.d1, /^[A-Za-z0-9]{16}$/); assert.equal(a.d1, a.dv);
     assert.equal(a.ev1, '男子100m'); assert.equal(a.ev2, '男子走幅跳'); assert.equal(a.relay, 'ok'); assert.equal(a.cm.length, 100);
     if (SHOT) await s.screenshot({ path: path.join(SHOT, 'fix71_student_sent_390.png') });
   });

@@ -72,6 +72,17 @@ var LaneSurvey = (function () {
     return { ok: o };
   }
 
+  // v0.29.4 この端末の印（ランダム16文字・この端末の中だけに保存）。名前などは入れない
+  var DKEY = 'lanenote.dev.v1';
+  function devId() {
+    var v = ''; try { v = localStorage.getItem(DKEY) || ''; } catch (e) { }
+    if (/^[A-Za-z0-9]{16}$/.test(v)) return v;
+    var A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789', r = new Uint8Array(16); (globalThis.crypto).getRandomValues(r);
+    v = ''; for (var i = 0; i < 16; i++) v += A[r[i] % 62];
+    try { localStorage.setItem(DKEY, v); } catch (e) { }
+    return v;
+  }
+  function movedNames(c, A) { return (c && c.roster || []).map(function (r, i) { return A && A[i] && A[i].moved ? r.n : null; }).filter(Boolean); }
   /* ---------- Firebase ---------- */
   var FBP = null;
   async function fb() {   // 選手側：ログインなしで Firestore だけ使う
@@ -92,7 +103,7 @@ var LaneSurvey = (function () {
     var TS = function (m) { return F.Timestamp.fromMillis(m); };
     async function answers(sid) {
       var s = await F.getDocs(F.collection(fs, 'surveys', sid, 'answers')); ok(); var out = {};
-      s.forEach(function (d) { var m = /^r(\d{1,3})$/.exec(d.id); if (!m) return; var v = d.data() || {}; out[+m[1]] = { ev1: String(v.ev1 || ''), ev2: String(v.ev2 || ''), relay: String(v.relay || ''), rel: String(v.rel || ''), rel2: String(v.rel2 || ''), cm: String(v.cm || ''), join: v.join !== false, at: ms(v.at) }; });
+      s.forEach(function (d) { var m = /^r(\d{1,3})$/.exec(d.id); if (!m) return; var v = d.data() || {}; out[+m[1]] = { ev1: String(v.ev1 || ''), ev2: String(v.ev2 || ''), relay: String(v.relay || ''), rel: String(v.rel || ''), rel2: String(v.rel2 || ''), cm: String(v.cm || ''), join: v.join !== false, at: ms(v.at), moved: !!(v.d1 && v.dv && v.d1 !== v.dv) }; });
       return out;
     }
     return {
@@ -152,7 +163,20 @@ var LaneSurvey = (function () {
         var c = cleanAnswer(a, s); if (c.err) { var e = new Error(c.err); e.code = 'invalid'; throw e; }
         if (!(idx >= 0 && idx < s.roster.length)) { var e2 = new Error('名前を選んでください'); e2.code = 'invalid'; throw e2; }
         var o = c.ok, w = { ev1: o.ev1, ev2: o.ev2, relay: o.relay, rel: o.rel, cm: o.cm, at: F.serverTimestamp(), expireAt: s.expireAt }; if (o.join != null) w.join = o.join; if (o.rel2) w.rel2 = o.rel2;
-        await F.setDoc(F.doc(fs, 'surveys', s.id, 'answers', 'r' + idx), w);
+        // v0.29.4（H1）この端末の印（dv）を付ける。最初に送った端末の印（d1）は作るときだけ入れ、上書きでは変えない（ルールで固定）。
+        //   ちがう端末からの上書きは、顧問の画面で「⚠ 別の端末から書きかえ」と出す（止めはしない）
+        var ref = F.doc(fs, 'surveys', s.id, 'answers', 'r' + idx), dv = devId(); w.dv = dv;
+        var u = Object.assign({}, w); if (u.join == null) u.join = F.deleteField(); if (!u.rel2) u.rel2 = F.deleteField();
+        try { await F.updateDoc(ref, u); }
+        catch (e) {
+          if (!e || (e.code !== 'not-found' && e.code !== 'permission-denied')) throw e;
+          try { w.d1 = dv; await F.setDoc(ref, w); }
+          catch (e2) {
+            if (!e2 || e2.code !== 'permission-denied') throw e.code === 'permission-denied' ? e : e2;
+            // まだ古いルール（d1・dv を知らない）のときでも調査が止まらないよう、印なしで1回だけ送り直す
+            delete w.d1; delete w.dv; await F.setDoc(ref, w);
+          }
+        }
         return o;
       }
     };
@@ -316,6 +340,6 @@ var LaneSurvey = (function () {
     '.fc-two{display:grid;grid-template-columns:1fr 1fr;gap:4mm}.fc-l{margin:0;display:flex;flex-wrap:wrap;gap:2px 10px}.fc-l small{color:#5a6577}.fc-foot{margin-top:10px;font-size:8px;color:#7a8394;text-align:right}';
   function sheetDoc(s) { return '<!doctype html><html lang="ja"><head><meta charset="utf-8"><style>' + SHEET_CSS + '</style></head><body>' + s.html + '</body></html>'; }
   return { sheet: sheet, sheetDoc: sheetDoc, gNo: gNo, validId: validId, newId: newId, linkFor: linkFor, buildDocs: buildDocs, cleanAnswer: cleanAnswer, coach: coach, student: student, apply: apply, fb: fb, setFirebase: setFirebase, initLink: initLink, renderStudent: renderStudent,
-    defaultDeadline: defaultDeadline, dayEnd: dayEnd, jstDay: jstDay, when: when, dayLabel: dayLabel, sexName: sexName, evShort: evShort, esc: esc, CMMAX: CMMAX, KEEP: KEEP };
+    defaultDeadline: defaultDeadline, dayEnd: dayEnd, jstDay: jstDay, when: when, dayLabel: dayLabel, sexName: sexName, evShort: evShort, esc: esc, CMMAX: CMMAX, KEEP: KEEP, devId: devId, movedNames: movedNames };
 })();
 if (typeof module !== 'undefined') module.exports = LaneSurvey;

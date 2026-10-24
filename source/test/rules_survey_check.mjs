@@ -147,7 +147,15 @@ try {
     if (await stu(anonDb).load(SID) !== null) throw new Error('止めたのに読めた');
     await assertFails(getDoc(doc(anonDb, 'surveys', SID))); await cool(SID, 'r0'); await assertFails(rawAns(anonDb, SID, 'r0', {}));
     await assertSucceeds(getDoc(doc(db('alice'), 'surveys', SID)));
-    await coach('alice').setOpen(SID, true); await assertSucceeds(rawAns(anonDb, SID, 'r0', {}));
+    await coach('alice').setOpen(SID, true); const o0 = await adminGet('surveys/' + SID + '/answers/r0'); const k0 = o0 && o0.d1 ? { d1: o0.d1, dv: o0.d1 } : {}; await assertSucceeds(rawAns(anonDb, SID, 'r0', k0));
+    if (k0.d1) { await cool(SID, 'r0'); await assertFails(rawAns(anonDb, SID, 'r0', {})); } // v0.29.4 最初の端末の印（d1）は消せない
+  });
+  await test('v0.29.4 端末の印：作るときは d1==dv（16文字）。上書きで dv は変えられる・d1 は変えられない', async () => {
+    const A = 'Aa'.repeat(8), B = 'Bb'.repeat(8), C = 'Cc'.repeat(8); const [p, a] = docsFor('alice'); const SID = ID('d'); await rawCreate('alice', SID, p, a);
+    await assertFails(rawAns(anonDb, SID, 'r0', { d1: A, dv: B })); await assertFails(rawAns(anonDb, SID, 'r0', { d1: 'short', dv: 'short' }));
+    await assertSucceeds(rawAns(anonDb, SID, 'r0', { d1: A, dv: A })); await cool(SID, 'r0');
+    await assertSucceeds(rawAns(anonDb, SID, 'r0', { d1: A, dv: B })); await cool(SID, 'r0');
+    await assertFails(rawAns(anonDb, SID, 'r0', { d1: C, dv: C }));
   });
   await test('締切：締切を過ぎると、ログインなしは読めない・送れない（新しく・送り直し）', async () => {
     const [p, a] = docsFor('alice'); const sid = ID('h'); await rawCreate('alice', sid, p, a);

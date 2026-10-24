@@ -4,7 +4,7 @@ import fs from 'node:fs'; import assert from 'node:assert/strict'; import vm fro
 const worker=await import('data:text/javascript;base64,'+fs.readFileSync(new URL('../../worker/worker.js',import.meta.url)).toString('base64'));
 const sandbox={URL,TextDecoder,Uint8Array,Blob,File,AbortController,setTimeout,clearTimeout,console};sandbox.window=sandbox;sandbox.addEventListener=()=>{};
 vm.createContext(sandbox);vm.runInContext(fs.readFileSync(new URL('../src/urlload.js',import.meta.url),'utf8'),sandbox);
-const orig=globalThis.fetch,relay=async u=>worker.default.fetch(new Request(u,{headers:{Origin:'https://masarun0721.github.io','CF-Connecting-IP':'192.0.2.10'}}),{});
+const orig=globalThis.fetch,relay=async u=>worker.default.fetch(new Request(u,{headers:{Origin:'https://lane-note.web.app','CF-Connecting-IP':'192.0.2.10'}}),{});
 let passed=0,failed=0;async function check(n,f){try{worker._resetRate();await f();passed++;console.log('PASS',n)}catch(e){failed++;console.log('FAIL',n,e.stack)}}
 try{
  await check('C603 mixed chain: HTTP->302 HTTPS->HTML HTTP is rejected before final HTTP fetch',async()=>{

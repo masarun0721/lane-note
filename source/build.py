@@ -13,7 +13,7 @@ import base64, hashlib, html as htmlmod, json, pathlib, re, sys
 ROOT = pathlib.Path(__file__).resolve().parent
 S = ROOT / 'src'
 SHARE_BASE = 'https://lane-note.web.app/'   # 共有リンク・QRの公開アドレス。src/mode.js の LANE_SITE と同じにする（build で確かめる）
-VERSION = 'v0.29.3'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
+VERSION = 'v0.29.6'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
 # 作成日は版番号から取れないので固定（ビルドした日で変わると、公開時の一致検査ができないため）
 BUILD_DATE = '2026年10月12日'
 REC_VERSION = 'v0.11.1'   # LANE LOG（records.html）だけの版
@@ -136,6 +136,7 @@ def build_jaaf():
     for k, v in rep.items():
         assert k in g, k
         g = g.replace(k, v)
+    g = re.sub(r'__IMG_([a-z_]+)__', lambda m: img_url(m.group(1)) or (_ for _ in ()).throw(AssertionError(m.group(1))), g)   # v0.29.5 レーンちゃん
     return g
 
 
@@ -163,6 +164,7 @@ def build_manual():
         inner = inner.replace('</p>', '</p>' + toc, 1) if toc else inner
         body.append('<article class="mb-art" id="%s"><span class="mb-tag%s">%s</span><h2>%s</h2>%s<p class="mb-up"><a href="#list">↑ 記事の一覧へ</a></p></article>' % (aid, '' if i else ' n', tag, title, inner))
     g = g.replace('__CARDS__', '\n'.join(cards)).replace('__ARTICLES__', '\n'.join(body))
+    g = re.sub(r'__VIDEO_([a-z_]+)\|([^_]+)__', lambda m: video_html(m.group(1), m.group(2)), g)   # v0.29.6 説明動画
     g = re.sub(r'__IMG_([a-z_]+)__', lambda m: img_url(m.group(1)) or (_ for _ in ()).throw(AssertionError(m.group(1))), g)
     rep = {'__BASE_CSS__': base[base.index('<style>') + 7:base.index('</style>')], '__LOGO_DARK__': logo_inline('logo/option_A_dark.svg'),
            '__FAVICON__': 'data:image/svg+xml;base64,' + b64('logo/option_A_icon.svg'),
@@ -214,7 +216,24 @@ def build_check():
     return g
 
 
-MANUAL_IMG = 'img/manual'   # v0.25.3：マニュアルの絵（guide.html には埋め込まず、別ファイルとして公開する）
+MANUAL_IMG = 'img/manual'
+MANUAL_VIDEO = 'img/manual/video'   # v0.29.6 説明動画（mp4＋ポスターwebp）。service worker では保存しない
+
+
+def video_assets():
+    d = ROOT / MANUAL_VIDEO
+    return sorted(p for p in d.iterdir() if p.suffix in ('.mp4', '.webp')) if d.exists() else []
+
+
+def vid_url(name, ext):
+    p = ROOT / MANUAL_VIDEO / (name + ext)
+    assert p.exists(), p
+    return '%s/%s%s?v=%s' % (MANUAL_VIDEO, name, ext, hashlib.sha256(p.read_bytes()).hexdigest()[:8])
+
+
+def video_html(name, title):
+    return ('<figure class="mb-video"><video controls preload="none" playsinline width="1280" height="720" poster="%s" aria-label="説明動画：%s"><source src="%s" type="video/mp4"></video>'
+            '<figcaption>▶ 説明動画：%s（約1分・音が出ます）</figcaption></figure>') % (vid_url(name, '.webp'), title, vid_url(name, '.mp4'), title)   # v0.25.3：マニュアルの絵（guide.html には埋め込まず、別ファイルとして公開する）
 
 
 def manual_assets():
@@ -415,6 +434,16 @@ def write(out, *bodies):
     for p in dst.glob('*.webp'):
         if p.name not in keep:
             p.unlink()
+    vd = out / MANUAL_VIDEO   # v0.29.6 説明動画
+    vd.mkdir(parents=True, exist_ok=True)
+    vkeep = set()
+    for p in video_assets():
+        vkeep.add(p.name)
+        if not (vd / p.name).exists() or (vd / p.name).read_bytes() != p.read_bytes():
+            (vd / p.name).write_bytes(p.read_bytes())
+    for p in vd.iterdir():
+        if p.name not in vkeep:
+            p.unlink()
     print(' / '.join('%s %d' % (out / n, len(b)) for n, b in zip(OUTPUTS, bodies)))
 
 
@@ -436,13 +465,23 @@ def with_lanechan(name, body):
     js = text('src/lanechan.js')
     for k in ('explain', 'thumbs', 'sleep'):
         js = js.replace('__LC_%s__' % k, img_url('lc_%s_face' % k))
+    for k in ('trouble', 'bow', 'idea', 'celebrate', 'wave', 'phone'):   # v0.29.5 全身のポーズ
+        js = js.replace('__LC_%s__' % k, img_url('lc_%s' % k))
     assert '__LC_' not in js
     i = body.rindex('</body>')
     return body[:i] + '<script>\n' + js + '\n</script>\n' + body[i:]
 
 
+def with_spfix(name, body):
+    """v0.29.5 スマホの見直しの CSS（src/spfix.css）をどのページにも入れる"""
+    if not name.endswith('.html') or '</head>' not in body:
+        return body
+    i = body.index('</head>')
+    return body[:i] + '<style id="spFix">\n' + text('src/spfix.css') + '</style>\n' + body[i:]
+
+
 def main(argv):
-    bodies = tuple(with_lanechan(n, with_move(n, b)) for n, b in zip(OUTPUTS, build()))
+    bodies = tuple(with_spfix(n, with_lanechan(n, with_move(n, b))) for n, b in zip(OUTPUTS, build()))
     if len(argv) == 2 and argv[0] == '--out':
         write(pathlib.Path(argv[1]), *bodies)
         return 0
@@ -465,7 +504,17 @@ def main(argv):
         for p in extra:
             print('NG: %s はソースにない絵です' % p)
             ng += 1
-        print('OK: マニュアルの絵 %d 枚' % len(assets) if not ng else '')
+        va = video_assets()
+        for p in va:
+            f = d / MANUAL_VIDEO / p.name
+            if not f.exists() or f.read_bytes() != p.read_bytes():
+                print('NG: %s がソースの動画と一致しません' % f)
+                ng += 1
+        for p in ((d / MANUAL_VIDEO).iterdir() if (d / MANUAL_VIDEO).exists() else []):
+            if p.name not in {a.name for a in va}:
+                print('NG: %s はソースにない動画のファイルです' % p)
+                ng += 1
+        print('OK: マニュアルの絵 %d 枚・動画のファイル %d 個' % (len(assets), len(va)) if not ng else '')
         return 1 if ng else 0
     if argv:
         print(__doc__)

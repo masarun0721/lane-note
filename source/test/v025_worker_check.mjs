@@ -2,7 +2,7 @@
 import fs from 'node:fs'; import path from 'node:path'; import assert from 'node:assert/strict'; import {fileURLToPath} from 'node:url';
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const {default: worker, _resetRate} = await import('data:text/javascript;base64,' + fs.readFileSync(path.join(root, 'worker/worker.js')).toString('base64'));
-const OK = 'https://masarun0721.github.io';
+const OK = 'https://lane-note.web.app';
 let seen = [], reply, pass = 0, fail = 0;
 const plain = () => new Response('fictional upstream', { headers: { 'Content-Type': 'text/plain' } });
 globalThis.fetch = async (u, o) => { seen.push({ url: u, options: o }); return reply(u, o); };
