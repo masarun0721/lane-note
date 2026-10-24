@@ -1137,7 +1137,7 @@ body.sched-page main>.box:first-of-type>:not(#rbAuth):not(#rbAuthStatus):not(#rb
     <span class="badge">試作版</span>
   </div>
   <p class="tagline">記録：大会の結果から、自校の記録と自己ベストをためていく</p>
-  <nav class="pagenav ln-nav" id="lnNav" aria-label="ページ" data-nav="v0.26.22"><a href="records.html" class="pn-main" data-tb="records">📒 記録</a><a href="index.html" class="pn-main" data-tb="index">🏁 大会準備</a><a href="check.html" class="pn-main" data-tb="check">✅ 照合</a><a href="schedule.html" class="pn-main tb-sched on" data-tb="schedule" aria-current="page">📅 大会予定</a><button type="button" class="pn-b pn-menu" aria-expanded="false" aria-controls="lnNavSub">≡ メニュー</button><div class="pn-sub" id="lnNavSub"><a href="guide.html#changelog" class="tb-btn tb-guide tb-cl" data-tb="changelog">📰 更新情報</a><a href="team.html" class="tb-btn tb-guide tb-team" data-tb="team">👥 チーム</a><a href="guide.html#manual" class="tb-btn tb-guide tb-manual" data-tb="manual">📖 マニュアル</a><a href="guide.html" class="tb-btn tb-guide tb-begin" data-tb="guide">🔰 はじめての人はこちら</a><a href="try.html" class="tb-btn tb-guide tb-try" data-tb="try">⏱ 3分体験</a><button type="button" class="tb-btn fb-link" data-feedback="1" data-tb="feedback">🚨 不具合・要望を送る</button><button type="button" class="tb-btn mode-sw" id="modeSw" aria-label="顧問モードと選手モードを切りかえる">👤 モードを選ぶ</button></div><style>.pagenav.ln-nav{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;margin-top:10px;position:relative}.ln-nav a,.ln-nav .pn-b,.ln-nav .tb-btn{display:inline-flex;align-items:center;gap:4px;min-height:30px;box-sizing:border-box;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.45);border-radius:999px;padding:3px 12px;font-size:13px;font-weight:600;text-decoration:none;cursor:pointer;font-family:inherit;line-height:1.3;white-space:nowrap}.ln-nav a,.ln-nav .pn-b,.ln-nav .tb-btn{transition:none!important}.ln-nav a:not(.on),.ln-nav .pn-b,.ln-nav .tb-btn:not(.on){color:#fff!important;background:rgba(255,255,255,.14)!important}.ln-nav .pn-sub .pn-b,.ln-nav .pn-sub a:not(.on),.ln-nav .pn-sub .tb-btn:not(.on){background:rgba(255,255,255,.10)!important}.ln-nav a.on,.ln-nav .tb-btn.on{background:#fff!important;color:#1f3a68!important;border-color:#fff!important;font-weight:800}.ln-nav .tb-btn.mode-sw small{font-size:11px;opacity:.8;margin-left:4px}.ln-nav .cl-new{background:#e4572e;color:#fff;border-radius:999px;font-size:10px;padding:0 6px;font-weight:800}.pagenav.ln-nav{flex-wrap:nowrap;max-width:100%;min-width:0;box-sizing:border-box}header{overflow-x:clip}header>.pagenav.ln-nav{max-width:min(100%,1180px);margin-left:auto;margin-right:auto}.ln-nav .pn-sub{display:none}.ln-nav.open .pn-sub{display:flex;flex-direction:column;align-items:stretch;gap:6px;position:fixed;z-index:1000;min-width:230px;max-width:calc(100vw - 16px);box-sizing:border-box;overflow:auto;background:rgba(15,22,40,.96);border:1px solid rgba(255,255,255,.35);border-radius:12px;padding:10px}.pagenav.ln-nav.open{z-index:1001}.ln-nav .pn-sub>*{justify-content:flex-start;min-height:40px;font-size:14px}.ln-nav .pn-menu .cl-new{margin-left:2px}body.ln-player .ln-nav .pn-menu .cl-new{display:none}body.ln-player .ln-nav .pn-main,body.ln-player .ln-nav .tb-team,body.ln-player .ln-nav .tb-sched,body.ln-player .ln-nav [data-tb="changelog"]{display:none!important}@media screen and (max-width:720px){.pagenav.ln-nav{gap:6px}.ln-nav .pn-main,.ln-nav .pn-menu{padding:3px 9px;font-size:13px}}@media print{.ln-nav{display:none!important}}</style><script>(function () { var n = document.currentScript.parentNode, m = n.querySelector(".pn-menu"), sub = n.querySelector(".pn-sub"); var mains = [].slice.call(n.querySelectorAll(".pn-main")), first = sub.firstChild; function vis(x) { return x.offsetWidth > 0; } function close() { if (n.classList.contains("open")) { n.classList.remove("open"); m.setAttribute("aria-expanded", "false"); } } function over() { var lim = n.getBoundingClientRect().right - (parseFloat(n.style.paddingRight) || 0) + 1; return m.getBoundingClientRect().right > lim; } var lastFold = ""; function fit() { mains.forEach(function (x) { n.insertBefore(x, m); x.classList.remove("pn-in"); }); n.style.paddingRight = ""; n.style.marginTop = "";  var c = document.querySelector(".hdr-meta>.use-count"), nr = n.getBoundingClientRect();  if (c && !c.hidden && c.offsetWidth) { var cr = c.getBoundingClientRect(); if (cr.bottom > nr.top - 2 && cr.top < nr.top + 34 && cr.left < nr.right) { n.style.paddingRight = Math.ceil(nr.right - cr.left + 8) + "px"; if (over()) { n.style.paddingRight = ""; n.style.marginTop = Math.ceil(cr.bottom - nr.top + 16) + "px"; } } }  for (var i = mains.length - 1; i >= 0 && over(); i--) { if (vis(mains[i])) { sub.insertBefore(mains[i], sub.firstChild); mains[i].classList.add("pn-in"); } }  var f = mains.filter(function (x) { return x.classList.contains("pn-in"); }).length + ""; if (f !== lastFold) { lastFold = f; close(); }  if (window.scrollX) window.scrollTo(0, window.scrollY); place(); } function place() { if (!n.classList.contains("open")) return; var r = m.getBoundingClientRect(), vw = document.documentElement.clientWidth, vh = window.innerHeight;  sub.style.top = Math.round(r.bottom + 6) + "px"; sub.style.maxHeight = Math.max(120, vh - r.bottom - 14) + "px"; var w = sub.offsetWidth;  sub.style.left = Math.round(Math.max(8, Math.min(r.left, vw - w - 8))) + "px"; } window.__lnNavFit = fit; window.__lnNavPlace = place; window.addEventListener("resize", fit); window.addEventListener("load", fit); setTimeout(fit, 0); if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit); if (window.ResizeObserver) new ResizeObserver(function () { clearTimeout(n._ft); n._ft = setTimeout(fit, 50); }).observe(n.parentNode); window.addEventListener("scroll", place, { passive: true }); window.addEventListener("pageshow", close); var cc = document.querySelector(".hdr-meta>.use-count"); if (cc && window.MutationObserver) new MutationObserver(function () { setTimeout(fit, 0); }).observe(cc, { attributes: true, childList: true, subtree: true }); m.addEventListener("click", function (e) { e.stopPropagation(); var o = n.classList.toggle("open"); m.setAttribute("aria-expanded", o); place(); setTimeout(function () { if (window.scrollX) window.scrollTo(0, window.scrollY); }, 0); }); document.addEventListener("click", function (e) { if (!n.contains(e.target)) close(); }); document.addEventListener("keydown", function (e) { if (e.key === "Escape" && n.classList.contains("open")) { close(); m.focus(); } }); })();</script></nav>
+  <nav class="pagenav ln-nav" id="lnNav" aria-label="ページ" data-nav="v0.26.22"><a href="records.html" class="pn-main" data-tb="records">📒 記録</a><a href="index.html" class="pn-main" data-tb="index">🏁 大会準備</a><a href="check.html" class="pn-main" data-tb="check">✅ 照合</a><a href="schedule.html" class="pn-main tb-sched on" data-tb="schedule" aria-current="page">📅 大会予定</a><button type="button" class="pn-b pn-menu" aria-expanded="false" aria-controls="lnNavSub">≡ メニュー</button><div class="pn-sub" id="lnNavSub"><a href="guide.html#changelog" class="tb-btn tb-guide tb-cl" data-tb="changelog">📰 更新情報</a><a href="team.html" class="tb-btn tb-guide tb-team" data-tb="team">👥 チーム</a><a href="manual.html" class="tb-btn tb-guide tb-manual" data-tb="manual">📖 マニュアル</a><a href="guide.html" class="tb-btn tb-guide tb-begin" data-tb="guide">🔰 はじめての人はこちら</a><a href="try.html" class="tb-btn tb-guide tb-try" data-tb="try">⏱ 3分体験</a><button type="button" class="tb-btn fb-link" data-feedback="1" data-tb="feedback">🚨 不具合・要望を送る</button><button type="button" class="tb-btn mode-sw" id="modeSw" aria-label="顧問モードと選手モードを切りかえる">👤 モードを選ぶ</button></div><style>.pagenav.ln-nav{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;margin-top:10px;position:relative}.ln-nav a,.ln-nav .pn-b,.ln-nav .tb-btn{display:inline-flex;align-items:center;gap:4px;min-height:30px;box-sizing:border-box;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.45);border-radius:999px;padding:3px 12px;font-size:13px;font-weight:600;text-decoration:none;cursor:pointer;font-family:inherit;line-height:1.3;white-space:nowrap}.ln-nav a,.ln-nav .pn-b,.ln-nav .tb-btn{transition:none!important}.ln-nav a:not(.on),.ln-nav .pn-b,.ln-nav .tb-btn:not(.on){color:#fff!important;background:rgba(255,255,255,.14)!important}.ln-nav .pn-sub .pn-b,.ln-nav .pn-sub a:not(.on),.ln-nav .pn-sub .tb-btn:not(.on){background:rgba(255,255,255,.10)!important}.ln-nav a.on,.ln-nav .tb-btn.on{background:#fff!important;color:#1f3a68!important;border-color:#fff!important;font-weight:800}.ln-nav .tb-btn.mode-sw small{font-size:11px;opacity:.8;margin-left:4px}.ln-nav .cl-new{background:#e4572e;color:#fff;border-radius:999px;font-size:10px;padding:0 6px;font-weight:800}.pagenav.ln-nav{flex-wrap:nowrap;max-width:100%;min-width:0;box-sizing:border-box}header{overflow-x:clip}header>.pagenav.ln-nav{max-width:min(100%,1180px);margin-left:auto;margin-right:auto}.ln-nav .pn-sub{display:none}.ln-nav.open .pn-sub{display:flex;flex-direction:column;align-items:stretch;gap:6px;position:fixed;z-index:1000;min-width:230px;max-width:calc(100vw - 16px);box-sizing:border-box;overflow:auto;background:rgba(15,22,40,.96);border:1px solid rgba(255,255,255,.35);border-radius:12px;padding:10px}.pagenav.ln-nav.open{z-index:1001}.ln-nav .pn-sub>*{justify-content:flex-start;min-height:40px;font-size:14px}.ln-nav .pn-menu .cl-new{margin-left:2px}body.ln-player .ln-nav .pn-menu .cl-new{display:none}body.ln-player .ln-nav .pn-main,body.ln-player .ln-nav .tb-team,body.ln-player .ln-nav .tb-sched,body.ln-player .ln-nav [data-tb="changelog"]{display:none!important}@media screen and (max-width:720px){.pagenav.ln-nav{gap:6px}.ln-nav .pn-main,.ln-nav .pn-menu{padding:3px 9px;font-size:13px}}@media print{.ln-nav{display:none!important}}</style><script>(function () { var n = document.currentScript.parentNode, m = n.querySelector(".pn-menu"), sub = n.querySelector(".pn-sub"); var mains = [].slice.call(n.querySelectorAll(".pn-main")), first = sub.firstChild; function vis(x) { return x.offsetWidth > 0; } function close() { if (n.classList.contains("open")) { n.classList.remove("open"); m.setAttribute("aria-expanded", "false"); } } function over() { var lim = n.getBoundingClientRect().right - (parseFloat(n.style.paddingRight) || 0) + 1; return m.getBoundingClientRect().right > lim; } var lastFold = ""; function fit() { mains.forEach(function (x) { n.insertBefore(x, m); x.classList.remove("pn-in"); }); n.style.paddingRight = ""; n.style.marginTop = "";  var c = document.querySelector(".hdr-meta>.use-count"), nr = n.getBoundingClientRect();  if (c && !c.hidden && c.offsetWidth) { var cr = c.getBoundingClientRect(); if (cr.bottom > nr.top - 2 && cr.top < nr.top + 34 && cr.left < nr.right) { n.style.paddingRight = Math.ceil(nr.right - cr.left + 8) + "px"; if (over()) { n.style.paddingRight = ""; n.style.marginTop = Math.ceil(cr.bottom - nr.top + 16) + "px"; } } }  for (var i = mains.length - 1; i >= 0 && over(); i--) { if (vis(mains[i])) { sub.insertBefore(mains[i], sub.firstChild); mains[i].classList.add("pn-in"); } }  var f = mains.filter(function (x) { return x.classList.contains("pn-in"); }).length + ""; if (f !== lastFold) { lastFold = f; close(); }  if (window.scrollX) window.scrollTo(0, window.scrollY); place(); } function place() { if (!n.classList.contains("open")) return; var r = m.getBoundingClientRect(), vw = document.documentElement.clientWidth, vh = window.innerHeight;  sub.style.top = Math.round(r.bottom + 6) + "px"; sub.style.maxHeight = Math.max(120, vh - r.bottom - 14) + "px"; var w = sub.offsetWidth;  sub.style.left = Math.round(Math.max(8, Math.min(r.left, vw - w - 8))) + "px"; } window.__lnNavFit = fit; window.__lnNavPlace = place; window.addEventListener("resize", fit); window.addEventListener("load", fit); setTimeout(fit, 0); if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit); if (window.ResizeObserver) new ResizeObserver(function () { clearTimeout(n._ft); n._ft = setTimeout(fit, 50); }).observe(n.parentNode); window.addEventListener("scroll", place, { passive: true }); window.addEventListener("pageshow", close); var cc = document.querySelector(".hdr-meta>.use-count"); if (cc && window.MutationObserver) new MutationObserver(function () { setTimeout(fit, 0); }).observe(cc, { attributes: true, childList: true, subtree: true }); m.addEventListener("click", function (e) { e.stopPropagation(); var o = n.classList.toggle("open"); m.setAttribute("aria-expanded", o); place(); setTimeout(function () { if (window.scrollX) window.scrollTo(0, window.scrollY); }, 0); }); document.addEventListener("click", function (e) { if (!n.contains(e.target)) close(); }); document.addEventListener("keydown", function (e) { if (e.key === "Escape" && n.classList.contains("open")) { close(); m.focus(); } }); })();</script></nav>
 </header>
 
 <div id="modePick" hidden role="dialog" aria-modal="true" aria-labelledby="mpTtl"><div class="mp-card">
@@ -1202,7 +1202,7 @@ body.sched-page main>.box:first-of-type>:not(#rbAuth):not(#rbAuthStatus):not(#rb
       <div class="mgrid">
         <label>日付 <b class="req">＊</b><input type="date" id="rmDate"></label>
         <label>大会名 <span class="mnote">（空なら「大会名なし（日付）」）</span><input id="rmMeet" list="rmMeets" maxlength="100" placeholder="例：区民大会"></label>
-        <label>氏名 <b class="req">＊</b><input id="rmName" list="rmNames" maxlength="60" placeholder="例：本郷 太郎"></label>
+        <label>氏名 <b class="req">＊</b><input id="rmName" list="rmNames" maxlength="60" placeholder="例：陸上 太郎"></label>
         <label>フリガナ<input id="rmKana" maxlength="60" placeholder="例：ホンゴウ タロウ"></label>
         <label>学年<input id="rmGrade" maxlength="4" placeholder="例：2・中2・高1"></label>
         <label>所属<input id="rmTeam" list="rmTeams" maxlength="60" placeholder="例：本郷高"></label>
@@ -3493,7 +3493,7 @@ if (typeof module !== 'undefined') module.exports = LaneRoster;
 
 </script>
 <script>
-var APP_VERSION = "v0.29.1", REC_VERSION = "v0.11.1";
+var APP_VERSION = "v0.29.2", REC_VERSION = "v0.11.1";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>
@@ -7342,7 +7342,9 @@ if (typeof module !== 'undefined') module.exports = LaneEntry;
 (function (root) {
   'use strict';
   // v0.28.3 中継（Cloudflare Worker）のアドレス：ここだけで決める。名前を変えるときはここと README を直す
-  var PROXY = 'https://lane-note-fetch.masashi-sakata1007.workers.dev/';
+  // v0.29.2 新しい中継（個人名の入らないアドレス）ができたら、PROXY_NEW に入れる（Cloudflare で作った新しい中継のアドレス）。空のあいだは今の中継を使う
+  var PROXY_NEW = '';
+  var PROXY = PROXY_NEW || 'https://lane-note-fetch.masashi-sakata1007.workers.dev/';
   var MAX = 20 * 1048576;
   var MSG = {
     bad: 'URLの形が正しくありません（https:// から始まるアドレスを入れてください）',
@@ -12798,6 +12800,65 @@ var LaneMove = (function () {
   }
   if (typeof document !== 'undefined' && on()) { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start(); }
   return { start: start, render: render, newUrl: newUrl, hasLocal: hasLocal, on: on };
+})();
+
+</script>
+<script>
+/* v0.29.2 レーンちゃん（どのページにも小さく出る。押す所はふさがない・今までの動きは変えない）
+   ① 見出しのロゴの横に小さな顔（押すとマニュアル） ② 「まだ〜ありません」の所に小さな顔
+   ③ 「✔ 〜しました」などが出たら、右下に数秒だけグッド／すやすや（押せない・自分で消える） */
+(function () {
+  'use strict';
+  if (window.__laneChan) return; window.__laneChan = 1;
+  var IMG = { explain: 'img/manual/lc_explain_face.webp?v=f4754a17', thumbs: 'img/manual/lc_thumbs_face.webp?v=d68950b8', sleep: 'img/manual/lc_sleep_face.webp?v=668d8836' };
+  var css = '.lc-av{display:inline-flex;align-items:center;margin-left:8px;line-height:0;cursor:pointer;border-radius:50%;transition:transform .15s}.lc-av:hover{transform:scale(1.1) rotate(-6deg)}' +
+    '.lc-av img{width:34px;height:34px;border-radius:50%;border:2px solid #fff;background:#fff;object-fit:cover;box-shadow:0 1px 3px rgba(0,0,0,.25)}' +
+    '.lc-ei{width:26px;height:26px;border-radius:50%;border:1.5px solid #1f3a68;background:#fff;object-fit:cover;vertical-align:middle;margin:0 6px 0 0}' +
+    '#lcToast{position:fixed;right:12px;bottom:14px;z-index:9990;display:flex;align-items:center;gap:8px;background:#fff;border:2px solid #1f3a68;border-radius:16px;padding:5px 14px 5px 5px;box-shadow:0 4px 14px rgba(0,0,0,.18);pointer-events:none;opacity:0;transform:translateY(12px);transition:opacity .3s,transform .3s;font-size:13px;font-weight:700;color:#1f3a68;max-width:72vw}' +
+    '#lcToast.on{opacity:1;transform:none}#lcToast img{width:44px;height:44px;border-radius:50%;object-fit:cover;flex:none}' +
+    '@media (prefers-reduced-motion:reduce){#lcToast,.lc-av{transition:none}}@media print{.lc-av,.lc-ei,#lcToast{display:none!important}}';
+  function img(k, cls, alt) { var i = document.createElement('img'); i.src = IMG[k]; i.alt = alt || ''; i.className = cls || ''; i.width = 34; i.height = 34; i.decoding = 'async'; i.setAttribute('draggable', 'false'); return i; }
+  function avatar() {
+    var b = document.querySelector('header .brand'); if (!b || b.querySelector('.lc-av')) return;
+    var a = document.createElement('a'); a.className = 'lc-av'; a.href = 'manual.html'; a.title = 'レーンちゃんのマニュアル'; a.setAttribute('aria-label', 'レーンちゃんのマニュアルを開く');
+    a.appendChild(img('explain', '', '')); b.appendChild(a);
+  }
+  var EMPTY = /(まだ.{0,30}(ありません|いません)|がありません。?$|はありません。?$|まだ入っていません)/;
+  function empties(root) {
+    var els = (root || document).querySelectorAll('p.muted, p.small.muted, .muted.small, .empty, p.small');
+    for (var i = 0; i < els.length; i++) {
+      var e = els[i]; if (e.__lc || e.closest('header, #lcToast, .mb-art, .print, [contenteditable]')) continue;
+      var t = (e.textContent || '').trim(); if (!t || t.length > 90 || !EMPTY.test(t) || e.querySelector('input, select, textarea, img')) continue;
+      e.__lc = 1; e.insertBefore(img('explain', 'lc-ei', ''), e.firstChild);
+    }
+  }
+  var DONE = /^(✔|✅|📋 コピー|📄|🟦|📥|🗑 削除しました)|PDFを(保存|作り)|保存しました|作りました|コピーしました|読み込みました|入れました/, SLEEP = /漏れ(は)?(ありません|なし)|すべて|全部|全員/;
+  var toast, tm, last = '', lastAt = 0;
+  function cheer(t) {
+    var now = Date.now(); if (t === last && now - lastAt < 8000) return; last = t; lastAt = now;
+    if (!toast) { toast = document.createElement('div'); toast.id = 'lcToast'; toast.setAttribute('aria-hidden', 'true'); document.body.appendChild(toast); }
+    var sl = SLEEP.test(t); toast.innerHTML = ''; toast.appendChild(img(sl ? 'sleep' : 'thumbs', '', ''));
+    toast.appendChild(document.createTextNode(sl ? 'おつかれさま！ 終わったら寝ちゃおう💤' : 'やったね！ その調子✨'));
+    clearTimeout(tm); requestAnimationFrame(function () { toast.className = 'on'; }); tm = setTimeout(function () { toast.className = ''; }, 2800);
+  }
+  function scanDone(n) {
+    var el = n.nodeType === 1 ? n : n.parentElement; if (!el || el.closest('#lcToast')) return;
+    var s = el.closest('.status, [role="status"], .sv-msg'); if (!s || /\b(ng|err|warn)\b/.test(s.className)) return;
+    var t = (s.textContent || '').trim(); if (t && t.length < 400 && DONE.test(t)) cheer(t);
+  }
+  var q = false, added = [];
+  function flush() { q = false; var a = added; added = []; empties(); a.forEach(scanDone); }
+  function start() {
+    if (!document.getElementById('lcCss')) { var st = document.createElement('style'); st.id = 'lcCss'; st.textContent = css; document.head.appendChild(st); }
+    avatar(); empties();
+    try {
+      new MutationObserver(function (ms) {
+        ms.forEach(function (m) { if (m.type === 'characterData') added.push(m.target); else for (var i = 0; i < m.addedNodes.length; i++) { var x = m.addedNodes[i]; if (x.nodeType === 1 && (x.id === 'lcToast' || (x.classList && (x.classList.contains('lc-ei') || x.classList.contains('lc-av'))))) continue; added.push(x); } });
+        if (!q && added.length) { q = true; setTimeout(flush, 120); }
+      }).observe(document.body, { childList: true, subtree: true, characterData: true });
+    } catch (e) { }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();
 
 </script>

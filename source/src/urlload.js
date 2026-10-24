@@ -5,7 +5,9 @@
 (function (root) {
   'use strict';
   // v0.28.3 中継（Cloudflare Worker）のアドレス：ここだけで決める。名前を変えるときはここと README を直す
-  var PROXY = 'https://lane-note-fetch.masashi-sakata1007.workers.dev/';
+  // v0.29.2 新しい中継（個人名の入らないアドレス）ができたら、PROXY_NEW に入れる（Cloudflare で作った新しい中継のアドレス）。空のあいだは今の中継を使う
+  var PROXY_NEW = '';
+  var PROXY = PROXY_NEW || 'https://lane-note-fetch.masashi-sakata1007.workers.dev/';
   var MAX = 20 * 1048576;
   var MSG = {
     bad: 'URLの形が正しくありません（https:// から始まるアドレスを入れてください）',

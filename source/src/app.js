@@ -1060,7 +1060,7 @@
   /* ---------- v0.22.3 競技場の設定（専用の画面）：一覧（カード）→ 追加・編集のフォーム。保存するとひな形（端末＋アカウント）に入る ---------- */
   var VS = { edit: null, draft: null, pickNew: false };
   var VF = [['name', '名前', '例：スピアーズえどりくフィールド', true], ['address', '住所', '〒…'], ['phone', '電話', ''], ['station', '最寄り駅', '例：西葛西駅'], ['access', '駅からの行き方', '例：徒歩15分'], ['place', 'いつもの集合場所', '例：正門前'],
-    ['route', '交通費：経路', '例：本郷三丁目駅〜西葛西駅'], ['fareOne', '交通費：片道（円）', '例：520'], ['fareRound', '交通費：往復（円）', '例：1040'], ['fareNote', '交通費：メモ', '例：PASMO可'], ['memo', 'メモ', '']];
+    ['route', '交通費：経路', '例：〇〇駅〜△△駅'], ['fareOne', '交通費：片道（円）', '例：520'], ['fareRound', '交通費：往復（円）', '例：1040'], ['fareNote', '交通費：メモ', '例：PASMO可'], ['memo', 'メモ', '']];
   function ntEnsure() { if (!NT) NT = ntLoadLocal() || LaneNotice.defaults(); return NT; }
   function openVenues(prefill) {
     ntEnsure(); VS.edit = null; VS.draft = null; VS.pickNew = false;

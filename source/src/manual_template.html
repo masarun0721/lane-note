@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>📖 マニュアル（レーンちゃんの使い方ブログ）｜LANE NOTE</title>
+<meta name="description" content="LANE NOTE の使い方を、レーンちゃんがブログ形式で説明します。大会準備・照合・エントリー下書き・記録など。">
+<link rel="icon" type="image/svg+xml" href="__FAVICON__">
+<link rel="apple-touch-icon" sizes="180x180" href="__APPLE_ICON__">
+<style>
+__BASE_CSS__
+.mb-hero{display:grid;grid-template-columns:1fr 200px;gap:14px;align-items:center;background:#fff;border:2px solid var(--navy);border-radius:16px;padding:18px 20px;margin:0 0 16px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.mb-hero h2{margin:0 0 8px;font-size:24px;color:var(--navy);line-height:1.4}.mb-hero p{margin:0 0 8px;font-size:15px;line-height:1.8}.mb-hero img{width:100%;height:auto;display:block}
+.mb-kicker{display:inline-block;background:var(--navy);color:#fff;font-size:12px;font-weight:700;border-radius:999px;padding:2px 10px;margin:0 0 6px}
+.mb-h{font-size:19px;color:var(--navy);border-left:6px solid var(--navy);padding:2px 0 2px 10px;margin:22px 0 10px}
+.mb-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;margin:0 0 18px}
+.mb-card{display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;text-decoration:none;color:inherit;box-shadow:0 1px 4px rgba(0,0,0,.06);cursor:pointer;transition:transform .15s,box-shadow .15s}
+.mb-card:hover,.mb-card:focus-visible{transform:translateY(-3px);box-shadow:0 6px 16px rgba(20,40,80,.16)}
+.mb-thumb{position:relative;aspect-ratio:16/9;background:#eef2f8;overflow:hidden}.mb-thumb img.shot{width:100%;height:100%;object-fit:cover;object-position:top left;display:block}
+.mb-thumb img.lc{position:absolute;right:6px;bottom:4px;height:62%;width:auto;filter:drop-shadow(0 2px 3px rgba(0,0,0,.18));background:#fff;border-radius:12px}
+.mb-thumb.solo{display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#e8eef8,#fff)}.mb-thumb.solo img.lc{position:static;height:86%}
+.mb-cb{padding:10px 12px 12px}.mb-tag{font-size:11px;font-weight:700;color:#fff;background:#c0562c;border-radius:999px;padding:1px 8px}.mb-tag.n{background:var(--navy)}
+.mb-cb h3{margin:6px 0 4px;font-size:16px;line-height:1.45;color:var(--navy)}.mb-cb p{margin:0;font-size:13.5px;line-height:1.6;color:#444}
+.mb-art{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:0 0 18px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.mb-art>h2{font-size:21px;color:var(--navy);margin:4px 0 6px;line-height:1.45}.mb-meta{font-size:12px;color:#666;margin:0 0 10px}
+.mb-art h3{font-size:17px;margin:20px 0 8px;padding:6px 10px;background:#eef2f8;border-radius:8px;color:var(--navy)}
+.mb-art p,.mb-art li{font-size:15px;line-height:1.85}
+.mb-toc{background:#f7f9fc;border:1px solid #d6deea;border-radius:10px;padding:10px 14px;margin:8px 0 14px}.mb-toc b{font-size:14px;color:var(--navy)}.mb-toc ol{margin:6px 0 0;padding-left:1.4em}.mb-toc li{font-size:14px;line-height:1.7}.mb-toc a{color:var(--navy)}
+.say{display:flex;gap:10px;align-items:flex-start;margin:12px 0}.say img{width:56px;height:56px;border-radius:50%;border:2px solid var(--navy);background:#fff;flex:none;object-fit:cover}
+.say .bb{position:relative;background:#f1f5fb;border:1px solid #cdd8ea;border-radius:14px;padding:9px 13px;font-size:15px;line-height:1.75;max-width:640px}
+.say .bb::before{content:"";position:absolute;left:-9px;top:18px;border:8px solid transparent;border-right-color:#cdd8ea;border-left:0}.say .bb::after{content:"";position:absolute;left:-7px;top:19px;border:7px solid transparent;border-right-color:#f1f5fb;border-left:0}
+.say .who{display:block;font-size:11px;font-weight:700;color:var(--navy);margin-bottom:1px}
+.say.r{flex-direction:row-reverse}.say.r .bb{background:#fff7e6;border-color:#f0d29a}.say.r .bb::before{left:auto;right:-9px;border-right-color:transparent;border-left:8px solid #f0d29a;border-right:0}.say.r .bb::after{left:auto;right:-7px;border-right-color:transparent;border-left:7px solid #fff7e6;border-right:0}
+.say.r img{border-color:#c0562c;background:#fff7e6;object-fit:contain;padding:4px;box-sizing:border-box}
+.mb-steps{list-style:none;counter-reset:st;padding:0;margin:10px 0}.mb-steps>li{counter-increment:st;position:relative;padding:8px 10px 8px 46px;margin:0 0 8px;background:#fff;border:1px solid var(--line);border-radius:10px}
+.mb-steps>li::before{content:counter(st);position:absolute;left:10px;top:9px;width:26px;height:26px;border-radius:50%;background:var(--navy);color:#fff;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center}
+.mb-tip,.mb-note{border-radius:10px;padding:10px 14px;margin:12px 0;font-size:14.5px;line-height:1.75}.mb-tip{background:#eaf6ee;border-left:5px solid #2e8b57}.mb-note{background:#fff4e5;border-left:5px solid #d9822b}
+.mb-tip b:first-child,.mb-note b:first-child{display:block;margin-bottom:2px}
+.mb-feat{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin:8px 0}.mb-feat>div{border:1px solid var(--line);border-top:4px solid var(--navy);border-radius:10px;padding:8px 12px;background:#fff}
+.mb-feat h4{margin:2px 0 4px;font-size:15px;color:var(--navy)}.mb-feat ul{margin:0;padding-left:1.2em}.mb-feat li{font-size:14px;line-height:1.7}
+.mb-fig{margin:10px 0;text-align:center}.mb-fig img{max-width:100%;height:auto;border:1px solid var(--line);border-radius:10px}.mb-fig figcaption{font-size:12.5px;color:#555;margin-top:4px}
+.mb-btn{display:inline-flex;align-items:center;gap:6px;background:var(--navy);color:#fff!important;text-decoration:none;font-weight:700;border-radius:999px;padding:8px 16px;margin:4px 6px 4px 0;cursor:pointer;transition:filter .15s,transform .15s}.mb-btn:hover{filter:brightness(1.25);transform:translateY(-1px)}
+.mb-btn.sub{background:#fff;color:var(--navy)!important;border:2px solid var(--navy)}
+.mb-up{text-align:right;font-size:13px;margin:10px 0 0}.mb-up a{color:var(--navy)}
+.mb-end{display:flex;gap:14px;align-items:center;background:#f7f9fc;border-radius:14px;padding:12px 16px;margin:0 0 16px}.mb-end img{width:120px;height:auto;flex:none}.mb-end p{margin:0;font-size:15px;line-height:1.8}
+@media (max-width:640px){.mb-hero{grid-template-columns:1fr}.mb-hero img{max-width:170px;margin:0 auto}.mb-hero h2{font-size:20px}.mb-art{padding:14px 12px}.mb-art>h2{font-size:18px}.say img{width:46px;height:46px}.mb-end{flex-direction:column;text-align:center}}
+</style>
+</head>
+<body class="guide manual-blog">
+<header>
+  <div class="hdr-meta">
+    <div class="hdr-ver" aria-label="バージョン">__VERSION__</div>
+    <div class="credit">Presented by Sakata</div>
+    <div class="hdr-msg"><span class="hm-l">すべての陸上競技部顧問が、</span><span class="hm-l">少しでも楽になりますように。</span></div>
+  </div>
+  <div class="brand">
+    <h1 class="logo"><a class="logo-home" href="./" aria-label="ホームへ" title="ホームへ">__LOGO_DARK__<span class="vh">LANE NOTE（レーンノート）マニュアル</span></a></h1>
+    <span class="badge">試作版</span>
+  </div>
+  <p class="tagline">📖 マニュアル：レーンちゃんの使い方ブログ</p>
+  <nav class="pagenav" aria-label="ページ"><a href="records.html">📒 記録</a></nav>
+</header>
+__MODEPICK__
+<main>
+<section class="mb-hero" aria-labelledby="mbT">
+  <div>
+    <span class="mb-kicker">📖 LANE NOTE マニュアル</span>
+    <h2 id="mbT">さっさと仕事を終わらせて、寝ちゃおう。</h2>
+    <p>はじめまして、<b>レーンちゃん</b>です！ ウサギとカメのお話では、ウサギは途中で寝てしまって負けました。でも、LANE NOTE のウサギは<b>先に仕事を終わらせてから</b>寝ます。</p>
+    <p>大会の準備も、記録の整理も、手で打つと何時間もかかりますよね。このブログでは「どのボタンを押せば、何ができあがるか」を、場面ごとにやさしく説明します。気になる記事から読んでください。</p>
+    <a class="mb-btn" href="#a-features">🐰 こんな機能があるよ！</a><a class="mb-btn sub" href="try.html">⏱ 3分体験（架空のデータ）</a>
+  </div>
+  <img src="__IMG_lc_explain__" width="191" height="360" alt="クリップボードを持って説明するレーンちゃん">
+</section>
+
+<h2 class="mb-h" id="list">記事の一覧</h2>
+<div class="mb-cards">
+__CARDS__
+</div>
+
+__ARTICLES__
+
+<div class="mb-end"><img src="__IMG_lc_sleep__" width="312" height="360" alt="チェックリストを終えて眠るレーンちゃん" loading="lazy"><p>ここまで読んでくれて、ありがとう！ わからないところは「≡ メニュー」の <b>🔰 はじめての人はこちら</b> にくわしい説明とデータの取り扱いがあります。困ったことや要望は「🚨 不具合・要望を送る」から送ってください。<br>今日も仕事を早く終わらせて、ゆっくり寝ようね。おやすみなさい…💤</p></div>
+
+<section class="box" id="disclaimer"><h2>⚠ 試作版について・免責</h2><p>機能や画面は予告なく変わることがあります。記録が消えたり読み取りを間違えたりする可能性があるので、大事な記録は元の結果資料でも確認してください。この記事に出てくる学校名・選手名・記録はすべて架空のものです。</p><div class="notice">⚠ <b>試作版です。</b><button type="button" class="fb-link" data-feedback="1">📮 不具合・要望を送る</button>　本ツールはPDFの文字を読み取って自動で整理しているだけです。内容は必ず元のスタートリスト・タイムテーブル等と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div></section>
+<p class="small muted" style="text-align:center">LANE NOTE __VERSION__ ／ https://lane-note.web.app/</p>
+</main>
+<footer><div class="f-disc">ⓘ 本ツールの利用により生じた不利益について、作成者は責任を負いかねます。 お知らせ：<a href="https://x.com/lanenote" target="_blank" rel="noopener">X：@lanenote</a></div><div><b class="f-brand">LANE NOTE</b>（レーンノート）試作版 ／ <span class="f-credit">Presented by Sakata</span></div></footer>
+<script>
+__MODE__
+document.addEventListener('DOMContentLoaded', function () { LaneMode.init(); });
+</script>
+__FBSCRIPTS__
+</body>
+</html>

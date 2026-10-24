@@ -13,7 +13,7 @@ import base64, hashlib, html as htmlmod, json, pathlib, re, sys
 ROOT = pathlib.Path(__file__).resolve().parent
 S = ROOT / 'src'
 SHARE_BASE = 'https://lane-note.web.app/'   # 共有リンク・QRの公開アドレス。src/mode.js の LANE_SITE と同じにする（build で確かめる）
-VERSION = 'v0.29.1'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
+VERSION = 'v0.29.2'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
 # 作成日は版番号から取れないので固定（ビルドした日で変わると、公開時の一致検査ができないため）
 BUILD_DATE = '2026年10月12日'
 REC_VERSION = 'v0.11.1'   # LANE LOG（records.html）だけの版
@@ -96,11 +96,12 @@ def build():
     team = build_team(rec)
     sched = build_sched(rec)
     # v0.14（監査F13）：Service Worker のキャッシュ名に版とページの中身のハッシュを入れる（公開のたびに古いページが入れ替わる）
-    h = hashlib.sha256((html + rec + guide + chk + trial + team + sched).encode('utf-8')).hexdigest()[:10]
+    man = build_manual()
+    h = hashlib.sha256((html + rec + guide + chk + trial + team + sched + man).encode('utf-8')).hexdigest()[:10]
     sw = text('src/sw.js')
     assert '__CACHE__' in sw
     sw = sw.replace('__CACHE__', 'lanenote-page-%s-r%s-%s' % (VERSION, REC_VERSION, h))
-    return html, sw, rec, text('src/firebase-config.js'), guide, chk, trial, team, build_intro(), sched, build_admin(), build_jaaf()
+    return html, sw, rec, text('src/firebase-config.js'), guide, chk, trial, team, build_intro(), sched, build_admin(), build_jaaf(), man
 
 
 def build_admin():
@@ -136,6 +137,40 @@ def build_jaaf():
         assert k in g, k
         g = g.replace(k, v)
     return g
+
+
+def build_manual():
+    """v0.29.2 マニュアル（manual.html）：レーンちゃんが説明するブログ形式。記事は src/manual_articles.html、カードと目次はここで作る"""
+    import html as H
+    base = text('src/template.html')
+    g = text('src/manual_template.html')
+    for t in (g, text('src/manual_articles.html')):
+        assert not re.search('分け合う|jaaf|JAAF用|masarun', t)
+    arts = re.findall(r'<article id="([^"]+)" data-title="([^"]+)" data-lead="([^"]+)" data-tag="([^"]+)"(?: data-shot="([^"]+)")? data-lc="([^"]+)">(.*?)</article>', text('src/manual_articles.html'), re.S)
+    assert len(arts) >= 8, len(arts)
+    cards, body = [], []
+    for i, (aid, title, lead, tag, shot, lc, inner) in enumerate(arts):
+        th = ('<div class="mb-thumb"><img class="shot" src="%s" alt="" loading="lazy" width="320" height="200"><img class="lc" src="%s" alt="" loading="lazy"></div>' % (img_url(shot), img_url(lc))) if shot else ('<div class="mb-thumb solo"><img class="lc" src="%s" alt="" loading="lazy"></div>' % img_url(lc))
+        cards.append('<a class="mb-card" href="#%s">%s<div class="mb-cb"><span class="mb-tag%s">%s</span><h3>%s</h3><p>%s</p></div></a>' % (aid, th, '' if i else ' n', tag, title, lead))
+        n = [0]
+        heads = []
+        def hid(m):
+            n[0] += 1
+            heads.append(m.group(1))
+            return '<h3 id="%s-%d">%s</h3>' % (aid, n[0], m.group(1))
+        inner = re.sub(r'<h3>(.*?)</h3>', hid, inner)
+        toc = '<nav class="mb-toc" aria-label="この記事の目次"><b>📑 目次</b><ol>%s</ol></nav>' % ''.join('<li><a href="#%s-%d">%s</a></li>' % (aid, k + 1, h) for k, h in enumerate(heads)) if len(heads) > 1 else ''
+        inner = inner.replace('</p>', '</p>' + toc, 1) if toc else inner
+        body.append('<article class="mb-art" id="%s"><span class="mb-tag%s">%s</span><h2>%s</h2>%s<p class="mb-up"><a href="#list">↑ 記事の一覧へ</a></p></article>' % (aid, '' if i else ' n', tag, title, inner))
+    g = g.replace('__CARDS__', '\n'.join(cards)).replace('__ARTICLES__', '\n'.join(body))
+    g = re.sub(r'__IMG_([a-z_]+)__', lambda m: img_url(m.group(1)) or (_ for _ in ()).throw(AssertionError(m.group(1))), g)
+    rep = {'__BASE_CSS__': base[base.index('<style>') + 7:base.index('</style>')], '__LOGO_DARK__': logo_inline('logo/option_A_dark.svg'),
+           '__FAVICON__': 'data:image/svg+xml;base64,' + b64('logo/option_A_icon.svg'),
+           '__APPLE_ICON__': 'data:image/png;base64,' + b64('logo/png/option_A_icon_180.png'), '__VERSION__': VERSION, '__MODEPICK__': MODEPICK, '__MODE__': text('src/mode.js') + '\n' + text('src/plans.js'), '__FBSCRIPTS__': fb_scripts()}
+    for k, v in rep.items():
+        assert k in g, k
+        g = g.replace(k, v)
+    return with_nav(g, 'manual')
 
 
 def build_intro():
@@ -209,7 +244,7 @@ def buttons_html():
     def chip(sid, t):
         it = [x for x in scr[sid]['items'] if x['t'] == t][0]
         return '<span class="%s bx-chip" aria-hidden="true">%s</span>' % (E(it['c']), E(t))
-    out = ['<section class="box g-card" id="manual"><h2>📖 マニュアル</h2><p data-xp="" data-xp-at="h2">LANE NOTE で「何ができるか」を、やりたいこと別にまとめました。まず自分に近いものを選んでください。下には、画面ごとのボタンの説明があります。絵は架空のデータで撮った実際の画面です（押すと大きく表示）。</p>',
+    out = ['<section class="box g-card" id="manual"><h2>📖 マニュアル</h2><p data-xp="" data-xp-at="h2">LANE NOTE で「何ができるか」を、やりたいこと別にまとめました。まず自分に近いものを選んでください。下には、画面ごとのボタンの説明があります。絵は架空のデータで撮った実際の画面です（押すと大きく表示）。</p><p class="g-tip">🐰 場面ごとのくわしい説明は、レーンちゃんの<a href="manual.html"><b>📖 マニュアル（使い方ブログ）</b></a>にもあります。</p>',
            '<h3>こんなときに使えます</h3><nav class="bx-toc" aria-label="やりたいこと">']
     out += ['<a href="#u%d">%s</a>' % (i + 1, E(u['q'])) for i, u in enumerate(data['purposes'])]
     out.append('</nav><h3>画面ごとのボタン</h3><nav class="bx-toc" aria-label="画面ごとの目次">')
@@ -252,7 +287,7 @@ def build_guide():
 #   チームは選手モードでは出さない（body.ln-player）。intro.html は印刷して配るA4 1枚なので、ボタンの列は付けない
 NAV_MAIN = [('records', 'records.html', '📒 記録'), ('index', 'index.html', '🏁 大会準備'), ('check', 'check.html', '✅ 照合')]
 NAV_SUB = [('guide', 'guide.html', 'tb-begin', '🔰 はじめての人はこちら'), ('try', 'try.html', 'tb-try', '⏱ 3分体験'),
-           ('team', 'team.html', 'tb-team', '👥 チーム'), ('manual', 'guide.html#manual', 'tb-manual', '📖 マニュアル')]
+           ('team', 'team.html', 'tb-team', '👥 チーム'), ('manual', 'manual.html', 'tb-manual', '📖 マニュアル')]
 NAV_CSS = (
     '<style>'
     '.pagenav.ln-nav{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;margin-top:10px;position:relative}'
@@ -363,7 +398,7 @@ def build_records(index_html):
     return rec
 
 
-OUTPUTS = ('index.html', 'sw.js', 'records.html', 'firebase-config.js', 'guide.html', 'check.html', 'try.html', 'team.html', 'intro.html', 'schedule.html', 'admin.html', 'jaaf.html')   # 公開するファイル（--check もこれらを確かめる）
+OUTPUTS = ('index.html', 'sw.js', 'records.html', 'firebase-config.js', 'guide.html', 'check.html', 'try.html', 'team.html', 'intro.html', 'schedule.html', 'admin.html', 'jaaf.html', 'manual.html')   # 公開するファイル（--check もこれらを確かめる）
 
 
 def write(out, *bodies):
@@ -391,8 +426,23 @@ def with_move(name, body):
     return body[:i] + '<script>\n' + text('src/move.js') + '\n</script>\n' + body[i:]
 
 
+LANECHAN_SKIP = ('jaaf.html', 'admin.html')   # v0.29.2 レーンちゃんを出さないページ（JAAF入力の手伝い・作成者用の管理）
+
+
+def with_lanechan(name, body):
+    """v0.29.2 レーンちゃん（src/lanechan.js）をどのページにも小さく出す（jaaf.html・admin.html は出さない）"""
+    if not name.endswith('.html') or name in LANECHAN_SKIP:
+        return body
+    js = text('src/lanechan.js')
+    for k in ('explain', 'thumbs', 'sleep'):
+        js = js.replace('__LC_%s__' % k, img_url('lc_%s_face' % k))
+    assert '__LC_' not in js
+    i = body.rindex('</body>')
+    return body[:i] + '<script>\n' + js + '\n</script>\n' + body[i:]
+
+
 def main(argv):
-    bodies = tuple(with_move(n, b) for n, b in zip(OUTPUTS, build()))
+    bodies = tuple(with_lanechan(n, with_move(n, b)) for n, b in zip(OUTPUTS, build()))
     if len(argv) == 2 and argv[0] == '--out':
         write(pathlib.Path(argv[1]), *bodies)
         return 0
