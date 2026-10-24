@@ -3493,7 +3493,7 @@ if (typeof module !== 'undefined') module.exports = LaneRoster;
 
 </script>
 <script>
-var APP_VERSION = "v0.29.2", REC_VERSION = "v0.11.1";
+var APP_VERSION = "v0.29.3", REC_VERSION = "v0.11.1";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>
@@ -12811,8 +12811,9 @@ var LaneMove = (function () {
   'use strict';
   if (window.__laneChan) return; window.__laneChan = 1;
   var IMG = { explain: 'img/manual/lc_explain_face.webp?v=f4754a17', thumbs: 'img/manual/lc_thumbs_face.webp?v=d68950b8', sleep: 'img/manual/lc_sleep_face.webp?v=668d8836' };
-  var css = '.lc-av{display:inline-flex;align-items:center;margin-left:8px;line-height:0;cursor:pointer;border-radius:50%;transition:transform .15s}.lc-av:hover{transform:scale(1.1) rotate(-6deg)}' +
-    '.lc-av img{width:34px;height:34px;border-radius:50%;border:2px solid #fff;background:#fff;object-fit:cover;box-shadow:0 1px 3px rgba(0,0,0,.25)}' +
+  var css = '.lc-av{display:inline-flex;align-items:center;gap:6px;margin-left:8px;padding:2px 10px 2px 2px;border-radius:999px;background:#fff;color:#1f3a68;text-decoration:none;font-size:12px;font-weight:700;line-height:1.2;white-space:nowrap;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .15s,background .15s;vertical-align:middle}.lc-av:hover{transform:translateY(-1px);background:#fff4ec}.lc-av:hover img{transform:rotate(-8deg)}' +
+    '.lc-av img{width:30px;height:30px;border-radius:50%;background:#fff;object-fit:cover;flex:none;transition:transform .15s}.lc-av span{position:relative}' +
+    '@media (max-width:420px){.lc-av{font-size:11px;padding-right:8px;gap:4px;margin-left:6px}.lc-av img{width:26px;height:26px}}' +
     '.lc-ei{width:26px;height:26px;border-radius:50%;border:1.5px solid #1f3a68;background:#fff;object-fit:cover;vertical-align:middle;margin:0 6px 0 0}' +
     '#lcToast{position:fixed;right:12px;bottom:14px;z-index:9990;display:flex;align-items:center;gap:8px;background:#fff;border:2px solid #1f3a68;border-radius:16px;padding:5px 14px 5px 5px;box-shadow:0 4px 14px rgba(0,0,0,.18);pointer-events:none;opacity:0;transform:translateY(12px);transition:opacity .3s,transform .3s;font-size:13px;font-weight:700;color:#1f3a68;max-width:72vw}' +
     '#lcToast.on{opacity:1;transform:none}#lcToast img{width:44px;height:44px;border-radius:50%;object-fit:cover;flex:none}' +
@@ -12821,7 +12822,7 @@ var LaneMove = (function () {
   function avatar() {
     var b = document.querySelector('header .brand'); if (!b || b.querySelector('.lc-av')) return;
     var a = document.createElement('a'); a.className = 'lc-av'; a.href = 'manual.html'; a.title = 'レーンちゃんのマニュアル'; a.setAttribute('aria-label', 'レーンちゃんのマニュアルを開く');
-    a.appendChild(img('explain', '', '')); b.appendChild(a);
+    a.appendChild(img('explain', '', '')); var t = document.createElement('span'); t.textContent = '使い方はこちら'; a.appendChild(t); b.appendChild(a);
   }
   var EMPTY = /(まだ.{0,30}(ありません|いません)|がありません。?$|はありません。?$|まだ入っていません)/;
   function empties(root) {
