@@ -346,11 +346,23 @@
       q.onsuccess = function () { var d = q.result; try { var g = d.transaction('records').objectStore('records').getAll(); g.onsuccess = function () { d.close(); ok(g.result || []); }; g.onerror = function () { d.close(); ok([]); }; } catch (e) { d.close(); ok([]); } };
     });
   }
+  function pbTeamId(uid) { if (!uid) return ''; try { return localStorage.getItem('lanenote.team.v1.' + uid) || ''; } catch (e) { return ''; } }
+  function pbTeamAny() { try { for (var i = 0; i < localStorage.length; i++) if (/^lanenote\.team\.v1\./.test(localStorage.key(i) || '') && localStorage.getItem(localStorage.key(i))) return true; } catch (e) { } return false; }
+  async function pbReadTeam(id) {
+    if (!FB || !FB.F) return null;
+    var g = FB.F.getDocsFromServer || FB.F.getDocs, snap = await withTimeout(g(FB.F.collection(FB.fs, 'teams', id, 'records')), 15000), out = [];
+    snap.forEach(function (d) { var v = d.data(); if (v && !v._del) out.push(v); });
+    return out;
+  }
   async function loadPBs() {
     if (CLOUD_OK && !FB) { try { await Promise.race([loadFirebase(), new Promise(function (_, ng) { setTimeout(function () { ng(new Error('timeout')); }, 4000); })]); } catch (e) { } }
-    var sc = authScope(), recs = await pbReadDb(sc.uid ? 'lanenote-cache-' + sc.uid : 'lanenote-records');
+    var sc = authScope(), recs = null, warn = '', tm = pbTeamId(sc.uid);
+    // v0.31.1：記録帳の保存先が「チーム」なら、チームの記録を読む（記録帳と同じ teams/<id>/records。読めるかはルールが決める）。読めなければ端末の控え＋注意
+    if (tm) { try { recs = await pbReadTeam(tm); } catch (e) { recs = null; } if (!authOk(sc)) return; if (!recs) warn = 'チームの記録を読めなかったため、この端末の控えでPB・前回を出しています（古いことがあります）'; }
+    else if (!sc.uid && pbTeamAny()) warn = 'ログインしていないため、チームの記録ではなくこの端末の控えでPB・前回を出しています（古いことがあります）';
+    if (!recs) recs = await pbReadDb(sc.uid ? 'lanenote-cache-' + sc.uid : 'lanenote-records');
     if (!authOk(sc)) return;
-    PBS = { sc: sc, look: ResultParser.pbLookup(recs) };
+    PBS = { sc: sc, look: ResultParser.pbLookup(recs), warn: warn };
   }
   function pbOf(r) {
     if (!PBS.look || !PBS.sc || !authOk(PBS.sc) || r.typ === 'relay' || !r.name) return null;
@@ -376,6 +388,7 @@
           '</td><td class="c p-gr">' + esc(gradeText(r.grade)) + '</td><td class="p-pb">' + pbHtml(pbOf(r)) + '</td><td class="p-pb">' + lastHtml(pbOf(r)) + '</td><td class="wc"><div class="wl"></div></td><td class="wc' + (w ? '' : ' nowind') + '">' + (w ? '<div class="wl"></div>' : '') + '</td><td class="wc"><div class="wl"></div></td></tr>';
       }).join('') + '</tbody>';
     }).join('');
+    if (PBS.warn) info = info.replace('<span class="pi-pb">', '<span class="pi-pb pi-warn">⚠ ' + esc(PBS.warn) + '</span><span class="pi-pb">');
     $('recSheet').innerHTML = '<table class="ptab prec"><colgroup><col style="width:4%"><col style="width:9%"><col style="width:7%"><col style="width:22%"><col style="width:5%"><col style="width:11%"><col style="width:13%"><col style="width:16%"><col style="width:7%"><col style="width:6%"></colgroup><thead>' + band('記録用紙', N) +
       '<tr class="pcols"><th>組</th><th>レーン</th><th>No.</th><th>氏名</th><th>学年</th><th>PB</th><th>前回</th><th>記録</th><th>風</th><th>順位</th></tr></thead>' + info + body + '</table>';
   }
@@ -1523,7 +1536,7 @@
     if (prevUid && prevUid !== uid) { ssClear(); try { resetScreen(); } catch (e) { } }   // v0.26.42 C601：一時保存も必ず消す   // ログアウト・別のアカウント：前の人の読み取り結果を消す
     if (PREP && PREP.owner.uid !== (uid || '')) prepDetach('アカウントが変わったので、「' + PREP.p.meet + '」への保存をやめました（前のアカウントの保存は出しません）。');   // A01
     PLANS = []; try { planPickFill(); } catch (e) { } if (uid) planPickCloud();
-    clearAllShares(); shareShort = ''; PL.links = {}; PBS = { sc: null, look: null }; setTimeout(function () { loadPBs().catch(function () { }); }, 0);
+    clearAllShares(); shareShort = ''; PL.links = {}; PBS = { sc: null, look: null, warn: '' }; setTimeout(function () { loadPBs().catch(function () { }); }, 0);
     try { renderShareAuth(); plAuth(); if (!$('playerDlg').hidden) renderPlayerList(); } catch (e) { }
     if (uid) document.querySelectorAll('.myShares').forEach(function (b) { renderMyShares(b); });
   }
