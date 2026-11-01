@@ -473,6 +473,10 @@ footer a{color:var(--navy)}
   .v-saved{margin-top:14px}
   ul.saved{list-style:none;padding:0;margin:6px 0}ul.saved li{display:flex;gap:6px;margin:6px 0}
   ul.saved .sv-open{flex:1;text-align:left;white-space:normal}ul.saved .sv-open small{display:block;font-weight:400;opacity:.8}
+  .fixe,.fixu{font-size:12px;padding:2px 8px;margin:2px 2px 0 0;border:1px solid var(--line);border-radius:6px;background:#fff;cursor:pointer;min-height:28px}
+  .fixb{display:inline-block;font-size:11px;font-weight:700;color:#7a4b00;background:#fff3cd;border:1px solid #e6c36a;border-radius:6px;padding:0 6px;margin-right:2px}
+  .fixgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:8px 0}.fixgrid label{display:flex;flex-direction:column;font-size:13px;gap:2px}.fixgrid input{font-size:16px;padding:6px;border:1px solid var(--line);border-radius:8px}
+  #fixMsg .err{color:#b00020;display:block}#fixMsg .wrn{color:#7a4b00;display:block}
   .dlg{position:fixed;inset:0;background:rgba(20,33,61,.55);z-index:50;display:flex;align-items:center;justify-content:center;padding:14px}
   .dlg[hidden]{display:none}
   .dlg-in{background:#fff;border-radius:16px;max-width:460px;width:100%;max-height:92vh;overflow:auto;padding:16px 18px;box-shadow:0 10px 40px rgba(0,0,0,.25)}
@@ -485,7 +489,7 @@ footer a{color:var(--navy)}
   #paneTime .tw,#paneAth .tw,#paneTime .scrollhint,#paneAth .scrollhint{display:none}
   #timeCards,#athCards{display:block}
 }
-@media print{.mcards,#viewer,#savedHome,.dlg,#player{display:none!important}}
+@media print{.mcards,#viewer,#savedHome,.dlg,#player,.fixe,.fixu{display:none!important}}
   .pl-list{margin:8px 0}.pl-row{display:grid;grid-template-columns:1fr 84px;gap:6px 10px;align-items:center;border-top:1px solid var(--line);padding:10px 0}
   .pl-who b{display:block;font-size:16px}.pl-who small{color:var(--muted)}.pl-qr{grid-row:span 2;width:84px}.pl-qr svg{width:84px;height:84px;display:block}
   .pl-link{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.pl-link input{flex:1 1 100%;font-size:11px;font-family:monospace;padding:4px;border:1px solid var(--line);border-radius:6px}.pl-link small{color:var(--muted);flex:1}
@@ -766,6 +770,22 @@ __TOPBAR__
 <section class="box" id="savedHome" hidden>
   <h2>📱 この端末に保存した大会</h2><div class="savedList"></div>
 </section>
+<div id="fixDlg" class="dlg" hidden role="dialog" aria-modal="true" aria-labelledby="fixTtl">
+  <div class="dlg-in">
+    <h3 id="fixTtl">✏️ 読み取りを直す</h3>
+    <p class="small" id="fixWho"></p>
+    <p class="small muted">資料の読み取りがまちがっているときだけ直してください。直した値はこの端末に保存し、招集時刻・記録用紙・印刷・共有リンクにも使います。</p>
+    <div class="fixgrid">
+      <label>開始時刻<input id="fixStart" inputmode="numeric" placeholder="13:30" autocomplete="off"></label>
+      <label>招集（開始）<input id="fixCs" inputmode="numeric" placeholder="13:05" autocomplete="off"></label>
+      <label>招集（完了）<input id="fixCe" inputmode="numeric" placeholder="13:15" autocomplete="off"></label>
+      <label>組<input id="fixHeat" inputmode="numeric" placeholder="1" autocomplete="off"></label>
+      <label><span id="fixPosL">レーン／試技順</span><input id="fixPos" inputmode="numeric" placeholder="4" autocomplete="off"></label>
+    </div>
+    <div id="fixMsg" class="small" aria-live="polite"></div>
+    <div class="dlg-btns"><button class="btn" id="fixSave" type="button">保存</button><button class="btn sub" id="fixClose" type="button">やめる</button></div>
+  </div>
+</div>
 <div id="shareDlg" class="dlg" hidden role="dialog" aria-modal="true" aria-labelledby="shareTtl">
   <div class="dlg-in">
     <h3 id="shareTtl">📱 スマホで見る／共有</h3>

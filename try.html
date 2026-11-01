@@ -472,6 +472,10 @@ footer a{color:var(--navy)}
   .v-saved{margin-top:14px}
   ul.saved{list-style:none;padding:0;margin:6px 0}ul.saved li{display:flex;gap:6px;margin:6px 0}
   ul.saved .sv-open{flex:1;text-align:left;white-space:normal}ul.saved .sv-open small{display:block;font-weight:400;opacity:.8}
+  .fixe,.fixu{font-size:12px;padding:2px 8px;margin:2px 2px 0 0;border:1px solid var(--line);border-radius:6px;background:#fff;cursor:pointer;min-height:28px}
+  .fixb{display:inline-block;font-size:11px;font-weight:700;color:#7a4b00;background:#fff3cd;border:1px solid #e6c36a;border-radius:6px;padding:0 6px;margin-right:2px}
+  .fixgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:8px 0}.fixgrid label{display:flex;flex-direction:column;font-size:13px;gap:2px}.fixgrid input{font-size:16px;padding:6px;border:1px solid var(--line);border-radius:8px}
+  #fixMsg .err{color:#b00020;display:block}#fixMsg .wrn{color:#7a4b00;display:block}
   .dlg{position:fixed;inset:0;background:rgba(20,33,61,.55);z-index:50;display:flex;align-items:center;justify-content:center;padding:14px}
   .dlg[hidden]{display:none}
   .dlg-in{background:#fff;border-radius:16px;max-width:460px;width:100%;max-height:92vh;overflow:auto;padding:16px 18px;box-shadow:0 10px 40px rgba(0,0,0,.25)}
@@ -484,7 +488,7 @@ footer a{color:var(--navy)}
   #paneTime .tw,#paneAth .tw,#paneTime .scrollhint,#paneAth .scrollhint{display:none}
   #timeCards,#athCards{display:block}
 }
-@media print{.mcards,#viewer,#savedHome,.dlg,#player{display:none!important}}
+@media print{.mcards,#viewer,#savedHome,.dlg,#player,.fixe,.fixu{display:none!important}}
   .pl-list{margin:8px 0}.pl-row{display:grid;grid-template-columns:1fr 84px;gap:6px 10px;align-items:center;border-top:1px solid var(--line);padding:10px 0}
   .pl-who b{display:block;font-size:16px}.pl-who small{color:var(--muted)}.pl-qr{grid-row:span 2;width:84px}.pl-qr svg{width:84px;height:84px;display:block}
   .pl-link{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.pl-link input{flex:1 1 100%;font-size:11px;font-family:monospace;padding:4px;border:1px solid var(--line);border-radius:6px}.pl-link small{color:var(--muted);flex:1}
@@ -743,7 +747,7 @@ details.act>summary .sum-x{display:none}
 <body class="trypage">
 <header>
   <div class="hdr-meta">
-    <div class="hdr-ver" aria-label="バージョン">v0.30.1</div>
+    <div class="hdr-ver" aria-label="バージョン">v0.31.0</div>
     <div class="credit">Presented by Sakata</div>
     <div class="hdr-msg"><span class="hm-l">すべての陸上競技部顧問が、</span><span class="hm-l">少しでも楽になりますように。</span></div>
   </div>
@@ -1873,7 +1877,44 @@ var MeetLogic = (function () {
   var CALL_NG = '⚠ 招集時刻を読めませんでした', HEAT_NG = '⚠組?';
   function callText(r) { return r.call || (r.callNG ? CALL_NG : ''); }
   function heatText(r) { return r.heatNG ? HEAT_NG : (r.heat == null ? '' : r.heat); }
-  return { CALL_NG: CALL_NG, HEAT_NG: HEAT_NG, callText: callText, heatText: heatText, tentative: tentative, tentName: tentName, UNKNOWN: UNKNOWN, fees: fees, feeCat: feeCat, CATS: CATS, build: build, byAthlete: byAthlete, byTime: byTime, cards: cards, findTeams: findTeams, allTeams: allTeams, fmt: fmt, toMin: toMin };
+  /* v0.31.0 手直し：読み取りがまちがっていた行を先生が直す（開始・招集・組・レーン/試技順）。行の番号ではなく「種目＋ラウンド＋日付＋選手（ナンバー・名前）／リレーのチーム」で覚える */
+  function fixKey(r) {
+    if (!r || r.tent) return '';
+    var who = r.typ === 'relay' ? 'R|' + (r.relayTeam || '') : 'I|' + (r.bib || '') + '|' + (r.name || '');
+    return [r.team || '', who, r.event || '', r.round || '', r.date || ''].join('|');
+  }
+  var FIX_TIME = /^([01]?\d|2[0-3]):[0-5]\d$/;
+  // 入力を確かめる。推測して直さない（「1230」「12時30分」は直さずにエラー）。空欄は「空のまま」
+  function checkFix(o) {
+    var s = function (v) { return String(v == null ? '' : v).trim(); }, v = { start: s(o.start), callStart: s(o.callStart), callEnd: s(o.callEnd), heat: s(o.heat), pos: s(o.pos) }, errs = [], warns = [];
+    if (v.start && !FIX_TIME.test(v.start)) errs.push('開始時刻は「13:30」のように 時:分 で入れてください');
+    if (v.callStart && !FIX_TIME.test(v.callStart)) errs.push('招集の開始は「13:05」のように 時:分 で入れてください');
+    if (v.callEnd && !FIX_TIME.test(v.callEnd)) errs.push('招集の完了は「13:15」のように 時:分 で入れてください');
+    if (!!v.callStart !== !!v.callEnd) errs.push('招集は開始と完了の両方を入れてください（どちらも空なら招集なし）');
+    if (v.heat && !/^\d{1,3}$/.test(v.heat)) errs.push('組は数字（1〜999）で入れてください');
+    if (v.heat && +v.heat < 1) errs.push('組は1以上で入れてください');
+    if (v.pos && !/^\d{1,3}$/.test(v.pos)) errs.push('レーン／試技順は数字（1〜999）で入れてください');
+    if (!errs.length) {
+      var a = toMin(v.callStart), b = toMin(v.callEnd), c = toMin(v.start);
+      if (a != null && b != null && a > b) warns.push('招集の開始が完了より後になっています');
+      if (b != null && c != null && b > c) warns.push('招集の完了が開始時刻より後になっています');
+      if (!v.start) warns.push('開始時刻が空です');
+    }
+    return { ok: !errs.length, errs: errs, warns: warns, val: v };
+  }
+  // 手直しを行に当てる（元の値は fixOrig に残す）。fixes = { キー: {start, callStart, callEnd, heat, pos} }
+  function applyFix(rows, fixes) {
+    if (!fixes) return rows;
+    (rows || []).forEach(function (r) {
+      if (r.fixed) return; var f = fixes[fixKey(r)]; if (!f || !checkFix(f).ok) return;
+      r.fixOrig = { start: r.start, call: callText(r), heat: heatText(r), pos: r.pos };
+      r.start = f.start; r.startMin = toMin(f.start);
+      r.callStart = f.callStart; r.callEnd = f.callEnd; r.call = f.callStart ? f.callStart + '〜' + f.callEnd : ''; r.callNG = false; r.callSrc = 'fix';
+      r.heat = f.heat === '' ? null : +f.heat; r.heatNG = false; r.pos = f.pos; r.conflict = false; r.fixed = true;
+    });
+    return rows;
+  }
+  return { CALL_NG: CALL_NG, HEAT_NG: HEAT_NG, fixKey: fixKey, checkFix: checkFix, applyFix: applyFix, callText: callText, heatText: heatText, tentative: tentative, tentName: tentName, UNKNOWN: UNKNOWN, fees: fees, feeCat: feeCat, CATS: CATS, build: build, byAthlete: byAthlete, byTime: byTime, cards: cards, findTeams: findTeams, allTeams: allTeams, fmt: fmt, toMin: toMin };
 })();
 if (typeof module !== 'undefined') module.exports = MeetLogic;
 

@@ -660,6 +660,53 @@
     if (r.typ !== 'relay') return esc(r.name);
     return '<b>' + esc(r.relayTeam) + '</b><br><small>' + r.members.map(function (m) { return esc(m.bib + ' ' + m.name); }).join('、') + '</small>';
   }
+  /* ---------- v0.31.0 手直し（読み取りがまちがっていた行を直す）：この端末だけに保存（ログイン中はアカウントごと）。大会名＋日付ごと、行は種目・選手で覚える ---------- */
+  function fixStoreKey() { var u = ''; try { u = prepUid(); } catch (e) { } return 'lanenote-fix-' + (u || 'anon'); }
+  function fixMeetKey() { return String(($('meetName') || {}).value || state.slName || '').trim().slice(0, 100) + '|' + String(($('meetDate') || {}).value || '').trim().slice(0, 60); }
+  function fixAll() { try { var o = JSON.parse(localStorage.getItem(fixStoreKey()) || '{}'); return o && typeof o === 'object' && !Array.isArray(o) ? o : {}; } catch (e) { return {}; } }
+  function fixGet() { var o = fixAll()[fixMeetKey()]; return o && typeof o === 'object' ? o : {}; }
+  function fixPut(k, v) {
+    var all = fixAll(), m = fixMeetKey(), cur = all[m] && typeof all[m] === 'object' ? all[m] : {};
+    if (v) cur[k] = v; else delete cur[k];
+    if (Object.keys(cur).length) all[m] = cur; else delete all[m];
+    try { localStorage.setItem(fixStoreKey(), JSON.stringify(all)); return true; } catch (e) { return false; }
+  }
+  function fixCell(r) {
+    if (r.tent || !MeetLogic.fixKey(r)) return '';
+    var i = (state.fixList = state.fixList || []).indexOf(r); if (i < 0) { i = state.fixList.length; state.fixList.push(r); }
+    return (r.fixed ? ' <span class="fixb" title="元：' + esc('開始 ' + (r.fixOrig.start || '空') + '・招集 ' + (r.fixOrig.call || '空') + '・組 ' + (r.fixOrig.heat === '' || r.fixOrig.heat == null ? '空' : r.fixOrig.heat) + '・' + (r.posLabel || '') + ' ' + (r.fixOrig.pos == null || r.fixOrig.pos === '' ? '空' : r.fixOrig.pos)) + '">手直し済</span><button class="fixu" type="button" data-unfix="' + i + '">元に戻す</button>' : ' ') +
+      '<button class="fixe" type="button" data-fix="' + i + '" aria-label="' + esc((r.typ === 'relay' ? r.relayTeam : r.name) + ' ' + r.event + ' を直す') + '">✏️直す</button>';
+  }
+  var fixCur = null;
+  function fixOpen(r) {
+    fixCur = r; var o = r.fixed ? r.fixOrig : null;
+    $('fixWho').textContent = (r.typ === 'relay' ? r.relayTeam : (r.bib ? r.bib + ' ' : '') + r.name) + '（' + r.team + '）　' + r.event + (r.round ? ' ' + r.round : '') + (o ? '　※ 元の読み取り：開始 ' + (o.start || '空') + '・招集 ' + (o.call || '空') + '・組 ' + (o.heat === '' || o.heat == null ? '空' : o.heat) + '・' + (r.posLabel || '') + ' ' + (o.pos == null || o.pos === '' ? '空' : o.pos) : '');
+    $('fixPosL').textContent = r.posLabel || 'レーン／試技順';
+    $('fixStart').value = r.start || ''; $('fixCs').value = r.callStart || ''; $('fixCe').value = r.callEnd || '';
+    $('fixHeat').value = r.heatNG || r.heat == null || r.heat === '-' ? '' : String(r.heat); $('fixPos').value = r.pos == null ? '' : String(r.pos);
+    $('fixMsg').innerHTML = ''; $('fixDlg').hidden = false; $('fixStart').focus();
+  }
+  function fixClose() { $('fixDlg').hidden = true; fixCur = null; }
+  function fixSave() {
+    if (!fixCur) return;
+    var c = MeetLogic.checkFix({ start: $('fixStart').value, callStart: $('fixCs').value, callEnd: $('fixCe').value, heat: $('fixHeat').value, pos: $('fixPos').value });
+    if (!c.ok) { $('fixMsg').innerHTML = c.errs.map(function (e) { return '<span class="err">⚠ ' + esc(e) + '</span>'; }).join(''); return; }
+    if (c.warns.length && $('fixMsg').dataset.w !== JSON.stringify(c.val)) {   // 注意は1回見せて、もう一度「保存」で保存
+      $('fixMsg').dataset.w = JSON.stringify(c.val);
+      $('fixMsg').innerHTML = c.warns.map(function (e) { return '<span class="wrn">⚠ ' + esc(e) + '</span>'; }).join('') + '<span class="wrn">このままでよければ、もう一度「保存」を押してください。</span>'; return;
+    }
+    $('fixMsg').dataset.w = '';
+    if (!fixPut(MeetLogic.fixKey(fixCur), c.val)) { $('fixMsg').innerHTML = '<span class="err">⚠ この端末に保存できませんでした（空き容量・プライベートモードなど）</span>'; return; }
+    fixClose(); render();
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target && e.target.closest && e.target.closest('[data-fix],[data-unfix]'); if (!b) return;
+    var r = (state.fixList || [])[+(b.dataset.fix != null ? b.dataset.fix : b.dataset.unfix)]; if (!r) return;
+    if (b.dataset.fix != null) fixOpen(r);
+    else if (confirm('この行の手直しをやめて、資料から読み取った値に戻しますか？')) { fixPut(MeetLogic.fixKey(r), null); render(); }
+  });
+  (function () { var s = $('fixSave'), c = $('fixClose'), d = $('fixDlg'); if (s) s.addEventListener('click', fixSave); if (c) c.addEventListener('click', fixClose);
+    if (d) d.addEventListener('keydown', function (e) { if (e.key === 'Escape') fixClose(); if (e.key === 'Enter' && e.target.tagName === 'INPUT') fixSave(); }); })();
   function teamClass(t) { var i = state.teams.indexOf(t); return 'tm' + (i % 4); }
   function render() {
     ssSave();
@@ -709,6 +756,8 @@
       if (!r.date && MD.length > 1 && !/日付を要確認/.test(r.note)) r.note = (r.note ? r.note + '／' : '') + '⚠ 日付不明（' + dayLabel(state.day) + 'の出場か要確認）';
       return r;
     });
+    var FX = fixGet(); MeetLogic.applyFix(state.allRows, FX); MeetLogic.applyFix(state.rows, FX);   // v0.31.0 手直し（先生が直した値）
+    state.fixList = [];
     state.tent = MeetLogic.tentative(state.rows, ttUse, state.sl, S).filter(function (t) { return !state.day || !t.date || t.date === state.day; });
     var rows = state.rows;
     var nInd = rows.filter(function (r) { return r.typ !== 'relay'; }).length, nRel = rows.length - nInd;
@@ -733,11 +782,11 @@
       var g = grpKey(r), first = prev !== g;
       html.push('<tr class="' + teamClass(r.team) + (first && i ? ' gsep' : first ? '' : ' gcont') + (r.tent ? ' tent' : '') + '"><td class="t">' + (first ? esc(r.start || '時刻不明') : '') + '</td><td class="nw">' + (first ? esc(MeetLogic.callText(r)) : '') +
         '</td><td class="nw">' + (first ? esc(r.event) + (r.round ? ' <small class="pl">' + esc(r.round) + '</small>' : '') + (r.tent ? ' <small class="tentlab">通過したら</small>' : '') : '') + '</td><td class="c">' + esc(MeetLogic.heatText(r)) + '</td><td class="c nw">' + posCell(r) +
-        '</td><td class="c">' + esc(r.typ === 'relay' ? '' : r.bib) + '</td><td class="nm">' + nameCell(r) + '</td><td class="c">' + esc(r.grade) + '</td><td class="nw">' + esc(r.team) + '</td><td class="note">' + (!first && prevNote && r.note === prevNote ? '<span class="muted">〃</span>' : esc(r.note)) + '</td></tr>');
+        '</td><td class="c">' + esc(r.typ === 'relay' ? '' : r.bib) + '</td><td class="nm">' + nameCell(r) + '</td><td class="c">' + esc(r.grade) + '</td><td class="nw">' + esc(r.team) + '</td><td class="note">' + (!first && prevNote && r.note === prevNote ? '<span class="muted">〃</span>' : esc(r.note)) + fixCell(r) + '</td></tr>');
       prev = g; prevNote = r.note;
     });
     $('timeBody').innerHTML = html.join('');
-    var sr = bt.map(function (r) { var o = rowObj(shareRow(r)); if (r.tent) { o.tent = true; o.name = MeetLogic.tentName(r); o.members = ''; } return o; });
+    var sr = bt.map(function (r) { var o = rowObj(shareRow(r)); if (r.tent) { o.tent = true; o.name = MeetLogic.tentName(r); o.members = ''; } else o.fixHtml = fixCell(r); return o; });
     $('timeCards').innerHTML = cardsTimeHtml(sr); $('athCards').innerHTML = cardsAthHtml(sr);
     renderFeePrices();
     refreshPrint();
@@ -746,7 +795,7 @@
     var ba = athSorted(dispRows()); renderAthHead();
     $('athBody').innerHTML = ba.map(function (r) {
       return '<tr class="' + teamClass(r.team) + (r.tent ? ' tent' : '') + '"><td class="nw">' + esc(r.team) + '</td><td class="c">' + esc(r.typ === 'relay' ? '' : r.bib) + '</td><td class="nm">' + nameCell(r) + '</td><td class="c">' + esc(r.grade) +
-        '</td><td class="nw">' + esc(r.event) + '</td><td class="nw">' + esc(r.round) + (r.tent ? ' <small class="tentlab">通過したら</small>' : '') + '</td><td class="c">' + esc(MeetLogic.heatText(r)) + '</td><td class="c nw">' + posCell(r) + '</td><td class="nw">' + esc(MeetLogic.callText(r)) + '</td><td class="c">' + esc(r.start) + '</td><td class="note">' + esc(r.note) + '</td></tr>';
+        '</td><td class="nw">' + esc(r.event) + '</td><td class="nw">' + esc(r.round) + (r.tent ? ' <small class="tentlab">通過したら</small>' : '') + '</td><td class="c">' + esc(MeetLogic.heatText(r)) + '</td><td class="c nw">' + posCell(r) + '</td><td class="nw">' + esc(MeetLogic.callText(r)) + '</td><td class="c">' + esc(r.start) + '</td><td class="note">' + esc(r.note) + fixCell(r) + '</td></tr>';
     }).join('');
 
     // ナンバーカード
@@ -1354,7 +1403,7 @@
       }
       out.push('<div class="mc-r"><span class="mc-heat">' + (r.heatNG ? MeetLogic.HEAT_NG : r.heat && r.heat !== '-' ? esc(r.heat) + '組' : '') + '</span><span class="mc-pos"><small>' + esc(r.posLabel) + '</small>' + esc(r.pos) + '</span>' +
         '<span class="mc-bib">' + esc(r.bib) + '</span><span class="mc-name"><b>' + esc(r.name) + '</b><small>' + esc([r.grade, r.team].filter(Boolean).join('・')) + '</small>' +
-        (r.members ? '<small class="mc-mem">' + esc(r.members) + '</small>' : '') + (r.note ? '<small class="mc-note">' + esc(r.note) + '</small>' : '') + '</span></div>');
+        (r.members ? '<small class="mc-mem">' + esc(r.members) + '</small>' : '') + (r.note ? '<small class="mc-note">' + esc(r.note) + '</small>' : '') + (r.fixHtml ? '<span class="mc-fix">' + r.fixHtml + '</span>' : '') + '</span></div>');
     });
     if (cur) out.push('</div>');
     return out.join('') || '<p class="muted">該当なし</p>';
@@ -1372,7 +1421,7 @@
         (f.members ? '<div class="mc-mem2">' + esc(f.members) + '</div>' : '') +
         L.map(function (r) {
           return '<div class="mc-r' + (r.tent ? ' tent' : '') + '"><span class="mc-t2">' + esc(r.start || '—') + '</span><span class="mc-name"><b>' + esc(r.event) + (r.round ? ' <small class="mc-rd">' + esc(r.round) + '</small>' : '') + (r.tent ? ' <small class="mc-tent">通過したら</small>' : '') + '</b>' +
-            '<small>' + esc([(r.heatNG ? MeetLogic.HEAT_NG : r.heat && r.heat !== '-' ? r.heat + '組' : ''), r.tent ? '' : r.posLabel + ' ' + r.pos, r.call ? '招集 ' + r.call : r.callNG ? MeetLogic.CALL_NG : ''].filter(Boolean).join('・')) + '</small></span></div>';
+            '<small>' + esc([(r.heatNG ? MeetLogic.HEAT_NG : r.heat && r.heat !== '-' ? r.heat + '組' : ''), r.tent ? '' : r.posLabel + ' ' + r.pos, r.call ? '招集 ' + r.call : r.callNG ? MeetLogic.CALL_NG : ''].filter(Boolean).join('・')) + '</small>' + (r.fixHtml ? '<span class="mc-fix">' + r.fixHtml + '</span>' : '') + '</span></div>';
         }).join('') + '</div>';
     }).join('') || '<p class="muted">該当なし</p>';
   }

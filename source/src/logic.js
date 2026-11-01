@@ -242,6 +242,43 @@ var MeetLogic = (function () {
   var CALL_NG = '⚠ 招集時刻を読めませんでした', HEAT_NG = '⚠組?';
   function callText(r) { return r.call || (r.callNG ? CALL_NG : ''); }
   function heatText(r) { return r.heatNG ? HEAT_NG : (r.heat == null ? '' : r.heat); }
-  return { CALL_NG: CALL_NG, HEAT_NG: HEAT_NG, callText: callText, heatText: heatText, tentative: tentative, tentName: tentName, UNKNOWN: UNKNOWN, fees: fees, feeCat: feeCat, CATS: CATS, build: build, byAthlete: byAthlete, byTime: byTime, cards: cards, findTeams: findTeams, allTeams: allTeams, fmt: fmt, toMin: toMin };
+  /* v0.31.0 手直し：読み取りがまちがっていた行を先生が直す（開始・招集・組・レーン/試技順）。行の番号ではなく「種目＋ラウンド＋日付＋選手（ナンバー・名前）／リレーのチーム」で覚える */
+  function fixKey(r) {
+    if (!r || r.tent) return '';
+    var who = r.typ === 'relay' ? 'R|' + (r.relayTeam || '') : 'I|' + (r.bib || '') + '|' + (r.name || '');
+    return [r.team || '', who, r.event || '', r.round || '', r.date || ''].join('|');
+  }
+  var FIX_TIME = /^([01]?\d|2[0-3]):[0-5]\d$/;
+  // 入力を確かめる。推測して直さない（「1230」「12時30分」は直さずにエラー）。空欄は「空のまま」
+  function checkFix(o) {
+    var s = function (v) { return String(v == null ? '' : v).trim(); }, v = { start: s(o.start), callStart: s(o.callStart), callEnd: s(o.callEnd), heat: s(o.heat), pos: s(o.pos) }, errs = [], warns = [];
+    if (v.start && !FIX_TIME.test(v.start)) errs.push('開始時刻は「13:30」のように 時:分 で入れてください');
+    if (v.callStart && !FIX_TIME.test(v.callStart)) errs.push('招集の開始は「13:05」のように 時:分 で入れてください');
+    if (v.callEnd && !FIX_TIME.test(v.callEnd)) errs.push('招集の完了は「13:15」のように 時:分 で入れてください');
+    if (!!v.callStart !== !!v.callEnd) errs.push('招集は開始と完了の両方を入れてください（どちらも空なら招集なし）');
+    if (v.heat && !/^\d{1,3}$/.test(v.heat)) errs.push('組は数字（1〜999）で入れてください');
+    if (v.heat && +v.heat < 1) errs.push('組は1以上で入れてください');
+    if (v.pos && !/^\d{1,3}$/.test(v.pos)) errs.push('レーン／試技順は数字（1〜999）で入れてください');
+    if (!errs.length) {
+      var a = toMin(v.callStart), b = toMin(v.callEnd), c = toMin(v.start);
+      if (a != null && b != null && a > b) warns.push('招集の開始が完了より後になっています');
+      if (b != null && c != null && b > c) warns.push('招集の完了が開始時刻より後になっています');
+      if (!v.start) warns.push('開始時刻が空です');
+    }
+    return { ok: !errs.length, errs: errs, warns: warns, val: v };
+  }
+  // 手直しを行に当てる（元の値は fixOrig に残す）。fixes = { キー: {start, callStart, callEnd, heat, pos} }
+  function applyFix(rows, fixes) {
+    if (!fixes) return rows;
+    (rows || []).forEach(function (r) {
+      if (r.fixed) return; var f = fixes[fixKey(r)]; if (!f || !checkFix(f).ok) return;
+      r.fixOrig = { start: r.start, call: callText(r), heat: heatText(r), pos: r.pos };
+      r.start = f.start; r.startMin = toMin(f.start);
+      r.callStart = f.callStart; r.callEnd = f.callEnd; r.call = f.callStart ? f.callStart + '〜' + f.callEnd : ''; r.callNG = false; r.callSrc = 'fix';
+      r.heat = f.heat === '' ? null : +f.heat; r.heatNG = false; r.pos = f.pos; r.conflict = false; r.fixed = true;
+    });
+    return rows;
+  }
+  return { CALL_NG: CALL_NG, HEAT_NG: HEAT_NG, fixKey: fixKey, checkFix: checkFix, applyFix: applyFix, callText: callText, heatText: heatText, tentative: tentative, tentName: tentName, UNKNOWN: UNKNOWN, fees: fees, feeCat: feeCat, CATS: CATS, build: build, byAthlete: byAthlete, byTime: byTime, cards: cards, findTeams: findTeams, allTeams: allTeams, fmt: fmt, toMin: toMin };
 })();
 if (typeof module !== 'undefined') module.exports = MeetLogic;
