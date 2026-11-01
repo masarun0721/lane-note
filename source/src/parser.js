@@ -447,7 +447,7 @@ var MeetParser = (function () {
           if (!col) { col = { x: ev.x }; colState.push(col); }
           if (!seg.time) seg.time = col.time || null; else col.time = seg.time;
           if (!seg.cat && !seg.gender) { seg.cat = col.cat; seg.gender = col.gender; seg.inherited = true; }
-          else { if (!seg.gender) seg.gender = col.gender; col.cat = seg.cat; col.gender = seg.gender; }
+          else { if (!seg.gender) { var gc = seg.cat && nk(seg.cat).match(/男子|女子|混合|男女/); seg.gender = gc ? gc[0] : col.gender; } col.cat = seg.cat; col.gender = seg.gender; }   // v0.30.1 区分「中学共通女子」に性別があれば、上の行の性別を引き継がない
           segs.push(seg);
         });
       });
