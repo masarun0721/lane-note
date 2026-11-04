@@ -13,8 +13,8 @@ var LaneAdmin = (function () {
     return names.sort(function (a, b) { return a.localeCompare(b, 'ja'); });
   }
   function listHtml(names) {
-    return '<p class="ad-count" id="adCount">登録チーム ' + names.length + '件</p>'
-      + (names.length ? '<ol class="ad-list" id="adList">' + names.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') + '</ol>' : '<p>まだチームはありません。</p>');
+    return '<p class="lnadm-count" id="lnAdmCount">登録チーム ' + names.length + '件</p>'
+      + (names.length ? '<ol class="lnadm-list" id="lnAdmList">' + names.map(function (n) { return '<li>' + esc(n) + '</li>'; }).join('') + '</ol>' : '<p>まだチームはありません。</p>');
   }
   async function loadFirebase() {
     if (FB) return FB;
@@ -24,18 +24,18 @@ var LaneAdmin = (function () {
     FB = { A: m[1], F: m[2], auth: m[1].getAuth(app), fs: m[2].getFirestore(app) };
     return FB;
   }
-  function uidHtml(u) { return '<p>あなたのUID：</p><p class="ad-uid" id="adUid">' + esc(u.uid) + '</p>'; }
+  function uidHtml(u) { return '<p>あなたのUID：</p><p class="lnadm-uid" id="lnAdmUid">' + esc(u.uid) + '</p>'; }
   async function show(u) {
-    var out = $('adOut');
-    $('adIn').hidden = !!u; $('adOut2').hidden = !u;
+    var out = $('lnAdmOut');
+    $('lnAdmIn').hidden = !!u; $('lnAdmOut2').hidden = !u;
     if (!u) { out.innerHTML = '<p>Google でログインすると、あなたのUIDが出ます。管理者なら、登録チームの名前の一覧が出ます。</p>'; return; }
     var h = uidHtml(u);
     out.innerHTML = h + '<p>確かめています…</p>';
     var F = FB.F, admin = false;
     try { admin = (await F.getDoc(F.doc(FB.fs, 'admins', u.uid))).exists(); } catch (e) { admin = false; }
     if (!admin) {
-      out.innerHTML = h + '<p id="adNot">このアカウントは管理者ではないため、チームの一覧は出ません。</p>'
-        + '<p class="ad-note">管理者にするには、Firebase コンソールの Firestore で <code>admins</code> コレクションに、上のUIDを文書IDにした文書を作ってください（中身は空でかまいません）。</p>';
+      out.innerHTML = h + '<p id="lnAdmNot">このアカウントは管理者ではないため、チームの一覧は出ません。</p>'
+        + '<p class="lnadm-note">管理者にするには、Firebase コンソールの Firestore で <code>admins</code> コレクションに、上のUIDを文書IDにした文書を作ってください（中身は空でかまいません）。</p>';
       return;
     }
     try {
@@ -43,19 +43,19 @@ var LaneAdmin = (function () {
       snap.forEach(function (d) { var v = d.data() || {}; docs.push({ name: v.name }); });   // 名前だけを残す
       out.innerHTML = h + listHtml(teamNames(docs));
     } catch (e) {
-      out.innerHTML = h + '<p class="ad-err" id="adErr">チームの一覧を読めませんでした（' + esc((e && e.code) || (e && e.message) || e) + '）。Firestore のルールが v0.26.64 のものか確かめてください。</p>';
+      out.innerHTML = h + '<p class="lnadm-err" id="lnAdmErr">チームの一覧を読めませんでした（' + esc((e && e.code) || (e && e.message) || e) + '）。Firestore のルールが v0.26.64 のものか確かめてください。</p>';
     }
   }
   async function start() {
-    if (!CFG) { $('adOut').innerHTML = '<p class="ad-err">Firebase の設定（firebase-config.js）が読み込めませんでした。</p>'; return; }
-    try { await loadFirebase(); } catch (e) { $('adOut').innerHTML = '<p class="ad-err">通信できませんでした。電波の良いところで開き直してください。</p>'; return; }
-    $('adIn').onclick = async function () {
-      try { await LaneAuth.signIn(FB); } catch (e) { $('adOut').innerHTML = '<p class="ad-err">' + esc(LaneAuth.errorText(e)) + '</p>'; }
+    if (!CFG) { $('lnAdmOut').innerHTML = '<p class="lnadm-err">Firebase の設定（firebase-config.js）が読み込めませんでした。</p>'; return; }
+    try { await loadFirebase(); } catch (e) { $('lnAdmOut').innerHTML = '<p class="lnadm-err">通信できませんでした。電波の良いところで開き直してください。</p>'; return; }
+    $('lnAdmIn').onclick = async function () {
+      try { await LaneAuth.signIn(FB); } catch (e) { $('lnAdmOut').innerHTML = '<p class="lnadm-err">' + esc(LaneAuth.errorText(e)) + '</p>'; }
     };
-    $('adOut2').onclick = async function () { try { await FB.A.signOut(FB.auth); } catch (e) { } show(null); };
+    $('lnAdmOut2').onclick = async function () { try { await FB.A.signOut(FB.auth); } catch (e) { } show(null); };
     FB.A.onAuthStateChanged(FB.auth, function (u) { show(u || null); });
   }
-  if (typeof document !== 'undefined' && document.getElementById('adOut')) start();
+  if (typeof document !== 'undefined' && document.getElementById('lnAdmOut')) start();
   return { teamNames: teamNames, listHtml: listHtml, esc: esc };
 })();
 if (typeof module !== 'undefined') module.exports = LaneAdmin;

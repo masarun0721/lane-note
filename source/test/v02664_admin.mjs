@@ -35,8 +35,8 @@ const DB = { 'teams/TaaaaaaaaaaaaaaaaaaA': { v: 1, name: 'わかば架空高校�
 async function as(u, extra) {
   await p.goto(B + 'guide.html'); await p.evaluate((u, d) => { localStorage.clear(); if (u) localStorage.setItem('__fakeuser', JSON.stringify(u)); localStorage.setItem('__fakedb', JSON.stringify(d)); }, u, Object.assign({}, DB, extra || {}));
   await p.goto(B + 'admin.html', { waitUntil: 'load' }); await sleep(1500);
-  return p.evaluate(() => ({ txt: document.getElementById('adOut').innerText, html: document.body.innerHTML, inBtn: !document.getElementById('adIn').hidden, outBtn: !document.getElementById('adOut2').hidden,
-    list: [...document.querySelectorAll('#adList li')].map(e => e.textContent), count: (document.getElementById('adCount') || {}).textContent || '', uid: (document.getElementById('adUid') || {}).textContent || '' }));
+  return p.evaluate(() => ({ txt: document.getElementById('lnAdmOut').innerText, html: document.body.innerHTML, inBtn: !document.getElementById('lnAdmIn').hidden, outBtn: !document.getElementById('lnAdmOut2').hidden,
+    list: [...document.querySelectorAll('#lnAdmList li')].map(e => e.textContent), count: (document.getElementById('lnAdmCount') || {}).textContent || '', uid: (document.getElementById('lnAdmUid') || {}).textContent || '' }));
 }
 let r = await as(null);
 ok('ログインしていない：ログインボタンだけ・一覧は出ない', r.inBtn && !r.outBtn && !r.list.length && !r.uid, r.txt);
@@ -50,8 +50,8 @@ ok('管理者：チーム名の一覧が名前の順', JSON.stringify(r.list) ==
 ok('管理者：件数「登録チーム 3件」', r.count === '登録チーム 3件', r.count);
 ok('管理者：名前以外（持ち主のUID・作成日・メンバー・選手名・コード）は画面に出ない', !/owner-zzz|2026|ひみつ|TaaaaaaaaaaaaaaaaaaA|manager/.test(r.html), r.txt);
 if (SHOT) await p.screenshot({ path: SHOT, fullPage: true });
-await p.click('#adOut2'); await sleep(500);
-r = await p.evaluate(() => ({ list: document.querySelectorAll('#adList li').length, uid: !!document.getElementById('adUid'), u: localStorage.getItem('__fakeuser') }));
+await p.click('#lnAdmOut2'); await sleep(500);
+r = await p.evaluate(() => ({ list: document.querySelectorAll('#lnAdmList li').length, uid: !!document.getElementById('lnAdmUid'), u: localStorage.getItem('__fakeuser') }));
 ok('ログアウト：一覧と UID を消す', !r.list && !r.uid && !r.u, JSON.stringify(r));
 await p.setViewport({ width: 390, height: 800 });
 r = await as({ uid: 'fake-admin-uid-9', providerData: [{ providerId: 'google.com' }] }, { 'admins/fake-admin-uid-9': {} });
