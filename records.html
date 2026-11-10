@@ -2563,10 +2563,40 @@ var ResultParser = (function () {
     });
     return function (row) {
       if (!row || !row.name) return null;
-      var d = divisionOf(row), k = nameKey(row.name) + '|' + eventKey(row).replace(/^[a-z]+:/, '');
-      var c = (map[k] || []).filter(function (b) { return !d || !b.div || b.div === d; });
-      if (c.length !== 1) return null;   // 見つからない・同じ名前で区分の違う人が2人以上（決められない）→ 空欄
-      return { best: c[0].best || null, ref: c[0].ref || null, last: c[0].last || null };
+      var d = divisionOf(row), ev = eventKey(row).replace(/^[a-z]+:/, ''), name = nameKey(row.name);
+      var k = name + '|' + ev, c = (map[k] || []).slice();
+      // プログラムが「110mH(1.067m)」、記録が「110mH」のとき（高さ・重さの書いていない記録）も同じ種目として探す。
+      // 高さ・重さの数が違う記録（砲丸 6kg と 5kg）はまとめない
+      if (!c.length) {
+        var bare = ev.replace(/\(\d+(?:\.\d+)?(?:m|kg)\)$/i, '');
+        if (bare !== ev) c = (map[name + '|' + bare] || []).slice();
+      }
+      var school = schoolBase(row.team || '');
+      c = c.filter(function (b) {
+        if (d && b.div && b.div !== d) return false;
+        if (school && b.team && schoolBase(b.team) && schoolBase(b.team) !== school) return false;
+        return true;
+      });
+      if (c.length === 1) return { best: c[0].best || null, ref: c[0].ref || null, last: c[0].last || null };
+      // 同じ人の記録が「本郷」と「本郷高」のように、空の区分と高校（または中学）だけに分かれているときまとめる。
+      // 中学と高校が両方ある同名は、今までどおり空欄（決められない）
+      if (c.length > 1) {
+        var divs = {};
+        c.forEach(function (b) { divs[b.div || ''] = true; });
+        var keys = Object.keys(divs);
+        var concrete = keys.filter(function (x) { return x === 'hs' || x === 'jh'; });
+        if (!(divs[''] && concrete.length === 1 && keys.length === 2)) return null;
+        var best = null, ref = null, last = null, bestMv = null, refMv = null;
+        c.forEach(function (b) {
+          if (b.best) { var mv = recValue(b.best); if (mv && isBetter(mv, bestMv)) { best = b.best; bestMv = mv; } }
+          if (b.ref) { var rv = recValue(b.ref); if (rv && isBetter(rv, refMv)) { ref = b.ref; refMv = rv; } }
+          var L = b.last;
+          if (L && (!last || (L.date || '') > (last.date || '') || ((L.date || '') === (last.date || '') && (L.order || 0) >= (last.order || 0)))) last = L;
+        });
+        if (ref && best) { var rv = recValue(ref), bv = recValue(best); if (!rv || (bv && !isBetter(rv, bv))) ref = null; }
+        return { best: best, ref: ref, last: last };
+      }
+      return null;
     };
   }
   // v0.26.11：台帳の選手ID（aid）がある記録は、名前・所属・中高に関係なく同じ人
@@ -3518,7 +3548,7 @@ if (typeof module !== 'undefined') module.exports = LaneRoster;
 
 </script>
 <script>
-var APP_VERSION = "v0.31.4", REC_VERSION = "v0.11.1";
+var APP_VERSION = "v0.31.5", REC_VERSION = "v0.11.1";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>

@@ -430,6 +430,8 @@ var MeetParser = (function () {
       });
       // 支部（②・③）ごとに時刻が分かれ、1種目が複数行にまたがる表（東京都高体連の支部大会型）は別の読み方
       if (branchHeader(lines)) { parseBranchPage(lines, pi, pageDate, segs); return; }
+      // 性別・種目・組数の列がある表（高体連の競技日程：種目名が組の途中の行にあり、前後の行は時刻と組だけ）
+      if (callSheetHeader(lines)) { parseCallSheetPage(lines, pi, pageDate, segs); return; }
       var colState = []; // {x, time, cat, gender}
       lines.forEach(function (L) {
         var ws = L.w.sort(function (a, b) { return a.x - b.x; });
@@ -518,6 +520,120 @@ var MeetParser = (function () {
   /* ---------- 支部ごとの時刻がある競技日程（1種目が複数行） ----------
      競技開始時刻 | 性別 | 学年 | 種目 | 種別 | 支部 | 出場数 | 組・着・+ | 招集 開始 | 完了
      種目名の行は結合したセルの上下の真ん中にあるので、種目名の行を中心に上下同じ幅をその種目のまとまりとする */
+  function callSheetHeader(lines) {
+    return lines.some(function (L) {
+      var t = L.w.map(function (w) { return w.n; }).join('');
+      return /性別/.test(t) && /種目/.test(t) && /組数/.test(t);
+    });
+  }
+  function heatsFromText(txt) {
+    var t = nk(txt || '');
+    var hm = t.match(/(\d+)\s*[～~〜\-ー－]\s*(\d+)\s*組/);
+    if (hm && +hm[1] <= +hm[2]) return { from: +hm[1], to: +hm[2] };
+    var mm = t.match(/(\d+)\s*組\s*[・･]\s*(\d+)\s*組/) || t.match(/(\d+)\s*[・･]\s*(\d+)\s*組/);
+    if (mm) { var a = +mm[1], b = +mm[2]; return { from: Math.min(a, b), to: Math.max(a, b) }; }
+    var hc = t.match(/全\s*(\d+)\s*組/);
+    if (hc) return { count: +hc[1], all: true };
+    var b2 = t.match(/(\d+)\s*組/);
+    if (b2) return { count: +b2[1], bare: true };
+    return null;
+  }
+  // 高体連の競技日程：種目名が組の途中の行（または時刻のない行）にあり、前後は時刻と組だけ。
+  // 組が1から再開したら別の種目。名前のない行は、同じまとまりの種目名を使う（前の種目の「（混）」にはしない）
+  function parseCallSheetPage(lines, pi, pageDate, segs) {
+    var date = pageDate, hdr = null, rows = [];
+    var fcol = function (ws, re) { var w = ws.find(function (w) { return re.test(w.n); }); return w ? w.x : null; };
+    var isStart = function (w) {
+      if (!TIME_RE.test(w.n)) return false;
+      // 競技開始／時刻が見出しの別行でも、性別より左にある時刻だけを開始時刻にする（招集開始・完了は右側）
+      var lim = hdr.gx != null ? hdr.gx - 4 : (hdr.tx != null ? hdr.tx + 50 : null);
+      return lim == null || w.x < lim;
+    };
+    var nearCol = function (w, col) { return col != null && TIME_RE.test(w.n) && Math.abs(w.x - col) < 45; };
+    lines.sort(function (a, b) { return a.y - b.y; });
+    lines.forEach(function (L) {
+      var ws = L.w.sort(function (a, b) { return a.x - b.x; }), txt = ws.map(function (w) { return w.n; }).join('');
+      var ld = datesIn(ws.map(function (w) { return w.n; }).join(' '));
+      if (ld.length === 1) date = ld[0];
+      if (/性別/.test(txt) && /種目/.test(txt) && /組数/.test(txt)) {
+        hdr = { tx: fcol(ws, /競技開始|^時刻$/), gx: fcol(ws, /^性別/), ex: fcol(ws, /^種/), nx: fcol(ws, /^出場/), hx: fcol(ws, /^組/), sx: fcol(ws, /招集開始/), ex2: fcol(ws, /招集完了/) };
+        return;
+      }
+      if (!hdr) return;
+      if (/^[〔\[]/.test(txt) || /終了予定/.test(txt) || /トラック競技|フィールド競技/.test(txt) || (/第\d日/.test(txt) && !TIME_RE.test(txt))) return;
+      if (ws.every(function (w) { return /^(開始|完了|招集時刻|時刻)$/.test(w.n); })) return;
+      var timeW = ws.find(isStart);
+      var gender = '';
+      ws.forEach(function (w) { if (hdr.gx != null && Math.abs(w.x - hdr.gx) < 30 && GENDER_RE.test(w.n)) gender = w.n; });
+      var evWords = ws.filter(function (w) {
+        if (TIME_RE.test(w.n) || GENDER_RE.test(w.n) || /^\d+$/.test(w.n)) return false;
+        var left = hdr.gx != null ? hdr.gx + 8 : (hdr.ex != null ? hdr.ex - 40 : 0);
+        var right = hdr.nx != null ? hdr.nx - 8 : (hdr.hx != null ? hdr.hx - 8 : 1e9);
+        return w.x >= left && w.x < right;
+      });
+      var ev = evWords.map(function (w) { return w.t; }).join('');
+      var evN = evWords.map(function (w) { return w.n; }).join('');
+      var heats = heatsFromText(ws.map(function (w) { return w.n; }).join(' '));
+      var tws = ws.filter(function (w) { return TIME_RE.test(w.n) && !isStart(w); }).map(function (w) { return w.n; });
+      var csW = ws.filter(function (w) { return nearCol(w, hdr.sx); })[0];
+      var ceW = ws.filter(function (w) { return nearCol(w, hdr.ex2); }).pop();
+      if (!timeW && !ev && !heats) return;
+      rows.push({ y: L.y, date: date, time: timeW ? timeW.n : '', gender: gender, ev: ev, evN: evN, heats: heats, tws: tws, cs: csW && csW.n, ce: ceW && ceW.n, raw: ws.map(function (w) { return w.n; }).join(' ') });
+    });
+    // まとまり：組が1から再開したら新しい種目。種目名はそのまとまりのどこにあってもよい
+    var clusters = [], cur = [];
+    var lastTo = 0;
+    var flush = function () { if (cur.length) clusters.push(cur); cur = []; lastTo = 0; };
+    rows.forEach(function (r) {
+      var from = r.heats && r.heats.from != null ? r.heats.from : (r.heats && r.heats.bare && r.heats.count ? r.heats.count : null);
+      var to = r.heats && r.heats.to != null ? r.heats.to : from;
+      // 組が1から再開し、かつ今のまとまりに種目名があるときだけ次の種目。名前が後の行に来る（1～8組のあと 9～16組に「男 400m」）場合は切らない
+      var restart = from === 1 && lastTo > 0 && cur.some(function (x) { return x.ev; });
+      // 種目名が違う行（走幅跳のあとの（混）砲丸投、女3000mのあとの男5000m）は組が1でなくても次の種目。同じ種目の途中の行の名前は切らない
+      var evKey = function (r) {
+        var n = nk(r.evN || r.ev || '').replace(/\s+/g, '');
+        if (!n) return '';
+        return (/[（(]混[)）]|混成/.test(n) ? '混:' : '') + n.replace(/[（(]混[)）]/g, '');
+      };
+      var curEv = '';
+      cur.forEach(function (x) { if (evKey(x)) curEv = evKey(x); });
+      var namedNew = evKey(r) && curEv && evKey(r) !== curEv;
+      if (restart || namedNew) flush();
+      cur.push(r);
+      if (to != null) lastTo = to;
+    });
+    flush();
+    clusters.forEach(function (C) {
+      var evRow = C.filter(function (r) { return r.ev; })[0];
+      if (!evRow) return;
+      var ev = evRow.evN || evRow.ev, gender = evRow.gender || '';
+      var cat = '';
+      if (/（混）|\(混\)|混成/.test(ev) || /（混）|\(混\)/.test(evRow.ev)) {
+        cat = '混成';
+        ev = ev.replace(/[（(]混[)）]/g, '');
+      }
+      C.forEach(function (r) {
+        if (!gender && r.gender) gender = r.gender;
+      });
+      var bareRows = C.filter(function (r) { return r.heats && r.heats.bare && r.time; });
+      C.forEach(function (r) {
+        if (!r.time) return;
+        var heats = r.heats;
+        // 「5組」だけ（52人など）は 1～5組が同じ時刻。「1組」のあとに「2組」がある行は、その組番号だけ
+        if (heats && heats.bare && heats.count) {
+          if (bareRows.length === 1 && heats.count > 1) heats = { from: 1, to: heats.count };
+          else heats = { from: heats.count, to: heats.count };
+        }
+        var seg = { page: pi + 1, x: 0, y: r.y, event: ev, time: r.time, cat: cat || null, gender: gender || r.gender || null, round: '', heats: heats, raw: r.raw, date: r.date };
+        var c0 = (r.cs || (r.tws && r.tws[0])) || '', c1 = (r.ce || (r.tws && r.tws[1])) || '';
+        if (c0 && c1) {
+          var tm = function (t) { var m = String(t).split(':'); return (+m[0]) * 60 + (+m[1]); }, a0 = tm(c0), a1 = tm(c1), st = tm(r.time);
+          if (a0 <= a1 && a1 <= st && st - a0 <= 180) { seg.callStart = c0; seg.callEnd = c1; }
+        }
+        segs.push(seg);
+      });
+    });
+  }
   var CIRCLED = /^[①-⑨]+(?:合同)?$/;
   function branchHeader(lines) {
     return lines.some(function (L) { var t = L.w.map(function (w) { return w.n; }).join(''); return /性別/.test(t) && /支部/.test(t) && /種別/.test(t); });
@@ -632,11 +748,15 @@ var MeetParser = (function () {
     // 学年の集合：「2・3年」「2･3共」→ 2と3。「共通」は学年を限らない
     var gs = [], gm = !/共通/.test(c) && c.match(/^(?:[^\d]*?)([1-6](?:[・･~〜～\-][1-6])*)年?(?:共)?(?:男子|女子|$)/);
     if (gm) { var parts = gm[1].split(/[・･]/); parts.forEach(function (p) { var r = p.split(/[~〜～\-]/); for (var x = +r[0]; x <= +(r[1] || r[0]); x++) gs.push(String(x)); }); }
-    return { lv: lv, g: g, gs: gs, br: br, raw: c };
+    var comb = /混成|（混）|\(混\)|[8八7七10十4四]種/.test(c);
+    return { lv: lv, g: g, gs: gs, br: br, raw: c, comb: comb };
   }
   var DISC_TAIL = /(\d+(?:\.\d+)?\s*[Xx×]\s*\d+m?R?|\d+(?:\.\d+)?(?:m|km)(?:H|SC|W|JH|YH|R)?|走高跳|走幅跳|棒高跳|三段跳|砲丸投|円盤投|ハンマー投|やり投|ジャベリックスロー|ボール投|競歩|混成|十種競技|七種競技|四種競技)(\s*\([^)]*\))?\s*$/;
   function parseTitle(title) {
     var t = nk(title || '').trim();
+    // 「男子8種100m」「男子 8種100m」：先に混成の区分を取る（後のパターンだと disc が「8種100m」のままになる）
+    var cm = t.match(/^(男子|女子|混合)\s*((?:8種|八種|7種|七種|10種|十種|4種|四種)(?:競技)?)\s*(.+)$/);
+    if (cm) return { gender: cm[1], cat: cm[2], disc: normDisc(cm[3]) };
     var m = t.match(/^(男子|女子|混合)\s*(\S*)\s+(.+)$/);
     if (m) return { gender: m[1], cat: m[2], disc: normDisc(m[3]) };
     // プログラム形式：「中学男子100m」「小学4~6年男子100m」「中学1・2年男子砲丸投(4.000kg)」
@@ -661,6 +781,10 @@ var MeetParser = (function () {
       var sg = s.gender || ((nk(s.cat || '').match(/男子|女子|混合/) || [])[0]);
       if (sg && p.gender && sg[0] !== p.gender[0]) return;
       var sc = catInfo(s.cat), score = 1;
+      // 「（混）100m」「8種100m」は混成、「100m」は混成ではない。同じ種目名でも時刻を共用しない
+      var pComb = !!(ci.comb || /混成|（混）|\(混\)|[8八7七10十4四]種/.test(title || ''));
+      var sComb = !!(sc.comb || /混成|（混）|\(混\)|[8八7七10十4四]種/.test((s.event || '') + (s.cat || '')));
+      if (pComb !== sComb) return;
       // 支部の大会：見出しの「3支部」とタイムテーブルの支部（②③）が両方わかっていて違う → 別の時刻
       if (ci.br && s.branch && s.branch.length && s.branch.indexOf(ci.br) < 0) return;
       if (ci.br && s.branch && s.branch.indexOf(ci.br) >= 0) score += 1;
