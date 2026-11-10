@@ -206,8 +206,14 @@ var MeetParser = (function () {
         diag.push({ page: pi + 1, title: sec.title, round: sec.round, count: n, cont: !!sec.cont, warn: warn, info: !n && blankForm ? '空欄の表（決勝など未定）' : !n && resultOnly ? '結果記入欄だけのページ（出場者なし）' : '' });
       });
     });
-    // 所属の欄の後ろに支部などの番号が付いている（「本郷 ・3」「都南葛飾 ・2」）→ 学校名だけにする（リレーは「本郷」だけなので、同じ学校が2つに分かれない）
-    var cleanTeam = function (t) { return String(t || '').replace(/[\s\u3000]*[・･][\s\u3000]*\d{1,2}$/, ''); };
+    // 所属の欄の支部などの番号は外して学校名だけにする（リレーは「本郷」だけなので、同じ学校が2つに分かれない）
+    //  ・末尾「本郷 ・3」「都南葛飾 ・2」（速報など）
+    //  ・先頭「3・本郷」「2・日大豊山」（東京都高体連のプログラム：支部番号・学校名。学年ではない）
+    var cleanTeam = function (t) {
+      return String(t || '')
+        .replace(/^[0-9０-９]{1,2}[\s\u3000]*[・･][\s\u3000]*(?=\S)/, '')
+        .replace(/[\s\u3000]*[・･][\s\u3000]*[0-9０-９]{1,2}$/, '');
+    };
     entries.forEach(function (e) { e.team = cleanTeam(e.team); });
     relays.forEach(function (r) { r.team = cleanTeam(r.team); });
     var format = schedCount > 0 ? 'program' : 'kitaku';
