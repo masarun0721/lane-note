@@ -1041,6 +1041,13 @@ var MeetParser = (function () {
     };
     entries.forEach(function (e) { e.team = cleanTeam(e.team); });
     relays.forEach(function (r) { r.team = cleanTeam(r.team); });
+    // 番号だけが残った所属（下の行の学校名をつなげられなかった行）は、ページの警告に残す
+    var teamOnlyNum = '所属が番号だけで、学校名を読み取れない行があります';
+    entries.forEach(function (e) {
+      if (!/^[0-9０-９]{1,2}$/.test(e.team)) return;
+      var d = diag.find(function (x) { return x.page === e.page && x.title === e.event; });
+      if (d && d.warn.indexOf(teamOnlyNum) < 0) d.warn.push(teamOnlyNum);
+    });
     var format = schedCount > 0 ? 'program' : 'kitaku';
     var all = entries.concat(relays);
     all.forEach(function (e) { e.format = format; });
@@ -1145,6 +1152,33 @@ var MeetParser = (function () {
         var grade = '';
         var gm = name.match(GRADE_RE); if (gm) { grade = gm[1].trim(); name = name.replace(GRADE_RE, '').trim(); }
         var team = (frag ? joinByGap(affW) : affW.map(function (o) { return o.t; }).join(' ')).replace(/[\s\u3000]+/g, ' ').replace(/(^|\s)[+＋]\s*[\/･・]\s*[-－](?=\s|$)/g, ' ').replace(/(\s+[mｍ])+\s*$/, '').trim();
+        // フィールドのプログラム：所属が氏名の行では支部番号だけ、学校名はナンバーのすぐ下の行（カナと同じ行）にある
+        // 番号のxと同じ位置に、マークや数字でない学校名が1つだけあるときだけつなぐ（隣の組や次の行は使わない）
+        if (/^[0-9０-９]{1,2}$/.test(team)) {
+          var br = affW.filter(function (o) { return nk(o.n) === nk(team); })[0];
+          if (br) {
+            var affJunk = function (n) {
+              n = nk(n).replace(/\s+/g, '');
+              return !n || /^[0-9０-９]{1,2}$/.test(n) || /^[mｍ]$/.test(n)
+                || /^[+＋][\/･・]?[-－]\.?$/.test(n) || /^[+＋･・\-－.．]+$/.test(n);
+            };
+            var sch = words.filter(function (o) {
+              return o.y > aY + 1.5 && o.y <= aY + 7.5
+                && Math.abs(o.x - br.x) <= 5
+                && o.x >= h.left && o.x < h.resX
+                && !affJunk(o.n)
+                && /[ぁ-んァ-ヶｦ-ﾟ一-龥々〆ヶA-Za-z]/.test(o.t);
+            }).sort(function (a, b) { return a.x - b.x || a.y - b.y; });
+            if (sch.length) {
+              var sy = sch[0].y;
+              var sLine = sch.filter(function (o) { return Math.abs(o.y - sy) < 1.2; });
+              if (sLine.length === sch.length) {
+                var schName = joinByGap(sLine);
+                if (schName && !/[\s\u3000]/.test(schName)) team = team + '・' + schName;
+              }
+            }
+          }
+        }
         var hl = heatLabels.filter(function (l) { return l.y < aY && l.x >= h.left - 5 && l.x < h.right; }).sort(function (a, b) { return b.y - a.y; })[0];
         var rd = roundAt(aY), tm = timeFor(rd);
         var ent = { page: pi + 1, event: title, round: rd, heat: hl ? parseInt(hl.n, 10) : null, posKind: h.kind,
@@ -2766,7 +2800,7 @@ if (typeof module !== 'undefined') module.exports = LaneAuth;
 
 </script>
 <script>
-var APP_VERSION = "v0.31.3";
+var APP_VERSION = "v0.31.4";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>
