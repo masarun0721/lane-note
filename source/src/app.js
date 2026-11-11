@@ -1994,7 +1994,7 @@
       inp[el.id] = el.type === 'checkbox' || el.type === 'radio' ? { c: el.checked } : { v: el.value, m: el.dataset.manual || '', a: el.dataset.auto || '' };
     });
     Object.keys(SID).forEach(function (k) { var el = $(SID[k]); stat[k] = { t: el.textContent, c: el.className }; /* S11：HTML ではなく文字だけ控える */ });
-    return { v: 1, t: Date.now(), own: ssOwner(), st: st, inp: inp, stat: stat, rule: ruleState };
+    return { v: 1, t: Date.now(), parseVer: parseVerNow(), own: ssOwner(), st: st, inp: inp, stat: stat, rule: ruleState };
   }
   function ssSave() {
     if (ssRestoring) return; clearTimeout(ssTimer);
@@ -2035,10 +2035,48 @@
     if (PREP || state.sl || state.tt || state.notes || state.yokoName) return false;   // 待っているあいだに、もう読み込みを始めた
     var ok = ssApply(o);
     if (ok) SS_HELD = { uid: own.uid, team: String(own.team || ''), plan: String(own.plan || ''), exp: +own.exp };   // C701
+    if (ok) await reparseIfNeeded(o);
     return ok;
   }
   // v0.26.42：戻した内容がどの大会のものかを帯に出す（戻した画面の大会名・日付。なければ読み込んだファイルの名前。どちらもなければ今までの文）
   function ssTime(t) { return !t ? 0 : typeof t.toMillis === 'function' ? t.toMillis() : typeof t.seconds === 'number' ? t.seconds * 1000 : typeof t === 'number' ? t : Date.parse(t) || 0; }
+  // v0.31.6：読み取りを直した版では、前の版で保存した照合結果（時刻）をそのまま使わず、控えのPDFがあれば付け直す
+  function parseVerNow() { return window.APP_VERSION || ''; }
+  function snapNeedsParse(o) {
+    if (!o || !o.st) return false;
+    // スタートリスト・タイムテーブル・注意事項の“読み取り結果”（オブジェクト）があるときだけ。名前だけの一時保存は付け直さない
+    if (!o.st.sl && !o.st.tt && !(o.st.notes && typeof o.st.notes === 'object')) return false;
+    return (o.parseVer || '') !== parseVerNow();
+  }
+  async function reparseFromSavedFiles() {
+    var p = PREP;
+    if (!p || !p.owner || !p.key) return 0;
+    var n = 0, i, k, rec, file, r;
+    for (i = 0; i < PREP_KINDS.length; i++) {
+      k = PREP_KINDS[i];
+      try {
+        rec = await prepDb('readonly', function (st) { return st.get(prepFileId(p.owner, p.key, k)); });
+        if (!rec || !rec.blob) continue;
+        file = new File([rec.blob], rec.name || (k + '.pdf'), { type: rec.type || 'application/pdf' });
+        r = await handleFile(k, file);
+        if (r && r.adopted) n++;
+      } catch (e) { console.error(e); }
+    }
+    return n;
+  }
+  async function reparseIfNeeded(o) {
+    if (!snapNeedsParse(o)) return { needed: false, got: 0 };
+    var got = 0;
+    try { got = await reparseFromSavedFiles(); } catch (e) { console.error(e); }
+    var n = $('ssNote'), nt = $('ssNoteText');
+    if (nt) {
+      nt.innerHTML = got
+        ? '↺ この版で資料の読み取りを直したので、保存してあったPDFから時刻などを付け直しました。'
+        : '↺ この版で資料の読み取りを直しています。いまの時刻は前の版の読み取りです。<b>プログラム（スタートリスト）とタイムテーブルをもう一度入れてください</b>。';
+    }
+    if (n) n.hidden = false;
+    return { needed: true, got: got };
+  }
   function ssNoteHtml() {
     var nm = String(($('meetName') || {}).value || '').trim().slice(0, 100), dt = String(($('meetDate') || {}).value || '').trim().slice(0, 60), what = '';
     if (nm) what = '<b>' + esc(nm) + '</b>' + (dt ? '（' + esc(dt) + '）' : '');
@@ -2370,7 +2408,9 @@
         }
       }
     }
-    p.quiet = false; prepLocalSave(true);
+    p.quiet = false;
+    if (snap && snap.snap) await reparseIfNeeded(snap.snap);
+    prepLocalSave(true);
     prepBar(ng.length ? '<span class="warn">⚠ ' + esc(ng.join('／')) + '</span>' : '');
     await pubSuggest(p);
   }
@@ -2440,5 +2480,5 @@
     $('teamList').dataset.q = ''; ruleState = {}; renderRuleMarks(); renderFeePrices(); renderDateMark(); updateTeams(); render();
     var pp = $('planPicked'); if (pp) pp.hidden = true; PICKED = null;
   }
-  window.__meetApp = { handleFile: handleFile, prep: function () { return PREP; }, pubSuggest: pubSuggest, prepOpen: prepOpen, prepSweep: prepSweep, onShareAuth: onShareAuth, setFB: function (f) { FB = f; }, pdfName: pdfName, openVenues: openVenues, ssSave: ssSave, ssRestore: ssRestore, ssClear: ssClear, resetAll: resetAll, openPersonal: openPersonal, openPlayers: openPlayers, openPlayer: openPlayer, encodePayload: encodePayload, decodePayload: decodePayload, payloadFromState: payloadFromState, openShare: openShare, refreshPrint: refreshPrint, tableData: tableData, feeData: feeData, totalText: totalText, safeCell: safeCell, state: state, handleFile: handleFile, render: render, updateTeams: updateTeams };
+  window.__meetApp = { handleFile: handleFile, prep: function () { return PREP; }, pubSuggest: pubSuggest, prepOpen: prepOpen, prepSweep: prepSweep, onShareAuth: onShareAuth, setFB: function (f) { FB = f; }, pdfName: pdfName, openVenues: openVenues, ssSave: ssSave, ssRestore: ssRestore, ssClear: ssClear, ssApply: ssApply, ssSnap: ssSnap, snapNeedsParse: snapNeedsParse, parseVerNow: parseVerNow, reparseIfNeeded: reparseIfNeeded, resetAll: resetAll, openPersonal: openPersonal, openPlayers: openPlayers, openPlayer: openPlayer, encodePayload: encodePayload, decodePayload: decodePayload, payloadFromState: payloadFromState, openShare: openShare, refreshPrint: refreshPrint, tableData: tableData, feeData: feeData, totalText: totalText, safeCell: safeCell, state: state, handleFile: handleFile, render: render, updateTeams: updateTeams };
 })();
