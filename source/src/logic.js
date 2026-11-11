@@ -98,7 +98,11 @@ var MeetLogic = (function () {
       var ti = timeInfo(e.event, e.round, heat === '' ? null : heat, typ, e.time, e.date, e.timeNote);
       var r = { team: team, event: e.event, round: e.round, heat: heat, pos: e.pos, posLabel: POS_LABEL[typ], typ: typ, ttHit: hit(e.event, e.round, e.date),
         bib: e.bib, name: e.name, kana: e.kana || '', grade: e.grade, start: ti.start, note: ti.note, page: e.page, conflict: !!ti.conflict, date: e.date || '' };
-      if (typ !== 'field' && e.heat == null) r.heatNG = true;
+      if (typ !== 'field' && e.heat == null) {
+        // プログラムに「決勝」とだけ書いてある1レースは、組不明の⚠にしない（1組）。予選などで組が読めないときだけ ⚠
+        if (String(e.round || '') === '決勝') { r.heat = 1; r.heatNG = false; }
+        else r.heatNG = true;
+      }
       addCall(r, ti.seg); rows.push(r);
     });
     sl.relays.forEach(function (rl) {

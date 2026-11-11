@@ -283,7 +283,7 @@
     });
   }
   function recHead() {
-    return { title: ($('meetName').value || '（大会名）') + '　記録用紙', sub: [$('meetDate').value, state.teams.join('・')].filter(Boolean).join('　') };
+    return { title: ($('meetName').value || '（大会名）') + '　記録用紙', sub: [sheetDate(), state.teams.join('・')].filter(Boolean).join('　') };
   }
   /* ---------- 印刷レイアウト（白黒プリンター向け） ---------- */
   function printGroups() {
@@ -302,7 +302,7 @@
   }
   var PG_CHUNK = 12;
   function band(kind, ncol) {
-    var name = $('meetName').value || '（大会名）', date = $('meetDate').value || '';
+    var name = $('meetName').value || '（大会名）', date = sheetDate();
     return '<tr class="pband"><th colspan="' + ncol + '"><div class="pb-in"><div class="pb-l">' + (typeof PRINT_ICON === 'string' && /^data:image\//.test(PRINT_ICON) ? '<img class="pb-icon" src="' + PRINT_ICON + '" alt="" onerror="this.remove()">' : '') + '<span class="pb-kind">' + esc(kind) + '</span><span class="pb-meet">' + esc(name) + '</span></div>' +
       '<div class="pb-r">' + (date ? '<span class="pb-date">' + esc(date) + '</span>' : '') + '<span class="pb-school">' + esc(state.teams.join('・')) + '</span></div></div><div class="pb-lanes"><i></i><i></i><i></i></div></th></tr>';
   }
@@ -489,6 +489,10 @@
   function dayLabel(md) {
     var p = md.split('/'), y = state.date && state.date.iso ? +state.date.iso.slice(0, 4) : new Date().getFullYear();
     return y + '年' + (+p[0]) + '月' + (+p[1]) + '日（' + '日月火水木金土'[new Date(y, p[0] - 1, p[1]).getDay()] + '）';
+  }
+  // 複数日の大会：記録用紙・出場一覧・PDF・印刷・共有の日付は、入力欄ではなく選んだ対象日
+  function sheetDate() {
+    return state.day ? dayLabel(state.day) : (($('meetDate') && $('meetDate').value) || '');
   }
   /* ---------- 参加料 ---------- */
   function applyFees(fp) {
@@ -736,6 +740,7 @@
       var opts = '<option value="">（対象日を選んでください）</option>' + MD.map(function (d) { return '<option value="' + esc(d) + '"' + (d === state.day ? ' selected' : '') + '>' + esc(dayLabel(d)) + '</option>'; }).join('');
       if (ds.dataset.opts !== opts) { ds.innerHTML = opts; ds.dataset.opts = opts; }
       ds.value = state.day;
+      if (state.day && !$('meetDate').dataset.manual) $('meetDate').value = dayLabel(state.day);
       $('dayPickMsg').textContent = '⚠ 複数日（' + MD.map(function (d) { return d.replace('/', '月') + '日'; }).join('・') + '）の資料です。日付ごとに照合するので、対象日を選んでください。' + (state.day ? '' : '選ぶまで出場一覧は出しません。');
     }
     res.hidden = false;
@@ -863,11 +868,12 @@
   function refreshPrint() {
     if (!state.sl || !state.teams.length || !state.rows.length) { $('printTime').innerHTML = ''; $('recSheet').innerHTML = ''; return; }
     renderRuleMarks(); renderDateMark();
-    $('printTitle').textContent = ($('meetName').value ? $('meetName').value + '　' : '') + ($('meetDate').value ? $('meetDate').value + '　' : '') + '出場一覧（時間順）　' + state.teams.join('・');
+    $('printTitle').textContent = ($('meetName').value ? $('meetName').value + '　' : '') + (sheetDate() ? sheetDate() + '　' : '') + '出場一覧（時間順）　' + state.teams.join('・');
     $('printSub').textContent = (state.sl.format === 'program' ? 'プログラム: ' : 'スタートリスト: ') + state.slName + (state.ttName ? '　タイムテーブル: ' + state.ttName : '') + '　（' + new Date().toLocaleString('ja-JP') + ' 作成）';
     $('printRule').textContent = ruleSummaryText();
     renderFees();
     try { buildPrintTime(); } catch (e) { console.error(e); }
+    try { buildRecSheet(); } catch (e) { console.error(e); }   // 対象日を変えたあと、記録用紙の日付・行も出場一覧と同じタイミングで付け直す
   }
   function grpKey(r) { return (r.start || '?') + '|' + r.event + '|' + (r.round || ''); }
   function b64ToBytes(b64) { var bin = atob(b64), u = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; }
@@ -991,7 +997,7 @@
   // この大会だけの値：自分で直したもの（edited）はそのまま、ほかは毎回資料から作り直す
   function ntAuto() {
     ntFound = LaneNotice.extract(state.docText || {});
-    var d = LaneNotice.parseDate($('meetDate').value || state.day || '') || (ntFound.date ? LaneNotice.parseDate(ntFound.date.v) : null), now = new Date();
+    var d = LaneNotice.parseDate(sheetDate() || '') || (ntFound.date ? LaneNotice.parseDate(ntFound.date.v) : null), now = new Date();
     var auto = { name: $('meetName').value || '', date: LaneNotice.fmtDate(d, NT.era), venue: PICKED && PICKED.venue && PICKED.key === ($('meetName').value + '|' + $('meetDate').value) ? PICKED.venue : ntFound.venue ? ntFound.venue.v : '', station: ntFound.station ? ntFound.station.v : '', gate: ntFound.gate ? ntFound.gate.v : '', address: ntFound.address ? ntFound.address.v : '', phone: ntFound.phone ? ntFound.phone.v : '', docDate: LaneNotice.fmtDate({ y: now.getFullYear(), m: now.getMonth() + 1, d: now.getDate() }, NT.era, true), place: '' };
     Object.keys(auto).forEach(function (k) { if (!NM.edited[k]) NM[k] = auto[k]; });
     // 保存した競技場と同じなら、最寄り駅・行き方・集合場所・住所もそこから入れる
@@ -1006,7 +1012,7 @@
     return t;
   }
   function parentOpt() { return { grade: NT ? NT.table.grade : true, split: NT ? NT.table.split : true }; }
-  function parentMeta() { return { title: ($('meetName').value || '（大会名）') + '　出場選手・予定', sub: [$('meetDate').value, state.teams.join('・')].filter(Boolean).join('　') }; }
+  function parentMeta() { return { title: ($('meetName').value || '（大会名）') + '　出場選手・予定', sub: [sheetDate(), state.teams.join('・')].filter(Boolean).join('　') }; }
   function parentParts() { var o = parentOpt(); return { ath: LaneParent.athleteGrid(state.rows, o), time: LaneParent.timeGrid(dispRows(), MeetLogic.byTime) }; }
   function ntDoc(fit) { return LaneNotice.docHtml(NT, NM, parentParts(), fit); }
   var NT_BASE = { first: '自校の最初の種目', start: '大会の競技開始', gate: '開門' };
@@ -1325,7 +1331,7 @@
   function rowObj(a) { var o = {}; RK.forEach(function (k, i) { o[k] = a && a[i] != null ? String(a[i]) : ''; }); o.relay = o.relay === 'r'; return o; }
   function payloadFromState() {
     var S = settings();
-    return { v: 1, n: $('meetName').value || '', d: $('meetDate').value || '', ts: state.teams.slice(), g: new Date().toISOString(),
+    return { v: 1, n: $('meetName').value || '', d: sheetDate() || '', ts: state.teams.slice(), g: new Date().toISOString(),
       rule: ruleSummaryText().replace(/（〇＝.*$/, ''),
       r: MeetLogic.byTime(state.rows).map(shareRow),
       c: state.teams.map(function (t) {
@@ -1782,7 +1788,7 @@
   var PL = { list: [], links: {} };
   function playerMeta() {
     var cp = (settings().callPlace || '').trim();
-    return { n: $('meetName').value || '', d: $('meetDate').value || '', pl: ($('plVenue').value || '').trim(), cp: cp === '未設定' ? '' : cp };
+    return { n: $('meetName').value || '', d: sheetDate() || '', pl: ($('plVenue').value || '').trim(), cp: cp === '未設定' ? '' : cp };
   }
   function plAuth() {
     var u = FB && FB.auth.currentUser;
@@ -2480,5 +2486,5 @@
     $('teamList').dataset.q = ''; ruleState = {}; renderRuleMarks(); renderFeePrices(); renderDateMark(); updateTeams(); render();
     var pp = $('planPicked'); if (pp) pp.hidden = true; PICKED = null;
   }
-  window.__meetApp = { handleFile: handleFile, prep: function () { return PREP; }, pubSuggest: pubSuggest, prepOpen: prepOpen, prepSweep: prepSweep, onShareAuth: onShareAuth, setFB: function (f) { FB = f; }, pdfName: pdfName, openVenues: openVenues, ssSave: ssSave, ssRestore: ssRestore, ssClear: ssClear, ssApply: ssApply, ssSnap: ssSnap, snapNeedsParse: snapNeedsParse, parseVerNow: parseVerNow, reparseIfNeeded: reparseIfNeeded, resetAll: resetAll, openPersonal: openPersonal, openPlayers: openPlayers, openPlayer: openPlayer, encodePayload: encodePayload, decodePayload: decodePayload, payloadFromState: payloadFromState, openShare: openShare, refreshPrint: refreshPrint, tableData: tableData, feeData: feeData, totalText: totalText, safeCell: safeCell, state: state, handleFile: handleFile, render: render, updateTeams: updateTeams };
+  window.__meetApp = { handleFile: handleFile, prep: function () { return PREP; }, pubSuggest: pubSuggest, prepOpen: prepOpen, prepSweep: prepSweep, onShareAuth: onShareAuth, setFB: function (f) { FB = f; }, pdfName: pdfName, openVenues: openVenues, ssSave: ssSave, ssRestore: ssRestore, ssClear: ssClear, ssApply: ssApply, ssSnap: ssSnap, snapNeedsParse: snapNeedsParse, parseVerNow: parseVerNow, reparseIfNeeded: reparseIfNeeded, resetAll: resetAll, openPersonal: openPersonal, openPlayers: openPlayers, openPlayer: openPlayer, encodePayload: encodePayload, decodePayload: decodePayload, payloadFromState: payloadFromState, sheetDate: sheetDate, recHead: recHead, openShare: openShare, refreshPrint: refreshPrint, tableData: tableData, feeData: feeData, totalText: totalText, safeCell: safeCell, state: state, handleFile: handleFile, render: render, updateTeams: updateTeams };
 })();

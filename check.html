@@ -981,9 +981,16 @@ var MeetParser = (function () {
         var canCont = lastTitle && lastTitlePage === pi - 1;
         sections.push({ title: canCont ? lastTitle : null, round: canCont ? lastRound : '', y0: -1, cont: true, sched: canCont ? lastSched : [], noInherit: !canCont && !!lastTitle });
       }
-      tGroups.forEach(function (g) {
+      tGroups.forEach(function (g, gi) {
         var title = nk(g.items.map(function (i) { return i.str; }).join(' ')).replace(/\s+/g, ' ').trim();
-        var rItem = items.filter(function (i) { return i.y > g.y + 2 && i.y < g.y + 40 && /^(予選|準決勝|決勝|タイムレース|TR|準々決勝|1次予選|2次予選|オープン)/.test(nk(i.str).trim()); })[0];
+        // 見出しから40pt以内だけでなく、記録の行の下・表（ORD・ナンバー・組）の上にある「決勝」「タイムレース」もラウンドにする
+        var nextY = gi + 1 < tGroups.length ? tGroups[gi + 1].y : 1e9;
+        var tableTop = items.filter(function (i) {
+          var s = nk(i.str).replace(/\s+/g, '');
+          return i.y > g.y + 2 && i.y < nextY && (BIB_HDR.test(nk(i.str).trim()) || /^(ORD|レーン)$/.test(nk(i.str).trim()) || /^\d+組/.test(s));
+        }).sort(function (a, b) { return a.y - b.y; })[0];
+        var rMax = tableTop ? tableTop.y : Math.min(g.y + 40, nextY);
+        var rItem = items.filter(function (i) { return i.y > g.y + 2 && i.y < rMax && i.x < W * 0.55 && /^(予選|準決勝|決勝|タイムレース|TR|準々決勝|1次予選|2次予選|オープン)/.test(nk(i.str).trim()); }).sort(function (a, b) { return a.y - b.y; })[0];
         // プログラム形式：見出しの右に「10月11日 09:30 予選」のような日程行がある
         var sched = [];
         var sItems = items.filter(function (i) { return i.y > g.y - 2 && i.y < g.y + 80 && i.x > W * 0.55 && i.h < 10; }).sort(function (a, b) { return a.y - b.y || a.x - b.x; });
@@ -1063,7 +1070,7 @@ var MeetParser = (function () {
       hasTimes: all.some(function (e) { return e.time; }) };
 
     function parseSection(words, W, pi, title, round, sched, frag) {
-      var heatLabels = words.filter(function (w) { return /^\d+組$/.test(w.n); });
+      var heatLabels = words.filter(function (w) { return /^\d+組/.test(w.n); });   // 「1組」だけでなく「1組ＩＮ20名」も組の見出し
       // ラウンド見出し（「予 選」「決 勝」など。プログラム形式は1種目に予選・決勝の欄が並ぶ）
       var roundLabels = [];
       if (frag) {
@@ -1180,8 +1187,18 @@ var MeetParser = (function () {
           }
         }
         var hl = heatLabels.filter(function (l) { return l.y < aY && l.x >= h.left - 5 && l.x < h.right; }).sort(function (a, b) { return b.y - a.y; })[0];
+        // 「1組ＩＮ20名」が左、「ＯＵＴ10名」が右の同じ組：組見出しは左にしか無いので、同じ高さの組見出しが1つだけなら右列にも使う（横並びの1組・2組は使わない）
+        if (!hl) {
+          var above = heatLabels.filter(function (l) { return l.y < aY; }).sort(function (a, b) { return b.y - a.y; });
+          if (above.length) {
+            var sameY = above.filter(function (l) { return Math.abs(l.y - above[0].y) < 8; });
+            if (sameY.length === 1) hl = sameY[0];
+          }
+        }
         var rd = roundAt(aY), tm = timeFor(rd);
-        var ent = { page: pi + 1, event: title, round: rd, heat: hl ? parseInt(hl.n, 10) : null, posKind: h.kind,
+        // プログラムに「決勝」とだけあり組番号が無い（1レースの決勝）→ 1組。組の見出しがあるのにこの行に付かないときは空のまま（推測しない）
+        var heat = hl ? parseInt(hl.n, 10) : ((roundNorm(rd) === '決勝' && !heatLabels.length) ? 1 : null);
+        var ent = { page: pi + 1, event: title, round: rd, heat: heat, posKind: h.kind,
           pos: parseInt(w.n, 10), bib: bibW.n, name: name, grade: grade, team: team };
         var nameH = nameW.length ? Math.max.apply(null, nameW.map(function (o) { return o.h || 0; })) : 0;
         var kanaW = words.filter(function (o) { return o.y >= aY - 13 && o.y < aY - 7 && nameH && o.h && o.h < nameH * 0.92 && rest.indexOf(o) < 0 && o.x > bibW.x + 1 && o.x < h.affX - 3 && /^[\uFF66-\uFF9F\u30A0-\u30FF\s\u3000]+$/.test(o.t); });
@@ -1943,7 +1960,11 @@ var MeetLogic = (function () {
       var ti = timeInfo(e.event, e.round, heat === '' ? null : heat, typ, e.time, e.date, e.timeNote);
       var r = { team: team, event: e.event, round: e.round, heat: heat, pos: e.pos, posLabel: POS_LABEL[typ], typ: typ, ttHit: hit(e.event, e.round, e.date),
         bib: e.bib, name: e.name, kana: e.kana || '', grade: e.grade, start: ti.start, note: ti.note, page: e.page, conflict: !!ti.conflict, date: e.date || '' };
-      if (typ !== 'field' && e.heat == null) r.heatNG = true;
+      if (typ !== 'field' && e.heat == null) {
+        // プログラムに「決勝」とだけ書いてある1レースは、組不明の⚠にしない（1組）。予選などで組が読めないときだけ ⚠
+        if (String(e.round || '') === '決勝') { r.heat = 1; r.heatNG = false; }
+        else r.heatNG = true;
+      }
       addCall(r, ti.seg); rows.push(r);
     });
     sl.relays.forEach(function (rl) {
@@ -2924,7 +2945,7 @@ if (typeof module !== 'undefined') module.exports = LaneAuth;
 
 </script>
 <script>
-var APP_VERSION = "v0.31.6";
+var APP_VERSION = "v0.31.7";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>
