@@ -1148,7 +1148,7 @@ body.sched-page main>.box:first-of-type>:not(#rbAuth):not(#rbAuthStatus):not(#rb
 <body class="records sched-page">
 <header>
   <div class="hdr-meta">
-    <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／記録 v0.11.1</div>
+    <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／記録 v0.11.2</div>
     <div class="credit">Presented by Sakata</div>
     <div class="hdr-msg"><span class="hm-l">すべての陸上競技部顧問が、</span><span class="hm-l">少しでも楽になりますように。</span></div>
     <div class="use-count" id="useCount" hidden></div>
@@ -1306,7 +1306,7 @@ body.sched-page main>.box:first-of-type>:not(#rbAuth):not(#rbAuthStatus):not(#rb
 </main>
 <footer><details class="about"><summary><b>この記録ページについて</b>（版・対応している形式・既知の制限）</summary>
   <ul>
-    <li><b>LANE NOTE（レーンノート）記録 試作版</b>　版：<span class="appver"></span>／記録 v0.11.1（2026年10月12日 作成）／ Presented by Sakata</li>
+    <li><b>LANE NOTE（レーンノート）記録 試作版</b>　版：<span class="appver"></span>／記録 v0.11.2（2026年10月12日 作成）／ Presented by Sakata</li>
     <li>問い合わせ：<a href="mailto:lanenote.info@gmail.com">lanenote.info@gmail.com</a>・<a href="https://x.com/lanenote" target="_blank" rel="noopener">X：@lanenote</a>（または「🚨 不具合・要望を送る」）</li>
     <li>読める形式：組ごとに2列で並ぶ結果PDF（「順位・レーン・ナンバー・氏名・所属・記録」の見出しがあるもの。北区・江東区・都高体連などで確認）／ 結果サイトのHTML（表のあるもの）・その貼り付け。</li>
     <li>Excel・CSV（v0.5）：見出し（氏名・種目・記録・日付など）を自動で見つけて取り込みます。日付は必須、大会名は任意（空なら「大会名なし（日付）」）。</li>
@@ -3548,7 +3548,7 @@ if (typeof module !== 'undefined') module.exports = LaneRoster;
 
 </script>
 <script>
-var APP_VERSION = "v0.31.7", REC_VERSION = "v0.11.1";
+var APP_VERSION = "v0.31.8", REC_VERSION = "v0.11.2";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>
@@ -7608,6 +7608,8 @@ if (typeof module !== 'undefined') module.exports = LaneEntry;
     var within = function (l) { return l.kind === 'page' && l.url.indexOf(dir) === 0 && !SKIP_URL.test(l.url) && !SKIP_LAB.test(l.label); };
     var abort = function () { if (o.signal && o.signal.aborted) { var e = new Error('中止しました'); e.name = 'AbortError'; throw e; } };
     var level = [{ page: page, d: 0 }], rest = [];
+    // v0.31.8：一覧から選んだ競技一覧のページ（kyougi1.html など）だけを起点にする：その一覧にある結果のページだけを取る（ほかの一覧へは進まない）
+    if (o.starts && o.starts.length) { gold = true; depth = 2; level = o.starts.map(function (p) { seen[p.url.replace(/#.*$/, '')] = 1; return { page: p, d: 1 }; }); }
     // 続きから：前回取れなかった結果のページだけを取る（一覧はたどらない）
     if (o.resume) level = [];
     var todo0 = o.resume ? o.resume.map(function (t) { return { l: t.l, d: t.d, isRes: true, isIdx: false }; }) : null;
@@ -7618,6 +7620,7 @@ if (typeof module !== 'undefined') module.exports = LaneEntry;
           if (seen[l.url]) return; seen[l.url] = 1;
           var isRes = gold ? GOLD_RES.test(l.url) : true, isIdx = gold ? GOLD_IDX.test(l.url) : x.d + 1 < depth;
           if (!isRes && !isIdx) return;
+          if (o.starts && o.starts.length && !isRes) return;   // v0.31.8 選んだ一覧から：ほかの一覧へは進まない
           todo.push({ l: l, d: x.d + 1, isRes: isRes, isIdx: isIdx && x.d + 1 < depth });
         });
       });
@@ -7798,13 +7801,13 @@ if (typeof module !== 'undefined') module.exports = LaneEntry;
         }
       };
     }
-    async function crawlAll(page, ctx, resume) {
+    async function crawlAll(page, ctx, resume, starts, extra) {
       if (busy) return; busy = true; $('Go').disabled = true;
       ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
       var box = $('Links'); box.innerHTML = '<div class="url-meet"><p class="small">結果のページを集めています。止めたいときは「やめる」を押してください（そこまでに集めた分は取り込みません）。</p><progress id="' + id + 'Prog" max="1" value="0" style="width:100%"></progress><button type="button" class="btn sub" data-stop>やめる</button></div>';
       box.onclick = function (e) { if (e.target.hasAttribute('data-stop') && ctrl) ctrl.abort(); };
       try {
-        var out = await crawlMeet(page, { resume: resume, signal: ctrl && ctrl.signal, fetch: o.fetch, delay: o.delay, max: o.max, onProgress: function (p) {
+        var out = await crawlMeet(page, { resume: resume, starts: starts, signal: ctrl && ctrl.signal, fetch: o.fetch, delay: o.delay, max: o.max, onProgress: function (p) {
           st('読み込み中…（' + p.done + '／約' + p.total + 'ページ・結果 ' + p.found + 'ページ）' + String(p.label || '').slice(0, 40), 'busy');
           var pr = document.getElementById(id + 'Prog'); if (pr) { pr.max = p.total; pr.value = p.done; } } });
         box.hidden = true; box.innerHTML = '';
@@ -7817,7 +7820,7 @@ if (typeof module !== 'undefined') module.exports = LaneEntry;
         st('✔ 結果のページを ' + out.results.length + ' 件取ってきました（通信 ' + out.requests + ' 回）。' + (out.failed.length ? '　✖ 読み込めなかったもの ' + out.failed.length + '件：' + out.failed.slice(0, 3).map(function (f) { return f.label.slice(0, 20) + '：' + f.error; }).join('／') : '') + more, out.failed.length || more ? 'warn' : 'ok');
         busy = false;   // 取り込み（onFiles）の間も次の読み込みを受け付けてよい
         // 最初のページ（競技一覧）も渡す：大会名はそこにだけ書いてある
-        await deliver((resume ? [] : [{ r: page, k: o.targets[0].k }]).concat(out.results.map(function (x) { return { r: x.r, k: o.targets[0].k }; })), ctx);
+        await deliver((resume ? [] : [{ r: page, k: o.targets[0].k }]).concat(extra || [], out.results.map(function (x) { return { r: x.r, k: o.targets[0].k }; })), ctx);
       } catch (e) {
         box.hidden = true; box.innerHTML = '';
         st(e && e.name === 'AbortError' ? 'やめました（取り込んでいません）。' : '✖ ' + (e && e.message || e), e && e.name === 'AbortError' ? '' : 'ng');
@@ -7835,6 +7838,14 @@ if (typeof module !== 'undefined') module.exports = LaneEntry;
           } catch (e) { if (e && e.name === 'AbortError') return; ng.push(pick[i].l.label.slice(0, 30) + '：' + e.message); }
         }
         $('Links').hidden = true; $('Links').innerHTML = '';
+        // v0.31.8：大会の速報ページで競技一覧（kyougi*.html）を選んだときは、一覧そのものには記録がないので、その一覧の結果のページ（rel*.html）までたどる
+        var meet = acceptHtml && isMeetPage(page, findLinks(page.html, page.url));
+        if (meet && pick.some(function (p) { return p.l.kind === 'self'; })) { busy = false; await crawlAll(page, ctx); return; }
+        var idxs = meet ? got.filter(function (g) { return g.r.kind === 'html' && GOLD_IDX.test(g.r.url) && !GOLD_RES.test(g.r.url); }) : [];
+        if (idxs.length) {
+          busy = false; await crawlAll(page, ctx, null, idxs.map(function (g) { return g.r; }), got.filter(function (g) { return idxs.indexOf(g) < 0; }));
+          return;
+        }
         st((got.length ? '✔ ' + got.length + '件を取ってきました。' : '') + (ng.length ? '　✖ 読み込めなかったもの：' + ng.join('／') : ''), ng.length && !got.length ? 'ng' : ng.length ? 'warn' : 'ok');
         if (got.length) await deliver(got, ctx);
       } finally { busy = false; $('Go').disabled = false; }
