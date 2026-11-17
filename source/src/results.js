@@ -102,6 +102,8 @@ var ResultParser = (function () {
     if (/(中学校|中学|中等教育学校|中)$/.test(t) || cyuTeam(r.team)) return { d: 'jh', src: 'team' };
     if (/(高等学校|高校|高)$/.test(t)) return { d: 'hs', src: 'team' };
     var md = r.date && r.meet ? MEET_DIV[r.date + '|' + r.meet] : ''; if (md) return { d: md, src: 'meet' };
+    // v0.31.9：大会名に「高体連・高等学校」など（または「中体連・中学校」など）がはっきり書いてあれば、その区分（例：東京都高体連の支部大会）
+    var gm = guessDiv(r.meet); if (gm) return { d: gm === '中学' ? 'jh' : 'hs', src: 'meet' };
     var e = nk(r.event || '').replace(/\s+/g, '');
     if (/中学|中[1-3](?!\d)/.test(e)) return { d: 'jh', src: 'event' };
     if (/高校|高[1-3](?!\d)/.test(e)) return { d: 'hs', src: 'event' };

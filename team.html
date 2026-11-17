@@ -1148,7 +1148,7 @@ body.sched-page main>.box:first-of-type>:not(#rbAuth):not(#rbAuthStatus):not(#rb
 <body class="records team-page">
 <header>
   <div class="hdr-meta">
-    <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／記録 v0.11.2</div>
+    <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／記録 v0.11.3</div>
     <div class="credit">Presented by Sakata</div>
     <div class="hdr-msg"><span class="hm-l">すべての陸上競技部顧問が、</span><span class="hm-l">少しでも楽になりますように。</span></div>
     <div class="use-count" id="useCount" hidden></div>
@@ -1306,7 +1306,7 @@ body.sched-page main>.box:first-of-type>:not(#rbAuth):not(#rbAuthStatus):not(#rb
 </main>
 <footer><details class="about"><summary><b>この記録ページについて</b>（版・対応している形式・既知の制限）</summary>
   <ul>
-    <li><b>LANE NOTE（レーンノート）記録 試作版</b>　版：<span class="appver"></span>／記録 v0.11.2（2026年10月12日 作成）／ Presented by Sakata</li>
+    <li><b>LANE NOTE（レーンノート）記録 試作版</b>　版：<span class="appver"></span>／記録 v0.11.3（2026年10月12日 作成）／ Presented by Sakata</li>
     <li>問い合わせ：<a href="mailto:lanenote.info@gmail.com">lanenote.info@gmail.com</a>・<a href="https://x.com/lanenote" target="_blank" rel="noopener">X：@lanenote</a>（または「🚨 不具合・要望を送る」）</li>
     <li>読める形式：組ごとに2列で並ぶ結果PDF（「順位・レーン・ナンバー・氏名・所属・記録」の見出しがあるもの。北区・江東区・都高体連などで確認）／ 結果サイトのHTML（表のあるもの）・その貼り付け。</li>
     <li>Excel・CSV（v0.5）：見出し（氏名・種目・記録・日付など）を自動で見つけて取り込みます。日付は必須、大会名は任意（空なら「大会名なし（日付）」）。</li>
@@ -1989,6 +1989,8 @@ var ResultParser = (function () {
     if (/(中学校|中学|中等教育学校|中)$/.test(t) || cyuTeam(r.team)) return { d: 'jh', src: 'team' };
     if (/(高等学校|高校|高)$/.test(t)) return { d: 'hs', src: 'team' };
     var md = r.date && r.meet ? MEET_DIV[r.date + '|' + r.meet] : ''; if (md) return { d: md, src: 'meet' };
+    // v0.31.9：大会名に「高体連・高等学校」など（または「中体連・中学校」など）がはっきり書いてあれば、その区分（例：東京都高体連の支部大会）
+    var gm = guessDiv(r.meet); if (gm) return { d: gm === '中学' ? 'jh' : 'hs', src: 'meet' };
     var e = nk(r.event || '').replace(/\s+/g, '');
     if (/中学|中[1-3](?!\d)/.test(e)) return { d: 'jh', src: 'event' };
     if (/高校|高[1-3](?!\d)/.test(e)) return { d: 'hs', src: 'event' };
@@ -3548,7 +3550,7 @@ if (typeof module !== 'undefined') module.exports = LaneRoster;
 
 </script>
 <script>
-var APP_VERSION = "v0.31.8", REC_VERSION = "v0.11.2";
+var APP_VERSION = "v0.31.9", REC_VERSION = "v0.11.3";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>
@@ -12200,6 +12202,8 @@ var LanePdf = (function () {
     $('rbPrintBody').innerHTML = html; $('rbPrintGo').hidden = $('rbPrintPdf').hidden = !!pick; $('rbPrintHint').hidden = true; $('rbPrint').hidden = false; $('rbPrint').scrollTop = 0; document.body.classList.add('printing');
   }
   function closePrint() { if (document.body.classList.contains('ms-view')) { location.replace(location.pathname); return; } $('rbPrint').hidden = true; $('rbPrintBody').innerHTML = ''; document.body.classList.remove('printing'); }
+  // v0.31.9：選手を選ぶ一覧の学年は数字だけ「3年」（中／高は横の学校名「本郷高」「本郷中」でわかる）。保存した学年は変えない
+  function grShort(g) { var n = g ? R.gradeNum(g) : null; return n != null ? n + '年' : (g ? String(g) + (/年/.test(g) ? '' : '年') : ''); }
   function pickList() {
     var seen = {}, out = []; R.sortAthletes(R.computeBests(filtered()).bests).forEach(function (b) { if (!seen[b.key]) { seen[b.key] = 1; out.push(b); } });
     return out;
@@ -12235,7 +12239,7 @@ var LanePdf = (function () {
       '<p class="small muted">' + (c ? 'いまの絞り込み（' + esc(c) + '）の' : '') + esc(LaneReview.periodLabel(RV.from, RV.to)) + 'に記録がある選手 ' + ls.length + '人</p>' +
       (ls.length ? '<div class="lp-ops"><button class="btn sub" type="button" data-rvall="1">全員選択</button><button class="btn sub" type="button" data-rvnone="1">全解除</button><button class="btn" type="button" data-rvmake="1">' + act + '（<span id="rbRVn">' + ls.length + '</span>人）</button></div>' : '<p class="muted">この期間の記録がありません。期間を変えてください。</p>') +
       '<ul>' + ls.map(function (b) { var nt = LaneReview.noteGet(uid, b.key, RV.from, RV.to);
-        return '<li><label><input type="checkbox" data-rvk="' + esc(b.key) + '" checked><b>' + esc(b.name) + '</b><span class="gr">' + esc(b.grade ? b.grade + (/年/.test(b.grade) ? '' : '年') : '') + ' ' + esc(b.team || '') + '・' + b.nMeets + '大会</span></label>' +
+        return '<li><label><input type="checkbox" data-rvk="' + esc(b.key) + '" checked><b>' + esc(b.name) + '</b><span class="gr">' + esc(grShort(b.grade)) + ' ' + esc(b.team || '') + '・' + b.nMeets + '大会</span></label>' +
           '<details class="rv-nd"' + (nt ? ' open' : '') + '><summary>✏️ 先生から一言を入れる' + (nt ? '（入力あり）' : '') + '<span class="sum-sub" data-xp="">空けておくと、手書きの枠になります。</span></summary><textarea data-rvnote="' + esc(b.key) + '" maxlength="' + LaneReview.NOTE_MAX + '" rows="3" placeholder="例：春から夏にかけて大きく伸びました。来年も楽しみです。">' + esc(nt) + '</textarea><small class="muted">🔒 この端末だけに保存</small> <small class="muted" data-xp="">どこにも送りません。</small></details></li>'; }).join('') + '</ul></div>', true);
   }
   function startPrint(kind, key, act) {
@@ -12259,7 +12263,7 @@ var LanePdf = (function () {
     if (kind === 'pick') {
       var ls = pickList(), c = filterCond();
       openPrint('<div class="lp-pick"><b>個人表をPDFにする選手を選ぶ</b><p class="small muted">' + (c ? 'いまの絞り込み（' + esc(c) + '）の' : '') + '選手 ' + ls.length + '人・1人1ページ</p><div class="lp-ops"><button class="btn sub" type="button" data-ppall="1">全員選択</button><button class="btn sub" type="button" data-ppnone="1">全解除</button><button class="btn" type="button" data-ppmake="1">🖨 PDFにまとめる（<span id="rbPPn">' + ls.length + '</span>人）</button></div><ul>' +
-        ls.map(function (b) { return '<li><label><input type="checkbox" data-ppk="' + esc(b.key) + '" checked><b>' + esc(b.name) + '</b><span class="gr">' + esc((b.best || b.ref || {}).grade ? (b.best || b.ref).grade + '年' : '') + ' ' + esc(b.team || '') + '</span></label></li>'; }).join('') + '</ul></div>', true);
+        ls.map(function (b) { return '<li><label><input type="checkbox" data-ppk="' + esc(b.key) + '" checked><b>' + esc(b.name) + '</b><span class="gr">' + esc(grShort((b.best || b.ref || {}).grade)) + ' ' + esc(b.team || '') + '</span></label></li>'; }).join('') + '</ul></div>', true);
       return;
     }
     var hist = kind.indexOf('hist') === 0, all = /-all$/.test(kind), ns = nowSeason();
@@ -12670,7 +12674,7 @@ var LanePdf = (function () {
     document.querySelectorAll('#rbPPDiv button').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-ppdiv') === PPS.div); });
     document.querySelectorAll('#rbPPSex button').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-ppsex') === PPS.sex); });
     var ls = ppNames();
-    $('rbPPNames').innerHTML = ls.length ? ls.map(function (b) { var g = (b.best || b.ref || {}).grade; return '<li><label><input type="checkbox" data-ppn="' + esc(b.key) + '"' + (PPS.off[b.key] ? '' : ' checked') + '><b>' + esc(b.name) + '</b><span class="gr">' + esc((g ? g + '年 ' : '') + (b.team || '')) + '</span></label></li>'; }).join('') : '<li class="small muted" style="padding:10px">選手がいません。</li>';
+    $('rbPPNames').innerHTML = ls.length ? ls.map(function (b) { var g = (b.best || b.ref || {}).grade; return '<li><label><input type="checkbox" data-ppn="' + esc(b.key) + '"' + (PPS.off[b.key] ? '' : ' checked') + '><b>' + esc(b.name) + '</b><span class="gr">' + esc((g ? grShort(g) + ' ' : '') + (b.team || '')) + '</span></label></li>'; }).join('') : '<li class="small muted" style="padding:10px">選手がいません。</li>';
     ppCount();
   }
   function openPPScreen(only) {

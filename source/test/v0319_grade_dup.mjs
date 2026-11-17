@@ -1,0 +1,22 @@
+// v0.31.9：選手を選ぶ一覧の学年表示（「高3年」→「3年」）と、大会名の区分（高体連など）で同じ選手を1人にまとめる。架空のデータだけ
+import fs from 'node:fs'; import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url); const R = require('../src/results.js');
+let ok = 0, ng = 0; const t = (c, m) => { if (c) { ok++; console.log('  ✔ ' + m); } else { ng++; console.log('  NG ' + m); } };
+console.log('[v0.31.9] 学年の表示と同じ選手のまとめ');
+const run = (recs) => { R.setMeetDivs({}); R.setPersonDivs({}); R.setRosterDivs({}); const inf = R.inferDivisions(recs, {}); R.setDivisionHints(inf.hints); return recs.map(r => R.athleteKey(r)); };
+const old = { id: 'o1', name: '架空 一郎', team: '架空高', grade: '高3', date: '2026-06-01', meet: '架空記録会', event: '男子 100m', mark: '11.50' };
+const nw = { id: 'n1', name: '架空 一郎', team: '3・架空', grade: '2', date: '2026-11-14', meet: '令和８年度架空県高体連支部秋季競技会', event: '男子 200m', mark: '23.40' };
+let k = run([old, nw]); t(k[0] === k[1] && /#hs$/.test(k[0]), '高体連の大会の記録（所属「3・架空」・学年の数字だけ）は、「高3」の記録と同じ選手（高校）になる');
+const jm = Object.assign({}, nw, { id: 'n2', meet: '架空区中体連秋季大会', grade: '3', date: '2025-10-01' });
+k = run([old, jm]); t(k[0] !== k[1] && /#jh$/.test(k[1]), '中体連の大会の記録は中学のまま（高校の選手とまとめない）');
+const plain = Object.assign({}, nw, { id: 'n3', meet: '架空記録会2', grade: '2' });
+k = run([old, plain]); t(k[0] !== k[1], '大会名で区分がわからず学年も合わないときは、推測でまとめない（これまでどおり）');
+const same = Object.assign({}, nw, { id: 'n4', meet: '架空記録会3', grade: '3' });
+k = run([old, same]); t(k[0] === k[1], '同じ年度で学年が合えば、「高3」と「3」は同じ選手（これまでどおり）');
+const src = fs.readFileSync(new URL('../src/records_app.js', import.meta.url), 'utf8');
+const m = src.match(/function grShort\(g\) \{[^\n]*\}/); t(!!m, 'grShort がある');
+const grShort = new Function('R', m[0] + '; return grShort;')(R);
+t(['高3', '高３年', '高校3年', '3', '3年', '中2'].map(grShort).join(',') === '3年,3年,3年,3年,3年,2年', '学年は「3年」の形で出す（中／高は付けない）');
+t(grShort('') === '' && grShort(null) === '', '学年がないときは空');
+t((src.match(/grShort\(/g) || []).length >= 4, '個人表・ふりかえりシート・個人ページの選ぶ一覧で使う');
+console.log((ng ? 'NG ' : '') + 'v0.31.9 学年の表示 OK ' + ok + (ng ? ' / NG ' + ng : '')); process.exit(ng ? 1 : 0);

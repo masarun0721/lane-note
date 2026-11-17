@@ -3588,6 +3588,8 @@
     $('rbPrintBody').innerHTML = html; $('rbPrintGo').hidden = $('rbPrintPdf').hidden = !!pick; $('rbPrintHint').hidden = true; $('rbPrint').hidden = false; $('rbPrint').scrollTop = 0; document.body.classList.add('printing');
   }
   function closePrint() { if (document.body.classList.contains('ms-view')) { location.replace(location.pathname); return; } $('rbPrint').hidden = true; $('rbPrintBody').innerHTML = ''; document.body.classList.remove('printing'); }
+  // v0.31.9：選手を選ぶ一覧の学年は数字だけ「3年」（中／高は横の学校名「本郷高」「本郷中」でわかる）。保存した学年は変えない
+  function grShort(g) { var n = g ? R.gradeNum(g) : null; return n != null ? n + '年' : (g ? String(g) + (/年/.test(g) ? '' : '年') : ''); }
   function pickList() {
     var seen = {}, out = []; R.sortAthletes(R.computeBests(filtered()).bests).forEach(function (b) { if (!seen[b.key]) { seen[b.key] = 1; out.push(b); } });
     return out;
@@ -3623,7 +3625,7 @@
       '<p class="small muted">' + (c ? 'いまの絞り込み（' + esc(c) + '）の' : '') + esc(LaneReview.periodLabel(RV.from, RV.to)) + 'に記録がある選手 ' + ls.length + '人</p>' +
       (ls.length ? '<div class="lp-ops"><button class="btn sub" type="button" data-rvall="1">全員選択</button><button class="btn sub" type="button" data-rvnone="1">全解除</button><button class="btn" type="button" data-rvmake="1">' + act + '（<span id="rbRVn">' + ls.length + '</span>人）</button></div>' : '<p class="muted">この期間の記録がありません。期間を変えてください。</p>') +
       '<ul>' + ls.map(function (b) { var nt = LaneReview.noteGet(uid, b.key, RV.from, RV.to);
-        return '<li><label><input type="checkbox" data-rvk="' + esc(b.key) + '" checked><b>' + esc(b.name) + '</b><span class="gr">' + esc(b.grade ? b.grade + (/年/.test(b.grade) ? '' : '年') : '') + ' ' + esc(b.team || '') + '・' + b.nMeets + '大会</span></label>' +
+        return '<li><label><input type="checkbox" data-rvk="' + esc(b.key) + '" checked><b>' + esc(b.name) + '</b><span class="gr">' + esc(grShort(b.grade)) + ' ' + esc(b.team || '') + '・' + b.nMeets + '大会</span></label>' +
           '<details class="rv-nd"' + (nt ? ' open' : '') + '><summary>✏️ 先生から一言を入れる' + (nt ? '（入力あり）' : '') + '<span class="sum-sub" data-xp="">空けておくと、手書きの枠になります。</span></summary><textarea data-rvnote="' + esc(b.key) + '" maxlength="' + LaneReview.NOTE_MAX + '" rows="3" placeholder="例：春から夏にかけて大きく伸びました。来年も楽しみです。">' + esc(nt) + '</textarea><small class="muted">🔒 この端末だけに保存</small> <small class="muted" data-xp="">どこにも送りません。</small></details></li>'; }).join('') + '</ul></div>', true);
   }
   function startPrint(kind, key, act) {
@@ -3647,7 +3649,7 @@
     if (kind === 'pick') {
       var ls = pickList(), c = filterCond();
       openPrint('<div class="lp-pick"><b>個人表をPDFにする選手を選ぶ</b><p class="small muted">' + (c ? 'いまの絞り込み（' + esc(c) + '）の' : '') + '選手 ' + ls.length + '人・1人1ページ</p><div class="lp-ops"><button class="btn sub" type="button" data-ppall="1">全員選択</button><button class="btn sub" type="button" data-ppnone="1">全解除</button><button class="btn" type="button" data-ppmake="1">🖨 PDFにまとめる（<span id="rbPPn">' + ls.length + '</span>人）</button></div><ul>' +
-        ls.map(function (b) { return '<li><label><input type="checkbox" data-ppk="' + esc(b.key) + '" checked><b>' + esc(b.name) + '</b><span class="gr">' + esc((b.best || b.ref || {}).grade ? (b.best || b.ref).grade + '年' : '') + ' ' + esc(b.team || '') + '</span></label></li>'; }).join('') + '</ul></div>', true);
+        ls.map(function (b) { return '<li><label><input type="checkbox" data-ppk="' + esc(b.key) + '" checked><b>' + esc(b.name) + '</b><span class="gr">' + esc(grShort((b.best || b.ref || {}).grade)) + ' ' + esc(b.team || '') + '</span></label></li>'; }).join('') + '</ul></div>', true);
       return;
     }
     var hist = kind.indexOf('hist') === 0, all = /-all$/.test(kind), ns = nowSeason();
@@ -4058,7 +4060,7 @@
     document.querySelectorAll('#rbPPDiv button').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-ppdiv') === PPS.div); });
     document.querySelectorAll('#rbPPSex button').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-ppsex') === PPS.sex); });
     var ls = ppNames();
-    $('rbPPNames').innerHTML = ls.length ? ls.map(function (b) { var g = (b.best || b.ref || {}).grade; return '<li><label><input type="checkbox" data-ppn="' + esc(b.key) + '"' + (PPS.off[b.key] ? '' : ' checked') + '><b>' + esc(b.name) + '</b><span class="gr">' + esc((g ? g + '年 ' : '') + (b.team || '')) + '</span></label></li>'; }).join('') : '<li class="small muted" style="padding:10px">選手がいません。</li>';
+    $('rbPPNames').innerHTML = ls.length ? ls.map(function (b) { var g = (b.best || b.ref || {}).grade; return '<li><label><input type="checkbox" data-ppn="' + esc(b.key) + '"' + (PPS.off[b.key] ? '' : ' checked') + '><b>' + esc(b.name) + '</b><span class="gr">' + esc((g ? grShort(g) + ' ' : '') + (b.team || '')) + '</span></label></li>'; }).join('') : '<li class="small muted" style="padding:10px">選手がいません。</li>';
     ppCount();
   }
   function openPPScreen(only) {
