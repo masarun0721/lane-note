@@ -747,7 +747,7 @@ details.act>summary .sum-x{display:none}
 <body class="trypage">
 <header>
   <div class="hdr-meta">
-    <div class="hdr-ver" aria-label="バージョン">v0.31.9</div>
+    <div class="hdr-ver" aria-label="バージョン">v0.31.10</div>
     <div class="credit">Presented by Sakata</div>
     <div class="hdr-msg"><span class="hm-l">すべての陸上競技部顧問が、</span><span class="hm-l">少しでも楽になりますように。</span></div>
   </div>
@@ -2462,6 +2462,27 @@ var ResultParser = (function () {
     return a !== b && !lv(b) && !!lv(a);
   }
   function nameKey(n) { return nk(n).replace(/[\s　・]/g, '').replace(/[髙]/g, '高').replace(/[﨑]/g, '崎'); }
+  /* v0.31.10 同じ名前の見分け（くらべるときだけ。記録のID・選手のキーには使わない）：見えない文字（ゼロ幅スペースなど）を外し、見た目がほぼ同じ字（𠮷・德・郞）をそろえる */
+  function nameLoose(n) { return nameKey(n).replace(/[\u200B-\u200D\u2060\uFEFF\u00AD]/g, '').replace(/\u{20BB7}/gu, '吉').replace(/德/g, '徳').replace(/郞/g, '郎'); }
+  /* v0.31.10 一覧で、同じ名前・同じ学校（中・高を除いた部分）なのに別の行になっている選手。自動ではまとめない（先生が選手のページで確かめて「同じ人なので入れる」）。
+     list: computeBests の bests（key・name・team・best/ref）。返す：{ key: { why, go, n } }。go＝開くとよい行（台帳の人、なければ中学／高校が決まっている人） */
+  function sameNameRows(list) {
+    var by = {}, out = {};
+    (list || []).forEach(function (b) { var r = b.best || b.ref || {}, k = nameLoose(b.name || r.name || '') + '@' + schoolBase(b.team || r.team || ''); if (k.charAt(0) === '@') return; (by[k] = by[k] || []).push(b); });
+    Object.keys(by).forEach(function (k) {
+      var g = by[k]; if (g.length < 2) return;
+      var rec = function (b) { return b.best || b.ref || {}; }, ids = g.filter(function (b) { return /^id:/.test(b.key); }), dv = g.map(function (b) { return divisionOf(rec(b)); }), why = [];
+      if (ids.length && ids.length < g.length) why.push('片方だけ選手台帳（選手ID）に入っています');
+      else if (ids.length > 1) why.push('選手台帳に別々のIDで入っています');
+      if (dv.indexOf('jh') >= 0 && dv.indexOf('hs') >= 0) why.push('中学と高校に分かれています');
+      else if (dv.some(function (d) { return !d; }) && dv.some(function (d) { return d; })) why.push('中学か高校かが、片方の記録では決まっていません');
+      var raw = {}; g.forEach(function (b) { raw[nameKey(b.name || rec(b).name || '')] = 1; }); if (Object.keys(raw).length > 1) why.push('名前の字が少し違います（見えない文字・異体字など）');
+      if (!why.length) why.push('記録の所属の書き方などが違います');
+      var go = (ids[0] || g.filter(function (b, i) { return dv[i]; })[0] || g[0]).key;
+      g.forEach(function (b) { out[b.key] = { why: why.join('・'), go: go, n: g.length }; });
+    });
+    return out;
+  }
 
   /* ---------- PDF（座標）：見出し行「順位 … 記録」から列の位置を決め、選手ごとのかたまりを読む ---------- */
   function toWords(items) {
@@ -3686,7 +3707,7 @@ var ResultParser = (function () {
     return { rows: out, cal: cal, err: out.length ? '' : '予定（VEVENT）がありません' };
   }
   return { dayHead: dayHead, parsePdf: parsePdf, parseCells: parseCells, goldMobileStream: goldMobileStream, parsePlain: parsePlain, textToStream: textToStream, normEvent: normEvent, markValue: markValue, recValue: recValue, padTime: padTime, viewRecord: viewRecord, windApplies: windApplies, windClass: windClass, windNum: windNum,
-    computeBests: computeBests, baseEvent: baseEvent, learnGenders: learnGenders, isRelay: isRelay, relayEvent: relayEvent, relayMeta: relayMeta, relaySaveEvent: relaySaveEvent, relayTeamBase: relayTeamBase, matchRelayTeam: matchRelayTeam, parseRelayGold: parseRelayGold, parseRelayPdf: parseRelayPdf, mergeRelays: mergeRelays, legsText: legsText, parseLegs: parseLegs, relayRecord: relayRecord, pbLookup: pbLookup, nameKey: nameKey, athleteKey: athleteKey, matchSchool: matchSchool, schoolLoose: schoolLoose, cleanMark: cleanMark, isTag: isTag, canonSchool: canonSchool, cyuTeam: cyuTeam, eventShown: eventShown, teamLabel: teamLabel, teamOf: teamOf, recId: recId, recIdLegacy: recIdLegacy, recIdV6: recIdV6, identityKey: identityKey, fullIdentity: fullIdentity, looseIdentity: looseIdentity, manualRecord: manualRecord, sanitizeRecord: sanitizeRecord, validDate: validDate, normManualWind: normManualWind, dedupe: dedupe, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
+    computeBests: computeBests, baseEvent: baseEvent, learnGenders: learnGenders, isRelay: isRelay, relayEvent: relayEvent, relayMeta: relayMeta, relaySaveEvent: relaySaveEvent, relayTeamBase: relayTeamBase, matchRelayTeam: matchRelayTeam, parseRelayGold: parseRelayGold, parseRelayPdf: parseRelayPdf, mergeRelays: mergeRelays, legsText: legsText, parseLegs: parseLegs, relayRecord: relayRecord, pbLookup: pbLookup, nameKey: nameKey, nameLoose: nameLoose, sameNameRows: sameNameRows, athleteKey: athleteKey, matchSchool: matchSchool, schoolLoose: schoolLoose, cleanMark: cleanMark, isTag: isTag, canonSchool: canonSchool, cyuTeam: cyuTeam, eventShown: eventShown, teamLabel: teamLabel, teamOf: teamOf, recId: recId, recIdLegacy: recIdLegacy, recIdV6: recIdV6, identityKey: identityKey, fullIdentity: fullIdentity, looseIdentity: looseIdentity, manualRecord: manualRecord, sanitizeRecord: sanitizeRecord, validDate: validDate, normManualWind: normManualWind, dedupe: dedupe, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
     guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, fmtSecDiff: fmtSecDiff, minuteStyle: minuteStyle, showMark: showMark, distMark: distMark, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText,
     eventCat: eventCat, divisionOf: divisionOf, divLabel: divLabel, eventKey: eventKey, eventKeyLabel: eventKeyLabel, shownWind: shownWind, hasMark: hasMark, sortAthletes: sortAthletes, kanaKey: kanaKey,
     setGenderDefault: setGenderDefault, setDivisionHints: setDivisionHints, setMeetDivs: setMeetDivs, divSource: divSource, divisionWhy: divisionWhy, splitTeamGrade: splitTeamGrade, setPersonDivs: setPersonDivs, setRosterDivs: setRosterDivs, divConflicts: divConflicts, gradeFromEvent: gradeFromEvent, fixRecord: fixRecord, jhOnlyEvent: jhOnlyEvent, rawDivisionOf: rawDivisionOf, genderOf: genderOf, divGroup: divGroup, disciplineOrder: disciplineOrder, eventCmp: eventCmp, sortEvents: sortEvents, groupEvents: groupEvents, gendersIn: gendersIn, GROUPS: GROUPS,

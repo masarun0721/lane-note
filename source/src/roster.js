@@ -56,7 +56,7 @@ var LaneRoster = (function () {
   }
   // 同じ名前（またはよみ）の、まだ台帳に入っていない記録。候補として出すだけ（自動では入れない）
   function candidates(recs, e, R) {
-    var nk = function (s) { return R.nameKey(s || ''); }, want = {};
+    var nk = function (s) { return (R.nameLoose || R.nameKey)(s || ''); }, want = {};   // v0.31.10 見えない文字・見た目が同じ字の違いでも候補に出す（入れるのは先生が確かめてから）
     if (e.name) want[nk(e.name)] = 1; if (e.kana) want[nk(e.kana)] = 1;
     var g = {};
     recs.forEach(function (r) {

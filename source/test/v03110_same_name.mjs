@@ -1,0 +1,26 @@
+// v0.31.10：個人表の選ぶ一覧で、同じ名前・同じ学校なのに2行になっている人に理由と「選手のページで確かめる」を出す（自動ではまとめない）。架空のデータだけ
+import fs from 'node:fs'; import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url); const R = require('../src/results.js');
+const L = require('../src/roster.js');
+let ok = 0, ng = 0; const t = (c, m) => { if (c) { ok++; console.log('  ✔ ' + m); } else { ng++; console.log('  NG ' + m); } };
+console.log('[v0.31.10] 同じ名前で2行になっている選手');
+const base = { name: '架空 一郎', team: '本郷高', grade: '高3', date: '2026-06-01', meet: '架空記録会', event: '男子 100m', mark: '11.50' };
+const rows = (v) => { const all = [Object.assign({ id: 'a' }, base), Object.assign({}, base, v, { id: 'b', event: '男子 200m', mark: '23.00' })]; R.setDivisionHints(R.inferDivisions(all, {}).hints); const bs = R.computeBests(all).bests; return { all, bs, d: R.sameNameRows(bs) }; };
+let x = rows({ aid: 'A1234567890' });
+t(Object.keys(x.d).length === 2 && /片方だけ選手台帳/.test(x.d['id:A1234567890'].why) && x.d['架空一郎@本郷#hs'].go === 'id:A1234567890', '片方だけ台帳（選手ID）：2行とも案内・開く先は台帳の人');
+x = rows({ team: '本郷', grade: '3', date: '2025-06-01', meet: '架空記録会B' });
+t(Object.keys(x.d).length === 2 && /片方の記録では決まっていません/.test(Object.values(x.d)[0].why) && Object.values(x.d)[0].go === '架空一郎@本郷#hs', '中学か高校かが片方だけ決まらない：案内・開く先は高校の人（区分は推測で合わせない）');
+t(new Set(x.bs.map(b => b.key)).size === 2, '…そのとき、キー（記録のまとめ）は変えない');
+x = rows({ name: '架空\u200B一郎' });
+t(/名前の字が少し違います/.test(Object.values(x.d)[0] && Object.values(x.d)[0].why || ''), '見えない文字（ゼロ幅スペース）が入った名前：案内を出す');
+t(R.nameLoose('\u{20BB7}田 一郎') === R.nameLoose('吉田　一郎') && R.nameKey('\u{20BB7}田') !== R.nameKey('吉田'), '「𠮷」と「吉」は見分けるときだけ同じ名前（選手のキーは変えない）');
+x = rows({ team: '本郷中', grade: '3', date: '2023-06-01' });
+t(/中学と高校に分かれています/.test(Object.values(x.d)[0].why) && new Set(x.bs.map(b => b.key)).size === 2, '中学と高校：別の行のまま、理由を出す（台帳でまとめられる）');
+x = rows({ name: '見本 次郎' }); t(!Object.keys(x.d).length, '名前がちがえば案内しない');
+const recs = [Object.assign({ id: 'a', aid: 'A1234567890' }, base), Object.assign({}, base, { id: 'b', name: '架空\u200B一郎', event: '男子 200m', mark: '23.00' })];
+const c = L.candidates(recs, { aid: 'A1234567890', name: '架空 一郎' }, R);
+t(c.length === 1 && c[0].n === 1, '台帳の人のページ：見えない文字が入った同じ名前の記録も「同じ人なので入れる」の候補に出す');
+const src = fs.readFileSync(new URL('../src/records_app.js', import.meta.url), 'utf8');
+t(/dup = R\.sameNameRows\(ls\)/.test(src) && /data-ppgo=/.test(src) && /closePrint\(\); location\.hash = '#athlete='/.test(src), '個人表の選ぶ一覧に「選手のページで確かめる」（押すと選手のページへ）');
+t(!/sameNameRows[\s\S]{0,200}relinkRecs/.test(src), '一覧からは自動でまとめない（記録は書きかえない）');
+console.log((ng ? 'NG ' : '') + 'v0.31.10 同じ名前 OK ' + ok + (ng ? ' / NG ' + ng : '')); process.exit(ng ? 1 : 0);

@@ -1055,7 +1055,7 @@ tr.rc.editing td{background:#fff3ec!important}
 .lp-pick{background:#fff;max-width:600px;margin:0 auto;padding:12px;border-radius:10px}
 .lp-pick .lp-ops{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}.lp-pick .lp-ops .btn{min-height:44px}
 .lp-pick ul{list-style:none;margin:0;padding:0}.lp-pick li label{display:flex;gap:10px;align-items:center;min-height:44px;border-bottom:1px solid #e3e7ee;font-size:15px}
-.lp-pick li input{width:22px;height:22px}.lp-pick .gr{color:#667;font-size:13px;margin-left:auto}
+.lp-pick li input{width:22px;height:22px}.lp-pick .gr{color:#667;font-size:13px;margin-left:auto}.lp-pick .pp-dup{color:#8a4b00;background:#fff8e1;border-radius:6px;padding:4px 8px;margin:2px 0 6px}.lp-pick .pp-dup .btn{margin-left:4px}@media print{.lp-pick .pp-dup{display:none}}
 .ms-done{background:#eefaf1;border:1px solid #9fd5ae;border-radius:10px;padding:10px 12px;margin:8px 0;font-size:14px}.ms-done input{display:block;width:100%;margin:6px 0;font-size:13px;padding:6px}.ms-done .rb-row{gap:8px;flex-wrap:wrap}.ms-done a.btn{text-decoration:none}
 .ms-grp{display:inline-flex;align-items:center;flex-wrap:wrap}
 .ms-note{background:#fff8e1;border:1px solid #f0d58a;color:#4a3b00;border-radius:8px;padding:8px 12px;margin:0 auto 10px;max-width:794px;font-size:13px;line-height:1.6}
@@ -1148,7 +1148,7 @@ body.sched-page main>.box:first-of-type>:not(#rbAuth):not(#rbAuthStatus):not(#rb
 <body class="records">
 <header>
   <div class="hdr-meta">
-    <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／記録 v0.11.3</div>
+    <div class="hdr-ver" aria-label="バージョン"><span class="appver"></span>／記録 v0.11.4</div>
     <div class="credit">Presented by Sakata</div>
     <div class="hdr-msg"><span class="hm-l">すべての陸上競技部顧問が、</span><span class="hm-l">少しでも楽になりますように。</span></div>
     <div class="use-count" id="useCount" hidden></div>
@@ -1306,7 +1306,7 @@ body.sched-page main>.box:first-of-type>:not(#rbAuth):not(#rbAuthStatus):not(#rb
 </main>
 <footer><details class="about"><summary><b>この記録ページについて</b>（版・対応している形式・既知の制限）</summary>
   <ul>
-    <li><b>LANE NOTE（レーンノート）記録 試作版</b>　版：<span class="appver"></span>／記録 v0.11.3（2026年10月12日 作成）／ Presented by Sakata</li>
+    <li><b>LANE NOTE（レーンノート）記録 試作版</b>　版：<span class="appver"></span>／記録 v0.11.4（2026年10月12日 作成）／ Presented by Sakata</li>
     <li>問い合わせ：<a href="mailto:lanenote.info@gmail.com">lanenote.info@gmail.com</a>・<a href="https://x.com/lanenote" target="_blank" rel="noopener">X：@lanenote</a>（または「🚨 不具合・要望を送る」）</li>
     <li>読める形式：組ごとに2列で並ぶ結果PDF（「順位・レーン・ナンバー・氏名・所属・記録」の見出しがあるもの。北区・江東区・都高体連などで確認）／ 結果サイトのHTML（表のあるもの）・その貼り付け。</li>
     <li>Excel・CSV（v0.5）：見出し（氏名・種目・記録・日付など）を自動で見つけて取り込みます。日付は必須、大会名は任意（空なら「大会名なし（日付）」）。</li>
@@ -2242,6 +2242,27 @@ var ResultParser = (function () {
     return a !== b && !lv(b) && !!lv(a);
   }
   function nameKey(n) { return nk(n).replace(/[\s　・]/g, '').replace(/[髙]/g, '高').replace(/[﨑]/g, '崎'); }
+  /* v0.31.10 同じ名前の見分け（くらべるときだけ。記録のID・選手のキーには使わない）：見えない文字（ゼロ幅スペースなど）を外し、見た目がほぼ同じ字（𠮷・德・郞）をそろえる */
+  function nameLoose(n) { return nameKey(n).replace(/[\u200B-\u200D\u2060\uFEFF\u00AD]/g, '').replace(/\u{20BB7}/gu, '吉').replace(/德/g, '徳').replace(/郞/g, '郎'); }
+  /* v0.31.10 一覧で、同じ名前・同じ学校（中・高を除いた部分）なのに別の行になっている選手。自動ではまとめない（先生が選手のページで確かめて「同じ人なので入れる」）。
+     list: computeBests の bests（key・name・team・best/ref）。返す：{ key: { why, go, n } }。go＝開くとよい行（台帳の人、なければ中学／高校が決まっている人） */
+  function sameNameRows(list) {
+    var by = {}, out = {};
+    (list || []).forEach(function (b) { var r = b.best || b.ref || {}, k = nameLoose(b.name || r.name || '') + '@' + schoolBase(b.team || r.team || ''); if (k.charAt(0) === '@') return; (by[k] = by[k] || []).push(b); });
+    Object.keys(by).forEach(function (k) {
+      var g = by[k]; if (g.length < 2) return;
+      var rec = function (b) { return b.best || b.ref || {}; }, ids = g.filter(function (b) { return /^id:/.test(b.key); }), dv = g.map(function (b) { return divisionOf(rec(b)); }), why = [];
+      if (ids.length && ids.length < g.length) why.push('片方だけ選手台帳（選手ID）に入っています');
+      else if (ids.length > 1) why.push('選手台帳に別々のIDで入っています');
+      if (dv.indexOf('jh') >= 0 && dv.indexOf('hs') >= 0) why.push('中学と高校に分かれています');
+      else if (dv.some(function (d) { return !d; }) && dv.some(function (d) { return d; })) why.push('中学か高校かが、片方の記録では決まっていません');
+      var raw = {}; g.forEach(function (b) { raw[nameKey(b.name || rec(b).name || '')] = 1; }); if (Object.keys(raw).length > 1) why.push('名前の字が少し違います（見えない文字・異体字など）');
+      if (!why.length) why.push('記録の所属の書き方などが違います');
+      var go = (ids[0] || g.filter(function (b, i) { return dv[i]; })[0] || g[0]).key;
+      g.forEach(function (b) { out[b.key] = { why: why.join('・'), go: go, n: g.length }; });
+    });
+    return out;
+  }
 
   /* ---------- PDF（座標）：見出し行「順位 … 記録」から列の位置を決め、選手ごとのかたまりを読む ---------- */
   function toWords(items) {
@@ -3466,7 +3487,7 @@ var ResultParser = (function () {
     return { rows: out, cal: cal, err: out.length ? '' : '予定（VEVENT）がありません' };
   }
   return { dayHead: dayHead, parsePdf: parsePdf, parseCells: parseCells, goldMobileStream: goldMobileStream, parsePlain: parsePlain, textToStream: textToStream, normEvent: normEvent, markValue: markValue, recValue: recValue, padTime: padTime, viewRecord: viewRecord, windApplies: windApplies, windClass: windClass, windNum: windNum,
-    computeBests: computeBests, baseEvent: baseEvent, learnGenders: learnGenders, isRelay: isRelay, relayEvent: relayEvent, relayMeta: relayMeta, relaySaveEvent: relaySaveEvent, relayTeamBase: relayTeamBase, matchRelayTeam: matchRelayTeam, parseRelayGold: parseRelayGold, parseRelayPdf: parseRelayPdf, mergeRelays: mergeRelays, legsText: legsText, parseLegs: parseLegs, relayRecord: relayRecord, pbLookup: pbLookup, nameKey: nameKey, athleteKey: athleteKey, matchSchool: matchSchool, schoolLoose: schoolLoose, cleanMark: cleanMark, isTag: isTag, canonSchool: canonSchool, cyuTeam: cyuTeam, eventShown: eventShown, teamLabel: teamLabel, teamOf: teamOf, recId: recId, recIdLegacy: recIdLegacy, recIdV6: recIdV6, identityKey: identityKey, fullIdentity: fullIdentity, looseIdentity: looseIdentity, manualRecord: manualRecord, sanitizeRecord: sanitizeRecord, validDate: validDate, normManualWind: normManualWind, dedupe: dedupe, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
+    computeBests: computeBests, baseEvent: baseEvent, learnGenders: learnGenders, isRelay: isRelay, relayEvent: relayEvent, relayMeta: relayMeta, relaySaveEvent: relaySaveEvent, relayTeamBase: relayTeamBase, matchRelayTeam: matchRelayTeam, parseRelayGold: parseRelayGold, parseRelayPdf: parseRelayPdf, mergeRelays: mergeRelays, legsText: legsText, parseLegs: parseLegs, relayRecord: relayRecord, pbLookup: pbLookup, nameKey: nameKey, nameLoose: nameLoose, sameNameRows: sameNameRows, athleteKey: athleteKey, matchSchool: matchSchool, schoolLoose: schoolLoose, cleanMark: cleanMark, isTag: isTag, canonSchool: canonSchool, cyuTeam: cyuTeam, eventShown: eventShown, teamLabel: teamLabel, teamOf: teamOf, recId: recId, recIdLegacy: recIdLegacy, recIdV6: recIdV6, identityKey: identityKey, fullIdentity: fullIdentity, looseIdentity: looseIdentity, manualRecord: manualRecord, sanitizeRecord: sanitizeRecord, validDate: validDate, normManualWind: normManualWind, dedupe: dedupe, normSchool: normSchool, schoolBase: schoolBase, nk: nk,
     guessMeet: guessMeet, seasonOf: seasonOf, seasonLabel: seasonLabel, isOfficial: isOfficial, gradeNum: gradeNum, improvement: improvement, fmtImprovement: fmtImprovement, fmtSecDiff: fmtSecDiff, minuteStyle: minuteStyle, showMark: showMark, distMark: distMark, pbDetails: pbDetails, ranking: ranking, allTimeTop: allTimeTop, athleteProfile: athleteProfile, cleanMeetName: cleanMeetName, dateFromText: dateFromText,
     eventCat: eventCat, divisionOf: divisionOf, divLabel: divLabel, eventKey: eventKey, eventKeyLabel: eventKeyLabel, shownWind: shownWind, hasMark: hasMark, sortAthletes: sortAthletes, kanaKey: kanaKey,
     setGenderDefault: setGenderDefault, setDivisionHints: setDivisionHints, setMeetDivs: setMeetDivs, divSource: divSource, divisionWhy: divisionWhy, splitTeamGrade: splitTeamGrade, setPersonDivs: setPersonDivs, setRosterDivs: setRosterDivs, divConflicts: divConflicts, gradeFromEvent: gradeFromEvent, fixRecord: fixRecord, jhOnlyEvent: jhOnlyEvent, rawDivisionOf: rawDivisionOf, genderOf: genderOf, divGroup: divGroup, disciplineOrder: disciplineOrder, eventCmp: eventCmp, sortEvents: sortEvents, groupEvents: groupEvents, gendersIn: gendersIn, GROUPS: GROUPS,
@@ -3532,7 +3553,7 @@ var LaneRoster = (function () {
   }
   // 同じ名前（またはよみ）の、まだ台帳に入っていない記録。候補として出すだけ（自動では入れない）
   function candidates(recs, e, R) {
-    var nk = function (s) { return R.nameKey(s || ''); }, want = {};
+    var nk = function (s) { return (R.nameLoose || R.nameKey)(s || ''); }, want = {};   // v0.31.10 見えない文字・見た目が同じ字の違いでも候補に出す（入れるのは先生が確かめてから）
     if (e.name) want[nk(e.name)] = 1; if (e.kana) want[nk(e.kana)] = 1;
     var g = {};
     recs.forEach(function (r) {
@@ -3550,7 +3571,7 @@ if (typeof module !== 'undefined') module.exports = LaneRoster;
 
 </script>
 <script>
-var APP_VERSION = "v0.31.9", REC_VERSION = "v0.11.3";
+var APP_VERSION = "v0.31.10", REC_VERSION = "v0.11.4";
 document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('.appver').forEach(function (el) { el.textContent = APP_VERSION; }); });
 </script>
 <script>
@@ -12261,9 +12282,10 @@ var LanePdf = (function () {
       return;
     }
     if (kind === 'pick') {
-      var ls = pickList(), c = filterCond();
+      var ls = pickList(), c = filterCond(), dup = R.sameNameRows(ls);   // v0.31.10 同じ名前で別の行になっている人に案内（自動ではまとめない）
       openPrint('<div class="lp-pick"><b>個人表をPDFにする選手を選ぶ</b><p class="small muted">' + (c ? 'いまの絞り込み（' + esc(c) + '）の' : '') + '選手 ' + ls.length + '人・1人1ページ</p><div class="lp-ops"><button class="btn sub" type="button" data-ppall="1">全員選択</button><button class="btn sub" type="button" data-ppnone="1">全解除</button><button class="btn" type="button" data-ppmake="1">🖨 PDFにまとめる（<span id="rbPPn">' + ls.length + '</span>人）</button></div><ul>' +
-        ls.map(function (b) { return '<li><label><input type="checkbox" data-ppk="' + esc(b.key) + '" checked><b>' + esc(b.name) + '</b><span class="gr">' + esc(grShort((b.best || b.ref || {}).grade)) + ' ' + esc(b.team || '') + '</span></label></li>'; }).join('') + '</ul></div>', true);
+        ls.map(function (b) { var d = dup[b.key]; return '<li><label><input type="checkbox" data-ppk="' + esc(b.key) + '" checked><b>' + esc(b.name) + '</b><span class="gr">' + esc(grShort((b.best || b.ref || {}).grade)) + ' ' + esc(b.team || '') + '</span></label>' +
+          (d ? '<div class="small pp-dup">⚠ 同じ名前・同じ学校の行がほかにもあります（' + esc(d.why) + '）。同じ人なら <button type="button" class="btn sub sm" data-ppgo="' + esc(d.go) + '">選手のページで確かめる</button>' + (/^id:/.test(d.go) ? '' : '（「🪪 台帳に入れる」のあと「同じ人なので入れる」）') + '</div>' : '') + '</li>'; }).join('') + '</ul></div>', true);
       return;
     }
     var hist = kind.indexOf('hist') === 0, all = /-all$/.test(kind), ns = nowSeason();
@@ -12278,6 +12300,7 @@ var LanePdf = (function () {
   $('rbPrintBody').addEventListener('click', function (e) {
     var t = e.target, boxes = $('rbPrintBody').querySelectorAll('[data-ppk]');
     if (t.closest('[data-ppall]') || t.closest('[data-ppnone]')) { var on = !!t.closest('[data-ppall]'); boxes.forEach(function (b) { b.checked = on; }); }
+    var go = t.closest('[data-ppgo]'); if (go) { var gk = go.getAttribute('data-ppgo'); closePrint(); location.hash = '#athlete=' + encodeURIComponent(gk); return; }   // v0.31.10
     if (t.closest('[data-ppmake]')) {
       var keys = []; boxes.forEach(function (b) { if (b.checked) keys.push(b.getAttribute('data-ppk')); });
       if (!keys.length) { alert('選手を1人以上選んでください。'); return; }

@@ -3647,9 +3647,10 @@
       return;
     }
     if (kind === 'pick') {
-      var ls = pickList(), c = filterCond();
+      var ls = pickList(), c = filterCond(), dup = R.sameNameRows(ls);   // v0.31.10 同じ名前で別の行になっている人に案内（自動ではまとめない）
       openPrint('<div class="lp-pick"><b>個人表をPDFにする選手を選ぶ</b><p class="small muted">' + (c ? 'いまの絞り込み（' + esc(c) + '）の' : '') + '選手 ' + ls.length + '人・1人1ページ</p><div class="lp-ops"><button class="btn sub" type="button" data-ppall="1">全員選択</button><button class="btn sub" type="button" data-ppnone="1">全解除</button><button class="btn" type="button" data-ppmake="1">🖨 PDFにまとめる（<span id="rbPPn">' + ls.length + '</span>人）</button></div><ul>' +
-        ls.map(function (b) { return '<li><label><input type="checkbox" data-ppk="' + esc(b.key) + '" checked><b>' + esc(b.name) + '</b><span class="gr">' + esc(grShort((b.best || b.ref || {}).grade)) + ' ' + esc(b.team || '') + '</span></label></li>'; }).join('') + '</ul></div>', true);
+        ls.map(function (b) { var d = dup[b.key]; return '<li><label><input type="checkbox" data-ppk="' + esc(b.key) + '" checked><b>' + esc(b.name) + '</b><span class="gr">' + esc(grShort((b.best || b.ref || {}).grade)) + ' ' + esc(b.team || '') + '</span></label>' +
+          (d ? '<div class="small pp-dup">⚠ 同じ名前・同じ学校の行がほかにもあります（' + esc(d.why) + '）。同じ人なら <button type="button" class="btn sub sm" data-ppgo="' + esc(d.go) + '">選手のページで確かめる</button>' + (/^id:/.test(d.go) ? '' : '（「🪪 台帳に入れる」のあと「同じ人なので入れる」）') + '</div>' : '') + '</li>'; }).join('') + '</ul></div>', true);
       return;
     }
     var hist = kind.indexOf('hist') === 0, all = /-all$/.test(kind), ns = nowSeason();
@@ -3664,6 +3665,7 @@
   $('rbPrintBody').addEventListener('click', function (e) {
     var t = e.target, boxes = $('rbPrintBody').querySelectorAll('[data-ppk]');
     if (t.closest('[data-ppall]') || t.closest('[data-ppnone]')) { var on = !!t.closest('[data-ppall]'); boxes.forEach(function (b) { b.checked = on; }); }
+    var go = t.closest('[data-ppgo]'); if (go) { var gk = go.getAttribute('data-ppgo'); closePrint(); location.hash = '#athlete=' + encodeURIComponent(gk); return; }   // v0.31.10
     if (t.closest('[data-ppmake]')) {
       var keys = []; boxes.forEach(function (b) { if (b.checked) keys.push(b.getAttribute('data-ppk')); });
       if (!keys.length) { alert('選手を1人以上選んでください。'); return; }
