@@ -3487,7 +3487,7 @@
     var summary = shown ? '' : '<div class="card"><div class="card-h"><b>種目ごとの自己ベスト</b><span class="small muted">押すとグラフと記録</span></div><ul class="evsum">' + order.map(function (e) { var b = e.best || e.ref; return '<li><button type="button" class="evn" data-athev="' + esc(e.event) + '">' + esc(e.eventLabel) + '</button><b class="lmk">' + esc(b ? smk(b) : '—') + (e.best ? '' : (b ? windTag(b) : '')) + '</b><span class="sub">' + (b ? (R.shownWind(b) ? '風' + esc(b.wind) + '・' : '') + esc(b.date) + ' ' + esc(b.meet) + ' ' + weatherTag(b.date + '|' + b.meet) : '') + '・' + e.count + '件</span></li>'; }).join('') + '</ul></div>';
     back += ppBtns('ath', key, '個人表') + ppBtns('review', key, 'ふりかえりシート');   // v0.26.52
     var roC = rosterCard(key, pf, ALL.filter(function (r) { return R.athleteKey(r) === key; }));
-    return back + '<div class="card ath-h"><b class="nm">' + esc(pf.name) + '</b>' + '<button class="btn sub" type="button" data-pplink="' + esc(key) + '" style="float:right">📱 個人ページのリンク</button>' + (pf.kana ? '<span class="small muted">' + esc(pf.kana) + '</span>' : '') + '<div class="small muted">' + esc(R.teamOf(mineRows) || pf.team || '') + (pf.grade ? '・' + esc(pf.grade) : '') + (R.divisionOf(pf) ? '・' + R.divLabel(R.divisionOf(pf)) : '') + '・' + pf.events.length + '種目・' + pf.count + '件</div></div>' + roC + sw + summary +
+    return back + '<div class="card ath-h"><b class="nm">' + esc(pf.name) + '</b>' + '<button class="btn sub" type="button" data-pplink="' + esc(key) + '" style="float:right">📱 個人ページのリンク</button>' + (pf.kana ? '<span class="small muted">' + esc(pf.kana) + '</span>' : '') + '<div class="small muted">' + esc(R.teamOf(mineRows) || pf.team || '') + (athGrade(key) ? '・' + esc(athGrade(key)) : '') + (R.divisionOf(pf) ? '・' + R.divLabel(R.divisionOf(pf)) : '') + '・' + pf.events.length + '種目・' + pf.count + '件</div></div>' + roC + sw + summary +
       (shown || []).map(function (e) {
         var b = e.best;
         return '<div class="card evc"><div class="card-h"><b>' + esc(e.eventLabel) + '</b><span class="small muted">' + e.count + '件</span></div>' +
@@ -3589,12 +3589,18 @@
   }
   function closePrint() { if (document.body.classList.contains('ms-view')) { location.replace(location.pathname); return; } $('rbPrint').hidden = true; $('rbPrintBody').innerHTML = ''; document.body.classList.remove('printing'); }
   // v0.31.9：選手を選ぶ一覧の学年は数字だけ「3年」（中／高は横の学校名「本郷高」「本郷中」でわかる）。保存した学年は変えない
+  // v0.31.11：選ぶ一覧・個人表の学年。台帳（1年生だった年度）があればその年度の学年、なければ記録のうち学年のある いちばん新しいもの。どこにも無ければ出さない
+  function athGrade(key, gm) {
+    var e = /^id:/.test(key || '') && typeof LaneRoster !== 'undefined' ? rosterOf(key.slice(3)) : null;
+    if (e && e.entry && e.status !== 'graduated' && e.status !== 'left') { var n = LaneRoster.gradeIn(e, LaneRoster.schoolYear()); if (n >= 1 && n <= LaneRoster.maxGrade(e)) return n + '年'; }
+    return grShort((gm || R.latestGrades(ALL))[key] || '');
+  }
   function grShort(g) { var n = g ? R.gradeNum(g) : null; return n != null ? n + '年' : (g ? String(g) + (/年/.test(g) ? '' : '年') : ''); }
   function pickList() {
     var seen = {}, out = []; R.sortAthletes(R.computeBests(filtered()).bests).forEach(function (b) { if (!seen[b.key]) { seen[b.key] = 1; out.push(b); } });
     return out;
   }
-  function athSheets(keys) { var o = printMeta(); return keys.map(function (k) { return LanePrint.athleteSheet(R, ALL, k, o); }).join(''); }
+  function athSheets(keys) { var o = printMeta(), gm = R.latestGrades(ALL); o.gradeOf = function (k) { return athGrade(k, gm); }; return keys.map(function (k) { return LanePrint.athleteSheet(R, ALL, k, o); }).join(''); }
   /* v0.26.52 今年のふりかえりシート（選手1人＝A4 1枚）。期間はいつも年度（4月〜翌3月）。ふだんは今の年度、「1年分の記録をまとめる」から開いたときはまとめた期間の終わりをふくむ年度（v0.26.55）。
      「先生から一言」はこの端末にだけ保存（LaneReview.noteSet）。会話・体調メモ・備考は入れない */
   var RV = { from: '', to: '' };
@@ -3616,7 +3622,7 @@
   }
   function rvPick() {
     rvDefault('');
-    var ls = LaneReview.athletes(R, filtered(), RV.from, RV.to), c = filterCond(), ys = rvSeasons(), cur = '';
+    var ls = LaneReview.athletes(R, filtered(), RV.from, RV.to), c = filterCond(), ys = rvSeasons(), cur = '', gm = R.latestGrades(ALL);
     ys.forEach(function (y) { var g = LaneReview.seasonRange(y); if (g[0] === RV.from && g[1] === RV.to) cur = String(y); });
     var act = { view: '👀 画面で見る', pdf: '📄 PDFを作る', print: '🖨 印刷する' }[PICK_ACT] || '👀 画面で見る', uid = rvUid();
     openPrint('<div class="lp-pick rv-pick"><b>📝 ふりかえりシートを作る選手を選ぶ</b> <p class="small muted" data-xp="">選手1人につきA4 1枚です。種目ごとのベスト・自己ベストの更新・記録の推移・出た大会・リレーと、「先生から一言」の枠が入ります。会話や体調メモは入りません。</p>' +
@@ -3625,7 +3631,7 @@
       '<p class="small muted">' + (c ? 'いまの絞り込み（' + esc(c) + '）の' : '') + esc(LaneReview.periodLabel(RV.from, RV.to)) + 'に記録がある選手 ' + ls.length + '人</p>' +
       (ls.length ? '<div class="lp-ops"><button class="btn sub" type="button" data-rvall="1">全員選択</button><button class="btn sub" type="button" data-rvnone="1">全解除</button><button class="btn" type="button" data-rvmake="1">' + act + '（<span id="rbRVn">' + ls.length + '</span>人）</button></div>' : '<p class="muted">この期間の記録がありません。期間を変えてください。</p>') +
       '<ul>' + ls.map(function (b) { var nt = LaneReview.noteGet(uid, b.key, RV.from, RV.to);
-        return '<li><label><input type="checkbox" data-rvk="' + esc(b.key) + '" checked><b>' + esc(b.name) + '</b><span class="gr">' + esc(grShort(b.grade)) + ' ' + esc(b.team || '') + '・' + b.nMeets + '大会</span></label>' +
+        return '<li><label><input type="checkbox" data-rvk="' + esc(b.key) + '" checked><b>' + esc(b.name) + '</b><span class="gr">' + esc(athGrade(b.key, gm)) + ' ' + esc(b.team || '') + '・' + b.nMeets + '大会</span></label>' +
           '<details class="rv-nd"' + (nt ? ' open' : '') + '><summary>✏️ 先生から一言を入れる' + (nt ? '（入力あり）' : '') + '<span class="sum-sub" data-xp="">空けておくと、手書きの枠になります。</span></summary><textarea data-rvnote="' + esc(b.key) + '" maxlength="' + LaneReview.NOTE_MAX + '" rows="3" placeholder="例：春から夏にかけて大きく伸びました。来年も楽しみです。">' + esc(nt) + '</textarea><small class="muted">🔒 この端末だけに保存</small> <small class="muted" data-xp="">どこにも送りません。</small></details></li>'; }).join('') + '</ul></div>', true);
   }
   function startPrint(kind, key, act) {
@@ -3647,9 +3653,9 @@
       return;
     }
     if (kind === 'pick') {
-      var ls = pickList(), c = filterCond(), dup = R.sameNameRows(ls);   // v0.31.10 同じ名前で別の行になっている人に案内（自動ではまとめない）
+      var ls = pickList(), c = filterCond(), dup = R.sameNameRows(ls), gm = R.latestGrades(ALL);   // v0.31.10 同じ名前で別の行になっている人に案内（自動ではまとめない）
       openPrint('<div class="lp-pick"><b>個人表をPDFにする選手を選ぶ</b><p class="small muted">' + (c ? 'いまの絞り込み（' + esc(c) + '）の' : '') + '選手 ' + ls.length + '人・1人1ページ</p><div class="lp-ops"><button class="btn sub" type="button" data-ppall="1">全員選択</button><button class="btn sub" type="button" data-ppnone="1">全解除</button><button class="btn" type="button" data-ppmake="1">🖨 PDFにまとめる（<span id="rbPPn">' + ls.length + '</span>人）</button></div><ul>' +
-        ls.map(function (b) { var d = dup[b.key]; return '<li><label><input type="checkbox" data-ppk="' + esc(b.key) + '" checked><b>' + esc(b.name) + '</b><span class="gr">' + esc(grShort((b.best || b.ref || {}).grade)) + ' ' + esc(b.team || '') + '</span></label>' +
+        ls.map(function (b) { var d = dup[b.key]; return '<li><label><input type="checkbox" data-ppk="' + esc(b.key) + '" checked><b>' + esc(b.name) + '</b><span class="gr">' + esc(athGrade(b.key, gm)) + ' ' + esc(b.team || '') + '</span></label>' +
           (d ? '<div class="small pp-dup">⚠ 同じ名前・同じ学校の行がほかにもあります（' + esc(d.why) + '）。同じ人なら <button type="button" class="btn sub sm" data-ppgo="' + esc(d.go) + '">選手のページで確かめる</button>' + (/^id:/.test(d.go) ? '' : '（「🪪 台帳に入れる」のあと「同じ人なので入れる」）') + '</div>' : '') + '</li>'; }).join('') + '</ul></div>', true);
       return;
     }
@@ -4061,8 +4067,8 @@
   function renderPPNames() {
     document.querySelectorAll('#rbPPDiv button').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-ppdiv') === PPS.div); });
     document.querySelectorAll('#rbPPSex button').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-ppsex') === PPS.sex); });
-    var ls = ppNames();
-    $('rbPPNames').innerHTML = ls.length ? ls.map(function (b) { var g = (b.best || b.ref || {}).grade; return '<li><label><input type="checkbox" data-ppn="' + esc(b.key) + '"' + (PPS.off[b.key] ? '' : ' checked') + '><b>' + esc(b.name) + '</b><span class="gr">' + esc((g ? grShort(g) + ' ' : '') + (b.team || '')) + '</span></label></li>'; }).join('') : '<li class="small muted" style="padding:10px">選手がいません。</li>';
+    var ls = ppNames(), gm = R.latestGrades(ALL);
+    $('rbPPNames').innerHTML = ls.length ? ls.map(function (b) { var g = athGrade(b.key, gm); return '<li><label><input type="checkbox" data-ppn="' + esc(b.key) + '"' + (PPS.off[b.key] ? '' : ' checked') + '><b>' + esc(b.name) + '</b><span class="gr">' + esc((g ? g + ' ' : '') + (b.team || '')) + '</span></label></li>'; }).join('') : '<li class="small muted" style="padding:10px">選手がいません。</li>';
     ppCount();
   }
   function openPPScreen(only) {

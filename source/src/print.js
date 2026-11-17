@@ -58,7 +58,7 @@ var LanePrint = (function () {
     if (!pf) return '';
     var order = [], byKey = {}; pf.events.forEach(function (e) { byKey[e.event] = e; });
     R.groupEvents(Object.keys(byKey), mine, o.nog).forEach(function (g) { g.items.forEach(function (it) { byKey[it.key].eventLabel = it.label; order.push(byKey[it.key]); }); });
-    var dv = R.divisionOf(pf), chips = [pf.team, dv ? R.divLabel(dv) : '', pf.grade ? pf.grade + (/年/.test(pf.grade) ? '' : '年') : '', pf.count + '件の記録'].filter(Boolean);
+    var dv = R.divisionOf(pf), chips = [pf.team, dv ? R.divLabel(dv) : '', (o.gradeOf ? o.gradeOf(key) : (pf.grade ? pf.grade + (/年/.test(pf.grade) ? '' : '年') : '')), pf.count + '件の記録'].filter(Boolean);
     var sub = chips.map(function (c) { return '<i>' + esc(c) + '</i>'; }).join('');
     var cards = '<div class="lp-cards">' + order.map(function (e) {
       var b = e.best || e.ref || {}, off = !!e.best, w = wind(R, b);

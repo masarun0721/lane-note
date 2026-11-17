@@ -18,5 +18,6 @@ const m = src.match(/function grShort\(g\) \{[^\n]*\}/); t(!!m, 'grShort があ�
 const grShort = new Function('R', m[0] + '; return grShort;')(R);
 t(['高3', '高３年', '高校3年', '3', '3年', '中2'].map(grShort).join(',') === '3年,3年,3年,3年,3年,2年', '学年は「3年」の形で出す（中／高は付けない）');
 t(grShort('') === '' && grShort(null) === '', '学年がないときは空');
-t((src.match(/grShort\(/g) || []).length >= 4, '個人表・ふりかえりシート・個人ページの選ぶ一覧で使う');
+t((src.match(/grShort\(|athGrade\(b\.key/g) || []).length >= 4,   // v0.31.11 選ぶ一覧は athGrade（中で grShort）
+   '個人表・ふりかえりシート・個人ページの選ぶ一覧で使う');
 console.log((ng ? 'NG ' : '') + 'v0.31.9 学年の表示 OK ' + ok + (ng ? ' / NG ' + ng : '')); process.exit(ng ? 1 : 0);
