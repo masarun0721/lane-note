@@ -65,7 +65,7 @@ await both('use_recsheet', async vp => { const p = await open('index.html', 'coa
 await both('use_parent', async vp => { const p = await open('index.html', 'coach', vp); await meet(p); await p.evaluate(() => document.getElementById('btnParent').click()); await sleep(900);
   await p.evaluate(() => { const e = document.querySelector('#ntEdit [data-t="school"]'); if (e) { e.value = '架空区立第一中学校'; e.dispatchEvent(new Event('input', { bubbles: true })); } document.getElementById('pvView').click(); }); await sleep(1200); return p; });
 // 3 自己ベスト・部内ランキング・大会まとめ
-await both('use_rank', async vp => { const p = await open('records.html?demo=1', 'coach', vp); await recs(p); await p.evaluate(() => { window.__t.setTab('rank'); document.getElementById('rbView').scrollIntoView(); }); await sleep(500); return p; });
+await both('use_rank', async vp => { const p = await open('records.html?demo=1', 'coach', vp); await recs(p); await p.evaluate(() => { window.__t.setTab('rank'); document.getElementById('rbView').scrollIntoView(); window.__keepScroll = 1; }); await sleep(500); return p; });
 await both('use_meetsum', async vp => { const p = await open('records.html?demo=1', 'coach', vp); await recs(p); await p.evaluate(() => window.__t.setTab('meet')); await sleep(300);
   await p.evaluate(() => { const v = document.querySelector('[data-print="meet"][data-act="view"]'); if (v) v.click(); }); await sleep(900); return p; });
 // 4 選手に自分の記録（選手別の自己ベストとグラフ・個人ページを作る画面）
@@ -73,6 +73,14 @@ await both('use_ath', async vp => { const p = await open('records.html?demo=1', 
 await both('use_review', async vp => { const p = await open('records.html?demo=1', 'coach', vp); await recs(p); await p.evaluate(() => { window.__t.setTab('ath'); document.querySelector('#rbView [data-print="rpick"][data-act="view"]').click(); }); await sleep(400);   // v0.26.52 ふりかえりシート
   await p.evaluate(() => { const t = document.querySelector('#rbPrintBody textarea[data-rvnote]'); if (t) { t.value = '春から大きく伸びました。来年も楽しみです！'; t.dispatchEvent(new Event('input', { bubbles: true })); } document.querySelector('[data-rvmake]').click(); }); await sleep(900); return p; });
 await both('use_pp', async vp => { const p = await open('records.html?demo=1', 'coach', vp); await recs(p); await p.evaluate(() => document.getElementById('rbPPOpen').click()); await sleep(600); return p; });
+// v0.32.0 ✏️直す（出場一覧の行を手で直す）と、個人表の選ぶ一覧の「同じ名前」の案内（架空のデータ）
+await both('use_fix', async vp => { const p = await open('index.html', 'coach', vp); await meet(p);
+  await p.evaluate(() => { const f = [...document.querySelectorAll('[data-fix]')].filter(e => e.offsetParent)[0]; if (f) { f.scrollIntoView({ block: 'center' }); f.click(); } window.__keepScroll = 1; });
+  await p.evaluate(() => { const v = document.getElementById('fixStart'); if (v) { v.value = '9:40'; v.dispatchEvent(new Event('input', { bubbles: true })); } }); await sleep(500); return p; });
+await both('use_dup', async vp => { const p = await open('records.html?demo=1', 'coach', vp); await recs(p);
+  await p.evaluate(async () => { const R = window.ResultParser, r = { name: '架空 一郎', team: '架空第一中', grade: '3', date: '2026-10-11', meet: '架空区 秋季大会', event: '中学共通男子200m', mark: '25.10', wind: '+0.5', aid: 'A1234567890' }; r.id = R.recId(r.meet, r.date, r); await window.__t.putMany([r], window.__t.scope()); await window.__t.reload(window.__t.scope()); });
+  await p.evaluate(() => { window.__t.setTab('ath'); document.querySelector('#rbView [data-print="pick"][data-act="view"]').click(); }); await sleep(700);
+  await p.evaluate(() => { const d = document.querySelector('#rbPrintBody .pp-dup'); if (d) { d.scrollIntoView({ block: 'center' }); window.__keepScroll = 1; } }); return p; });
 // 5 エントリー照合
 await both('use_check', async vp => { const p = await open('check.html', 'coach', vp); const D = JSON.parse(fs.readFileSync(path.join(ROOT, 'source/test/fixtures/manual_check_demo.json'), 'utf8'));
   await p.evaluate(async D => { window.__check.setBooks(D.books, '架空_エントリー票.xlsx'); await new Promise(r => setTimeout(r, 200)); window.__check.setSl(D.sl, '架空_スタートリスト.pdf', 3); const s = document.getElementById('ckSchool'); if (!s.value) { s.value = '架空第一'; s.dispatchEvent(new Event('input')); } }, D); await sleep(800);

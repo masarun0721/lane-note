@@ -1,11 +1,33 @@
 <!-- v0.29.2 マニュアル（ブログ形式）の記事。1つの <article> が1つの記事。data-* は記事一覧のカードに使う。
-     h3 から記事ごとの目次を自動で作る。実際にある機能だけを書く（架空の例は「架空」と書く） -->
-<article id="a-features" data-title="こんな機能があるよ！ LANE NOTE でできること全部" data-lead="大会準備・照合・エントリー・記録・選手とのやり取りまで。まずはここから全体をながめてね。" data-tag="まずはここ" data-lc="lc_thumbs">
+     h3 から記事ごとの目次を自動で作る。実際にある機能だけを書く（架空の例は「架空」と書く）。
+     v0.32.0 「大会の1日」の順（data-ch が章）。レーンちゃんの顔は場面ごとに変える。吹き出しは動画より先 -->
+<article id="a-start" data-title="はじめての使い方（5分で）" data-lead="まずは1つの大会で試してみよう。ログインしなくても、この端末だけで使えます。" data-tag="まずはここ" data-lc="lc_wave" data-ch="はじめに">
 <p class="mb-meta">⏱ 読む時間：約5分</p>
-<div class="say"><img src="__IMG_lc_explain_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>LANE NOTE は、陸上部の顧問の先生の「手で打つ仕事」を減らすための道具だよ。無料で、広告もないよ。大きく分けると <b>大会準備・照合・エントリー・記録</b> の4つ。順番に見ていこう！</div></div>
+<div class="say"><img src="__IMG_lc_explain_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>はじめまして！ 全部を一度に覚えなくて大丈夫。まずは5分だけ、いっしょにやってみよう。</div></div>
+__VIDEO_lanenote_hajimete|はじめての使い方__
+<h3>1分目：モードを選ぶ</h3>
+<p>はじめて開くと「顧問・コーチの方」か「選手・保護者の方」かを聞かれます。先生は顧問を選びます（あとから変えられます）。</p>
+<h3>2分目：体験してみる</h3>
+<p>「⏱ 3分体験」では架空のデータで動きを試せます。本物の資料を入れる前に、どんな画面になるかを見ておくと安心です。</p>
+<h3>3〜4分目：大会準備で1つ作る</h3>
+<ol class="mb-steps">
+<li>「🏁 大会準備」を開き、スタートリストとタイムテーブルのPDFを入れます（ファイルを選ぶか、URLを入れて「読み込む」）。</li>
+<li>学校・クラブ名を入れて「👀 画面で見る」。自分の学校の選手だけが時間順に並びます。</li>
+<li>「📄 PDF作成」か「🖨 印刷」、スマホで配るなら「📱 スマホで見る／共有」。</li>
+</ol>
+<h3>5分目：記録をためる</h3>
+<p>大会のあと「📒 記録」で結果のPDFやWebページを入れると、自分の学校の記録だけを取り込み、自己ベストが自動で更新されます。</p>
+<div class="mb-tip"><b>💡 ログインは必要になってから</b>ログインしなくても、この端末の中だけで使えます。ほかの端末でも同じ記録を見たい、チームで使いたい、となったら「Googleでログイン」してください。</div>
+<div class="say r"><img src="__IMG_lc_thumbs_face__" alt="レーンちゃん（グッド）"><div class="bb"><span class="who">レーンちゃん</span>ここまでできたら、もう立派な LANE NOTE 使いだよ。あとは使いたい場面の記事だけ読めばOK！</div></div>
+</article>
+
+<article id="a-features" data-title="こんな機能があるよ！ LANE NOTE でできること全部" data-lead="大会準備・照合・エントリー・記録・選手とのやり取りまで。まずはここから全体をながめてね。" data-tag="まずはここ" data-lc="lc_point" data-ch="はじめに">
+<p class="mb-meta">⏱ 読む時間：約5分</p>
+<div class="say"><img src="__IMG_lc_point_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>LANE NOTE は、顧問の先生の「手で打つ仕事」を減らす道具だよ。無料で、広告もないよ。</div></div>
+<div class="say"><img src="__IMG_lc_explain_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>できることは <b>大会準備・照合・エントリー・記録</b> の4つ。大会の1日の順に見ていこう！</div></div>
 <h3>🏁 大会準備（大会の前）</h3>
 <div class="mb-feat">
-<div><h4>スタートリスト・タイムテーブルを読む</h4><ul><li>PDFを入れる（ファイルかURL）と、<b>自分の学校の選手だけ</b>を探します</li><li>「時間順」「選手別」の一覧にして、PDF・印刷・Excelに</li><li>競技注意事項から<b>招集時刻</b>を読んで、一覧に入れます</li></ul></div>
+<div><h4>スタートリスト・タイムテーブルを読む</h4><ul><li>PDFを入れる（ファイルかURL）と、<b>自分の学校の選手だけ</b>を探します</li><li>「時間順」「選手別」の一覧にして、PDF・印刷・Excelに</li><li>競技注意事項から<b>招集時刻</b>を読んで、一覧に入れます</li><li>読みちがいは行ごとに「✏️直す」で直せます</li></ul></div>
 <div><h4>当日に配るもの</h4><ul><li>記録を書きこむ<b>記録用紙</b>（PBと前回の記録つき）</li><li><b>ナンバーカード</b>（ゼッケン・腰番）の Word ファイル</li><li>要項・注意事項から読んだ単価で<b>参加料</b>の合計</li></ul></div>
 <div><h4>配る・知らせる</h4><ul><li>「📱 スマホで見る／共有」でリンクと<b>QRコード</b></li><li>「🏃 選手用リンク」：選手1人ずつ、その子の出場と招集時刻だけ</li><li>「👪 保護者へのお知らせ」（Word・PDF）</li></ul></div>
 </div>
@@ -19,8 +41,8 @@
 </div>
 <h3>📒 記録（大会のあと）</h3>
 <div class="mb-feat">
-<div><h4>結果を取り込む</h4><ul><li>結果のPDF・Webページ・Excel・貼り付けた文章から、自分の学校の記録だけ</li><li>「📚 1年分の記録をまとめる」で、終わった大会をまとめて</li><li>「🔍 怪しい記録チェック」で二重や変な記録を探せます</li></ul></div>
-<div><h4>見る・配る</h4><ul><li>選手ごとの<b>自己ベスト（PB）</b>とグラフ、部内ランキング、歴代記録</li><li>大会ごとの「大会まとめ」（PB更新の印つき）</li><li>1人A4 1枚の「今年のふりかえりシート」</li></ul></div>
+<div><h4>結果を取り込む</h4><ul><li>結果のPDF・Webページ・Excel・貼り付けた文章から、自分の学校の記録だけ</li><li>大会の<b>速報ページのURL</b>からも、まとめて取り込めます</li><li>「📚 1年分の記録をまとめる」で、終わった大会をまとめて</li><li>「🔍 怪しい記録チェック」で二重や変な記録を探せます</li></ul></div>
+<div><h4>見る・配る</h4><ul><li>選手ごとの<b>自己ベスト（PB）</b>とグラフ、部内ランキング、歴代記録</li><li>大会ごとの「大会まとめ」（PB更新の印つき）</li><li>1人A4 1枚の「個人表」と「今年のふりかえりシート」</li><li>「🪪 選手台帳」で、同じ選手の記録を1人にまとめる</li></ul></div>
 <div><h4>選手とつながる</h4><ul><li>「📱 選手の個人ページ」：その子の記録とグラフだけのリンク</li><li>「💬 選手とのやり取り」（はじめはオフ・使いたい先生だけ）</li><li>「👥 チーム」で顧問・マネージャーと一緒に記録を入れられます</li></ul></div>
 </div>
 <h3>👤 顧問モードと選手モード</h3>
@@ -28,79 +50,32 @@
 <div class="say r"><img src="__IMG_lc_thumbs_face__" alt="レーンちゃん（グッド）"><div class="bb"><span class="who">レーンちゃん</span>全部を覚えなくて大丈夫！ 使いたい場面の記事だけ読めばOKだよ。</div></div>
 </article>
 
-<article id="a-day" data-title="大会の前日に、部員の時間表を配る" data-lead="スタートリストとタイムテーブルのPDFを入れるだけ。自分の学校の選手だけの「時間順の一覧」ができます。" data-tag="大会準備" data-shot="use_meet_pc" data-lc="lc_dash">
-<p class="mb-meta">⏱ 読む時間：約4分 ／ 使うページ：🏁 大会準備</p>
-__VIDEO_taikai_junbi|大会準備（部員の時間表）__
-__VIDEO_kyoyu_link|時間表をリンク・QRで共有__
-<div class="say"><img src="__IMG_lc_explain_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>大会の前の夜に、スタートリストから自分の部員を探してマーカーを引く…。それ、もうやらなくていいよ！</div></div>
-<h3>用意するもの</h3>
-<ul><li>大会の<b>スタートリスト</b>と<b>タイムテーブル</b>（PDF、または公開されているページのURL）</li><li>あれば<b>競技注意事項</b>（招集時刻を読むのに使います）</li></ul>
+<article id="a-sched" data-title="大会予定と締切を、1つのページで管理する" data-lead="今後の大会・エントリー締切・振込の状況をカレンダーで。要項から締切も読みます。" data-tag="大会予定" data-shot="use_home_pc" data-lc="lc_clock" data-ch="① 大会の前（予定と申し込み）">
+<p class="mb-meta">⏱ 読む時間：約3分 ／ 使うページ：📅 大会予定</p>
+<div class="say"><img src="__IMG_lc_clock_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>「あれ、締切いつだっけ？」をなくそう！</div></div>
+__VIDEO_taikai_yotei|大会予定と締切__
+<h3>大会予定を入れる</h3>
+<ul><li>1件ずつ入れる</li><li>CSV（ひな形をダウンロードできます）や、Excel から貼り付けた表でまとめて入れる</li><li>Google カレンダーの .ics ファイルや iCal の URL から入れる（大会らしい予定にははじめからチェックがつきます）</li></ul>
+<h3>進み具合をチェックする</h3>
+<p>大会ごとに「エントリー済」「振込済」にチェックを入れられます。カードには「未エントリー（締切が近いと赤）」「準備OK」「結果取込済」などの印が出ます。要項を読み込んだ大会は、エントリー締切や振込締切も要項から読んで出します（読めないときは手で入れられます）。</p>
+<h3>そのまま大会準備へ</h3>
+<p>「📋 大会準備へ」から開くと、その大会の資料として保存され、あとから「続きから」開けます。</p>
+<div class="mb-tip"><b>💡 みんなの要項</b>ほかの学校の先生が同じ大会の要項を登録していれば、その情報を使えます（登録されるのは大会名・日付・会場・要項のURLと読み取った大会の情報だけで、選手の名前は登録しません）。</div>
+</article>
+
+<article id="a-yoko" data-title="要項から締切・申込方法を読む" data-lead="エントリー締切・振込締切・申込書の提出締切を、要項の文字から読み取ります。" data-tag="大会予定" data-lc="lc_magnify" data-ch="① 大会の前（予定と申し込み）">
+<p class="mb-meta">⏱ 読む時間：約3分 ／ 使うページ：📅 大会予定・🏁 大会準備</p>
+<div class="say"><img src="__IMG_lc_magnify_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>要項の「申込」「振込」の日付を探すのは、わたしにまかせて。最後は要項を見て確かめてね。</div></div>
 <h3>手順</h3>
-<ol class="mb-steps">
-<li>上の「🏁 大会準備」を開きます。大会予定に入れてある大会なら「📅 大会予定から選ぶ」で大会名と日付が入ります。</li>
-<li>PDFをファイルで入れるか、「🔗 URLから読み込む」にアドレスを入れて「読み込む」を押します。</li>
-<li>学校・クラブ名を入れます。</li>
-<li>「時間順」の「👀 画面で見る」で、できあがりを確かめます。</li>
-<li>「📄 PDF作成」か「🖨 印刷」で配ります。スマホで配るなら「📱 スマホで見る／共有」でリンクやQRコードを作ります。</li>
-</ol>
-<figure class="mb-fig"><img src="__IMG_use_meet_pc__" width="640" height="400" loading="lazy" alt="大会準備のページ（架空のデータ）"><figcaption>大会準備のページ（架空のデータで撮った画面）</figcaption></figure>
-<h3>選手に1人ずつ送りたいとき</h3>
-<p>「🏃 選手用リンクを作る」を押すと、選手1人ずつ、<b>その子の出場と招集時刻だけ</b>が入ったリンクができます。準決勝・決勝など「通過したら」出るラウンドも入り、選手はリンクの中で「通過！」「敗退」を押せます。</p>
-<h3>記録用紙もいっしょに</h3>
-<p>「記録用紙」は、当日に記録を書きこむ表です。選手ごとに<b>PB（これまでの公認ベスト）</b>と<b>前回大会の記録</b>が入るので、その場で「ベスト更新！」がわかります。Excel でも保存できます。</p>
-<div class="mb-note"><b>⚠ ここは必ず見てね</b>招集時刻が注意事項から読めなかったときは、勝手に決めずに空欄にして「⚠ 招集時刻を読めませんでした」と出します。「⚙ 設定」で手で入れると計算します。配る前に、元の資料と見くらべてください。</div>
-<div class="mb-tip"><b>💡 コツ</b>「新しい大会を始める（全消去）」を押すと、前の大会のPDFと設定を消して、まっさらから始められます。</div>
+<ol class="mb-steps"><li>「📅 大会予定」で大会の「📋 大会準備へ」を押し、その大会の要項（PDFかURL）を読み込みます。</li><li>要項の中の「申込」「参加料の振込」「申込書」などの言葉と日付を探して、大会予定の「エントリー済」「振込済」のチェックの横に締切を出します。「エントリーの出し方」も要項から読めたときは自動で入ります（手で選び直せます）。</li><li>読めなかった種類は「締切を読めませんでした」と出ます。手で入れた締切があれば、そちらが優先です。</li></ol>
+<p>大会カードには「未エントリー（締切が近いと赤）」などの印が出るので、締切の見落としを減らせます。</p>
+<div class="mb-note"><b>⚠ 最後は要項で確かめて</b>要項の書き方は大会ごとにちがうので、読みまちがえることがあります。申し込みの前に、必ず元の要項を見てください。</div>
 </article>
 
-<article id="a-parent" data-title="保護者へのお知らせを、資料から作る" data-lead="大会名・日にち・会場・集合時刻が自動で入った、保護者向けのお知らせ（Word・PDF）。" data-tag="大会準備" data-shot="use_parent_pc" data-lc="lc_explain">
-<p class="mb-meta">⏱ 読む時間：約3分 ／ 使うページ：🏁 大会準備</p>
-__VIDEO_hogosha_oshirase|保護者へのお知らせ__
-<div class="say"><img src="__IMG_lc_explain_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>毎回ほとんど同じ文なのに、日付と会場を打ちかえるのって大変だよね。ひな形を一度作れば、次からはほぼ自動だよ。</div></div>
-<h3>手順</h3>
-<ol class="mb-steps">
-<li>大会準備のページで、いつものようにPDFを入れます。</li>
-<li>「👪 保護者へのお知らせ」を押します。</li>
-<li>学校の設定（学校名・顧問・持ち物・注意事項など）を入れます。一度入れれば、ひな形として次から使えます。</li>
-<li>レイアウトと色を選び、Word（.docx）か PDF で保存、または印刷します。</li>
-</ol>
-<figure class="mb-fig"><img src="__IMG_use_parent_pc__" width="640" height="400" loading="lazy" alt="保護者へのお知らせ（架空のデータ）"><figcaption>保護者へのお知らせ（架空のデータ）</figcaption></figure>
-<h3>競技場の情報は一度だけ</h3>
-<p>最寄り駅や行き方、集合場所は「🏟 競技場の設定」に一度入れておくと、同じ競技場の大会では自動で入ります。</p>
-<div class="mb-tip"><b>💡 コツ</b>白黒で印刷する学校は「白黒印刷向け」に切りかえると、色がなくても読みやすくなります。</div>
-</article>
-
-<article id="a-cards" data-title="ナンバーカードと参加料も、まとめて片づける" data-lead="ゼッケン・腰番の Word ファイルと、要項から読んだ単価での参加料の合計。" data-tag="大会準備" data-lc="lc_thumbs">
-<p class="mb-meta">⏱ 読む時間：約2分 ／ 使うページ：🏁 大会準備</p>
-__VIDEO_number_card_sankaryo|ナンバーカードと参加料__
-<div class="say"><img src="__IMG_lc_explain_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>スタートリストを入れると、「ナンバーカード」と「参加料」のタブも使えるようになるよ。</div></div>
-<h3>ナンバーカード（ゼッケン・腰番）</h3>
-<p>出場する選手の番号で、ゼッケン（胸・背中）と腰番の Word ファイルを作ります。B5の用紙に「実際のサイズ（100%）」で印刷してください。ゼッケンは1ページに1枚、腰番は1ページに上下2枚（半分に切る）です。</p>
-<div class="mb-note"><b>⚠ フォントについて</b>ナンバーカードはパソコンに入っている「HGP創英角ｺﾞｼｯｸUB」「ＭＳ ゴシック」を使います。無いときは別のフォントで表示されます。印刷は Word から行ってください。</div>
-<h3>参加料</h3>
-<p>要項や注意事項から単価を読み取り、出場する種目の数から合計を出します。読み取れなかったときは「参加料を読み取れませんでした」と出るので、表に単価を入れてください。</p>
-<div class="say r"><img src="__IMG_lc_thumbs_face__" alt="レーンちゃん（グッド）"><div class="bb"><span class="who">レーンちゃん</span>電卓とにらめっこする時間が減るね！</div></div>
-</article>
-
-<article id="a-check" data-title="エントリー漏れを、スタートリストで確かめる" data-lead="「あの子、載ってない！」を当日に気づかないように。申し込みとスタートリストを見くらべます。" data-tag="照合" data-shot="use_check_pc" data-lc="lc_sleep">
-<p class="mb-meta">⏱ 読む時間：約3分 ／ 使うページ：✅ 照合</p>
-__VIDEO_entry_shogo|エントリーの照合__
-<div class="say"><img src="__IMG_lc_explain_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>スタートリストが出たら、すぐにチェック！ 漏れがあれば、早いうちに大会の係に問い合わせできるよ。</div></div>
-<h3>手順</h3>
-<ol class="mb-steps">
-<li>上の「✅ 照合」を開きます。</li>
-<li>エントリーした資料（申し込みのファイル）と、スタートリストを入れます。URLなら「読み込む」を押します。</li>
-<li>「👀 画面で見る」で結果を確かめます。</li>
-<li>必要なら「📄 PDF作成」「🖨 印刷」で残します。</li>
-</ol>
-<figure class="mb-fig"><img src="__IMG_use_check_pc__" width="640" height="400" loading="lazy" alt="照合の結果（架空のデータ）"><figcaption>照合の結果（架空のデータ）</figcaption></figure>
-<div class="mb-note"><b>⚠ 最後は目で</b>照合は、ファイルの文字を読み取って自動で突き合わせているだけです。名前の書き方のちがいなどで、まちがうこともあります。最後は元の資料と見くらべてください。</div>
-<div class="say r"><img src="__IMG_lc_sleep_face__" alt="レーンちゃん（すやすや）"><div class="bb"><span class="who">レーンちゃん</span>漏れがなければ、今日はもう安心して寝られるね…💤</div></div>
-</article>
-
-<article id="a-entry" data-title="エントリーの前に、選手の希望をリンクで集める" data-lead="調査リンクを送る → 答えを下書きに入れる → 最終チェック用PDFで確認。紙のアンケートはもう要らない。" data-tag="エントリー" data-lc="lc_dash">
+<article id="a-entry" data-title="エントリーの前に、選手の希望をリンクで集める" data-lead="調査リンクを送る → 答えを下書きに入れる → 最終チェック用PDFで確認。紙のアンケートはもう要らない。" data-tag="エントリー" data-lc="lc_dash" data-ch="① 大会の前（予定と申し込み）">
 <p class="mb-meta">⏱ 読む時間：約5分 ／ 使うページ：📒 記録 →「📝 エントリー下書き」</p>
+<div class="say"><img src="__IMG_lc_dash_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>「出たい種目を紙に書いて出して〜」を、リンク1本にしちゃおう。集計は LANE NOTE がやるよ。</div></div>
 __VIDEO_entry_chosa|エントリー調査__
-<div class="say"><img src="__IMG_lc_explain_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>「出たい種目を紙に書いて出して〜」を、リンク1本にしちゃおう。集計は LANE NOTE がやるよ。</div></div>
 <h3>1. 調査リンクを作って送る</h3>
 <ol class="mb-steps">
 <li>記録のページの「📝 エントリー下書き」を開き、「📮 エントリー調査リンク」を押します（Googleでログインした顧問だけ使えます）。</li>
@@ -122,44 +97,212 @@ __VIDEO_entry_chosa|エントリー調査__
 <div class="say r"><img src="__IMG_lc_thumbs_face__" alt="レーンちゃん（グッド）"><div class="bb"><span class="who">レーンちゃん</span>集計の時間がまるごと浮くよ。グッド！</div></div>
 </article>
 
-<article id="a-sched" data-title="大会予定と締切を、1つのページで管理する" data-lead="今後の大会・エントリー締切・振込の状況をカレンダーで。要項から締切も読みます。" data-tag="大会予定" data-shot="use_home_pc" data-lc="lc_explain">
-<p class="mb-meta">⏱ 読む時間：約3分 ／ 使うページ：📅 大会予定</p>
-__VIDEO_taikai_yotei|大会予定と締切__
-<div class="say"><img src="__IMG_lc_explain_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>「あれ、締切いつだっけ？」をなくそう！</div></div>
-<h3>大会予定を入れる</h3>
-<ul><li>1件ずつ入れる</li><li>CSV（ひな形をダウンロードできます）や、Excel から貼り付けた表でまとめて入れる</li><li>Google カレンダーの .ics ファイルや iCal の URL から入れる（大会らしい予定にははじめからチェックがつきます）</li></ul>
-<h3>進み具合をチェックする</h3>
-<p>大会ごとに「エントリー済」「振込済」にチェックを入れられます。カードには「未エントリー（締切が近いと赤）」「準備OK」「結果取込済」などの印が出ます。要項を読み込んだ大会は、エントリー締切や振込締切も要項から読んで出します（読めないときは手で入れられます）。</p>
-<h3>そのまま大会準備へ</h3>
-<p>「📋 大会準備へ」から開くと、その大会の資料として保存され、あとから「続きから」開けます。</p>
-<div class="mb-tip"><b>💡 みんなの要項</b>ほかの学校の先生が同じ大会の要項を登録していれば、その情報を使えます（登録されるのは大会名・日付・会場・要項のURLと読み取った大会の情報だけで、選手の名前は登録しません）。</div>
+<article id="a-moved" data-title="調査で「別の端末」警告が出たとき" data-lead="エントリー調査の答えに「⚠ 別の端末」と出たら。こわがらなくて大丈夫、本人に確かめるだけです。" data-tag="エントリー" data-lc="lc_point" data-ch="① 大会の前（予定と申し込み）">
+<p class="mb-meta">⏱ 読む時間：約2分 ／ 使うページ：📝 エントリー下書き</p>
+<div class="say"><img src="__IMG_lc_point_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>こわがらなくて大丈夫。本人に「この答えで合ってる？」と聞くだけだよ。</div></div>
+<h3>どういう意味？</h3>
+<p>選手が答えを送ると、送った端末ごとの印（ランダムな文字。名前などは入りません）が一緒に保存されます。<b>最初に送った端末とちがう端末から答えが書きかえられた</b>とき、顧問の答えの画面に「⚠ 別の端末から書きかえられた答えがあります」と出て、その人の行に「⚠ 別の端末」の印がつきます。</p>
+<h3>よくある理由</h3>
+<ul><li>本人がスマホを替えた・家のパソコンから送り直した</li><li>友だちのスマホを借りて送った</li><li>まれに、ほかの人のいたずら</li></ul>
+<h3>どうすればいい？</h3>
+<p>止めはしないので、そのまま下書きに入れることもできます。入れる前に、本人に「この希望で合ってる？」と確かめてください。ちがっていたら、本人にもう一度送ってもらうか、下書きで手で直します。</p>
 </article>
 
-<article id="a-records" data-title="結果を取り込んで、自己ベストを管理する" data-lead="結果のPDFやページを入れるだけで、自校の記録とPB・ランキング・歴代記録・大会まとめが。" data-tag="記録" data-shot="use_rank_pc" data-lc="lc_thumbs">
+<article id="a-check" data-title="エントリー漏れを、スタートリストで確かめる" data-lead="「あの子、載ってない！」を当日に気づかないように。申し込みとスタートリストを見くらべます。" data-tag="照合" data-shot="use_check_pc" data-lc="lc_magnify" data-ch="② スタートリストが出たら・前日">
+<p class="mb-meta">⏱ 読む時間：約3分 ／ 使うページ：✅ 照合</p>
+<div class="say"><img src="__IMG_lc_magnify_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>スタートリストが出たら、すぐにチェック！ 漏れがあれば、早いうちに大会の係に問い合わせできるよ。</div></div>
+__VIDEO_entry_shogo|エントリーの照合__
+<h3>手順</h3>
+<ol class="mb-steps">
+<li>上の「✅ 照合」を開きます。</li>
+<li>エントリーした資料（申し込みのファイル）と、スタートリストを入れます。URLなら「読み込む」を押します。</li>
+<li>「👀 画面で見る」で結果を確かめます。</li>
+<li>必要なら「📄 PDF作成」「🖨 印刷」で残します。</li>
+</ol>
+<figure class="mb-fig"><img src="__IMG_use_check_pc__" width="640" height="400" loading="lazy" alt="照合の結果（架空のデータ）"><figcaption>照合の結果（架空のデータ）</figcaption></figure>
+<div class="mb-note"><b>⚠ 最後は目で</b>照合は、ファイルの文字を読み取って自動で突き合わせているだけです。名前の書き方のちがいなどで、まちがうこともあります。最後は元の資料と見くらべてください。</div>
+<div class="say r"><img src="__IMG_lc_sleep_face__" alt="レーンちゃん（すやすや）"><div class="bb"><span class="who">レーンちゃん</span>漏れがなければ、今日はもう安心して寝られるね…💤</div></div>
+</article>
+
+<article id="a-day" data-title="大会の前日に、部員の時間表を配る" data-lead="スタートリストとタイムテーブルのPDFを入れるだけ。自分の学校の選手だけの「時間順の一覧」ができます。" data-tag="大会準備" data-shot="use_meet_pc" data-lc="lc_dash" data-ch="② スタートリストが出たら・前日">
+<p class="mb-meta">⏱ 読む時間：約4分 ／ 使うページ：🏁 大会準備</p>
+<div class="say"><img src="__IMG_lc_dash_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>大会の前の夜に、スタートリストから自分の部員を探してマーカーを引く…。それ、もうやらなくていいよ！</div></div>
+__VIDEO_taikai_junbi|大会準備（部員の時間表）__
+__VIDEO_kyoyu_link|時間表をリンク・QRで共有__
+<h3>用意するもの</h3>
+<ul><li>大会の<b>スタートリスト</b>と<b>タイムテーブル</b>（PDF、または公開されているページのURL）</li><li>あれば<b>競技注意事項</b>（招集時刻を読むのに使います）</li></ul>
+<h3>手順</h3>
+<ol class="mb-steps">
+<li>上の「🏁 大会準備」を開きます。大会予定に入れてある大会なら「📅 大会予定から選ぶ」で大会名と日付が入ります。</li>
+<li>PDFをファイルで入れるか、「🔗 URLから読み込む」にアドレスを入れて「読み込む」を押します。</li>
+<li>学校・クラブ名を入れます。</li>
+<li>「時間順」の「👀 画面で見る」で、できあがりを確かめます。</li>
+<li>「📄 PDF作成」か「🖨 印刷」で配ります。スマホで配るなら「📱 スマホで見る／共有」でリンクやQRコードを作ります。</li>
+</ol>
+<figure class="mb-fig"><img src="__IMG_use_meet_pc__" width="640" height="400" loading="lazy" alt="大会準備のページ（架空のデータ）"><figcaption>大会準備のページ（架空のデータで撮った画面）</figcaption></figure>
+<h3>選手に1人ずつ送りたいとき</h3>
+<p>「🏃 選手用リンクを作る」を押すと、選手1人ずつ、<b>その子の出場と招集時刻だけ</b>が入ったリンクができます。準決勝・決勝など「通過したら」出るラウンドも入り、選手はリンクの中で「通過！」「敗退」を押せます。</p>
+<h3>記録用紙もいっしょに</h3>
+<p>当日に記録を書きこむ「記録用紙」も、同じ画面から作れます。くわしくは「<a href="#a-sheet">記録用紙を作って、当日に書きこむ</a>」へ。</p>
+<div class="mb-note"><b>⚠ ここは必ず見てね</b>招集時刻が注意事項から読めなかったときは、勝手に決めずに空欄にして「⚠ 招集時刻を読めませんでした」と出します。「⚙ 設定」で手で入れると計算します。1つの行だけ直したいときは「<a href="#a-fix">✏️直す</a>」が便利です。配る前に、元の資料と見くらべてください。</div>
+<div class="mb-tip"><b>💡 コツ</b>「新しい大会を始める（全消去）」を押すと、前の大会のPDFと設定を消して、まっさらから始められます。</div>
+</article>
+
+<article id="a-multiday" data-title="複数日の大会を準備する" data-lead="2日・3日にわたる大会でも、日付ごとに出場一覧を作れます。" data-tag="大会準備" data-lc="lc_clock" data-ch="② スタートリストが出たら・前日">
+<p class="mb-meta">⏱ 読む時間：約2分 ／ 使うページ：🏁 大会準備</p>
+<div class="say"><img src="__IMG_lc_clock_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>2日間の大会でも大丈夫。「対象日」を選べば、その日の分だけの一覧になるよ。</div></div>
+<h3>しくみ</h3>
+<p>スタートリストやタイムテーブルに日付が2つ以上あると「⚠ 複数日の大会です」と出て、<b>「対象日」</b>を選ぶ欄があらわれます。</p>
+<ol class="mb-steps"><li>いつもどおりPDFを入れます。</li><li>「対象日」で日付を選びます。選ぶまでは、出場一覧・印刷・Excel・共有は出ません（日付がまざらないように）。</li><li>日ごとに「📄 PDF作成」などで配ります。記録用紙・出場一覧の右上の日付も、選んだ対象日になります。</li></ol>
+<div class="mb-tip"><b>💡 参加料は全日程の分</b>複数日の大会でも、参加料は表示中の日だけでなく、全日程の出場分で計算します。</div>
+</article>
+
+<article id="a-fix" data-title="読み取りがちがう行を「✏️直す」で直す" data-lead="開始時刻・招集時刻・組・レーンが資料とちがったら、その行だけ手で直せます。直した行には「手直し済」。" data-tag="大会準備" data-shot="use_fix_pc" data-lc="lc_pencil" data-ch="② スタートリストが出たら・前日">
+<p class="mb-meta">⏱ 読む時間：約2分 ／ 使うページ：🏁 大会準備</p>
+<div class="say"><img src="__IMG_lc_pencil_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>読み取りがちょっとちがっても、あわてないで。その行だけ、鉛筆でささっと直そう！</div></div>
+<h3>手順</h3>
+<ol class="mb-steps">
+<li>大会準備の出場一覧（「時間順」か「選手別」）で、直したい行の「✏️直す」を押します。</li>
+<li>開始時刻・招集（開始・完了）・組・レーン／試技順を直して「保存」を押します。</li>
+<li>直した行には「手直し済」が付きます。資料から読んだ値に戻すときは「元に戻す」を押します。</li>
+</ol>
+<figure class="mb-fig"><img src="__IMG_use_fix_pc__" width="640" height="400" loading="lazy" alt="✏️直すの画面（架空のデータ）"><figcaption>「✏️直す」で行を直す画面（架空のデータ）</figcaption></figure>
+<h3>直した値はどこに使われる？</h3>
+<p>直した値はこの端末に保存され、同じ資料を読み直しても残ります。出場一覧・印刷・PDF・<a href="#a-sheet">記録用紙</a>・共有リンクにも、直した値が入ります。</p>
+<div class="mb-note"><b>⚠ ここは必ず見てね</b>時刻の形がおかしいときは、保存の前に「⚠」で知らせます。直す前に、元のプログラムやタイムテーブルを見て確かめてください。</div>
+</article>
+
+<article id="a-parent" data-title="保護者へのお知らせを、資料から作る" data-lead="大会名・日にち・会場・集合時刻が自動で入った、保護者向けのお知らせ（Word・PDF）。" data-tag="大会準備" data-shot="use_parent_pc" data-lc="lc_explain" data-ch="② スタートリストが出たら・前日">
+<p class="mb-meta">⏱ 読む時間：約3分 ／ 使うページ：🏁 大会準備</p>
+<div class="say"><img src="__IMG_lc_explain_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>毎回ほとんど同じ文なのに、日付と会場を打ちかえるのって大変だよね。ひな形を一度作れば、次からはほぼ自動だよ。</div></div>
+__VIDEO_hogosha_oshirase|保護者へのお知らせ__
+<h3>手順</h3>
+<ol class="mb-steps">
+<li>大会準備のページで、いつものようにPDFを入れます。</li>
+<li>「👪 保護者へのお知らせ」を押します。</li>
+<li>学校の設定（学校名・顧問・持ち物・注意事項など）を入れます。一度入れれば、ひな形として次から使えます。</li>
+<li>レイアウトと色を選び、Word（.docx）か PDF で保存、または印刷します。</li>
+</ol>
+<figure class="mb-fig"><img src="__IMG_use_parent_pc__" width="640" height="400" loading="lazy" alt="保護者へのお知らせ（架空のデータ）"><figcaption>保護者へのお知らせ（架空のデータ）</figcaption></figure>
+<h3>競技場の情報は一度だけ</h3>
+<p>最寄り駅や行き方、集合場所は「🏟 競技場の設定」に一度入れておくと、同じ競技場の大会では自動で入ります。</p>
+<div class="mb-tip"><b>💡 コツ</b>白黒で印刷する学校は「白黒印刷向け」に切りかえると、色がなくても読みやすくなります。</div>
+</article>
+
+<article id="a-cards" data-title="ナンバーカードと参加料も、まとめて片づける" data-lead="ゼッケン・腰番の Word ファイルと、要項から読んだ単価での参加料の合計。" data-tag="大会準備" data-lc="lc_bib" data-ch="② スタートリストが出たら・前日">
+<p class="mb-meta">⏱ 読む時間：約2分 ／ 使うページ：🏁 大会準備</p>
+<div class="say"><img src="__IMG_lc_bib_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>スタートリストを入れると、「ナンバーカード」と「参加料」のタブも使えるようになるよ。</div></div>
+__VIDEO_number_card_sankaryo|ナンバーカードと参加料__
+<h3>ナンバーカード（ゼッケン・腰番）</h3>
+<p>出場する選手の番号で、ゼッケン（胸・背中）と腰番の Word ファイルを作ります。B5の用紙に「実際のサイズ（100%）」で印刷してください。ゼッケンは1ページに1枚、腰番は1ページに上下2枚（半分に切る）です。</p>
+<div class="mb-note"><b>⚠ フォントについて</b>ナンバーカードはパソコンに入っている「HGP創英角ｺﾞｼｯｸUB」「ＭＳ ゴシック」を使います。無いときは別のフォントで表示されます。印刷は Word から行ってください。</div>
+<h3>参加料</h3>
+<p>要項や注意事項から単価を読み取り、出場する種目の数から合計を出します。読み取れなかったときは「参加料を読み取れませんでした」と出るので、表に単価を入れてください。</p>
+<div class="say r"><img src="__IMG_lc_calc_face__" alt="レーンちゃん（グッド）"><div class="bb"><span class="who">レーンちゃん</span>電卓とにらめっこする時間が減るね！</div></div>
+</article>
+
+<article id="a-sheet" data-title="記録用紙を作って、当日に書きこむ" data-lead="選手ごとにPB（公認ベスト）と前回の記録が入った、当日に書きこむ表。A4で印刷・PDF・Excelに。" data-tag="大会の日" data-shot="use_recsheet_pc" data-lc="lc_sheet" data-ch="③ 大会の日">
+<p class="mb-meta">⏱ 読む時間：約2分 ／ 使うページ：🏁 大会準備</p>
+<div class="say"><img src="__IMG_lc_sheet_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>当日はこの1枚をクリップボードにはさんでおけば、「ベスト更新！」がその場でわかるよ。</div></div>
+<h3>手順</h3>
+<ol class="mb-steps">
+<li>大会準備のページで、いつものようにスタートリストとタイムテーブルを入れます。</li>
+<li>「📝 記録用紙（A4）」の「👀 画面で見る」で確かめます。</li>
+<li>「📄 PDF作成」か「🖨 印刷」で配ります。Excelで使うなら「記録用紙をExcelで保存」。</li>
+</ol>
+<figure class="mb-fig"><img src="__IMG_use_recsheet_pc__" width="640" height="400" loading="lazy" alt="記録用紙（架空のデータ）"><figcaption>記録用紙（架空のデータ）</figcaption></figure>
+<h3>PBと前回の記録</h3>
+<p>選手ごとに<b>PB（これまでの公認ベスト）</b>と<b>前回大会の記録</b>が入ります。PBと前回は「📒 記録」にためた記録から出します。記録の保存先が「チーム」のときはチームの記録を使い、読めないときはこの端末の控えから出していることを用紙に表示します。</p>
+<div class="mb-tip"><b>💡 複数日の大会</b>「<a href="#a-multiday">対象日</a>」で選んだ日の分だけを作り、右上の日付もその日になります。</div>
+</article>
+
+<article id="a-phone" data-title="スマホでの使い方（ホーム画面に追加・共有リンク）" data-lead="LANE NOTE はスマホのブラウザでそのまま使えます。アイコンを置いておくと、アプリのようにすぐ開けます。" data-tag="スマホ" data-lc="lc_phone" data-ch="③ 大会の日">
+<p class="mb-meta">⏱ 読む時間：約3分</p>
+<div class="say"><img src="__IMG_lc_thumbs_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>大会の日は、スマホで見られるとすごく楽だよ！</div></div>
+__VIDEO_sumaho|スマホでの使い方__
+<h3>ホーム画面に置く</h3>
+<ul><li>iPhone（Safari）：下の共有ボタン →「ホーム画面に追加」</li><li>Android（Chrome）：右上のメニュー →「ホーム画面に追加」</li></ul>
+<p>これはブラウザの機能で、ページへの近道（ブックマーク）をアイコンにするものです。中身はいつもの LANE NOTE です。</p>
+<h3>共有リンクとQRコード</h3>
+<ul><li>大会準備の「📱 スマホで見る／共有」：時間順の予定などをリンクとQRコードにできます。</li><li>「🏃 選手用リンクを作る」：選手1人ずつ、その子の出場だけのリンク。</li><li>記録の「📱 選手の個人ページを作る」：その子の記録とグラフだけのリンク。</li><li>エントリー調査のリンクは「リンクをコピー」「LINEで送る」「QR」で配れます。</li></ul>
+<div class="mb-note"><b>⚠ リンクの扱い</b>リンクを知っている人は、その中身を見られます。部の LINE グループなど、決まった相手にだけ送ってください。</div>
+</article>
+
+<article id="a-records" data-title="結果を取り込んで、自己ベストを管理する" data-lead="結果のPDFやページを入れるだけで、自校の記録とPB・ランキング・歴代記録・大会まとめが。" data-tag="記録" data-shot="use_rank_pc" data-lc="lc_graph" data-ch="④ 大会のあと（記録）">
 <p class="mb-meta">⏱ 読む時間：約5分 ／ 使うページ：📒 記録</p>
+<div class="say"><img src="__IMG_lc_graph_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>Excel に1行ずつ打っていた記録、取り込みで一気に入れちゃおう！</div></div>
 __VIDEO_kirokucho|記録帳（結果の取り込み）__
-<div class="say"><img src="__IMG_lc_explain_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>Excel に1行ずつ打っていた記録、取り込みで一気に入れちゃおう！</div></div>
 <h3>取り込みの手順</h3>
 <ol class="mb-steps">
 <li>上の「📒 記録」を開き、学校・クラブ名を入れます（個人で使うなら「👤 個人で使う方はこちら」）。</li>
-<li>結果のPDF・Webページ・Excelを入れます。文章をコピーして「貼り付けた文章を読み取る」でもOKです。</li>
+<li>結果のPDF・Webページ・Excelを入れます。文章をコピーして「貼り付けた文章を読み取る」でもOKです。大会の速報ページなら「<a href="#a-url">🔗 URLから読み込む</a>」が便利です。</li>
 <li>確認の画面で自分の学校の記録を確かめて、保存します。</li>
 </ol>
 <div class="mb-tip"><b>💡 Googleでログインすると</b>記録が自分専用のクラウドに保存され、ほかの端末からも見られます。ログインしなくても、この端末だけで使えます。</div>
 <h3>見られるもの</h3>
-<ul><li><b>ホーム</b>：最新の大会の自己ベスト更新</li><li><b>選手別</b>：自己ベストと記録の推移グラフ・個人表</li><li><b>部内ランキング</b>・<b>歴代記録</b></li><li><b>大会まとめ</b>：その大会の全員の結果（PBの印つき）。PDF・印刷・リンクで共有</li></ul>
+<ul><li><b>ホーム</b>：最新の大会の自己ベスト更新</li><li><b>選手別</b>：自己ベストと記録の推移グラフ・<a href="#a-print">個人表</a></li><li><b>部内ランキング</b>・<b>歴代記録</b></li><li><b>大会まとめ</b>：その大会の全員の結果（PBの印つき）。PDF・印刷・リンクで共有</li></ul>
 <figure class="mb-fig"><img src="__IMG_use_rank_pc__" width="640" height="400" loading="lazy" alt="部内ランキング（架空のデータ）"><figcaption>部内ランキング（架空のデータ）</figcaption></figure>
 <h3>1年分をまとめて、ふりかえり</h3>
 <p>「📚 1年分の記録をまとめる」で、大会予定に入れた終わった大会の結果をまとめて探して取り込めます。そのあと「📝 ふりかえりシートを作る」で、選手1人A4 1枚の「今年のふりかえり」（種目ごとのベスト・自己ベスト更新・推移グラフ・先生から一言の枠）を作れます。</p>
 <h3>記録のおそうじ</h3>
 <p>「🔍 怪しい記録チェック」で、二重の記録やありえない記録、日程の外の日付を探せます。値は勝手に直さず、「消す」か「問題ない」を選べます。</p>
 <div class="mb-note"><b>⚠ 読み取りについて</b>結果の資料の形によっては、読みまちがえることがあります。大事な記録は元の資料でも確かめてください。「💾 ファイルに書き出す（JSON）」でときどき控えをとっておくと安心です。</div>
+<div class="say r"><img src="__IMG_lc_graph_face__" alt="レーンちゃん（よろこぶ）"><div class="bb"><span class="who">レーンちゃん</span>自己ベストが更新されると、グラフがぐーんと上がるよ。選手といっしょに見てね！</div></div>
 </article>
 
-<article id="a-player" data-title="選手・保護者に記録と予定を届ける" data-lead="個人ページのリンク、選手モード、体調メモ、やり取り。選手のスマホに「自分の陸上ノート」を。" data-tag="選手モード" data-shot="use_pp_pc" data-lc="lc_dash">
+<article id="a-url" data-title="大会の速報ページ（URL）から、結果をまとめて取り込む" data-lead="gold.jaic.org のような速報ページのアドレスを入れるだけ。競技一覧を選べば、その先の結果のページまでたどって読みます。" data-tag="記録" data-lc="lc_magnify" data-ch="④ 大会のあと（記録）">
+<p class="mb-meta">⏱ 読む時間：約3分 ／ 使うページ：📒 記録</p>
+<div class="say"><img src="__IMG_lc_magnify_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>速報ページは種目ごとにページが分かれていて大変だよね。わたしが全部たどって、自分の学校の記録だけ探してくるよ！</div></div>
+<h3>手順</h3>
+<ol class="mb-steps">
+<li>「📒 記録」を開き、学校・クラブ名を入れます（例：本郷）。</li>
+<li>「🔗 URLから読み込む」に速報ページのアドレスを入れて「読み込む」を押します。</li>
+<li>「🏟 大会の速報ページのようです。」と出たら、次のどちらかを選びます。
+<ul><li><b>大会全部</b>：「📥 この大会の結果をまとめて取り込む」</li><li><b>一部の日・種目だけ</b>：リンクの一覧で競技一覧（例：1日目・2日目）にチェックを入れて「選んだものを読み込む」。選んだ一覧にある結果のページまでたどって読みます。</li></ul></li>
+<li>確認の画面で、自分の学校の記録を確かめて保存します。</li>
+</ol>
+<h3>日付と大会名</h3>
+<p>日付は、それぞれの結果のページに書いてある日付を使います。2日以上ある大会では、種目ごとに日付が入り、大会全体の日付の欄は空のままです（推測で入れません）。大会名は資料の見出しから読むので、ちがっていたら直してください。</p>
+<div class="mb-note"><b>⚠ 読み取りについて</b>ページの数が多い大会は、少し時間がかかります。読めなかったページは「読み込めなかったもの」として出ます。大事な記録は元のページでも確かめてください。</div>
+<div class="mb-tip"><b>💡 中継について</b>「URLから読み込む」のときは、入れたURLと中身が LANE NOTE の中継を通ります（保存はしません）。</div>
+</article>
+
+<article id="a-dup" data-title="同じ選手が2行に出たとき（🪪 選手台帳）" data-lead="名前の書き方や中学／高校の区別がちがうと、同じ人が2行になることがあります。理由を見て、選手台帳で1人にまとめます。" data-tag="記録" data-shot="use_dup_pc" data-lc="lc_point" data-ch="④ 大会のあと（記録）">
+<p class="mb-meta">⏱ 読む時間：約3分 ／ 使うページ：📒 記録 →「選手別」</p>
+<div class="say"><img src="__IMG_lc_point_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>LANE NOTE は名前だけで勝手にまとめないよ。同じ人かどうかは、先生が確かめてボタンを押してね。</div></div>
+<h3>どうして2行になるの？</h3>
+<p>個人表の選手を選ぶ一覧で、同じ名前・同じ学校なのに別の行があると「⚠ 同じ名前・同じ学校の行がほかにもあります」と、理由といっしょに出ます。</p>
+<ul><li>片方だけ選手台帳（選手ID）に入っている</li><li>中学か高校かが、片方の記録では決まっていない</li><li>中学と高校に分かれている（中学から高校に上がった人など）</li><li>名前の字が少しちがう（見えない文字・異体字など）</li></ul>
+<figure class="mb-fig"><img src="__IMG_use_dup_pc__" width="640" height="400" loading="lazy" alt="同じ名前の案内（架空のデータ）"><figcaption>選ぶ一覧の「同じ名前」の案内（架空のデータ）</figcaption></figure>
+<h3>1人にまとめる手順</h3>
+<ol class="mb-steps">
+<li>案内の「選手のページで確かめる」を押します（「選手別」から名前を押しても開けます）。</li>
+<li>「🪪 選手台帳」の欄に「まだ台帳に入っていません」と出ていたら、「🪪 台帳に入れる」を押します。</li>
+<li>同じ欄の「同じ名前で、台帳に入っていない記録」を見て、同じ人なら「同じ人なので入れる」を押します。</li>
+</ol>
+<div class="mb-tip"><b>💡 まちがえて入れたとき</b>「別の人の記録が混ざっているとき（分ける）」で、選んだ記録を別の人に分けられます。チームで使っているときは、台帳に入れられるのは顧問だけです。</div>
+</article>
+
+<article id="a-print" data-title="個人表を作る（選手を選んで、1人1ページ）" data-lead="選手ごとの種目別ベストと記録の推移を1人1ページに。選ぶ一覧の学年の出し方もここで。" data-tag="記録" data-shot="use_ath_pc" data-lc="lc_graph" data-ch="④ 大会のあと（記録）">
+<p class="mb-meta">⏱ 読む時間：約2分 ／ 使うページ：📒 記録 →「選手別」</p>
+<div class="say"><img src="__IMG_lc_sheet_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>面談や保護者会の前に、選手ごとの1枚をまとめて作れるよ。</div></div>
+<h3>手順</h3>
+<ol class="mb-steps">
+<li>「📒 記録」の「選手別」で、「個人表（選手を選ぶ）」の「👀 画面で見る」「📄 PDF作成」「🖨 印刷」のどれかを押します。</li>
+<li>選手を選ぶ一覧で、作りたい選手にチェックを入れます（「全員選択」「全解除」もあります）。</li>
+<li>「🖨 PDFにまとめる」を押すと、1人1ページでできあがります。</li>
+</ol>
+<figure class="mb-fig"><img src="__IMG_use_ath_pc__" width="640" height="400" loading="lazy" alt="個人表の選手を選ぶ一覧（架空のデータ）"><figcaption>個人表の選手を選ぶ一覧（架空のデータ）</figcaption></figure>
+<h3>学年の出し方</h3>
+<p>一覧と個人表の学年は「3年」の形で出します（中学か高校かは、横の学校名「〇〇中」「〇〇高」でわかります）。</p>
+<ul><li>選手台帳に「1年生だった年度」が入っていれば、今の年度の学年</li><li>なければ、その選手の記録のうち学年が書いてある、いちばん新しい記録の学年</li><li>どの記録にも学年が無い選手は、空のままです（推測で入れません）</li></ul>
+<div class="say r"><img src="__IMG_lc_graph_face__" alt="レーンちゃん（よろこぶ）"><div class="bb"><span class="who">レーンちゃん</span>ふりかえりシート（1人A4 1枚・今年のまとめ）も、同じように選手を選んで作れるよ。</div></div>
+</article>
+
+<article id="a-player" data-title="選手・保護者に記録と予定を届ける" data-lead="個人ページのリンク、選手モード、体調メモ、やり取り。選手のスマホに「自分の陸上ノート」を。" data-tag="選手モード" data-shot="use_pp_pc" data-lc="lc_dash" data-ch="④ 大会のあと（記録）">
 <p class="mb-meta">⏱ 読む時間：約4分 ／ 使うページ：📒 記録・選手モード</p>
+<div class="say"><img src="__IMG_lc_thumbs_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>自分の記録の伸びがグラフで見えると、選手はやる気が出るよね！</div></div>
 __VIDEO_kojin_kiroku|個人の記録ページ__
-<div class="say"><img src="__IMG_lc_explain_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>自分の記録の伸びがグラフで見えると、選手はやる気が出るよね！</div></div>
 <h3>選手の個人ページ</h3>
 <ol class="mb-steps">
 <li>記録のページで「📱 選手の個人ページを作る」を押します。</li>
@@ -174,10 +317,10 @@ __VIDEO_kojin_kiroku|個人の記録ページ__
 <p>「💬 選手とのやり取り」は、選手ごとにひとことを書いたり返信をやり取りしたりできる機能です。はじめはオフで、使いたい先生だけがオンにします。リンクは先生が1人ずつ渡します。</p>
 </article>
 
-<article id="a-team" data-title="顧問・マネージャーとチームで使う" data-lead="招待リンクでチームに入ってもらえば、マネージャーが大会の日にスマホで結果を入れられます。" data-tag="チーム" data-lc="lc_thumbs">
+<article id="a-team" data-title="顧問・マネージャーとチームで使う" data-lead="招待リンクでチームに入ってもらえば、マネージャーが大会の日にスマホで結果を入れられます。" data-tag="チーム" data-lc="lc_thumbs" data-ch="⑤ チームとデータ">
 <p class="mb-meta">⏱ 読む時間：約3分 ／ 使うページ：👥 チーム</p>
+<div class="say"><img src="__IMG_lc_dash_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>1人で全部やらなくていいんだよ。みんなで入れて、先生は確認するだけ！</div></div>
 __VIDEO_team|チームで使う__
-<div class="say"><img src="__IMG_lc_explain_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>1人で全部やらなくていいんだよ。みんなで入れて、先生は確認するだけ！</div></div>
 <h3>チームを作って招待する</h3>
 <ol class="mb-steps">
 <li>Googleでログインして、「≡ メニュー」の「👥 チーム」でチームを作ります。</li>
@@ -187,59 +330,12 @@ __VIDEO_team|チームで使う__
 <h3>役割ごとにできること</h3>
 <ul><li><b>🧑‍🏫 顧問</b>：すべて。選手とのやり取り・体調メモも顧問だけです。</li><li><b>📋 マネージャー</b>：記録の入力と修正。期限があり、はじめは年度末までです。</li></ul>
 <div class="mb-tip"><b>💡 安心のしくみ</b>マネージャーが入れた記録には「未確認」の印がつきます。「🕘 変更履歴」には、だれが・いつ・何をしたかが残り、元に戻せます。</div>
+<div class="say r"><img src="__IMG_lc_thumbs_face__" alt="レーンちゃん（グッド）"><div class="bb"><span class="who">レーンちゃん</span>みんなで手分けすれば、先生は早く帰って寝ちゃえ！</div></div>
 </article>
 
-<article id="a-faq" data-title="よくある質問と、データの扱い" data-lead="ログインは必要？ お金はかかる？ データはどこに？ 困ったときはここ。" data-tag="Q&amp;A" data-lc="lc_sleep">
-<p class="mb-meta">⏱ 読む時間：約2分</p>
-<h3>Q. お金はかかる？</h3>
-<div class="say"><img src="__IMG_lc_explain_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>無料だよ。広告もないよ。</div></div>
-<h3>Q. ログインしないと使えない？</h3>
-<p>大会準備・照合や、この端末だけで記録をためるのはログインなしで使えます。クラウドに保存したいとき、チームで使うとき、エントリー調査リンクを作るときは Google でログインします。</p>
-<h3>Q. まず試してみたい</h3>
-<p><a class="mb-btn sub" href="try.html">⏱ 3分体験</a> 架空のサンプルで、できあがりまで試せます。何も保存せず、どこにも送りません。</p>
-<h3>Q. データはだれが見られるの？</h3>
-<p>くわしくは「🔰 はじめての人はこちら」のデータの取り扱いに全文があります。<a class="mb-btn sub" href="guide.html">🔰 はじめての人はこちら</a></p>
-<h3>Q. 出場一覧の時刻や組が資料とちがう</h3>
-<p>大会準備の出場一覧（時間順・選手別）で、その行の「✏️直す」を押すと、開始時刻・招集時刻・組・レーン／試技順を直せます。直した行には「手直し済」が付き、「元に戻す」で資料から読んだ値に戻せます。直した値はこの端末だけに保存し、印刷・記録用紙・共有リンクにも使います。</p>
-<h3>Q. ボタンの意味を1つずつ知りたい</h3>
-<p>画面ごとのボタンの説明は、こちらにまとめてあります。<a class="mb-btn sub" href="guide.html#manual">🧭 画面ごとのボタンの説明</a></p>
-<div class="say r"><img src="__IMG_lc_sleep_face__" alt="レーンちゃん（すやすや）"><div class="bb"><span class="who">レーンちゃん</span>わからないことがあったら「🚨 不具合・要望を送る」で教えてね。それじゃあ、おやすみ…💤</div></div>
-</article>
-
-<!-- v0.29.5 記事を追加（実際にある機能だけ） -->
-<article id="a-start" data-title="はじめての使い方（5分で）" data-lead="まずは1つの大会で試してみよう。ログインしなくても、この端末だけで使えます。" data-tag="まずはここ" data-lc="lc_wave">
-<p class="mb-meta">⏱ 読む時間：約5分</p>
-__VIDEO_lanenote_hajimete|はじめての使い方__
-<div class="say"><img src="__IMG_lc_explain_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>はじめまして！ 全部を一度に覚えなくて大丈夫。まずは5分だけ、いっしょにやってみよう。</div></div>
-<h3>1分目：モードを選ぶ</h3>
-<p>はじめて開くと「顧問・コーチの方」か「選手・保護者の方」かを聞かれます。先生は顧問を選びます（あとから変えられます）。</p>
-<h3>2分目：体験してみる</h3>
-<p>「⏱ 3分体験」では架空のデータで動きを試せます。本物の資料を入れる前に、どんな画面になるかを見ておくと安心です。</p>
-<h3>3〜4分目：大会準備で1つ作る</h3>
-<ol class="mb-steps">
-<li>「🏁 大会準備」を開き、スタートリストとタイムテーブルのPDFを入れます（ファイルを選ぶか、URLを入れて「読み込む」）。</li>
-<li>学校・クラブ名を入れて「👀 画面で見る」。自分の学校の選手だけが時間順に並びます。</li>
-<li>「📄 PDF作成」か「🖨 印刷」、スマホで配るなら「📱 スマホで見る／共有」。</li>
-</ol>
-<h3>5分目：記録をためる</h3>
-<p>大会のあと「📒 記録」で結果のPDFやWebページを入れると、自分の学校の記録だけを取り込み、自己ベストが自動で更新されます。</p>
-<div class="mb-tip"><b>💡 ログインは必要になってから</b>ログインしなくても、この端末の中だけで使えます。ほかの端末でも同じ記録を見たい、チームで使いたい、となったら「Googleでログイン」してください。</div>
-</article>
-
-<article id="a-phone" data-title="スマホでの使い方（ホーム画面に追加・共有リンク）" data-lead="LANE NOTE はスマホのブラウザでそのまま使えます。アイコンを置いておくと、アプリのようにすぐ開けます。" data-tag="スマホ" data-lc="lc_phone">
-<p class="mb-meta">⏱ 読む時間：約3分</p>
-__VIDEO_sumaho|スマホでの使い方__
-<div class="say"><img src="__IMG_lc_thumbs_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>大会の日は、スマホで見られるとすごく楽だよ！</div></div>
-<h3>ホーム画面に置く</h3>
-<ul><li>iPhone（Safari）：下の共有ボタン →「ホーム画面に追加」</li><li>Android（Chrome）：右上のメニュー →「ホーム画面に追加」</li></ul>
-<p>これはブラウザの機能で、ページへの近道（ブックマーク）をアイコンにするものです。中身はいつもの LANE NOTE です。</p>
-<h3>共有リンクとQRコード</h3>
-<ul><li>大会準備の「📱 スマホで見る／共有」：時間順の予定などをリンクとQRコードにできます。</li><li>「🏃 選手用リンクを作る」：選手1人ずつ、その子の出場だけのリンク。</li><li>記録の「📱 選手の個人ページを作る」：その子の記録とグラフだけのリンク。</li><li>エントリー調査のリンクは「リンクをコピー」「LINEで送る」「QR」で配れます。</li></ul>
-<div class="mb-note"><b>⚠ リンクの扱い</b>リンクを知っている人は、その中身を見られます。部の LINE グループなど、決まった相手にだけ送ってください。</div>
-</article>
-
-<article id="a-data" data-title="データの保存と書き出し・引っ越し" data-lead="記録はどこに保存される？ 控えの取り方と、別の端末・新しいアドレスへの移し方。" data-tag="データ" data-lc="lc_explain">
+<article id="a-data" data-title="データの保存と書き出し・引っ越し" data-lead="記録はどこに保存される？ 控えの取り方と、別の端末・新しいアドレスへの移し方。" data-tag="データ" data-lc="lc_sheet" data-ch="⑤ チームとデータ">
 <p class="mb-meta">⏱ 読む時間：約4分 ／ 使うページ：📒 記録</p>
+<div class="say"><img src="__IMG_lc_explain_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>大事な記録は、ときどき控えを取っておくと安心だよ。</div></div>
 __VIDEO_hozon_kakidashi|保存・書き出し__
 <h3>どこに保存される？</h3>
 <ul><li><b>ログインしていないとき</b>：この端末のブラウザの中だけ。ほかの端末からは見えません。ブラウザのデータを消すと消えます。</li><li><b>Googleでログインしたとき</b>：自分専用のクラウドに保存され、ほかの端末からも同じ記録を見られます。</li></ul>
@@ -252,41 +348,34 @@ __VIDEO_hozon_kakidashi|保存・書き出し__
 <div class="mb-note"><b>⚠ ファイルの扱い</b>書き出したファイルには選手の氏名と記録が入ります。学校のきまりに従って、大切に扱ってください。</div>
 </article>
 
-<article id="a-multiday" data-title="複数日の大会を準備する" data-lead="2日・3日にわたる大会でも、日付ごとに出場一覧を作れます。" data-tag="大会準備" data-lc="lc_dash">
-<p class="mb-meta">⏱ 読む時間：約2分 ／ 使うページ：🏁 大会準備</p>
-<h3>しくみ</h3>
-<p>スタートリストやタイムテーブルに日付が2つ以上あると「⚠ 複数日の大会です」と出て、<b>「対象日」</b>を選ぶ欄があらわれます。</p>
-<ol class="mb-steps"><li>いつもどおりPDFを入れます。</li><li>「対象日」で日付を選びます。選ぶまでは、出場一覧・印刷・Excel・共有は出ません（日付がまざらないように）。</li><li>日ごとに「📄 PDF作成」などで配ります。</li></ol>
-<div class="mb-tip"><b>💡 参加料は全日程の分</b>複数日の大会でも、参加料は表示中の日だけでなく、全日程の出場分で計算します。</div>
-</article>
-
-<article id="a-yoko" data-title="要項から締切・申込方法を読む" data-lead="エントリー締切・振込締切・申込書の提出締切を、要項の文字から読み取ります。" data-tag="大会予定" data-lc="lc_idea">
-<p class="mb-meta">⏱ 読む時間：約3分 ／ 使うページ：📅 大会予定・🏁 大会準備</p>
-<h3>手順</h3>
-<ol class="mb-steps"><li>「📅 大会予定」で大会の「📋 大会準備へ」を押し、その大会の要項（PDFかURL）を読み込みます。</li><li>要項の中の「申込」「参加料の振込」「申込書」などの言葉と日付を探して、大会予定の「エントリー済」「振込済」のチェックの横に締切を出します。「エントリーの出し方」も要項から読めたときは自動で入ります（手で選び直せます）。</li><li>読めなかった種類は「締切を読めませんでした」と出ます。手で入れた締切があれば、そちらが優先です。</li></ol>
-<p>大会カードには「未エントリー（締切が近いと赤）」などの印が出るので、締切の見落としを減らせます。</p>
-<div class="mb-note"><b>⚠ 最後は要項で確かめて</b>要項の書き方は大会ごとにちがうので、読みまちがえることがあります。申し込みの前に、必ず元の要項を見てください。</div>
-</article>
-
-<article id="a-moved" data-title="調査で「別の端末」警告が出たとき" data-lead="エントリー調査の答えに「⚠ 別の端末」と出たら。こわがらなくて大丈夫、本人に確かめるだけです。" data-tag="エントリー" data-lc="lc_trouble">
-<p class="mb-meta">⏱ 読む時間：約2分 ／ 使うページ：📝 エントリー下書き</p>
-<h3>どういう意味？</h3>
-<p>選手が答えを送ると、送った端末ごとの印（ランダムな文字。名前などは入りません）が一緒に保存されます。<b>最初に送った端末とちがう端末から答えが書きかえられた</b>とき、顧問の答えの画面に「⚠ 別の端末から書きかえられた答えがあります」と出て、その人の行に「⚠ 別の端末」の印がつきます。</p>
-<h3>よくある理由</h3>
-<ul><li>本人がスマホを替えた・家のパソコンから送り直した</li><li>友だちのスマホを借りて送った</li><li>まれに、ほかの人のいたずら</li></ul>
-<h3>どうすればいい？</h3>
-<p>止めはしないので、そのまま下書きに入れることもできます。入れる前に、本人に「この希望で合ってる？」と確かめてください。ちがっていたら、本人にもう一度送ってもらうか、下書きで手で直します。</p>
-</article>
-
-<article id="a-trouble" data-title="トラブルのとき" data-lead="「読めませんでした」と出た・ボタンが出ない・記録が見えない…困ったときに見るページ。" data-tag="困ったとき" data-lc="lc_trouble">
+<article id="a-trouble" data-title="トラブルのとき" data-lead="「読めませんでした」と出た・ボタンが出ない・記録が見えない…困ったときに見るページ。" data-tag="困ったとき" data-lc="lc_trouble" data-ch="困ったとき">
 <p class="mb-meta">⏱ 読む時間：約4分</p>
-<div class="say"><img src="__IMG_lc_explain_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>あわてずに、上から順に試してみてね。</div></div>
+<div class="say"><img src="__IMG_lc_magnify_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>あわてずに、上から順に試してみてね。</div></div>
 <h3>PDFが「読めませんでした」</h3>
 <ul><li>スキャンした画像のPDFは読めません（文字が選べるPDFだけ）。</li><li>URLで読めないときは、PDFをいったん保存してファイルで入れてみてください。</li><li>対応を確かめた形式は限られています。読めなかった資料は「📮 不具合・要望を送る」で教えてください（個人情報は書かないでください）。</li></ul>
 <h3>出場一覧などのボタンが出ない</h3>
 <p>複数日の大会では「対象日」を選ぶまでボタンが出ません。学校・クラブ名が資料の書き方と合っているかも確かめてください。</p>
+<h3>同じ選手が2行に出る・学年が出ない</h3>
+<p>「<a href="#a-dup">同じ選手が2行に出たとき</a>」と「<a href="#a-print">個人表を作る</a>」を見てください。</p>
 <h3>記録が見えない・消えた？</h3>
 <ul><li>ログインしていないときの記録は、その端末・そのブラウザの中だけです。別の端末や別のブラウザでは見えません。</li><li>古いアドレスで使っていた記録は、新しいアドレスには自動で移りません（「データの保存と書き出し・引っ越し」を見てください）。</li></ul>
 <h3>画面がおかしい</h3>
 <p>ページを読み直す（再読み込み）と直ることがあります。それでも直らないときは「📮 不具合・要望を送る」から知らせてください。</p>
+</article>
+
+<article id="a-faq" data-title="よくある質問と、データの扱い" data-lead="ログインは必要？ お金はかかる？ データはどこに？ 困ったときはここ。" data-tag="Q&amp;A" data-lc="lc_sleep" data-ch="困ったとき">
+<p class="mb-meta">⏱ 読む時間：約2分</p>
+<h3>Q. お金はかかる？</h3>
+<div class="say"><img src="__IMG_lc_point_face__" alt="レーンちゃん"><div class="bb"><span class="who">レーンちゃん</span>無料だよ。広告もないよ。</div></div>
+<h3>Q. ログインしないと使えない？</h3>
+<p>大会準備・照合や、この端末だけで記録をためるのはログインなしで使えます。クラウドに保存したいとき、チームで使うとき、エントリー調査リンクを作るときは Google でログインします。</p>
+<h3>Q. まず試してみたい</h3>
+<p><a class="mb-btn sub" href="try.html">⏱ 3分体験</a> 架空のサンプルで、できあがりまで試せます。何も保存せず、どこにも送りません。</p>
+<h3>Q. データはだれが見られるの？</h3>
+<p>くわしくは「🔰 はじめての人はこちら」のデータの取り扱いに全文があります。<a class="mb-btn sub" href="guide.html">🔰 はじめての人はこちら</a></p>
+<h3>Q. 出場一覧の時刻や組が資料とちがう</h3>
+<p>大会準備の出場一覧（時間順・選手別）で、その行の「✏️直す」を押すと、開始時刻・招集時刻・組・レーン／試技順を直せます。直した行には「手直し済」が付き、「元に戻す」で資料から読んだ値に戻せます。直した値はこの端末だけに保存し、印刷・記録用紙・共有リンクにも使います（くわしくは「<a href="#a-fix">✏️直す</a>」）。</p>
+<h3>Q. ボタンの意味を1つずつ知りたい</h3>
+<p>画面ごとのボタンの説明は、こちらにまとめてあります。<a class="mb-btn sub" href="guide.html#manual">🧭 画面ごとのボタンの説明</a></p>
+<div class="say r"><img src="__IMG_lc_sleep_face__" alt="レーンちゃん（すやすや）"><div class="bb"><span class="who">レーンちゃん</span>わからないことがあったら「📮 不具合・要望を送る」で教えてね。さっさと仕事を終わらせて、寝ちゃえ…💤</div></div>
 </article>

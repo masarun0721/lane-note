@@ -45,6 +45,17 @@ __BASE_CSS__
 .mb-up{text-align:right;font-size:13px;margin:10px 0 0}.mb-up a{color:var(--navy)}
 .mb-end{display:flex;gap:14px;align-items:center;background:#f7f9fc;border-radius:14px;padding:12px 16px;margin:0 0 16px}.mb-end img{width:120px;height:auto;flex:none}.mb-end p{margin:0;font-size:15px;line-height:1.8}
 @media (max-width:640px){.mb-hero{grid-template-columns:1fr}.mb-hero img{max-width:170px;margin:0 auto}.mb-hero h2{font-size:20px}.mb-art{padding:14px 12px}.mb-art>h2{font-size:18px}.say img{width:46px;height:46px}.mb-end{flex-direction:column;text-align:center}}
+
+/* v0.32.0 章の見出し・スマホは記事を1つずつ開く */
+.mb-cards .mb-ch{grid-column:1/-1;margin:14px 0 0;font-size:15px;color:var(--navy,#1f2d5a);border-left:5px solid #e8743b;padding-left:8px}
+.mb-chh{margin:30px 0 8px;font-size:17px;color:#555;border-bottom:2px dashed #ccc;padding-bottom:4px}
+@media (max-width:640px){
+  .mb-art.acc{padding-top:10px;padding-bottom:10px}
+  .mb-art.acc>h2{cursor:pointer;position:relative;padding-right:30px;margin:4px 0}
+  .mb-art.acc>h2::after{content:'＋';position:absolute;right:4px;top:0;color:#e8743b;font-weight:700}
+  .mb-art.acc.open>h2::after{content:'－'}
+  .mb-art.acc:not(.open)>:not(h2):not(.mb-tag){display:none}
+}
 </style>
 </head>
 <body class="guide manual-blog">
@@ -66,10 +77,10 @@ __MODEPICK__
 <section class="mb-hero" aria-labelledby="mbT">
   <div>
     <span class="mb-kicker">📖 LANE NOTE マニュアル</span>
-    <h2 id="mbT">さっさと仕事を終わらせて、寝ちゃおう。</h2>
+    <h2 id="mbT">さっさと仕事を終わらせて、寝ちゃえ。</h2>
     <p>はじめまして、<b>レーンちゃん</b>です！ ウサギとカメのお話では、ウサギは途中で寝てしまって負けました。でも、LANE NOTE のウサギは<b>先に仕事を終わらせてから</b>寝ます。</p>
     <p>大会の準備も、記録の整理も、手で打つと何時間もかかりますよね。このブログでは「どのボタンを押せば、何ができあがるか」を、場面ごとにやさしく説明します。気になる記事から読んでください。</p>
-    <a class="mb-btn" href="#a-features">🐰 こんな機能があるよ！</a><a class="mb-btn sub" href="try.html">⏱ 3分体験（架空のデータ）</a>
+    <a class="mb-btn" href="#a-features">🐰 こんな機能があるよ！</a><a class="mb-btn sub" href="#list">📅 大会の1日の順に読む</a><a class="mb-btn sub" href="try.html">⏱ 3分体験（架空のデータ）</a>
   </div>
   <img src="__IMG_lc_wave__" width="144" height="240" alt="手をふってあいさつするレーンちゃん">
 </section>
@@ -81,7 +92,7 @@ __CARDS__
 
 __ARTICLES__
 
-<div class="mb-end"><img src="__IMG_lc_sleep__" width="312" height="360" alt="チェックリストを終えて眠るレーンちゃん" loading="lazy"><p>ここまで読んでくれて、ありがとう！ わからないところは「≡ メニュー」の <b>🔰 はじめての人はこちら</b> にくわしい説明とデータの取り扱いがあります。困ったことや要望は「🚨 不具合・要望を送る」から送ってください。<br>今日も仕事を早く終わらせて、ゆっくり寝ようね。おやすみなさい…💤</p></div>
+<div class="mb-end"><img src="__IMG_lc_sleep__" width="312" height="360" alt="チェックリストを終えて眠るレーンちゃん" loading="lazy"><p>ここまで読んでくれて、ありがとう！ わからないところは「≡ メニュー」の <b>🔰 はじめての人はこちら</b> にくわしい説明とデータの取り扱いがあります。困ったことや要望は「📮 不具合・要望を送る」から送ってください。<br>今日も仕事を早く終わらせて、ゆっくり寝ようね。おやすみなさい…💤</p></div>
 
 <section class="box" id="disclaimer"><h2>⚠ 試作版について・免責</h2><p>機能や画面は予告なく変わることがあります。記録が消えたり読み取りを間違えたりする可能性があるので、大事な記録は元の結果資料でも確認してください。この記事に出てくる学校名・選手名・記録はすべて架空のものです。</p><div class="notice">⚠ <b>試作版です。</b><button type="button" class="fb-link" data-feedback="1">📮 不具合・要望を送る</button>　本ツールはPDFの文字を読み取って自動で整理しているだけです。内容は必ず元のスタートリスト・タイムテーブル等と照らし合わせ、最終的には目で確認してください。本ツールの利用により生じた不利益について、作成者は責任を負いかねます。</div></section>
 <p class="small muted" style="text-align:center">LANE NOTE __VERSION__ ／ https://lane-note.web.app/</p>
@@ -90,6 +101,16 @@ __ARTICLES__
 <script>
 __MODE__
 document.addEventListener('DOMContentLoaded', function () { LaneMode.init(); });
+</script>
+<script>
+/* v0.32.0 スマホ（640px以下）は記事を1つずつ開く。リンク（#a-…）で開く */
+(function () {
+  var mq = window.matchMedia && matchMedia('(max-width:640px)'); if (!mq || !mq.matches) return;
+  var arts = [].slice.call(document.querySelectorAll('.mb-art'));
+  arts.forEach(function (a) { a.classList.add('acc'); a.querySelector('h2').addEventListener('click', function () { var was = a.classList.contains('open'); arts.forEach(function (x) { x.classList.remove('open'); }); if (!was) { a.classList.add('open'); a.scrollIntoView(); } }); });
+  function fromHash() { var id = decodeURIComponent(location.hash.slice(1)); if (!id) return; var t = document.getElementById(id); var a = t && t.closest && t.closest('.mb-art'); if (a) { arts.forEach(function (x) { x.classList.toggle('open', x === a); }); (t === a ? a : t).scrollIntoView(); } }
+  window.addEventListener('hashchange', fromHash); fromHash();
+})();
 </script>
 __FBSCRIPTS__
 </body>

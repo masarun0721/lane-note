@@ -13,10 +13,10 @@ import base64, hashlib, html as htmlmod, json, pathlib, re, sys
 ROOT = pathlib.Path(__file__).resolve().parent
 S = ROOT / 'src'
 SHARE_BASE = 'https://lane-note.web.app/'   # 共有リンク・QRの公開アドレス。src/mode.js の LANE_SITE と同じにする（build で確かめる）
-VERSION = 'v0.31.11'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
+VERSION = 'v0.32.0'   # 画面右上と「このツールについて」の両方に出る版。公開のたびに上げる
 # 作成日は版番号から取れないので固定（ビルドした日で変わると、公開時の一致検査ができないため）
 BUILD_DATE = '2026年10月12日'
-REC_VERSION = 'v0.11.5'   # LANE LOG（records.html）だけの版
+REC_VERSION = 'v0.11.6'   # LANE LOG（records.html）だけの版
 REC_BUILD_DATE = '2026年10月12日'
 
 
@@ -90,7 +90,7 @@ def build():
     guide = guide[:guide.rindex('</body>')] + tips + guide[guide.rindex('</body>'):]
     # 3分体験は Firebase・中継を読み込まない（v0.26.6）。「不具合・要望を送る」は記録のページで開く（?fb=1）
     trial = with_nav(trial, 'try').replace('__TOPBAR__', '').replace('__FBSCRIPTS__', '')
-    trial = trial.replace('<button type="button" class="tb-btn fb-link" data-feedback="1" data-tb="feedback">🚨 不具合・要望を送る</button>', '<a href="records.html?fb=1" class="tb-btn fb-link" data-tb="feedback">🚨 不具合・要望を送る</a>', 1)
+    trial = trial.replace('<button type="button" class="tb-btn fb-link" data-feedback="1" data-tb="feedback">📮 不具合・要望を送る</button>', '<a href="records.html?fb=1" class="tb-btn fb-link" data-tb="feedback">📮 不具合・要望を送る</a>', 1)
     assert 'records.html?fb=1' in trial
     trial = trial.replace('__MODEPICK__', MODEPICK).replace('__MODE__', (text('src/mode.js') + '\n' + text('src/plans.js')))
     team = build_team(rec)
@@ -149,10 +149,14 @@ def build_manual():
     g = text('src/manual_template.html')
     for t in (g, text('src/manual_articles.html')):
         assert not re.search('分け合う|jaaf|JAAF用|masarun', t)
-    arts = re.findall(r'<article id="([^"]+)" data-title="([^"]+)" data-lead="([^"]+)" data-tag="([^"]+)"(?: data-shot="([^"]+)")? data-lc="([^"]+)">(.*?)</article>', text('src/manual_articles.html'), re.S)
+    arts = re.findall(r'<article id="([^"]+)" data-title="([^"]+)" data-lead="([^"]+)" data-tag="([^"]+)"(?: data-shot="([^"]+)")? data-lc="([^"]+)"(?: data-ch="([^"]+)")?>(.*?)</article>', text('src/manual_articles.html'), re.S)
     assert len(arts) >= 8, len(arts)
-    cards, body = [], []
-    for i, (aid, title, lead, tag, shot, lc, inner) in enumerate(arts):
+    cards, body, prev = [], [], None
+    for i, (aid, title, lead, tag, shot, lc, ch, inner) in enumerate(arts):
+        if ch and ch != prev:   # v0.32.0 「大会の1日」の章
+            prev = ch
+            cards.append('<h3 class="mb-ch">%s</h3>' % ch)
+            body.append('<h2 class="mb-chh">%s</h2>' % ch)
         th = ('<div class="mb-thumb"><img class="shot" src="%s" alt="" loading="lazy" width="320" height="200"><img class="lc" src="%s" alt="" loading="lazy"></div>' % (img_url(shot), img_url(lc))) if shot else ('<div class="mb-thumb solo"><img class="lc" src="%s" alt="" loading="lazy"></div>' % img_url(lc))
         cards.append('<a class="mb-card" href="#%s">%s<div class="mb-cb"><span class="mb-tag%s">%s</span><h3>%s</h3><p>%s</p></div></a>' % (aid, th, '' if i else ' n', tag, title, lead))
         n = [0]
@@ -301,6 +305,7 @@ def build_guide():
     for k, v in rep.items():
         assert k in g or k == '__MODEBTN__', k
         g = g.replace(k, v)
+    g = re.sub(r'__IMG_([a-z_]+)__', lambda m: img_url(m.group(1)) or (_ for _ in ()).throw(AssertionError(m.group(1))), g)   # v0.32.0 レーンちゃん
     return g
 
 
@@ -364,7 +369,7 @@ def hdrnav(cur=''):
     for k in ['team', 'manual', 'guide', 'try']:
         href, cls, label = {x[0]: x[1:] for x in NAV_SUB}[k]
         h += '<a href="%s" class="tb-btn tb-guide %s%s" data-tb="%s"%s>%s</a>' % (href, cls, ' on' if k == cur else '', k, ' aria-current="page"' if k == cur else '', label)
-    h += '<button type="button" class="tb-btn fb-link" data-feedback="1" data-tb="feedback">🚨 不具合・要望を送る</button>' + MODEBTN + '</div>' + NAV_CSS + NAV_JS + '</nav>'
+    h += '<button type="button" class="tb-btn fb-link" data-feedback="1" data-tb="feedback">📮 不具合・要望を送る</button>' + MODEBTN + '</div>' + NAV_CSS + NAV_JS + '</nav>'
     return h
 
 

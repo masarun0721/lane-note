@@ -25,6 +25,7 @@ await check('開いただけでは動画を読み込まない・ポスターが�
   for (const w of [1280, 390]) { const p = await b.newPage(); await p.setViewport({ width: w, height: 800, isMobile: w < 800 }); const got = [];
     p.on('request', r => got.push(r.url())); await p.goto(B + 'manual.html', { waitUntil: 'load' }); await sl(600);
     assert.ok(!got.some(u => u.includes('.mp4')), 'mp4 preloaded');
+    if (w < 800) { await p.evaluate(() => { location.hash = '#a-data'; }); await sl(300); }   // v0.32.0 スマホは記事を開いてから
     await p.$eval('#a-data .mb-video', e => e.scrollIntoView()); await sl(500);
     const r = await p.evaluate(() => ({ sw: document.documentElement.scrollWidth, vw: innerWidth, vwid: document.querySelector('#a-data video').getBoundingClientRect().width }));
     assert.ok(r.sw <= r.vw, w + ' はみ出し'); assert.ok(r.vwid > 200);
