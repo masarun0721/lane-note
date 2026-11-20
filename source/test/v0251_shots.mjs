@@ -90,6 +90,33 @@ await both('use_home', async vp => {
   const c = await open('index.html', 'coach', PC); await meet(c); const str = await c.evaluate(async () => { const A = window.__meetApp, rows = A.state.rows || [], a = PlayerLogic.athletes(rows)[0]; return A.encodePayload(PlayerLogic.payloadFor(rows, a, { n: '第1回 架空区 中学校陸上競技大会', d: '2026年10月25日', pl: '架空市 陸上競技場', cp: '招集所（メインスタンド下）' })); }); await c.close();
   return open('index.html', 'player', vp, p => p.evaluate(s => localStorage.setItem('lanenote.player.v1.demo00001', JSON.stringify({ kind: 'p', p: s, at: new Date().toISOString(), exp: null })), str));
 });
+// v0.32.1 「こんなのが作れます」：できあがりの紙・ページだけを切り出す（架空のデータ・幅800前後・縦は最大1100）
+const DOC = { width: 860, height: 1200, deviceScaleFactor: 1 };
+async function gal(name, setup) {
+  if (!want(name)) return;
+  try { const [p, el] = await setup(); await sleep(400); const r = await el.boundingBox(); const h = Math.min(Math.round(r.height), 1100);
+    await el.screenshot({ path: path.join(IMG, name + '.webp'), type: 'webp', quality: 62, clip: { x: 0, y: 0, width: Math.round(r.width), height: h } }); console.log('  img', name, Math.round(r.width) + 'x' + h); await p.close(); } catch (e) { console.log('  NG', name, e.message); }
+}
+async function calls(p) { await p.evaluate(() => { for (const [k, v] of [['cT0', 30], ['cT1', 20], ['cF0', 40], ['cF1', 30], ['cD0', 30], ['cD1', 20], ['cR0', 30], ['cR1', 20], ['cPlace', '第2招集所']]) { const e = document.getElementById(k); if (!e) continue; e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); } window.__meetApp.render(); }); await sleep(500); }
+async function inFrame(p, id, sel) { const f = await (await p.$('#' + id)).contentFrame(); await sleep(600); return f.$(sel); }
+await gal('gal_time', async () => { const p = await open('index.html', 'coach', DOC); await meet(p); await calls(p); await p.evaluate(() => document.getElementById('btnPrintView').click()); await sleep(1200); return [p, await inFrame(p, 'docFrame', '#printTime')]; });
+await gal('gal_rec', async () => { const q = await open('records.html?demo=1', 'coach', DOC); await recs(q); await q.close(); const p = await open('index.html', 'coach', DOC); await meet(p); await calls(p); await p.evaluate(() => document.getElementById('btnRecView').click()); await sleep(1500); return [p, await inFrame(p, 'docFrame', '#recSheet')]; });
+await gal('gal_parent', async () => { const p = await open('index.html', 'coach', DOC); await meet(p); await p.evaluate(() => document.getElementById('btnParent').click()); await sleep(900);
+  await p.evaluate(() => { const e = document.querySelector('#ntEdit [data-t="school"]'); if (e) { e.value = '架空区立第一中学校'; e.dispatchEvent(new Event('input', { bubbles: true })); } document.getElementById('pvView').click(); }); await sleep(2000); return [p, await inFrame(p, 'pvFrame', 'body')]; });
+await gal('gal_player', async () => { const c = await open('index.html', 'coach', DOC); await meet(c); await calls(c);
+  await c.evaluate(() => { const d = new Date(Date.now() + 9 * 864e5), e = document.getElementById('meetDate'); e.value = d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日'; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); window.__meetApp.render(); }); await c.evaluate(() => document.getElementById('btnPlayers').click()); await sleep(800);
+  await c.evaluate(() => [...document.querySelectorAll('#playerDlg button')].find(b => /全員分のリンクを作る/.test(b.textContent)).click()); await sleep(2000);
+  const u = await c.evaluate(() => [...document.querySelectorAll('#playerDlg a[href], #playerDlg input')].map(a => a.href || a.value || '').find(h => h.includes('#p='))); await c.close();
+  const p = await open('index.html', 'player', { width: 390, height: 1000, deviceScaleFactor: 2, isMobile: true, hasTouch: true }); await p.goto(B + 'index.html' + u.slice(u.indexOf('#')), { waitUntil: 'domcontentloaded' }); await sleep(1500);
+  await p.addStyleTag({ content: '.status.ng,p.ng{display:none!important}' }).catch(() => {}); return [p, await p.$('body')]; });
+await gal('gal_ath', async () => { const p = await open('records.html?demo=1', 'coach', DOC); await recs(p);
+  await p.evaluate(() => { window.__t.setTab('ath'); document.querySelector('#rbView [data-print="pick"][data-act="view"]').click(); }); await sleep(600);
+  await p.evaluate(() => { const cb = [...document.querySelectorAll('#rbPrintBody input[type=checkbox]')]; const want = cb.findIndex(c => /架空 一郎/.test((c.closest('label, tr, li') || c.parentElement).textContent)); cb.forEach((c, i) => { if (c.checked !== (i === Math.max(0, want))) c.click(); }); const b = [...document.querySelectorAll('#rbPrintBody button')].find(b => /PDFにまとめる|画面で見る|作る/.test(b.textContent)); b.click(); }); await sleep(1500);
+  return [p, await p.$('#rbPrintBody .lp-page')]; });
+await gal('gal_rank', async () => { const p = await open('records.html?demo=1', 'coach', DOC); await recs(p); await p.evaluate(() => { window.__t.setTab('rank'); }); await sleep(500);
+  await p.evaluate(() => document.querySelector('[data-print="rank-all"][data-act="view"]').click()); await sleep(1500); return [p, await p.$('#rbPrintBody .lp-page')]; });
+await gal('gal_review', async () => { const p = await open('records.html?demo=1', 'coach', DOC); await recs(p); await p.evaluate(() => { window.__t.setTab('ath'); document.querySelector('#rbView [data-print="rpick"][data-act="view"]').click(); }); await sleep(400);
+  await p.evaluate(() => { const t = document.querySelector('#rbPrintBody textarea[data-rvnote]'); if (t) { t.value = '春から大きく伸びました。来年も楽しみです！'; t.dispatchEvent(new Event('input', { bubbles: true })); } document.querySelector('[data-rvmake]').click(); }); await sleep(1500); return [p, await p.$('#rbPrintBody .lp-page, #rbPrintBody section')]; });
 // 画面ごとのボタンの絵（小さめ・スマホ幅）
 for (const [name, pg, mode] of [['btn_meet', 'index.html', 'coach'], ['btn_records', 'records.html', 'coach'], ['btn_check', 'check.html', 'coach'], ['btn_player', 'index.html', 'player']]) {
   if (!want(name)) continue;

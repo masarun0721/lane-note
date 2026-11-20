@@ -56,6 +56,28 @@ __BASE_CSS__
   .mb-art.acc.open>h2::after{content:'－'}
   .mb-art.acc:not(.open)>:not(h2):not(.mb-tag){display:none}
 }
+
+/* v0.32.1 こんなのが作れます（できあがりの見本・架空の選手） */
+.gl{margin:6px 0 22px}.gl .say{margin:6px 0 12px}
+.gl-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px}
+.gl-card{margin:0;display:flex;flex-direction:column;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.gl-img{position:relative;display:block;aspect-ratio:4/3;background:#eef2f8;overflow:hidden;border-bottom:1px solid var(--line);cursor:zoom-in}
+.gl-img img{width:100%;height:100%;object-fit:cover;object-position:left top;display:block}
+.gl-zoom{position:absolute;right:8px;bottom:8px;background:rgba(20,30,60,.82);color:#fff;font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px}
+.gl-card figcaption{padding:10px 14px 14px;display:flex;flex-direction:column;flex:1}
+.gl-card h3{margin:0 0 4px;font-size:17px;color:var(--navy)}.gl-lead{margin:0 0 8px;font-size:14px;line-height:1.6;color:#444}
+.gl-how{display:inline-block;align-self:flex-start;font-size:12px;background:#fff1e8;color:#b44d1d;border-radius:999px;padding:2px 10px;margin-bottom:4px}
+.gl-card ol{margin:2px 0 8px;padding-left:1.4em;font-size:14px;line-height:1.65}.gl-card li{margin:2px 0}
+.gl-more{margin-top:auto;align-self:flex-end;font-weight:700;color:var(--navy);text-decoration:none;padding:6px 2px}.gl-more:hover{text-decoration:underline}
+.gl-lb{position:fixed;inset:0;z-index:9999;background:rgba(10,15,30,.88);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:48px 10px 20px;cursor:zoom-out}
+.gl-lb[hidden]{display:none}.gl-lb img{max-width:min(900px,100%);height:auto;background:#fff;border-radius:6px;box-shadow:0 4px 24px rgba(0,0,0,.4)}
+.gl-x{position:fixed;top:8px;right:10px;min-height:40px;font-size:15px;font-weight:700;border:0;border-radius:999px;padding:6px 14px;background:#fff;color:var(--navy);cursor:pointer}
+@media (max-width:640px){
+  .gl-row{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;padding:2px 2px 10px;margin:0 -12px;padding-left:12px;scroll-padding-left:12px;-webkit-overflow-scrolling:touch}
+  .gl-card{flex:0 0 84%;scroll-snap-align:start}
+  .gl-img{aspect-ratio:3/4}
+  .gl-row::after{content:'';flex:0 0 4px}
+}
 </style>
 </head>
 <body class="guide manual-blog">
@@ -80,10 +102,25 @@ __MODEPICK__
     <h2 id="mbT">さっさと仕事を終わらせて、寝ちゃえ。</h2>
     <p>はじめまして、<b>レーンちゃん</b>です！ ウサギとカメのお話では、ウサギは途中で寝てしまって負けました。でも、LANE NOTE のウサギは<b>先に仕事を終わらせてから</b>寝ます。</p>
     <p>大会の準備も、記録の整理も、手で打つと何時間もかかりますよね。このブログでは「どのボタンを押せば、何ができあがるか」を、場面ごとにやさしく説明します。気になる記事から読んでください。</p>
-    <a class="mb-btn" href="#a-features">🐰 こんな機能があるよ！</a><a class="mb-btn sub" href="#list">📅 大会の1日の順に読む</a><a class="mb-btn sub" href="try.html">⏱ 3分体験（架空のデータ）</a>
+    <a class="mb-btn" href="#a-features">🐰 こんな機能があるよ！</a><a class="mb-btn sub" href="#gallery">🖼 こんなのが作れます</a><a class="mb-btn sub" href="#list">📅 大会の1日の順に読む</a><a class="mb-btn sub" href="try.html">⏱ 3分体験（架空のデータ）</a>
   </div>
   <img src="__IMG_lc_wave__" width="144" height="240" alt="手をふってあいさつするレーンちゃん">
 </section>
+
+<section class="gl" id="gallery" aria-labelledby="glT">
+  <h2 class="mb-h" id="glT">🖼 こんなのが作れます</h2>
+  <div class="say"><img src="__IMG_lc_point_face__" alt="レーンちゃん（指さし）"><div class="bb"><span class="who">レーンちゃん</span>たとえば、こんなのがすぐ作れるよ！ 写真を押すと大きく見られるよ。（選手はみんな架空です）</div></div>
+  <div class="gl-row">
+<figure class="gl-card"><a class="gl-img" href="__IMG_gal_time__" data-lb="部員だけの時間表（出場一覧）" aria-label="部員だけの時間表（出場一覧）（大きく見る）"><img src="__IMG_gal_time__" alt="部員だけの時間表（出場一覧）（架空の選手）" loading="lazy"><span class="gl-zoom">🔍 大きく見る</span></a><figcaption><h3>部員だけの時間表（出場一覧）</h3><p class="gl-lead">招集の時刻・組・レーンまで、自校の選手だけを時間順に。A4 1枚で配れます。</p><b class="gl-how">これを作るには</b><ol><li>「🏁 大会準備」で、スタートリストとタイムテーブルのPDFを入れる</li><li>学校・クラブ名を入れて、自分の学校を選ぶ</li><li>「🕒 時間順（A4）」の「👀 画面で見る」→「📄 PDF作成」か「🖨 印刷」</li></ol><a class="gl-more" href="#a-day">くわしく→</a></figcaption></figure>
+<figure class="gl-card"><a class="gl-img" href="__IMG_gal_rec__" data-lb="当日に書きこむ記録用紙" aria-label="当日に書きこむ記録用紙（大きく見る）"><img src="__IMG_gal_rec__" alt="当日に書きこむ記録用紙（架空の選手）" loading="lazy"><span class="gl-zoom">🔍 大きく見る</span></a><figcaption><h3>当日に書きこむ記録用紙</h3><p class="gl-lead">選手ごとにPB（これまでのベスト）と前回の記録入り。ベスト更新がその場でわかります。</p><b class="gl-how">これを作るには</b><ol><li>大会準備で、時間表と同じようにPDFを入れる</li><li>「📝 記録用紙（A4）」の「👀 画面で見る」で確かめる</li><li>「📄 PDF作成」か「🖨 印刷」</li></ol><a class="gl-more" href="#a-sheet">くわしく→</a></figcaption></figure>
+<figure class="gl-card"><a class="gl-img" href="__IMG_gal_player__" data-lb="選手のスマホに、自分だけの予定" aria-label="選手のスマホに、自分だけの予定（大きく見る）"><img src="__IMG_gal_player__" alt="選手のスマホに、自分だけの予定（架空の選手）" loading="lazy"><span class="gl-zoom">🔍 大きく見る</span></a><figcaption><h3>選手のスマホに、自分だけの予定</h3><p class="gl-lead">招集と試合の時刻が、その選手の分だけ並びます。リンクやQRで送るだけ。</p><b class="gl-how">これを作るには</b><ol><li>大会準備で、時間表を作る</li><li>「🏃 選手用リンクを作る」を押す</li><li>「全員分のリンクを作る」→「全員分をまとめてコピー（LINE用）」で送る</li></ol><a class="gl-more" href="#a-day">くわしく→</a></figcaption></figure>
+<figure class="gl-card"><a class="gl-img" href="__IMG_gal_parent__" data-lb="保護者へのお知らせ" aria-label="保護者へのお知らせ（大きく見る）"><img src="__IMG_gal_parent__" alt="保護者へのお知らせ（架空の選手）" loading="lazy"><span class="gl-zoom">🔍 大きく見る</span></a><figcaption><h3>保護者へのお知らせ</h3><p class="gl-lead">大会名・日にち・会場・集合時刻・出場選手表が入ったお知らせ。Wordでも保存できます。</p><b class="gl-how">これを作るには</b><ol><li>大会準備で、時間表を作る</li><li>「👪 保護者へのお知らせ」を押し、集合時刻や持ち物を入れる</li><li>「👀 画面で見る」→「📄 PDF作成」か「📝 Wordで保存（.docx）」</li></ol><a class="gl-more" href="#a-parent">くわしく→</a></figcaption></figure>
+<figure class="gl-card"><a class="gl-img" href="__IMG_gal_ath__" data-lb="選手ごとの個人表（PB・グラフ）" aria-label="選手ごとの個人表（PB・グラフ）（大きく見る）"><img src="__IMG_gal_ath__" alt="選手ごとの個人表（PB・グラフ）（架空の選手）" loading="lazy"><span class="gl-zoom">🔍 大きく見る</span></a><figcaption><h3>選手ごとの個人表（PB・グラフ）</h3><p class="gl-lead">種目ごとのベストと、記録の伸びのグラフを1人1ページに。</p><b class="gl-how">これを作るには</b><ol><li>「📒 記録」で大会の結果を取り込む</li><li>「選手別」の「個人表（選手を選ぶ）」で「👀 画面で見る」</li><li>選手にチェックを入れて「🖨 PDFにまとめる」</li></ol><a class="gl-more" href="#a-print">くわしく→</a></figcaption></figure>
+<figure class="gl-card"><a class="gl-img" href="__IMG_gal_rank__" data-lb="部内ランキング" aria-label="部内ランキング（大きく見る）"><img src="__IMG_gal_rank__" alt="部内ランキング（架空の選手）" loading="lazy"><span class="gl-zoom">🔍 大きく見る</span></a><figcaption><h3>部内ランキング</h3><p class="gl-lead">種目ごとの部内の順位を、シーズンの記録から自動で。</p><b class="gl-how">これを作るには</b><ol><li>「📒 記録」で大会の結果を取り込む</li><li>「部内ランキング」を開く</li><li>「全種目」の「👀 画面で見る」→「📄 PDF作成」</li></ol><a class="gl-more" href="#a-records">くわしく→</a></figcaption></figure>
+<figure class="gl-card"><a class="gl-img" href="__IMG_gal_review__" data-lb="今年のふりかえりシート" aria-label="今年のふりかえりシート（大きく見る）"><img src="__IMG_gal_review__" alt="今年のふりかえりシート（架空の選手）" loading="lazy"><span class="gl-zoom">🔍 大きく見る</span></a><figcaption><h3>今年のふりかえりシート</h3><p class="gl-lead">1人A4 1枚。今年のベストとひとことを入れて、面談や保護者会に。</p><b class="gl-how">これを作るには</b><ol><li>「📒 記録」で大会の結果を取り込む</li><li>「選手別」の「ふりかえりシート（選手を選ぶ）」で「👀 画面で見る」</li><li>ひとことを書いて、選手を選んで作る</li></ol><a class="gl-more" href="#a-print">くわしく→</a></figcaption></figure>
+  </div>
+</section>
+<div class="gl-lb" id="glLb" hidden><button type="button" class="gl-x" aria-label="閉じる">✕ 閉じる</button><img alt=""></div>
 
 <h2 class="mb-h" id="list">記事の一覧</h2>
 <div class="mb-cards">
@@ -101,6 +138,15 @@ __ARTICLES__
 <script>
 __MODE__
 document.addEventListener('DOMContentLoaded', function () { LaneMode.init(); });
+</script>
+<script>
+/* v0.32.1 見本の写真を押すと大きく見る（JSが無いときは画像そのものを開く） */
+(function () {
+  var lb = document.getElementById('glLb'); if (!lb) return; var im = lb.querySelector('img');
+  function close() { lb.hidden = true; im.removeAttribute('src'); document.body.style.overflow = ''; }
+  document.addEventListener('click', function (e) { var a = e.target.closest && e.target.closest('a[data-lb]'); if (a) { e.preventDefault(); im.src = a.getAttribute('href'); im.alt = a.getAttribute('data-lb'); lb.hidden = false; lb.scrollTop = 0; document.body.style.overflow = 'hidden'; return; } if (!lb.hidden && lb.contains(e.target)) close(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !lb.hidden) close(); });
+})();
 </script>
 <script>
 /* v0.32.0 スマホ（640px以下）は記事を1つずつ開く。リンク（#a-…）で開く */
